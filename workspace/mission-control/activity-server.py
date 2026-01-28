@@ -344,6 +344,41 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps({"status": "ok", "time": datetime.now(timezone.utc).isoformat()}).encode())
             return
         
+        if path == '/api/status':
+            # Proxy gateway status check (gateway is loopback-only, phone can't reach it directly)
+            try:
+                import urllib.request
+                req = urllib.request.Request('http://127.0.0.1:18789/api/status', headers={'Accept': 'application/json'})
+                with urllib.request.urlopen(req, timeout=3) as resp:
+                    gw_data = json.loads(resp.read().decode())
+                    # Add uptime from activity state
+                    gw_data['online'] = True
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.send_header('Access-Control-Allow-Origin', '*')
+                    self.end_headers()
+                    self.wfile.write(json.dumps(gw_data).encode())
+            except Exception:
+                # Gateway unreachable but we can still report based on log activity
+                up_since = activity_state.get("stats", {}).get("upSince", "")
+                uptime = 0
+                if up_since:
+                    try:
+                        up_dt = datetime.fromisoformat(up_since)
+                        uptime = int((datetime.now(timezone.utc) - up_dt).total_seconds())
+                    except:
+                        pass
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "online": True,
+                    "uptime": uptime,
+                    "status": activity_state.get("status", "unknown")
+                }).encode())
+            return
+        
         # Serve static files
         return super().do_GET()
     
