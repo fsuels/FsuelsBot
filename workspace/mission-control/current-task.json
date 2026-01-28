@@ -4,22 +4,10 @@
     "emoji": "🤖",
     "model": "claude-opus-4.5",
     "status": "working",
-    "task": "Overnight improvement — Council debating ultimate agent system",
-    "taskId": "MC-NIGHT",
+    "task": "Security hardening + dispatching improvement tasks to team",
+    "taskId": "MC-SEC",
     "project": "Agent System",
-    "startTime": "2:50 AM"
+    "startTime": "11:48 AM"
   },
-  "agents": [
-    {
-      "name": "The Council",
-      "emoji": "🏛️",
-      "role": "Board of Advisors",
-      "model": "multi-ai",
-      "status": "working",
-      "task": "Debating: Perfect Memory + Task Completion Guarantees + Self-Improvement (Full Feedback Loop)",
-      "progress": 15,
-      "startTime": "2:50 AM",
-      "skill": "council"
-    }
-  ]
+  "agents": []
 }

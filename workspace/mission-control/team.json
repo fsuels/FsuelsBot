@@ -26,8 +26,8 @@
       "status": "idle",
       "description": "Deep research via Gemini CLI. Competitor intel, market analysis, trend spotting.",
       "capabilities": ["Web Research", "Competitor Analysis", "Market Trends", "Data Synthesis"],
-      "lastActive": "2026-01-27T21:00:00-05:00",
-      "tasksCompleted": 8,
+      "lastActive": "2026-01-28T12:15:00-05:00",
+      "tasksCompleted": 9,
       "color": "#3fb950"
     },
     {
@@ -68,7 +68,7 @@
       "avatar": null,
       "model": "multi-ai",
       "skill": "council",
-      "status": "idle",
+      "status": "working",
       "description": "6 AIs debating every big decision. Grok, ChatGPT, Gemini, Open Arena + Opus judge.",
       "capabilities": ["Strategy Debates", "Multi-AI Analysis", "Decision Making", "Critical Review"],
       "lastActive": "2026-01-27T22:00:00-05:00",
@@ -131,8 +131,8 @@
       "status": "idle",
       "description": "Catches errors, logs learnings, promotes insights. The system's self-improvement engine.",
       "capabilities": ["Error Tracking", "Pattern Detection", "Knowledge Base", "Process Improvement"],
-      "lastActive": "2026-01-28T02:00:00-05:00",
-      "tasksCompleted": 15,
+      "lastActive": "2026-01-28T11:52:00-05:00",
+      "tasksCompleted": 16,
       "color": "#3fb950"
     }
   ]

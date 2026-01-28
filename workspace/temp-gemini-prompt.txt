@@ -1,0 +1,25 @@
+I'm designing the optimal AI specialist team for a solopreneur. This person runs an e-commerce dropshipping business (Shopify), has side projects (a legal doc generator app, a restaurant reservation app), and uses Clawdbot (a personal AI assistant framework) on Windows locally. The team is displayed on a dashboard. Fixed AI budget: Claude Max $100/month (Opus 4.5 + Sonnet unlimited), ChatGPT Pro (flat), X/Grok (included), Gemini CLI (free). All sub-agents share the same Claude Max token pool.
+
+Current team of 9 specialists:
+1) Orchestrator (Opus 4.5) - delegates, decides, communicates
+2) Research Analyst (Gemini 2.5 Pro) - web research, competitor analysis
+3) Content Creator (Sonnet) - tweets, threads, social copy
+4) Editor/Humanizer (Sonnet) - AI detection removal, natural writing
+5) Council/Advisors (multi-AI) - strategy debates
+6) Developer (Sonnet) - scripts, tools, automation
+7) DevOps (Sonnet) - GitHub, CI/CD, code review
+8) AI Engineer/Prompt Architect (Opus 4.5) - prompt design, system instructions
+9) QA/Intern (Sonnet) - error tracking, self-improvement
+
+PROBLEM: Most specialists are often idle. The structure may not be optimal.
+
+I need the BEST possible team - not fixing what exists, but fundamentally rethinking from scratch. Answer ALL of these:
+1) Do we have the RIGHT specialists? Any redundant? Any missing? Should any be merged?
+2) How should work be dispatched? Manual? Auto-routing? Event-driven?
+3) How do we prevent idle specialists? Standing orders? Recurring work?
+4) What is the optimal team size? Is 9 too many?
+5) How should the dashboard track real-time status?
+6) Should specialists have AUTONOMY to self-assign work?
+7) Token economy: how to balance team activity with token efficiency when all sub-agents burn from the same Claude Max subscription?
+
+Think RADICALLY. What would the BEST personal AI team look like if designed from scratch today?
