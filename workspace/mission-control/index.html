@@ -379,87 +379,95 @@
 
   /* Agent cards grid */
   .agents-section-title {
-    font-size: 12px;
+    font-size: 13px;
     text-transform: uppercase;
     letter-spacing: 1.5px;
     color: var(--text-dim);
-    padding-left: 4px;
+    padding: 4px 0;
+    font-weight: 700;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 4px;
   }
   .agents-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
   }
   .agent-card {
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px;
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 16px;
     transition: all 0.2s ease;
     position: relative;
   }
-  .agent-card:hover { border-color: rgba(88,166,255,0.3); }
-  .agent-card.working { border-left: 3px solid var(--done); }
-  .agent-card.thinking { border-left: 3px solid var(--accent); }
-  .agent-card.idle { border-left: 3px solid var(--text-dim); }
-  .agent-card.done { border-left: 3px solid var(--accent); }
-  .agent-card.error { border-left: 3px solid var(--critical); }
+  .agent-card:last-child { margin-bottom: 0; }
+  .agent-card:hover { border-color: rgba(88,166,255,0.3); box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+  .agent-card.working { border-left: 4px solid var(--done); background: linear-gradient(135deg, rgba(63,185,80,0.04), var(--surface)); }
+  .agent-card.thinking { border-left: 4px solid var(--accent); background: linear-gradient(135deg, rgba(88,166,255,0.04), var(--surface)); }
+  .agent-card.idle { border-left: 4px solid var(--text-dim); }
+  .agent-card.done { border-left: 4px solid var(--accent); background: linear-gradient(135deg, rgba(88,166,255,0.03), var(--surface)); }
+  .agent-card.error { border-left: 4px solid var(--critical); background: linear-gradient(135deg, rgba(248,81,73,0.04), var(--surface)); }
 
   .agent-card-top {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 10px;
+    gap: 14px;
+    margin-bottom: 14px;
   }
   .agent-avatar {
-    width: 40px; height: 40px;
-    border-radius: 10px;
+    width: 52px; height: 52px;
+    border-radius: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
+    font-size: 26px;
     flex-shrink: 0;
   }
-  .agent-card.working .agent-avatar { background: rgba(63,185,80,0.12); }
-  .agent-card.thinking .agent-avatar { background: rgba(88,166,255,0.12); }
-  .agent-card.idle .agent-avatar { background: rgba(139,148,158,0.12); }
-  .agent-card.done .agent-avatar { background: rgba(88,166,255,0.12); }
-  .agent-card.error .agent-avatar { background: rgba(248,81,73,0.12); }
+  .agent-card.working .agent-avatar { background: rgba(63,185,80,0.15); }
+  .agent-card.thinking .agent-avatar { background: rgba(88,166,255,0.15); }
+  .agent-card.idle .agent-avatar { background: rgba(139,148,158,0.15); }
+  .agent-card.done .agent-avatar { background: rgba(88,166,255,0.15); }
+  .agent-card.error .agent-avatar { background: rgba(248,81,73,0.15); }
 
   .agent-card-info { flex: 1; min-width: 0; }
-  .agent-card-name { font-size: 15px; font-weight: 600; }
-  .agent-card-role { font-size: 11px; color: var(--text-dim); }
+  .agent-card-name { font-size: 17px; font-weight: 700; }
+  .agent-card-role { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
   .agent-status-badge {
     font-size: 10px;
-    padding: 2px 8px;
-    border-radius: 8px;
+    padding: 4px 10px;
+    border-radius: 10px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.5px;
   }
-  .agent-card.working .agent-status-badge { background: rgba(63,185,80,0.12); color: var(--done); }
-  .agent-card.thinking .agent-status-badge { background: rgba(88,166,255,0.12); color: var(--accent); }
+  .agent-card.working .agent-status-badge { background: rgba(63,185,80,0.15); color: var(--done); }
+  .agent-card.thinking .agent-status-badge { background: rgba(88,166,255,0.15); color: var(--accent); }
   .agent-card.idle .agent-status-badge { background: rgba(139,148,158,0.15); color: var(--text-dim); }
-  .agent-card.done .agent-status-badge { background: rgba(88,166,255,0.12); color: var(--accent); }
-  .agent-card.error .agent-status-badge { background: rgba(248,81,73,0.12); color: var(--critical); }
+  .agent-card.done .agent-status-badge { background: rgba(88,166,255,0.15); color: var(--accent); }
+  .agent-card.error .agent-status-badge { background: rgba(248,81,73,0.15); color: var(--critical); }
 
   .agent-card-task {
-    font-size: 13px;
-    color: var(--text-dim);
-    line-height: 1.4;
-    margin-bottom: 10px;
-    min-height: 36px;
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.5;
+    margin-bottom: 14px;
+    padding: 10px 14px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 8px;
+    border-left: 2px solid var(--border);
   }
   .agent-progress {
-    height: 3px;
+    height: 4px;
     background: var(--border);
-    border-radius: 3px;
+    border-radius: 4px;
     overflow: hidden;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
   }
   .agent-progress-fill {
     height: 100%;
-    border-radius: 3px;
+    border-radius: 4px;
     transition: width 0.5s ease;
   }
   .agent-card.working .agent-progress-fill { background: var(--done); animation: pulse-bar 2s infinite; }
@@ -471,16 +479,26 @@
   .agent-card-meta {
     display: flex;
     justify-content: space-between;
-    font-size: 11px;
+    align-items: center;
+    font-size: 12px;
     color: var(--text-dim);
+  }
+  .agent-card-meta .agent-model {
+    font-family: monospace;
+    padding: 2px 8px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 4px;
   }
 
   /* No agents empty state */
   .no-agents {
     text-align: center;
-    padding: 24px;
+    padding: 32px;
     color: var(--text-dim);
     font-size: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
   }
 
   /* Legacy hero for fallback */
@@ -936,22 +954,24 @@ function renderActivityOffline() {
 
 function renderAgentCard(agent) {
   const s = agent.status || 'idle';
+  const pct = agent.progress || (s === 'done' ? 100 : s === 'working' ? 50 : 0);
+  const statusEmoji = { working: '⚡', thinking: '🧠', done: '✅', idle: '💤', error: '⚠️' };
   return `<div class="agent-card ${esc(s)}">
     <div class="agent-card-top">
       <div class="agent-avatar">${agent.emoji || '🤖'}</div>
       <div class="agent-card-info">
         <div class="agent-card-name">${esc(agent.name || 'Agent')}</div>
-        <div class="agent-card-role">${esc(agent.role || agent.model || '')}</div>
+        <div class="agent-card-role">${esc(agent.role || 'Sub-agent')}</div>
       </div>
-      <div class="agent-status-badge">${esc(s)}</div>
+      <div class="agent-status-badge">${statusEmoji[s] || '•'} ${esc(s)}</div>
     </div>
     <div class="agent-card-task">${esc(agent.task || 'No task assigned')}</div>
     <div class="agent-progress">
-      <div class="agent-progress-fill" style="width:${agent.progress || (s === 'done' ? 100 : s === 'working' ? 50 : 0)}%"></div>
+      <div class="agent-progress-fill" style="width:${pct}%"></div>
     </div>
     <div class="agent-card-meta">
-      <span>${esc(agent.model || '')}</span>
-      <span>${esc(agent.startTime || '')}</span>
+      <span class="agent-model">${esc(agent.model || 'unknown')}</span>
+      <span>${pct}% · Started ${esc(agent.startTime || '—')}</span>
     </div>
   </div>`;
 }
