@@ -536,6 +536,7 @@
 </header>
 
 <div class="stats-bar" id="statsBar"></div>
+<div class="stats-bar" id="projectBar" style="gap:8px;padding:4px 12px;border-bottom:1px solid var(--border);"></div>
 
 <div class="activity" id="activityView"></div>
 <div class="kanban active" id="kanbanView"></div>
@@ -546,6 +547,7 @@
 
 <script>
 let data = null;
+let activeProject = 'all';
 
 function esc(s) {
   if (s == null) return '';
@@ -574,6 +576,7 @@ function switchView(view, e) {
 function renderCard(task) {
   const blocked = task.blockedReason ? `<div class="blocked-reason">⛔ ${esc(task.blockedReason)}</div>` : '';
   const assigneeLabel = task.assignee === 'clawd' ? '🤖 Clawd' : task.assignee === 'francisco' ? '👤 Francisco' : '👥 Both';
+  const projLabel = task.project === 'agent' ? '<span class="tag" style="background:rgba(210,168,255,0.15);color:#d2a8ff;">🤖 Agent</span>' : '';
   const tags = (task.tags || []).slice(0, 4).map(t => `<span class="tag">${esc(t)}</span>`).join('');
   const benefit = task.benefit ? `<div class="card-benefit">${esc(task.benefit)}</div>` : '';
   const details = task.details ? `<div class="card-details">${esc(task.details)}</div>` : '';
@@ -586,6 +589,7 @@ function renderCard(task) {
       <div class="card-meta">
         <span class="priority-badge priority-${esc(task.priority)}">${esc(task.priority)}</span>
         <span class="assignee-badge">${assigneeLabel}</span>
+        ${projLabel}
         ${tags}
       </div>
       ${blocked}
@@ -596,6 +600,16 @@ function renderCard(task) {
     </div>`;
 }
 
+function filterTasks(tasks) {
+  if (activeProject === 'all') return tasks;
+  return tasks.filter(t => t.project === activeProject);
+}
+
+function setProject(proj) {
+  activeProject = proj;
+  render();
+}
+
 function render() {
   if (!data) return;
   const cols = data.columns;
@@ -603,9 +617,28 @@ function render() {
   const icons = { blocked: '🚫', inProgress: '🔨', todo: '📋', done: '✅' };
   const colors = { blocked: 'var(--blocked)', inProgress: 'var(--progress)', todo: 'var(--todo)', done: 'var(--done)' };
 
+  // Render project filter bar
+  const projects = data.projects || {};
+  const projKeys = Object.keys(projects);
+  if (projKeys.length > 0) {
+    document.getElementById('projectBar').innerHTML = projKeys.map(k => {
+      const p = projects[k];
+      const isActive = activeProject === k;
+      return `<button onclick="setProject('${k}')" style="
+        padding:5px 14px;border-radius:6px;border:1px solid ${isActive ? p.color : 'var(--border)'};
+        background:${isActive ? p.color + '22' : 'transparent'};
+        color:${isActive ? p.color : 'var(--text-dim)'};
+        cursor:pointer;font-size:12px;font-weight:${isActive ? '700' : '500'};
+        transition:all 0.15s;
+      ">${p.icon || ''} ${esc(p.label)}</button>`;
+    }).join('');
+  } else {
+    document.getElementById('projectBar').style.display = 'none';
+  }
+
   let total = 0, critCount = 0, fCount = 0, cCount = 0;
   order.forEach(k => {
-    (cols[k]?.tasks || []).forEach(t => {
+    filterTasks(cols[k]?.tasks || []).forEach(t => {
       total++;
       if (t.priority === 'critical') critCount++;
       if (t.assignee === 'francisco') fCount++;
@@ -626,7 +659,7 @@ function render() {
   order.forEach(k => {
     const col = cols[k];
     if (!col) return;
-    const tasks = col.tasks || [];
+    const tasks = filterTasks(col.tasks || []);
     kanbanHTML += `
       <div class="column">
         <div class="column-header" style="border-left: 3px solid ${colors[k]}">
@@ -658,10 +691,10 @@ function render() {
   document.getElementById('brainView').innerHTML = brainHTML;
 
   // Summary
-  const todoTasks = cols.todo?.tasks || [];
-  const blockedTasks = cols.blocked?.tasks || [];
-  const progressTasks = cols.inProgress?.tasks || [];
-  const doneTasks = cols.done?.tasks || [];
+  const todoTasks = filterTasks(cols.todo?.tasks || []);
+  const blockedTasks = filterTasks(cols.blocked?.tasks || []);
+  const progressTasks = filterTasks(cols.inProgress?.tasks || []);
+  const doneTasks = filterTasks(cols.done?.tasks || []);
   const franciscoTasks = [...todoTasks, ...progressTasks, ...blockedTasks].filter(t => t.assignee === 'francisco' || t.assignee === 'both');
   const clawdTasks = [...todoTasks, ...progressTasks, ...blockedTasks].filter(t => t.assignee === 'clawd' || t.assignee === 'both');
 

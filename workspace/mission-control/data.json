@@ -13,9 +13,14 @@
           "priority": "high",
           "assignee": "francisco",
           "created": "2026-01-26",
-          "tags": ["google", "ads", "conversion-tracking"],
+          "tags": [
+            "google",
+            "ads",
+            "conversion-tracking"
+          ],
           "blockedReason": "Francisco needs to click 'Add' in Shopify Google & YouTube settings",
-          "benefit": "💰 WHAT YOU GAIN: Without this, Google Ads has zero conversion data. You cant optimize ads if you dont know which ones make money."
+          "benefit": "💰 WHAT YOU GAIN: Without this, Google Ads has zero conversion data. You cant optimize ads if you dont know which ones make money.",
+          "project": "dlm"
         }
       ]
     },
@@ -30,8 +35,12 @@
           "priority": "low",
           "assignee": "clawd",
           "created": "2026-01-26",
-          "tags": ["tiktok", "tracking"],
-          "benefit": "💰 WHAT YOU GAIN: TikTok is the #1 discovery platform for fashion. Fix this before running any TikTok ads."
+          "tags": [
+            "tiktok",
+            "tracking"
+          ],
+          "benefit": "💰 WHAT YOU GAIN: TikTok is the #1 discovery platform for fashion. Fix this before running any TikTok ads.",
+          "project": "dlm"
         },
         {
           "id": "MC-010",
@@ -40,8 +49,13 @@
           "priority": "medium",
           "assignee": "francisco",
           "created": "2026-01-27",
-          "tags": ["shopify", "fraud", "security"],
-          "benefit": "💰 WHAT YOU GAIN: Stop losing money to a fraudster. Block in Shopify → Customers."
+          "tags": [
+            "shopify",
+            "fraud",
+            "security"
+          ],
+          "benefit": "💰 WHAT YOU GAIN: Stop losing money to a fraudster. Block in Shopify → Customers.",
+          "project": "dlm"
         },
         {
           "id": "MC-011",
@@ -50,8 +64,13 @@
           "priority": "medium",
           "assignee": "both",
           "created": "2026-01-26",
-          "tags": ["microsoft", "ads", "revenue"],
-          "benefit": "💰 WHAT YOU GAIN: FASTEST path to revenue. 224% ROAS proven. Unpause = money within days."
+          "tags": [
+            "microsoft",
+            "ads",
+            "revenue"
+          ],
+          "benefit": "💰 WHAT YOU GAIN: FASTEST path to revenue. 224% ROAS proven. Unpause = money within days.",
+          "project": "dlm"
         },
         {
           "id": "MC-012",
@@ -60,8 +79,13 @@
           "priority": "medium",
           "assignee": "both",
           "created": "2026-01-26",
-          "tags": ["facebook", "ads", "revenue"],
-          "benefit": "💰 WHAT YOU GAIN: Facebook pixel tracks 7.1K events/month. Even $10/day could drive $1K+/month."
+          "tags": [
+            "facebook",
+            "ads",
+            "revenue"
+          ],
+          "benefit": "💰 WHAT YOU GAIN: Facebook pixel tracks 7.1K events/month. Even $10/day could drive $1K+/month.",
+          "project": "dlm"
         },
         {
           "id": "MC-013",
@@ -70,8 +94,13 @@
           "priority": "high",
           "assignee": "francisco",
           "created": "2026-01-27",
-          "tags": ["facebook", "customer-service", "urgent"],
-          "benefit": "💰 WHAT YOU GAIN: Prevent chargeback ($75 fee). Quick apology + refund costs less."
+          "tags": [
+            "facebook",
+            "customer-service",
+            "urgent"
+          ],
+          "benefit": "💰 WHAT YOU GAIN: Prevent chargeback ($75 fee). Quick apology + refund costs less.",
+          "project": "dlm"
         },
         {
           "id": "MC-014",
@@ -80,8 +109,12 @@
           "priority": "medium",
           "assignee": "francisco",
           "created": "2026-01-26",
-          "tags": ["instagram", "customer-service"],
-          "benefit": "💰 WHAT YOU GAIN: 4 people literally want to buy. Answer them."
+          "tags": [
+            "instagram",
+            "customer-service"
+          ],
+          "benefit": "💰 WHAT YOU GAIN: 4 people literally want to buy. Answer them.",
+          "project": "dlm"
         },
         {
           "id": "MC-015",
@@ -90,8 +123,13 @@
           "priority": "low",
           "assignee": "clawd",
           "created": "2026-01-26",
-          "tags": ["security", "shopify", "bots"],
-          "benefit": "💰 WHAT YOU GAIN: Cleaner analytics = better business decisions."
+          "tags": [
+            "security",
+            "shopify",
+            "bots"
+          ],
+          "benefit": "💰 WHAT YOU GAIN: Cleaner analytics = better business decisions.",
+          "project": "dlm"
         },
         {
           "id": "MC-016",
@@ -100,8 +138,12 @@
           "priority": "medium",
           "assignee": "francisco",
           "created": "2026-01-26",
-          "tags": ["tools", "api"],
-          "benefit": "💰 WHAT YOU GAIN: I can search the internet for you — competitor prices, trends, opportunities."
+          "tags": [
+            "tools",
+            "api"
+          ],
+          "benefit": "💰 WHAT YOU GAIN: I can search the internet for you — competitor prices, trends, opportunities.",
+          "project": "agent"
         },
         {
           "id": "MC-017",
@@ -110,8 +152,12 @@
           "priority": "medium",
           "assignee": "both",
           "created": "2026-01-26",
-          "tags": ["infrastructure", "mac-mini"],
-          "benefit": "💰 WHAT YOU GAIN: 24/7 uptime, no disconnections, free local AI."
+          "tags": [
+            "infrastructure",
+            "mac-mini"
+          ],
+          "benefit": "💰 WHAT YOU GAIN: 24/7 uptime, no disconnections, free local AI.",
+          "project": "agent"
         },
         {
           "id": "MC-027",
@@ -120,8 +166,13 @@
           "priority": "high",
           "assignee": "francisco",
           "created": "2026-01-27",
-          "tags": ["shopify", "api", "seo"],
-          "benefit": "💰 WHAT YOU GAIN: Lets me fix 1,712 missing alt texts, remove 3,758 size tags, clean supplier URLs, optimize titles — all automatically. Without this, each product must be edited by hand."
+          "tags": [
+            "shopify",
+            "api",
+            "seo"
+          ],
+          "benefit": "💰 WHAT YOU GAIN: Lets me fix 1,712 missing alt texts, remove 3,758 size tags, clean supplier URLs, optimize titles — all automatically. Without this, each product must be edited by hand.",
+          "project": "dlm"
         },
         {
           "id": "MC-028",
@@ -130,8 +181,12 @@
           "priority": "low",
           "assignee": "francisco",
           "created": "2026-01-27",
-          "tags": ["pinterest", "billing"],
-          "benefit": "💰 WHAT YOU GAIN: Enables Pinterest ads when ready. Merchant review submitted but billing needed for ads."
+          "tags": [
+            "pinterest",
+            "billing"
+          ],
+          "benefit": "💰 WHAT YOU GAIN: Enables Pinterest ads when ready. Merchant review submitted but billing needed for ads.",
+          "project": "dlm"
         },
         {
           "id": "MC-029",
@@ -140,8 +195,13 @@
           "priority": "medium",
           "assignee": "clawd",
           "created": "2026-01-27",
-          "tags": ["shopify", "seo", "redirects"],
-          "benefit": "💰 WHAT YOU GAIN: Fixes remaining broken locale URLs in Google Search Console. Every 404 fixed = better SEO ranking."
+          "tags": [
+            "shopify",
+            "seo",
+            "redirects"
+          ],
+          "benefit": "💰 WHAT YOU GAIN: Fixes remaining broken locale URLs in Google Search Console. Every 404 fixed = better SEO ranking.",
+          "project": "dlm"
         },
         {
           "id": "MC-030",
@@ -150,8 +210,13 @@
           "priority": "low",
           "assignee": "francisco",
           "created": "2026-01-27",
-          "tags": ["shopify", "navigation", "blog"],
-          "benefit": "💰 WHAT YOU GAIN: More visitors discover blog content = more SEO juice = more organic traffic."
+          "tags": [
+            "shopify",
+            "navigation",
+            "blog"
+          ],
+          "benefit": "💰 WHAT YOU GAIN: More visitors discover blog content = more SEO juice = more organic traffic.",
+          "project": "dlm"
         },
         {
           "id": "MC-031",
@@ -160,9 +225,14 @@
           "priority": "high",
           "assignee": "clawd",
           "created": "2026-01-27",
-          "tags": ["shopify", "seo", "automation"],
+          "tags": [
+            "shopify",
+            "seo",
+            "automation"
+          ],
           "dependsOn": "MC-027",
-          "benefit": "💰 WHAT YOU GAIN: Auto-fix 340 products: add alt text (1,712 images), remove junk tags (3,758), classify product types (101 empty), optimize titles (194). Massive SEO boost."
+          "benefit": "💰 WHAT YOU GAIN: Auto-fix 340 products: add alt text (1,712 images), remove junk tags (3,758), classify product types (101 empty), optimize titles (194). Massive SEO boost.",
+          "project": "dlm"
         },
         {
           "id": "MC-032",
@@ -171,8 +241,13 @@
           "priority": "high",
           "assignee": "francisco",
           "created": "2026-01-27",
-          "tags": ["shopify", "customer-service", "emails"],
-          "benefit": "💰 WHAT YOU GAIN: $627 exposure across 5 customers. Proactive outreach prevents chargebacks ($75 fee each)."
+          "tags": [
+            "shopify",
+            "customer-service",
+            "emails"
+          ],
+          "benefit": "💰 WHAT YOU GAIN: $627 exposure across 5 customers. Proactive outreach prevents chargebacks ($75 fee each).",
+          "project": "dlm"
         }
       ]
     },
@@ -188,8 +263,13 @@
           "priority": "high",
           "assignee": "clawd",
           "created": "2026-01-27",
-          "tags": ["google", "merchant-center", "logos"],
-          "benefit": "💰 WHAT YOU GAIN: Approved logos = products visible in Google Shopping free listings and ads."
+          "tags": [
+            "google",
+            "merchant-center",
+            "logos"
+          ],
+          "benefit": "💰 WHAT YOU GAIN: Approved logos = products visible in Google Shopping free listings and ads.",
+          "project": "dlm"
         },
         {
           "id": "MC-002",
@@ -199,8 +279,13 @@
           "priority": "critical",
           "assignee": "both",
           "created": "2026-01-26",
-          "tags": ["google", "merchant-center", "critical"],
-          "benefit": "💰 WHAT YOU GAIN: Unblocks ALL 7,800 products from Google Free Listings. #1 revenue blocker."
+          "tags": [
+            "google",
+            "merchant-center",
+            "critical"
+          ],
+          "benefit": "💰 WHAT YOU GAIN: Unblocks ALL 7,800 products from Google Free Listings. #1 revenue blocker.",
+          "project": "dlm"
         },
         {
           "id": "MC-019",
@@ -209,8 +294,13 @@
           "priority": "critical",
           "assignee": "francisco",
           "created": "2026-01-27",
-          "tags": ["shopify", "orders", "urgent"],
-          "benefit": "💰 WHAT YOU GAIN: Shopify Protect expires Jan 28. Get tracking = free insurance on $64.98."
+          "tags": [
+            "shopify",
+            "orders",
+            "urgent"
+          ],
+          "benefit": "💰 WHAT YOU GAIN: Shopify Protect expires Jan 28. Get tracking = free insurance on $64.98.",
+          "project": "dlm"
         },
         {
           "id": "MC-020",
@@ -219,8 +309,13 @@
           "priority": "critical",
           "assignee": "francisco",
           "created": "2026-01-27",
-          "tags": ["shopify", "orders", "urgent"],
-          "benefit": "💰 WHAT YOU GAIN: $402 at risk with zero protection. Contact customer before chargeback."
+          "tags": [
+            "shopify",
+            "orders",
+            "urgent"
+          ],
+          "benefit": "💰 WHAT YOU GAIN: $402 at risk with zero protection. Contact customer before chargeback.",
+          "project": "dlm"
         },
         {
           "id": "MC-009",
@@ -229,8 +324,12 @@
           "priority": "medium",
           "assignee": "clawd",
           "created": "2026-01-27",
-          "tags": ["pinterest", "merchant"],
-          "benefit": "💰 WHAT YOU GAIN: Pinterest approval = free organic product pins to 849 followers."
+          "tags": [
+            "pinterest",
+            "merchant"
+          ],
+          "benefit": "💰 WHAT YOU GAIN: Pinterest approval = free organic product pins to 849 followers.",
+          "project": "dlm"
         }
       ]
     },
@@ -243,240 +342,375 @@
           "title": "Full platform audit (all channels)",
           "description": "Complete audit of Google Analytics, Google Ads, Merchant Center, Search Console, Facebook, Microsoft, TikTok, Pinterest.",
           "completed": "2026-01-27",
-          "tags": ["audit", "all-platforms"],
-          "benefit": "💰 Found $987 at-risk orders, 7,800 blocked products, and a profitable ad channel nobody was using."
+          "tags": [
+            "audit",
+            "all-platforms"
+          ],
+          "benefit": "💰 Found $987 at-risk orders, 7,800 blocked products, and a profitable ad channel nobody was using.",
+          "project": "dlm"
         },
         {
           "id": "MC-101",
           "title": "Fix Shopify store name",
           "description": "Changed from 'dresslikemommy.com' to 'Dress Like Mommy'.",
           "completed": "2026-01-26",
-          "tags": ["shopify", "branding"],
-          "benefit": "💰 Professional branding across all platforms."
+          "tags": [
+            "shopify",
+            "branding"
+          ],
+          "benefit": "💰 Professional branding across all platforms.",
+          "project": "dlm"
         },
         {
           "id": "MC-102",
           "title": "Update Facebook Page info",
           "description": "Added phone, address, hours, price range.",
           "completed": "2026-01-26",
-          "tags": ["facebook", "branding"],
-          "benefit": "💰 Complete business profile increases trust + helps Google review."
+          "tags": [
+            "facebook",
+            "branding"
+          ],
+          "benefit": "💰 Complete business profile increases trust + helps Google review.",
+          "project": "dlm"
         },
         {
           "id": "MC-103",
           "title": "Kill Chinese bot traffic",
           "description": "Deactivated 131+ regions, kept US/UK/CA/AU markets only.",
           "completed": "2026-01-26",
-          "tags": ["shopify", "security"],
-          "benefit": "💰 Analytics now 2x more accurate. Better data = better decisions."
+          "tags": [
+            "shopify",
+            "security"
+          ],
+          "benefit": "💰 Analytics now 2x more accurate. Better data = better decisions.",
+          "project": "dlm"
         },
         {
           "id": "MC-104",
           "title": "Security hardening",
           "description": "File permissions, log redaction, prompt injection defenses.",
           "completed": "2026-01-26",
-          "tags": ["security", "clawdbot"],
-          "benefit": "💰 Personal info and business credentials secured."
+          "tags": [
+            "security",
+            "clawdbot"
+          ],
+          "benefit": "💰 Personal info and business credentials secured.",
+          "project": "agent"
         },
         {
           "id": "MC-105",
           "title": "Install 9 ClawdHub skills",
           "description": "Marketing, research, humanizer, tweet-writer, prompt engineering + more.",
           "completed": "2026-01-26",
-          "tags": ["clawdbot", "skills"],
-          "benefit": "💰 Expanded AI capabilities: 23 marketing frameworks, deep research, content creation."
+          "tags": [
+            "clawdbot",
+            "skills"
+          ],
+          "benefit": "💰 Expanded AI capabilities: 23 marketing frameworks, deep research, content creation.",
+          "project": "agent"
         },
         {
           "id": "MC-106",
           "title": "Create logo variants for Merchant Center",
           "description": "Generated rectangular + square logos. First version rejected, simplified versions uploaded.",
           "completed": "2026-01-27",
-          "tags": ["branding", "logos"],
-          "benefit": "💰 Logos needed for Google Shopping visibility."
+          "tags": [
+            "branding",
+            "logos"
+          ],
+          "benefit": "💰 Logos needed for Google Shopping visibility.",
+          "project": "dlm"
         },
         {
           "id": "MC-107",
           "title": "Unfulfilled orders report",
           "description": "Audited all 50 orders. Found $987 at risk, 14 action items.",
           "completed": "2026-01-27",
-          "tags": ["shopify", "orders"],
-          "benefit": "💰 Found $987 at risk across 7 orders."
+          "tags": [
+            "shopify",
+            "orders"
+          ],
+          "benefit": "💰 Found $987 at risk across 7 orders.",
+          "project": "dlm"
         },
         {
           "id": "MC-108",
           "title": "Deep competitor research",
           "description": "10 competitors profiled (PatPat, Ivy City Co, Sparkle In Pink, etc). 8 gaps found.",
           "completed": "2026-01-27",
-          "tags": ["research", "competitors"],
-          "benefit": "💰 Complete competitive map. Informed strategy decisions."
+          "tags": [
+            "research",
+            "competitors"
+          ],
+          "benefit": "💰 Complete competitive map. Informed strategy decisions.",
+          "project": "dlm"
         },
         {
           "id": "MC-109",
           "title": "Draft 5 customer emails",
           "description": "Kathy Jurecek, Sally Cloud, Lidson Charite, Amanda Keesee, Peggy Spino.",
           "completed": "2026-01-27",
-          "tags": ["customer-service", "emails"],
-          "benefit": "💰 $627 exposure protected. Ready to copy-paste and send."
+          "tags": [
+            "customer-service",
+            "emails"
+          ],
+          "benefit": "💰 $627 exposure protected. Ready to copy-paste and send.",
+          "project": "dlm"
         },
         {
           "id": "MC-110",
           "title": "URL redirects imported (196 + 2,047 locale)",
           "description": "196 redirects via CSV upload + 2,047 locale redirects via API batch. Covers collections, products, pages across 99 locale prefixes.",
           "completed": "2026-01-27",
-          "tags": ["shopify", "seo", "redirects"],
-          "benefit": "💰 Fixed 2,243 broken URLs. Every 404 fixed = better SEO + fewer lost visitors."
+          "tags": [
+            "shopify",
+            "seo",
+            "redirects"
+          ],
+          "benefit": "💰 Fixed 2,243 broken URLs. Every 404 fixed = better SEO + fewer lost visitors.",
+          "project": "dlm"
         },
         {
           "id": "MC-111",
           "title": "Complete tag duplication audit",
           "description": "All 6 platforms audited via HTML source + network analysis + platform dashboards. Google/FB/Microsoft clean. Pinterest & TikTok not working.",
           "completed": "2026-01-27",
-          "tags": ["tracking", "audit"],
-          "benefit": "💰 Confirmed Google, Google Ads, Facebook data is trustworthy for decisions."
+          "tags": [
+            "tracking",
+            "audit"
+          ],
+          "benefit": "💰 Confirmed Google, Google Ads, Facebook data is trustworthy for decisions.",
+          "project": "dlm"
         },
         {
           "id": "MC-112",
           "title": "Pinterest merchant approval submitted",
           "description": "Completed 9-item checklist. Submitted for review (48hr wait). Previous rejection likely due to 591 broken links (now fixed).",
           "completed": "2026-01-27",
-          "tags": ["pinterest", "merchant"],
-          "benefit": "💰 Approval = free organic product pins to 849 followers."
+          "tags": [
+            "pinterest",
+            "merchant"
+          ],
+          "benefit": "💰 Approval = free organic product pins to 849 followers.",
+          "project": "dlm"
         },
         {
           "id": "MC-113",
           "title": "Google Merchant Center shipping + logos fix",
           "description": "Created International Standard Shipping for 48 countries. Uploaded new simplified logos (bold DLM). Both under review.",
           "completed": "2026-01-27",
-          "tags": ["google", "merchant-center", "shipping"],
-          "benefit": "💰 Shipping fix addresses root cause of misrepresentation flag. Logos needed for Shopping ads."
+          "tags": [
+            "google",
+            "merchant-center",
+            "shipping"
+          ],
+          "benefit": "💰 Shipping fix addresses root cause of misrepresentation flag. Logos needed for Shopping ads.",
+          "project": "dlm"
         },
         {
           "id": "MC-114",
           "title": "Google Ads conversion cleanup",
           "description": "Demoted ALL 6 legacy 'from adwords' actions from Primary to Secondary. Google Shopping App Purchase now Primary.",
           "completed": "2026-01-27",
-          "tags": ["google", "ads", "conversions"],
-          "benefit": "💰 Google Ads now tracks the right conversions. No more dead legacy actions inflating data."
+          "tags": [
+            "google",
+            "ads",
+            "conversions"
+          ],
+          "benefit": "💰 Google Ads now tracks the right conversions. No more dead legacy actions inflating data.",
+          "project": "dlm"
         },
         {
           "id": "MC-115",
           "title": "10 SEO blog posts published",
           "description": "First blog content since 2016! 12,000+ words, 90+ internal links. Valentine's Day, matching outfits guide, Easter dresses, spring photos, swimsuits, daddy & me, pajamas, family photos, budget outfits, complete guide.",
           "completed": "2026-01-27",
-          "tags": ["blog", "seo", "content"],
-          "benefit": "💰 10 pages of SEO content targeting high-value keywords. Blog was dormant since 2016. Each post can rank in Google and drive free organic traffic."
+          "tags": [
+            "blog",
+            "seo",
+            "content"
+          ],
+          "benefit": "💰 10 pages of SEO content targeting high-value keywords. Blog was dormant since 2016. Each post can rank in Google and drive free organic traffic.",
+          "project": "dlm"
         },
         {
           "id": "MC-116",
           "title": "Schema.org structured data installed",
           "description": "BreadcrumbList + Organization schema added to all product pages via Liquid snippet.",
           "completed": "2026-01-27",
-          "tags": ["seo", "schema", "technical"],
-          "benefit": "💰 Rich snippets in Google search results = higher click-through rates = more free traffic."
+          "tags": [
+            "seo",
+            "schema",
+            "technical"
+          ],
+          "benefit": "💰 Rich snippets in Google search results = higher click-through rates = more free traffic.",
+          "project": "dlm"
         },
         {
           "id": "MC-117",
           "title": "Blog layout + navigation fixed",
           "description": "Changed from collage to grid layout. Added Blog link to footer. Deleted old 2016 placeholder post.",
           "completed": "2026-01-27",
-          "tags": ["blog", "shopify"],
-          "benefit": "💰 Clean blog experience. Footer link ensures visitors can find blog content."
+          "tags": [
+            "blog",
+            "shopify"
+          ],
+          "benefit": "💰 Clean blog experience. Footer link ensures visitors can find blog content.",
+          "project": "dlm"
         },
         {
           "id": "MC-118",
           "title": "BuckyDrop stuck orders audit",
           "description": "Found 10 orders stuck in processing. 4 never purchased, 3 sitting in warehouse, 2 short delivered. CN ¥2,228 (~$306) exposure.",
           "completed": "2026-01-27",
-          "tags": ["buckydrop", "orders", "audit"],
-          "benefit": "💰 Identified $306 stuck in BuckyDrop pipeline. Action plan for each order."
+          "tags": [
+            "buckydrop",
+            "orders",
+            "audit"
+          ],
+          "benefit": "💰 Identified $306 stuck in BuckyDrop pipeline. Action plan for each order.",
+          "project": "dlm"
         },
         {
           "id": "MC-119",
           "title": "BuckyDrop support email sent",
           "description": "Detailed email to support@buckydrop.com listing all 10 stuck orders with specific questions for each.",
           "completed": "2026-01-27",
-          "tags": ["buckydrop", "support"],
-          "benefit": "💰 Proactive outreach to resolve $306 in stuck orders."
+          "tags": [
+            "buckydrop",
+            "support"
+          ],
+          "benefit": "💰 Proactive outreach to resolve $306 in stuck orders.",
+          "project": "dlm"
         },
         {
           "id": "MC-120",
           "title": "Microsoft Ads UET Purchases goal fixed",
           "description": "Changed Purchases conversion goal from old tag (36000629) to correct ShopifyImport tag (36005151). 4 of 5 goals now use correct tag.",
           "completed": "2026-01-27",
-          "tags": ["microsoft", "ads", "tracking"],
-          "benefit": "💰 Microsoft Ads conversion data now accurate. Ready to unpause campaigns with clean tracking."
+          "tags": [
+            "microsoft",
+            "ads",
+            "tracking"
+          ],
+          "benefit": "💰 Microsoft Ads conversion data now accurate. Ready to unpause campaigns with clean tracking.",
+          "project": "dlm"
         },
         {
           "id": "MC-121",
           "title": "Product data audit (340 products)",
           "description": "Found: 157 with supplier URLs in tags, 3,758 size tags to remove, 101 empty product_types, 1,712 images with no alt text, 49 with alicdn images in descriptions.",
           "completed": "2026-01-27",
-          "tags": ["shopify", "products", "audit"],
-          "benefit": "💰 Complete picture of product data issues. Every fix = better SEO + more professional store."
+          "tags": [
+            "shopify",
+            "products",
+            "audit"
+          ],
+          "benefit": "💰 Complete picture of product data issues. Every fix = better SEO + more professional store.",
+          "project": "dlm"
         },
         {
           "id": "MC-122",
           "title": "SEO optimization scripts built",
           "description": "audit_products.py, cleanup_products.py, seo_optimizer.py ready. Supports --dry-run, batch processing, rate limiting. Needs Shopify API key.",
           "completed": "2026-01-27",
-          "tags": ["scripts", "seo", "automation"],
-          "benefit": "💰 Automated cleanup of 340 products. Would take days by hand, scripts do it in minutes."
+          "tags": [
+            "scripts",
+            "seo",
+            "automation"
+          ],
+          "benefit": "💰 Automated cleanup of 340 products. Would take days by hand, scripts do it in minutes.",
+          "project": "dlm"
         },
         {
           "id": "MC-123",
           "title": "Blog content strategy created",
           "description": "10 topics prioritized by seasonal urgency. Competitor blog analysis. Template and SEO guidelines. Seasonal calendar with Google Trends data.",
           "completed": "2026-01-27",
-          "tags": ["blog", "strategy", "content"],
-          "benefit": "💰 Strategic content roadmap. Every post targets specific keywords and seasons."
+          "tags": [
+            "blog",
+            "strategy",
+            "content"
+          ],
+          "benefit": "💰 Strategic content roadmap. Every post targets specific keywords and seasons.",
+          "project": "dlm"
         },
         {
           "id": "MC-124",
           "title": "Product optimization guide (986 lines)",
           "description": "Covers all 6 platforms: Google Shopping, Pinterest, Meta, TikTok, SEO, AI Search. Master tag taxonomy, description templates, Schema.org. 8-week implementation plan.",
           "completed": "2026-01-27",
-          "tags": ["guide", "optimization", "platforms"],
-          "benefit": "💰 Expert-level playbook for every platform. Actionable steps, not theory."
+          "tags": [
+            "guide",
+            "optimization",
+            "platforms"
+          ],
+          "benefit": "💰 Expert-level playbook for every platform. Actionable steps, not theory.",
+          "project": "dlm"
         },
         {
           "id": "MC-125",
           "title": "The Council built (multi-AI debate system)",
           "description": "6 AIs: Opus (judge), Sonnet (orchestrator), Grok, ChatGPT, Gemini, Open Arena. 3 modes: Standard, Inner Critic, Feedback Loop. $0 extra cost.",
           "completed": "2026-01-27",
-          "tags": ["council", "ai", "system"],
-          "benefit": "💰 4+ AI brains debating every major decision. Better answers than any single AI. All on existing subscriptions."
+          "tags": [
+            "council",
+            "ai",
+            "system"
+          ],
+          "benefit": "💰 4+ AI brains debating every major decision. Better answers than any single AI. All on existing subscriptions.",
+          "project": "agent"
         },
         {
           "id": "MC-126",
           "title": "Overnight self-improvement (2 AM cron)",
           "description": "Nightly build job: reviews day, picks ONE improvement, builds it, commits to git, sends morning report. Council-powered.",
           "completed": "2026-01-27",
-          "tags": ["automation", "improvement", "cron"],
-          "benefit": "💰 AI gets stronger every night while you sleep. Compound improvements. $0 extra cost."
+          "tags": [
+            "automation",
+            "improvement",
+            "cron"
+          ],
+          "benefit": "💰 AI gets stronger every night while you sleep. Compound improvements. $0 extra cost.",
+          "project": "agent"
         },
         {
           "id": "MC-127",
           "title": "Mission Control dashboard built",
           "description": "Interactive HTML dashboard with Kanban, Second Brain, Summary views. Mobile-friendly. LAN accessible. Clawdbot status indicator.",
           "completed": "2026-01-27",
-          "tags": ["tools", "dashboard"],
-          "benefit": "💰 Total visibility into everything. No more asking what's going on."
+          "tags": [
+            "tools",
+            "dashboard"
+          ],
+          "benefit": "💰 Total visibility into everything. No more asking what's going on.",
+          "project": "agent"
         },
         {
           "id": "MC-128",
           "title": "Grok + ChatGPT AI loops verified",
           "description": "Proved Clawd can type questions into Grok (X) and ChatGPT (browser), read responses, and bring back insights. Foundation for The Council.",
           "completed": "2026-01-27",
-          "tags": ["council", "ai", "proof-of-concept"],
-          "benefit": "💰 Unlocked multi-AI capability. 6 brains for the price of 1."
+          "tags": [
+            "council",
+            "ai",
+            "proof-of-concept"
+          ],
+          "benefit": "💰 Unlocked multi-AI capability. 6 brains for the price of 1.",
+          "project": "agent"
         },
         {
           "id": "MC-129",
           "title": "Memory integrity rules established",
           "description": "Source references, verification dates, no silent overwrites, changelog tracking. Applied to all memory files.",
           "completed": "2026-01-27",
-          "tags": ["memory", "rules", "quality"],
-          "benefit": "💰 Reliable memory = reliable AI. No more lost context or conflicting info."
+          "tags": [
+            "memory",
+            "rules",
+            "quality"
+          ],
+          "benefit": "💰 Reliable memory = reliable AI. No more lost context or conflicting info.",
+          "project": "agent"
         }
       ]
     }
@@ -487,37 +721,56 @@
         "id": "SB-001",
         "title": "Pivot or expand beyond mommy-and-me?",
         "description": "Francisco open to pivoting. Adjacent markets: family matching, couples matching, pet + owner, sports team sets.",
-        "tags": ["strategy", "pivot"]
+        "tags": [
+          "strategy",
+          "pivot"
+        ]
       },
       {
         "id": "SB-002",
         "title": "Microsoft Ads = hidden goldmine",
         "description": "224% ROAS, Australia 897%. All paused. UET now fixed. Fastest revenue path.",
-        "tags": ["revenue", "microsoft-ads"]
+        "tags": [
+          "revenue",
+          "microsoft-ads"
+        ]
       },
       {
         "id": "SB-003",
         "title": "Email marketing is untapped",
         "description": "No active email campaigns. Klaviyo or Shopify Email could drive repeat purchases.",
-        "tags": ["marketing", "email"]
+        "tags": [
+          "marketing",
+          "email"
+        ]
       },
       {
         "id": "SB-004",
         "title": "Local LLMs on Mac Mini",
         "description": "Mac Mini arriving Jan 29. Ollama for free local inference. Content generation without API costs.",
-        "tags": ["infrastructure", "ai"]
+        "tags": [
+          "infrastructure",
+          "ai"
+        ]
       },
       {
         "id": "SB-005",
         "title": "The Council — multi-AI debate system",
         "description": "6 AIs debating = better answers than any single AI. Standard, Inner Critic, Feedback Loop modes. Permanent improvement engine.",
-        "tags": ["ai", "council", "system"]
+        "tags": [
+          "ai",
+          "council",
+          "system"
+        ]
       },
       {
         "id": "SB-006",
         "title": "AI Service Business (PARKED)",
         "description": "AI-powered Shopify consulting: $500 audit / $1,500-3,000/mo management. DLM as case study. Parked until DLM profitable.",
-        "tags": ["business-idea", "parked"]
+        "tags": [
+          "business-idea",
+          "parked"
+        ]
       }
     ],
     "research": [
@@ -525,43 +778,65 @@
         "id": "SR-001",
         "title": "Google Search Console findings",
         "description": "2,420 clicks/12mo, 384K impressions, 0.6% CTR. Only 304/4,885 pages indexed. 591 404s. Only 35 backlinks.",
-        "tags": ["seo", "data"]
+        "tags": [
+          "seo",
+          "data"
+        ]
       },
       {
         "id": "SR-002",
         "title": "Shopify store performance",
         "description": "$572 last 30 days, 5 orders, 0.1% conversion rate, 0% returning customers.",
-        "tags": ["shopify", "data"]
+        "tags": [
+          "shopify",
+          "data"
+        ]
       },
       {
         "id": "SR-003",
         "title": "Facebook Ads history",
         "description": "11 campaigns off since Nov 2019. Pixel healthy (7.1K events/28 days). Account salvageable.",
-        "tags": ["facebook", "data"]
+        "tags": [
+          "facebook",
+          "data"
+        ]
       },
       {
         "id": "SR-004",
         "title": "Microsoft Ads performance",
         "description": "$5,118 spent → $11,489 revenue → 224% ROAS. UET now fixed and accurate.",
-        "tags": ["microsoft", "data"]
+        "tags": [
+          "microsoft",
+          "data"
+        ]
       },
       {
         "id": "SR-005",
         "title": "Tag audit results (all platforms clean)",
         "description": "GA4 ✅, Google Ads ✅, FB Pixel ✅, Microsoft UET ✅ (fixed), TikTok ❌, Pinterest ❌.",
-        "tags": ["tracking", "audit"]
+        "tags": [
+          "tracking",
+          "audit"
+        ]
       },
       {
         "id": "SR-006",
         "title": "BuckyDrop study",
         "description": "221 products, 150 pushed to Shopify, 71 unpushed (not worth pushing — wrong niche). 6 overdue shipments. Free plan.",
-        "tags": ["buckydrop", "supply-chain"]
+        "tags": [
+          "buckydrop",
+          "supply-chain"
+        ]
       },
       {
         "id": "SR-007",
         "title": "Product data health",
         "description": "340 products: 46% have supplier URLs in tags, 100% images missing alt text, 30% empty product_type, 14% have alicdn images.",
-        "tags": ["shopify", "products", "seo"]
+        "tags": [
+          "shopify",
+          "products",
+          "seo"
+        ]
       }
     ],
     "insights": [
@@ -569,26 +844,55 @@
         "id": "SI-001",
         "title": "Revenue recovery priority order",
         "description": "1) Fix MC suspension → 2) Unpause Microsoft Ads → 3) Rebuild Facebook Ads → 4) SEO fixes.",
-        "tags": ["strategy", "priority"]
+        "tags": [
+          "strategy",
+          "priority"
+        ]
       },
       {
         "id": "SI-002",
         "title": "Fulfillment is the #1 reputation problem",
         "description": "Multiple orders 7-9 months unfulfilled. Negative reviews all about fulfillment. Fix before any marketing.",
-        "tags": ["fulfillment", "critical"]
+        "tags": [
+          "fulfillment",
+          "critical"
+        ]
       },
       {
         "id": "SI-003",
         "title": "The Compound Loop (core principle)",
         "description": "Council → Execute → Remember → Learn → Improve overnight → Repeat. Memory is the flywheel. System grows stronger every day.",
-        "tags": ["philosophy", "system"]
+        "tags": [
+          "philosophy",
+          "system"
+        ]
       },
       {
         "id": "SI-004",
         "title": "Fix FREE things first",
         "description": "Francisco's directive: no paid ads until foundation is solid. SEO, content, tracking, data cleanup first.",
-        "tags": ["strategy", "priority"]
+        "tags": [
+          "strategy",
+          "priority"
+        ]
       }
     ]
+  },
+  "projects": {
+    "all": {
+      "label": "All Projects",
+      "icon": "📊",
+      "color": "#58a6ff"
+    },
+    "dlm": {
+      "label": "Dress Like Mommy",
+      "icon": "🛍",
+      "color": "#f0883e"
+    },
+    "agent": {
+      "label": "Agent System",
+      "icon": "🤖",
+      "color": "#d2a8ff"
+    }
   }
 }
