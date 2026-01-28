@@ -43,10 +43,15 @@ def get_log_file():
     today = datetime.now().strftime("%Y-%m-%d")
     return os.path.join(LOG_DIR, f"clawdbot-{today}.log")
 
+def strip_ansi(text):
+    """Remove ANSI escape codes from text"""
+    return re.sub(r'\x1b\[[0-9;]*m', '', text)
+
 def parse_log_entry(line):
     """Parse a JSON log line into a structured event"""
     try:
-        data = json.loads(line.strip())
+        clean_line = strip_ansi(line.strip())
+        data = json.loads(clean_line)
         meta = data.get("_meta", {})
         timestamp = data.get("time", meta.get("date", ""))
         subsystem_raw = meta.get("name", "")
@@ -64,73 +69,130 @@ def parse_log_entry(line):
         if isinstance(msg, dict):
             msg = json.dumps(msg)
         
+        msg = strip_ansi(str(msg))
         level = meta.get("logLevelName", "INFO")
         
         return {
             "time": timestamp,
             "subsystem": subsystem,
-            "message": str(msg)[:200],
+            "message": msg[:200],
             "level": level
         }
     except:
         return None
 
 def categorize_event(entry):
-    """Categorize a log entry into activity type"""
+    """Categorize a log entry into activity type with human-readable descriptions"""
     if not entry:
         return None
     
     msg = entry.get("message", "")
     sub = entry.get("subsystem", "")
     
+    # Human-readable tool descriptions
+    tool_descriptions = {
+        "exec": ("💻", "Running a terminal command"),
+        "browser": ("🌐", "Working in the web browser"),
+        "Read": ("📖", "Reading a file"),
+        "Write": ("✏️", "Writing a file"),
+        "Edit": ("📝", "Editing a file"),
+        "web_search": ("🔍", "Searching the web"),
+        "web_fetch": ("📥", "Fetching a web page"),
+        "memory_search": ("🧠", "Searching memory"),
+        "memory_get": ("🧠", "Retrieving memory"),
+        "sessions_spawn": ("🤖", "Starting a sub-agent"),
+        "sessions_send": ("💬", "Messaging a sub-agent"),
+        "sessions_list": ("📋", "Checking active sessions"),
+        "sessions_history": ("📜", "Reading session history"),
+        "image": ("🖼️", "Analyzing an image"),
+        "cron": ("⏰", "Managing a scheduled task"),
+        "message": ("📨", "Sending a message"),
+        "gateway": ("⚙️", "Gateway operation"),
+        "tts": ("🔊", "Converting text to speech"),
+        "canvas": ("🎨", "Rendering a visual"),
+        "session_status": ("📊", "Checking session status"),
+    }
+    
     # Tool calls
     if "tool start" in msg:
         tool_match = re.search(r'tool=(\S+)', msg)
         tool = tool_match.group(1) if tool_match else "unknown"
-        return {"type": "tool_start", "tool": tool, "icon": "🔧"}
+        icon, desc = tool_descriptions.get(tool, ("🔧", f"Using {tool}"))
+        return {"type": "tool_start", "tool": tool, "icon": icon, "friendly": desc}
     
     if "tool end" in msg or "tool done" in msg:
         tool_match = re.search(r'tool=(\S+)', msg)
         tool = tool_match.group(1) if tool_match else "unknown"
-        return {"type": "tool_end", "tool": tool, "icon": "✅"}
+        icon, desc = tool_descriptions.get(tool, ("✅", f"Finished {tool}"))
+        return {"type": "tool_end", "tool": tool, "icon": "✅", "friendly": f"Done: {desc.lower()}"}
     
     # Run lifecycle
     if "run start" in msg:
         model_match = re.search(r'model=(\S+)', msg)
         model = model_match.group(1) if model_match else ""
-        return {"type": "run_start", "model": model, "icon": "🧠"}
+        channel_match = re.search(r'messageChannel=(\S+)', msg)
+        channel = channel_match.group(1) if channel_match else ""
+        friendly = "Processing a new request"
+        if channel:
+            friendly += f" from {channel.title()}"
+        return {"type": "run_start", "model": model, "icon": "🧠", "friendly": friendly}
     
     if "run end" in msg or "run done" in msg or "run complete" in msg:
-        return {"type": "run_end", "icon": "🏁"}
+        return {"type": "run_end", "icon": "🏁", "friendly": "Finished processing request"}
     
     # Session state
     if "session state" in msg:
         state_match = re.search(r'new=(\S+)', msg)
         state = state_match.group(1) if state_match else ""
-        return {"type": "session_state", "state": state, "icon": "📊"}
+        if state == "processing":
+            return {"type": "session_state", "state": state, "icon": "⚡", "friendly": "Started working"}
+        elif state == "idle":
+            return {"type": "session_state", "state": state, "icon": "💤", "friendly": "Now idle — waiting for next task"}
+        return {"type": "session_state", "state": state, "icon": "📊", "friendly": f"Session state: {state}"}
     
     # Prompt
     if "prompt start" in msg:
-        return {"type": "prompt_start", "icon": "💬"}
+        return {"type": "prompt_start", "icon": "💭", "friendly": "Thinking about how to respond..."}
     
     if "agent start" in msg:
-        return {"type": "agent_start", "icon": "🤖"}
+        return {"type": "agent_start", "icon": "🤖", "friendly": "AI agent activated"}
     
     # Errors
-    if entry.get("level") == "ERROR" or "error" in msg.lower() or "Unhandled" in msg:
-        return {"type": "error", "icon": "❌"}
+    if entry.get("level") == "ERROR" or "Unhandled" in msg:
+        # Clean up error messages for humans
+        friendly = msg
+        if "fetch failed" in msg:
+            friendly = "Network request failed — connection issue"
+        elif "timeout" in msg.lower():
+            friendly = "Operation timed out"
+        elif "ECONNREFUSED" in msg:
+            friendly = "Connection refused — service may be down"
+        elif "tab not found" in msg:
+            friendly = "Browser tab was closed — reopening"
+        elif "Unknown ref" in msg:
+            friendly = "Browser page changed — refreshing view"
+        elif "browser failed" in msg:
+            friendly = "Browser action failed — retrying"
+        elif "[tools]" in msg:
+            # Extract just the tool name and simplify
+            tool_match = re.search(r'\[tools\]\s*(\S+)\s*failed', msg)
+            if tool_match:
+                friendly = f"{tool_match.group(1).title()} operation failed — retrying"
+            else:
+                friendly = "Tool operation failed — retrying"
+        return {"type": "error", "icon": "⚠️", "friendly": friendly[:120]}
     
     # WebSocket / connections
     if "connected" in msg and "ws" in sub:
-        return {"type": "connection", "icon": "🔌"}
+        client_match = re.search(r'client=(\S+)', msg)
+        client = client_match.group(1) if client_match else "unknown"
+        return {"type": "connection", "icon": "🔌", "friendly": f"New connection: {client}"}
     
     # Telegram
     if "telegram" in sub.lower():
-        return {"type": "telegram", "icon": "📱"}
-    
-    # Gateway
-    if "gateway" in sub:
-        return {"type": "gateway", "icon": "🌐"}
+        if "message" in msg.lower() or "send" in msg.lower():
+            return {"type": "telegram", "icon": "📱", "friendly": "Telegram message activity"}
+        return None  # Skip noisy telegram events
     
     return None
 
@@ -189,7 +251,7 @@ def tail_log():
                             "time": entry["time"],
                             "type": cat["type"],
                             "icon": cat["icon"],
-                            "message": entry["message"][:150],
+                            "message": cat.get("friendly", entry["message"][:150]),
                             "subsystem": entry["subsystem"]
                         }
                         
@@ -197,28 +259,7 @@ def tail_log():
                         if cat["type"] == "tool_start":
                             activity_state["status"] = "working"
                             activity_state["currentTool"] = cat.get("tool", "unknown")
-                            tool_labels = {
-                                "exec": "Running terminal command",
-                                "browser": "Using web browser",
-                                "Read": "Reading file",
-                                "Write": "Writing file",
-                                "Edit": "Editing file",
-                                "web_search": "Searching the web",
-                                "web_fetch": "Fetching web page",
-                                "memory_search": "Searching memory",
-                                "memory_get": "Reading memory",
-                                "sessions_spawn": "Spawning sub-agent",
-                                "sessions_send": "Messaging sub-agent",
-                                "image": "Analyzing image",
-                                "cron": "Managing scheduled task",
-                                "message": "Sending message",
-                                "gateway": "Gateway operation",
-                                "tts": "Text to speech",
-                                "canvas": "Rendering canvas"
-                            }
-                            activity_state["currentTask"] = tool_labels.get(
-                                cat.get("tool"), f"Using {cat.get('tool', 'tool')}"
-                            )
+                            activity_state["currentTask"] = cat.get("friendly", f"Using {cat.get('tool', 'tool')}")
                             activity_state["stats"]["toolCalls"] += 1
                         
                         elif cat["type"] == "tool_end":
@@ -227,7 +268,7 @@ def tail_log():
                         elif cat["type"] == "run_start":
                             activity_state["status"] = "thinking"
                             activity_state["statusSince"] = entry["time"]
-                            activity_state["currentTask"] = "Processing request..."
+                            activity_state["currentTask"] = cat.get("friendly", "Processing request...")
                             if cat.get("model"):
                                 activity_state["sessionInfo"]["model"] = cat["model"]
                         
@@ -249,11 +290,11 @@ def tail_log():
                         
                         elif cat["type"] == "prompt_start":
                             activity_state["status"] = "thinking"
-                            activity_state["currentTask"] = "Thinking..."
+                            activity_state["currentTask"] = cat.get("friendly", "Thinking...")
                         
                         elif cat["type"] == "agent_start":
                             activity_state["status"] = "working"
-                            activity_state["currentTask"] = "Processing..."
+                            activity_state["currentTask"] = cat.get("friendly", "Processing...")
                         
                         elif cat["type"] == "error":
                             activity_state["stats"]["errorsToday"] += 1

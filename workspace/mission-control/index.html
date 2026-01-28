@@ -745,15 +745,7 @@ function timeAgo(isoStr) {
 
 function friendlyMessage(msg) {
   if (!msg) return '';
-  // Clean up technical log messages for human readability
-  return msg
-    .replace(/runId=\S+/g, '')
-    .replace(/sessionId=\S+/g, '')
-    .replace(/toolCallId=\S+/g, '')
-    .replace(/conn=\S+/g, '')
-    .replace(/id=\S+/g, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return msg.trim();
 }
 
 async function fetchActivity() {
@@ -790,7 +782,13 @@ function renderActivity(act) {
   const tool = act.currentTool ? `🔧 Tool: ${act.currentTool}` : '';
 
   // Feed items
-  const feedItems = (act.recentEvents || []).slice(0, 30).map(ev => {
+  // Filter: only show meaningful events (skip "Done:" clutter, keep starts + errors)
+  const meaningful = (act.recentEvents || []).filter(ev => {
+    if (ev.type === 'error') return true;
+    if (ev.type === 'tool_end') return false; // Skip "done" items to reduce noise
+    return true;
+  });
+  const feedItems = meaningful.slice(0, 25).map(ev => {
     const isError = ev.type === 'error';
     return `<div class="feed-item ${isError ? 'error-item' : ''}">
       <span class="fi-icon">${esc(ev.icon || '•')}</span>
