@@ -1,0 +1,15 @@
+I previously asked you to review an AI memory system (4-layer: daily logs, JSONL ledger, knowledge wiki, recall pack; 67 events, $0 budget, graded B- in Round 3). You gave it an A-.
+
+Two other AI experts reviewed the same system. Here are their key arguments:
+
+GROK (Grade: A-):
+- System clearly improved. ONE change: Add automated validation suite (Python/jq scripts) to verify open-loops.json, check supersession integrity, confirm pack matches deterministic rules
+- Cut: 7 event types is overkill at 67 events, collapse to 4-5. Defer monthly compaction until 300+ events
+- Contrarian: The curated knowledge WIKI layer is a LIABILITY. Creates parallel canon that diverges from ledger. Users trust wiki because it reads nicer, causing subtle drift. Many advanced systems drop the wiki and derive everything on-demand from the ledger
+
+CHATGPT (Grade: B+, bordering A-):
+- ONE change: Add Memory Test Harness with golden pack snapshots (pack should match expected output for fixed ledger state), hard invariants (no event both active and superseded, acyclic supersession graph, all referenced IDs exist), diff-based acceptance thresholds (flag if consolidation changes over N percent of pack content)
+- Cut: Weekly rebuild could become biweekly with test harness. Live extraction risks noise pollution - restrict to P0/P1 only
+- Contrarian: Deterministic pack builders DON'T solve reliability - they make errors REPEATABLE. If inclusion rules are wrong, determinism guarantees the same wrong memory every time
+
+Where are they wrong? What did they miss? Where do you agree? Build on their best ideas and attack their weakest points. Give me your REVISED position and grade.

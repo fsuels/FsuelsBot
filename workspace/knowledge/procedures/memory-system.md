@@ -227,18 +227,28 @@ Patterns, lessons, and wisdom learned from experience.
 4. Consolidation sub-agent updates these nightly
 5. Can also be updated manually during sessions when new info emerges
 
-### Confidence Decay
+### Confidence Decay (Binding vs Decayable)
 
-Facts age. Old facts become unreliable. The system tracks freshness automatically.
+Events are split into two decay regimes:
 
-**Rules:**
+**Binding types (NO automatic decay):**
+- `commitment` — active until explicitly satisfied/withdrawn/violated
+- `constraint` — permanent unless superseded or invalidated
+- `procedure` — permanent unless superseded
+- `decision` — permanent unless superseded
+
+Binding types can NEVER be removed from the pack by decay alone. They require an explicit status transition event in the ledger. This prevents the agent from silently forgetting obligations.
+
+**Decayable types (normal confidence decay):**
+- `fact` — warning at 30 days unverified, drop from pack at 90 days
+- `preference` — stale if not referenced in 60 days
+- `relationship` — warning at 60 days, drop at 120 days
+
+**Rules for knowledge files:**
 - Every fact in a knowledge file MUST have `[verified: YYYY-MM-DD]`
-- During nightly consolidation, check age of all verified facts:
-  - **< 30 days:** Fresh ✅ — include in recall pack normally
-  - **30-60 days:** Aging ⚠️ — flag `[⚠️ STALE]` in recall pack
-  - **> 60 days:** Stale ❌ — drop from recall pack unless explicitly relevant to today's tasks
-- **What decays:** Facts, account statuses, platform states, business metrics
-- **What does NOT decay:** Preferences, principles, identities, relationships, procedures
+- **< 30 days:** Fresh ✅
+- **30-60 days:** Aging ⚠️ — flag `[⚠️ STALE]`
+- **> 60 days:** Stale ❌ — drop from recall pack unless explicitly relevant
 - Stale facts are NOT deleted — they stay in knowledge files, just aren't surfaced
 - Re-verification: when a fact is confirmed current, update its `[verified: date]`
 
@@ -409,13 +419,45 @@ Live extraction means the ledger stays current. The 3 AM consolidation catches a
 
 **Why:** Without this, consolidation must read the ENTIRE ledger every night. At 500+ events, that exceeds the context window and fails. With checkpoints, consolidation only processes NEW events since the last run.
 
-## Memory Integrity (`memory/integrity.json`)
+## Memory Integrity (Test Suite)
 
-**What:** Validation checks run during nightly consolidation.
+**What:** Validation checks run after every nightly consolidation. Turns silent failures into loud ones.
 
-Checks: no duplicate IDs, valid JSON, sequential IDs, valid supersession references, valid related references, consistent indexes, valid checkpoint.
+### Structural Checks
+- No duplicate event IDs
+- Valid JSON on every ledger line
+- Sequential IDs per day
+- Valid supersession refs (every `supersedes` points to a real event ID)
+- Valid related refs (every `related` ID exists)
+- Consistent indexes vs ledger state
+- Valid checkpoint
 
-Results logged to `memory/integrity-log.md`. If any check fails, flag in the recall pack's context section.
+### Semantic Checks (Critical)
+- **Commitment non-decay:** No binding-type events excluded from pack by decay alone
+- **P0/P1 coverage:** Every active P0/P1 event appears in recall pack
+- **Open-loop completeness:** Every open commitment in ledger has entry in open-loops.json
+- **No dangling supersessions:** Every `supersedes` target exists
+
+### Output
+Write `memory/integrity-report.json` after each consolidation. If any check fails, flag in pack context with ⚠️.
+
+## Entity Snapshot (`memory/entity-snapshot.json`)
+
+**What:** Lightweight diffable receipt of derived state, generated after each consolidation.
+
+```json
+{
+  "generated": "2026-01-28T03:00:00Z",
+  "entities": ["Francisco", "DressLikeMommy", "BuckyDrop"],
+  "entity_count": 12,
+  "tag_counts": {"shopify": 5, "memory": 8},
+  "active_events": 67,
+  "binding_events": 15,
+  "decayable_events": 52
+}
+```
+
+**Purpose:** Compare snapshots across consolidations to detect entity drift, canonicalization issues ("Acme" vs "ACME"), and derivation bugs. Not a maintained index — a diagnostic tool.
 
 ---
 
@@ -486,28 +528,26 @@ This system EVOLVES from what we have. Nothing is destroyed.
 
 ---
 
-## Ledger Compaction (Monthly / Threshold-Based)
+## Ledger Compaction (Event-Driven Archival)
 
 **Problem:** At 150-400 events, the ledger becomes too large for reliable consolidation. Token overflow causes silent corruption.
 
-**Solution:** Monthly compaction keeps the active ledger under 150 events.
+**Solution:** Event-driven archival — chains are archived automatically 30 days after resolution. No arbitrary thresholds.
 
 ### When to Run
-- Monthly (checked during nightly consolidation)
-- OR when active events exceed 150
+- Checked during nightly consolidation
+- Triggered when resolved chains are older than 30 days with no new links
 
 ### How It Works
-1. Read full ledger
-2. **Resolved chains** (commitment: open → updated → closed): compress into ONE summary event
-3. **Superseded facts**: replace chain with single final-correct-fact event
-4. **P0/P1 permanent constraints**: preserve as-is (never compacted)
-5. **Expired P2/P3 events**: archive without replacement
-6. Archive old events to `memory/ledger-archive-YYYY.jsonl`
-7. Write compacted events as new `memory/ledger.jsonl`
-8. Reset checkpoint to reflect new ledger state
-9. Full rebuild of all indexes
+1. Scan ledger for fully resolved chains (commitment satisfied, fact fully superseded)
+2. If chain has been resolved for 30+ days with no new links: archive it
+3. For each archived chain: create ONE summary event capturing final state
+4. **P0/P1 permanent constraints**: preserved as-is (never archived)
+5. Archive old chain events to `memory/ledger-archive-YYYY.jsonl`
+6. Write updated `memory/ledger.jsonl`
+7. Reset checkpoint and rebuild indexes
 
-**This is the ONE exception to append-only.** Compaction is a controlled, atomic rewrite — not an edit. The archive preserves full history.
+**This is the ONE exception to append-only.** Compaction is a controlled, atomic rewrite — not an edit. The archive preserves full history. Scales naturally with actual usage, not calendar time.
 
 ## Git Versioning
 
@@ -533,7 +573,10 @@ Once per week (Sunday 4 AM cron), rebuild `memory/index/open-loops.json` from sc
 6. **Priority system drives retention** — P0 permanent, P3 ephemeral.
 7. **Minimal indexes** — only open-loops.json maintained; entities/tags derived on-the-fly.
 8. **Git versioning** — automatic rollback points before every consolidation.
-9. **Monthly compaction** — keeps active ledger under 150 events, archives the rest.
+9. **Event-driven compaction** — archives resolved chains after 30 days, scales naturally.
 10. **Weekly full rebuild** — correctness reset prevents silent index drift.
+11. **Binding type immunity** — commitments, constraints, procedures, decisions never decay; require explicit status transitions.
+12. **Memory test suite** — integrity checks after every consolidation turn silent failures into loud ones.
+13. **Entity snapshots** — diffable receipts detect drift and canonicalization issues.
 
 *This document is the canonical reference for how memory works. When in doubt, follow this.*

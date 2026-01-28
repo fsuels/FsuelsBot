@@ -43,53 +43,94 @@ For each noteworthy item in the daily log:
 - If contradiction found: add ⚠️ Conflicts note to pack context section
 - Human resolves by telling AI → creates superseding event
 
-### 5. Confidence Decay (type-aware)
-- Commitments: valid until status=closed (no time decay)
-- Constraints: permanent unless superseded
-- Preferences: stale if not referenced in 60 days
+### 5. Confidence Decay (type-aware, binding types exempt)
+**Binding types (NO automatic decay — require explicit status transition):**
+- Commitments: active until status=closed/satisfied/withdrawn
+- Constraints: permanent unless superseded or explicitly invalidated
+- Procedures: permanent unless superseded
+- Decisions: permanent unless superseded
+
+**Decayable types (normal confidence decay):**
 - Facts: warning at 30 days, drop from pack at 90 days
-- Flag stale items in pack context section
+- Preferences: stale if not referenced in 60 days
+- Relationships: warning at 60 days, drop at 120 days
+
+Binding types can NEVER be removed from the pack by decay alone. They must have an explicit status change event in the ledger. This prevents the agent from silently forgetting obligations.
 
 ### 6. Check Open Loops
 - Read `memory/index/open-loops.json` (don't scan full ledger)
 - Check for corresponding closing events → update index
 - Surface all open commitments in pack, top 3 oldest first
 
-### 7. Run Integrity Checks
-- Validate: no duplicate IDs, valid JSON, valid supersession refs, valid related refs
-- Log results to `memory/integrity-log.md`
-- If any check fails: flag in pack context
+### 7. Run Integrity Checks (Memory Test Suite)
+**Structural checks:**
+- No duplicate event IDs
+- Valid JSON on every ledger line
+- Valid supersession refs (every `supersedes` points to a real event ID)
+- Valid related refs (every `related` ID exists)
 
-### 8. Regenerate Recall Pack
+**Semantic checks (the important ones):**
+- **No dangling supersessions:** every `supersedes` target exists in the ledger
+- **Commitment non-decay rule:** no binding-type events (commitment, constraint, procedure, decision) excluded from pack by decay alone — must have explicit status change
+- **P0/P1 coverage:** every active P0/P1 event appears in the recall pack (or has explicit exclusion reason)
+- **Open-loop completeness:** every open commitment in ledger has entry in open-loops.json
+
+**Output:** Write `memory/integrity-report.json` after each consolidation:
+```json
+{
+  "ts": "2026-01-28T03:00:00Z",
+  "checks_passed": 8,
+  "checks_failed": 0,
+  "failures": [],
+  "warnings": []
+}
+```
+If any check fails: flag in pack context section with ⚠️ warning. This turns silent failures into loud ones.
+
+### 8. Persist Entity Snapshot
+Write `memory/entity-snapshot.json` — a lightweight diffable receipt of derived state:
+```json
+{
+  "generated": "2026-01-28T03:00:00Z",
+  "entities": ["Francisco", "DressLikeMommy", "BuckyDrop"],
+  "entity_count": 12,
+  "tag_counts": {"shopify": 5, "memory": 8},
+  "active_events": 67,
+  "binding_events": 15,
+  "decayable_events": 52
+}
+```
+Compare with previous snapshot to detect: entity drift, canonicalization issues ("Acme" vs "ACME"), derivation bugs. Not a maintained index — just a diffable receipt.
+
+### 9. Regenerate Recall Pack
 - Rewrite `recall/pack.md` — single unified file
 - Sections: P0 constraints, mantra, open commitments, waiting-on, focus, context, forecast, procedures, accounts
 - Keep under 3,000 words
 
-### 9. Update Checkpoint
+### 10. Update Checkpoint
 - Write `memory/checkpoint.json` with last processed event ID and timestamp
 
-### 10. Write Consolidation Report
+### 11. Write Consolidation Report
 - Create `knowledge/consolidation-reports/YYYY-MM-DD.md`
 - Include: events extracted, knowledge updated, stale facts, open loops, conflicts, integrity, forecast
 
-### 11. Git Versioning (Safety Net)
+### 12. Git Versioning (Safety Net)
 - Run `git add memory/ knowledge/ recall/ && git commit -m "consolidation YYYY-MM-DD"` BEFORE writing any changes
 - This creates an automatic rollback point — one bad consolidation can be undone
 - Zero cost, free safety net
 
-### 12. Ledger Compaction Check (Monthly)
-- Check if active (non-archived) events exceed **150**
-- If yes, run compaction:
-  1. Read full ledger
-  2. For each resolved chain (commitment created → updated → closed): create ONE summary event
-  3. Superseded facts → replaced by final correct fact as single event
-  4. P0/P1 permanent constraints → preserved as-is
-  5. Archive old events to `memory/ledger-archive-YYYY.jsonl`
-  6. Write compacted events as new `memory/ledger.jsonl` (this is the ONE exception to append-only — compaction is a controlled rewrite)
-  7. Reset checkpoint to reflect new ledger state
-  8. Rebuild all indexes from scratch
-- **Target:** Keep active ledger under 150 events at all times
-- **Only runs monthly** (or when threshold exceeded)
+### 13. Ledger Compaction (Event-Driven Archival)
+**Trigger:** When a chain is fully resolved (commitment satisfied, fact superseded), start a 30-day timer. After 30 days with no new links to the chain, archive it.
+
+**Process:**
+1. Scan for resolved chains older than 30 days
+2. For each resolved chain: create ONE summary event capturing the final state
+3. P0/P1 permanent constraints → preserved as-is (never archived)
+4. Archive old chain events to `memory/ledger-archive-YYYY.jsonl`
+5. Write updated `memory/ledger.jsonl`
+6. Reset checkpoint and rebuild indexes
+
+**No arbitrary thresholds.** Compaction happens naturally as chains resolve, not on a monthly schedule. This scales with actual usage, not calendar time.
 
 ## Notes
 - Should NOT message Francisco (3 AM)
