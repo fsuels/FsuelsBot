@@ -104,14 +104,38 @@ User says anything like:
 2. Read stdout for the response
 3. Gemini has web grounding built-in
 
-### Step 3: Collect & Compare
-After getting all responses, analyze:
-- **Agreements** — What do 3+ AIs agree on? (High confidence)
-- **Unique insights** — What did only one AI mention? (Potential edge)
-- **Disagreements** — Where do they contradict? (Needs judgment)
+### Step 3: Cross-Debate (THE KEY STEP — This Is What Makes It Real)
+
+**This is NOT a survey. This is a debate.** After collecting initial responses, the AIs must actually argue with each other.
+
+**Round A — Initial Positions** (Step 2 above)
+Each AI gives their independent take.
+
+**Round B — Cross-Examination**
+Go back to EACH AI with the OTHER AIs' responses. Use the SAME chat (not new chats — you want them to build on context):
+
+For Grok: "Two other AI experts responded to the same question. Here are their takes: [paste ChatGPT summary + Gemini summary]. Where are they wrong? What did they miss? Where do you agree? Build on their best ideas and attack their weakest points. Give me your REVISED position."
+
+For ChatGPT: Same, but paste Grok + Gemini summaries.
+
+For Gemini (CLI): `gemini -p "Two other AI experts responded: [Grok summary + ChatGPT summary]. Where are they wrong? What did they miss? Build on their best ideas, attack their weakest points, and give your REVISED position."`
+
+**Round C — Rebuttal (if productive)**
+If Round B produced genuinely new insights or sharp disagreements:
+- Share the Round B revisions back. "They've seen your critique and revised. Here's their updated position: [paste]. Final rebuttal — what's your strongest argument now?"
+- Skip this round if the AIs are converging and just restating positions.
+
+**The goal:** By the end, each AI has SEEN and RESPONDED TO the others' arguments. Their final positions are battle-tested, not first drafts. Agreements mean more because they survived challenge. Disagreements are sharper and better-reasoned.
+
+### Step 4: Collect & Compare
+After the debate rounds, analyze:
+- **Agreements** — What do they STILL agree on after debating? (Very high confidence)
+- **Unique insights** — What survived challenge? (Validated edge)
+- **Disagreements** — Where do they STILL disagree after seeing each other's arguments? (Genuine tension — needs judgment)
+- **Evolved positions** — What changed from Round A to Round B/C? (Shows real thinking)
 - **Blind spots** — What did none of them address? (You fill in)
 
-### Step 4: Synthesize & Deliver
+### Step 5: Synthesize & Deliver
 Present to the user:
 ```
 🧠 THE COUNCIL — [Topic]
@@ -154,9 +178,11 @@ The other AIs give generic expert advice. YOU give advice tailored to Francisco'
 
 ## Important Rules
 
-1. **Always start new chats** in Grok and ChatGPT to avoid context contamination
-2. **Use the exact same question** for all AIs
-3. **Don't reveal you're an AI** asking on behalf of someone — just ask the question naturally
+1. **Start new chats for Round A** (initial question) — avoid contamination from previous sessions
+2. **Keep the same chats for Rounds B & C** — the AIs need to build on context, not start fresh
+3. **Use the exact same initial question** for all AIs in Round A
+4. **Don't reveal you're an AI** asking on behalf of someone — just ask the question naturally
+5. **Summarize, don't paste walls of text** — when sharing one AI's response with another, condense to key arguments (2-4 bullet points), not full transcripts
 4. **Time management** — the whole process should take 2-3 minutes max
 5. **If one AI is down/slow**, proceed with the others and note it
 6. **Save council sessions** to `council-sessions/` with date and topic for reference
@@ -189,39 +215,46 @@ Instead of asking all AIs the same question, share YOUR draft answer and ask the
 This is like a writer sending their manuscript to critics — the goal isn't praise, it's finding every weakness before it ships.
 
 ## Advanced Mode: Feedback Loop (Adaptive Multi-Round, Max 6)
-The most powerful mode. Each AI iterates on the others' work. Runs **adaptively** — continues as long as meaningful improvements are found, stops when gains plateau. **Maximum 6 rounds.**
+The most powerful mode. Runs the FULL debate protocol (Rounds A→B→C) across multiple iterations. Each iteration builds on the IMPLEMENTED results of the previous one. **Maximum 6 iterations.**
 
-**Round 1 — First Take**
-- Ask all AIs the same question
-- Collect their initial answers
+**Key distinction:** Each "round" is a full Council debate session (with internal cross-debate). Between rounds, changes are IMPLEMENTED. The next round evaluates the updated state.
 
-**Round 2 — Cross-Critique & Improve**
-- Go back to each AI: "Here's what two other experts proposed: [paste summaries]. Don't just critique — BUILD A BETTER SOLUTION. What did they miss? What's wrong? And most importantly: what's a SUPERIOR approach that beats all of these?"
-- Each AI must produce a new answer that's better than everyone's Round 1
+**Round 1 — Initial Debate**
+- Run full debate protocol (Rounds A→B→C) on the initial question
+- Implement consensus changes
+- Record grade
 
-**Round 3+ — Adaptive Continuation**
-- After each round, **evaluate whether meaningful improvement occurred** compared to the previous round
-- **Continue** if: new insights emerged, strategies got materially better, blind spots were uncovered, or disagreements led to stronger synthesis
-- **Stop** if: responses are rehashing the same points, improvements are marginal/cosmetic, AIs are agreeing without adding substance, or you're seeing diminishing returns
+**Round 2 — Re-evaluation**
+- Explain the UPDATED system (post-Round 1 implementation) to all AIs
+- Run full debate protocol: initial positions → cross-examination → rebuttals
+- Each AI must acknowledge what improved AND find remaining weaknesses
+- Implement consensus changes
+- Record grade: "B- (R1) → B+ (R2)"
+
+**Round 3-6 — Adaptive Continuation**
+- After each round, **evaluate whether meaningful improvement occurred**
+- **Continue** if: new insights emerged, strategies got materially better, blind spots were uncovered, grade improved, or disagreements led to stronger synthesis
+- **Stop** if: responses are rehashing the same points, improvements are marginal/cosmetic, AIs are agreeing without adding substance, grade plateaued, or you're seeing diminishing returns
 - Maximum of **6 rounds total** — hard cap, no exceptions
 
 **Final Synthesis (after stopping)**
-- You (Claude) now have: all rounds of answers + critiques + counter-arguments
-- The best ideas from each round have survived; the weak ones are gone
-- Synthesize the ultimate answer — one that none of the AIs could have reached alone
-- Deliver to Francisco with full reasoning: what survived, what got killed, why you stopped at round N, and why the final answer is the strongest
-
-This creates a genuine feedback loop — each AI pushes the others to think harder. The final answer has been stress-tested from every angle.
+- Full grade progression: "B- (R1) → B+ (R2) → A- (R3) → A- (R4, stopped)"
+- What survived all rounds of debate
+- What got killed and why
+- Why you stopped at round N
+- The final system state and what would be needed for A+
 
 **Adaptive stopping rule:**
 ```
 for round in 2..6:
-    run round
+    run full debate (A→B→C)
+    implement consensus
+    record grade
     if no_meaningful_improvement(round vs round-1):
-        stop → synthesize
+        stop → final synthesis
     else:
         continue
-synthesize after round 6 (hard cap)
+final synthesis after round 6 (hard cap)
 ```
 
 **When to use multi-round:**

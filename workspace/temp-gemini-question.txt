@@ -1,0 +1,28 @@
+I built a personal AI memory system for a Claude-based agent. Here is the CURRENT state after 3 rounds of improvement.
+
+Architecture: 4 layers - daily markdown logs, then append-only JSONL event ledger, then curated knowledge wiki, then recall pack (3000-word session context injection).
+
+Key features:
+- Append-only ledger with supersession protocol (corrections append new events, old ones stop being surfaced)
+- 7 event types: fact, decision, preference, commitment, constraint, procedure, relationship
+- P0-P3 priority system with type-aware confidence decay
+- Incremental nightly consolidation via sub-agent (checkpoints prevent full-ledger scans)
+- Monthly ledger compaction: when active events exceed 150, compress resolved chains and archive old events
+- Deterministic pack builder: fixed section order, word budgets per section, explicit inclusion/exclusion rules, simple conflict detection
+- Only 1 index file maintained (open-loops.json) - entities and tags derived on-the-fly
+- Weekly full index rebuild from scratch (correctness reset)
+- Git commit before every consolidation (automatic rollback)
+- Memory chains (related events linked by ID)
+- Live extraction during conversations (do not wait for nightly consolidation)
+- Knowledge base: entities, procedures, principles, insights directories
+
+Current scale: 67 events, 14 knowledge files, system runs on files only (no databases, no vector stores, zero dollar budget).
+
+Previous grade: B- (Round 3). Expected B+ after implementing Round 3 changes.
+
+Round 4 Questions:
+1. Grade the UPDATED system (A-F). Has it actually improved from B-? What grade now?
+2. What are the remaining weaknesses that could still cause silent failure?
+3. What ONE change would have the biggest impact on moving toward A?
+4. Are there any unnecessary complexities we should still cut?
+5. What is your contrarian take - something everyone assumes is fine but actually is not?
