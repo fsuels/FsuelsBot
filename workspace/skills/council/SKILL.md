@@ -25,6 +25,8 @@ Sonnet orchestrates via Claude Max (flat rate). Other AIs via browser tabs (alre
 
 **RULE: Never add any service, API, or tool that costs extra money without Francisco's explicit approval.**
 
+**RULE: Always aim for A+.** Never settle for incremental improvements. Push every debate to think outside the box, challenge paradigms, and seek breakthroughs. The goal is the BEST possible solution — not just a slightly better one.
+
 ## Implementation
 When user triggers a council session:
 1. **Opus** (main session) receives the question from Francisco
@@ -125,7 +127,9 @@ If Round B produced genuinely new insights or sharp disagreements:
 - Share the Round B revisions back. "They've seen your critique and revised. Here's their updated position: [paste]. Final rebuttal — what's your strongest argument now?"
 - Skip this round if the AIs are converging and just restating positions.
 
-**The goal:** By the end, each AI has SEEN and RESPONDED TO the others' arguments. Their final positions are battle-tested, not first drafts. Agreements mean more because they survived challenge. Disagreements are sharper and better-reasoned.
+**The goal:** Discovery, not validation. The debate aims to uncover NEW insights — ideas none of the AIs would have reached alone. Push them to go beyond their initial thinking. When one AI challenges another, the response should contain something NEW, not just a defense of the original position. If the debate is just producing "I agree" or "I stand by my answer," push harder: "That's not good enough. What are you NOT seeing? What assumption are you making that might be wrong?"
+
+By the end, each AI has SEEN and RESPONDED TO the others' arguments. Their final positions are battle-tested, not first drafts. Agreements mean more because they survived challenge. Disagreements are sharper and better-reasoned. And ideally, the cross-pollination sparked ideas that didn't exist before the debate started.
 
 ### Step 4: Collect & Compare
 After the debate rounds, analyze:

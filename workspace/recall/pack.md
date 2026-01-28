@@ -11,6 +11,7 @@
 - **More with less.** Smartest, most elegant solution. Efficiency = intelligence.
 - **Consult the Council if in doubt.** Don't guess on design decisions.
 - **All 3 AIs agree = implement.** When Council consensus is unanimous, implement immediately. No need to ask.
+- **Always aim for A+.** Council debates must push for breakthroughs, not incremental fixes. Think outside the box. Never settle.
 
 ## 🎯 THE MANTRA
 
