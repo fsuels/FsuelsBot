@@ -78,6 +78,9 @@ User says anything like:
 
 ## Workflow
 
+### P0 — Every Session, Every Round
+Before anything else, remember: The Council is a **congress of experts**. Every session must **explore ideas, debate positions, discover new solutions, aim for A+, and seek genuine understanding**. This is not optional. This is what the Council IS.
+
 ### Step 1: Formulate the Question
 - Take the user's raw question
 - Refine it into a clear, specific prompt that will get the best answers
@@ -226,6 +229,15 @@ This is like a writer sending their manuscript to critics — the goal isn't pra
 The most powerful mode. Runs the FULL debate protocol (Rounds A→B→C) across multiple iterations. Each iteration builds on the IMPLEMENTED results of the previous one. **Maximum 6 iterations.**
 
 **Key distinction:** Each "round" is a full Council debate session (with internal cross-debate). Between rounds, changes are IMPLEMENTED. The next round evaluates the updated state.
+
+### EVERY ROUND MUST (P0 — non-negotiable):
+- **EXPLORE** — think outside the box, challenge paradigms, propose bold solutions
+- **DEBATE** — real cross-examination (A→B→C), AIs argue with each other's positions
+- **DISCOVER** — find NEW solutions that didn't exist before the debate started
+- **AIM FOR A+** — never settle for incremental, always push for breakthroughs
+- **SEEK UNDERSTANDING** — better understanding leads to better solutions
+
+This applies to Round 1, Round 6, and every round in between. No exceptions. No shortcuts.
 
 **Round 1 — Initial Debate**
 - Run full debate protocol (Rounds A→B→C) on the initial question
