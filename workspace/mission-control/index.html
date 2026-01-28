@@ -866,15 +866,34 @@
   .team-card-name { font-size: 13px !important; }
   .team-card-role { font-size: 10px !important; }
   .team-card-status { font-size: 9px !important; padding: 2px 6px !important; }
-  .team-card-caps { display: none !important; }
-  .team-card-footer { display: none !important; }
-  .team-card-desc { display: none !important; }
+  .team-card-caps { display: none; }
+  .team-card-footer { display: none; }
+  .team-card-desc { display: none; }
   .team-card-task {
     font-size: 11px !important;
     padding: 4px 8px !important;
     margin-top: 6px !important;
     margin-bottom: 0 !important;
   }
+
+  /* Expanded card shows details */
+  .team-card.expanded {
+    padding: 12px 14px !important;
+    background: var(--surface2) !important;
+    border-color: var(--accent) !important;
+  }
+  .team-card.expanded .team-card-caps { display: flex !important; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+  .team-card.expanded .team-card-footer { display: flex !important; margin-top: 8px; }
+  .team-card.expanded .team-card-desc { display: block !important; margin-top: 8px; font-size: 12px; color: var(--text-dim); line-height: 1.4; }
+  .team-card.expanded .team-card-task { display: block !important; }
+  .team-card-expand-hint {
+    font-size: 10px;
+    color: var(--accent);
+    text-align: right;
+    margin-top: 4px;
+    opacity: 0.6;
+  }
+  .team-card.expanded .team-card-expand-hint { display: none; }
 
   @media (max-width: 800px) {
     .activity-split { flex-direction: column; }
@@ -1193,7 +1212,14 @@ function renderTeamMemberCard(member, liveAgent) {
   const lastAct = member.lastActive ? timeAgo(member.lastActive) : 'Never';
   const tasksDone = member.tasksCompleted || 0;
 
-  return `<div class="team-card status-${esc(s)}" onclick="this.querySelector('.team-card-desc').style.display=this.querySelector('.team-card-desc').style.display==='none'?'block':'none'">
+  // Task line: show current task or idle status
+  const taskLine = currentTask
+    ? `<div class="team-card-task">${esc(currentTask)}</div>`
+    : (s === 'idle'
+      ? `<div class="team-card-task" style="display:block;background:rgba(139,148,158,0.06);border-left-color:var(--text-dim);">💤 Waiting for assignment · Last active: ${lastAct}</div>`
+      : '');
+
+  return `<div class="team-card status-${esc(s)}" onclick="this.classList.toggle('expanded')">
     <div class="team-card-header">
       <div class="team-avatar">${member.emoji || '🤖'}</div>
       <div class="team-card-identity">
@@ -1202,8 +1228,9 @@ function renderTeamMemberCard(member, liveAgent) {
       </div>
       <div class="team-card-status">${statusEmoji[s] || '•'} ${esc(s)}</div>
     </div>
-    ${currentTask ? `<div class="team-card-task">${esc(currentTask)}</div>` : ''}
-    <div class="team-card-desc" style="display:none">${esc(member.description || '')}</div>
+    <div class="team-card-expand-hint">▸ tap for details</div>
+    ${taskLine}
+    <div class="team-card-desc">${esc(member.description || '')}</div>
     <div class="team-card-caps">${caps}</div>
     <div class="team-card-footer">
       <span class="team-model">${esc(member.model || 'unknown')}</span>
