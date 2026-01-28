@@ -19,7 +19,7 @@ for i, href in enumerate(hrefs):
     if not href.startswith('http'):
         href = 'https://dresslikemommy.com' + href
     try:
-        fname = f'C:/Users/Fsuels/clawd/dlm-icon-{i}.png'
+        fname = f'dlm-icon-{i}.png'
         req2 = urllib.request.Request(href, headers={'User-Agent': 'Mozilla/5.0'})
         data = urllib.request.urlopen(req2).read()
         with open(fname, 'wb') as f:

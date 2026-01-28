@@ -63,7 +63,23 @@
 - Shopify app iframes (Google & YouTube, etc.) use cross-origin frames — standard refs don't work; use aria refs with `f` prefix or screenshots + keyboard navigation
 - Google Merchant Center branding page: `https://merchants.google.com/mc/branding?a=124884876`
 
+## X (Twitter) Account
+- **Handle:** @Cogitolux
+- **Display name:** CogitoLux
+- **Access:** Browser automation via clawd profile (logged in)
+- **Rules:** NEVER post without explicit permission from Francisco
+- **Can do:** Read feed, notifications, DMs, draft tweets, research
+- **Daily research brief:** 9 AM EST via cron job — AI agents, Clawdbot, Claude news
+
+## GitHub Repository
+- **Repo:** github.com/fsuels/FsuelsBot (private, fork of moltbot/moltbot)
+- **Local path:** C:\dev\FsuelsBot (engine + workspace)
+- **Old workspace backup:** github.com/fsuels/fsuels-workspace-backup (can be deleted)
+- **Daily auto-commit:** 11 PM EST via cron job
+- **gh CLI:** C:\Program Files\GitHub CLI\gh.exe (installed but not authenticated)
+
 ## Workspace
-- Path: C:\Users\Fsuels\clawd
+- Path: C:\dev\FsuelsBot\workspace
+- Repo root: C:\dev\FsuelsBot
 - Memory: memory/ directory with daily files
 - Skills: skills/ directory with ClawdHub installs

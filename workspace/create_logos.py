@@ -1,7 +1,7 @@
 from PIL import Image
 
 # Load current logo
-logo = Image.open('C:/Users/Fsuels/clawd/dlm-current-logo.png')
+logo = Image.open('dlm-current-logo.png')
 print(f"Original logo: {logo.size} ({logo.mode})")
 
 # Convert to RGBA if needed
@@ -27,7 +27,7 @@ y = (rect_h - new_h) // 2
 rect_canvas.paste(logo_resized, (x, y), logo_resized)
 
 # Save as PNG
-rect_path = 'C:/Users/Fsuels/clawd/dlm-logo-rectangular.png'
+rect_path = 'dlm-logo-rectangular.png'
 rect_canvas.convert('RGB').save(rect_path, 'PNG')
 print(f"Rectangular logo saved: {rect_w}x{rect_h} -> {rect_path}")
 
@@ -47,7 +47,7 @@ x_sq = (sq_size - new_w_sq) // 2
 y_sq = (sq_size - new_h_sq) // 2
 sq_canvas.paste(logo_sq, (x_sq, y_sq), logo_sq)
 
-sq_path = 'C:/Users/Fsuels/clawd/dlm-logo-square.png'
+sq_path = 'dlm-logo-square.png'
 sq_canvas.convert('RGB').save(sq_path, 'PNG')
 print(f"Square logo saved: {sq_size}x{sq_size} -> {sq_path}")
 

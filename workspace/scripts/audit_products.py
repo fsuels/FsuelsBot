@@ -14,7 +14,7 @@ while True:
     page += 1
 
 # Save for later use
-with open("C:/Users/Fsuels/clawd/mission-control/products-raw.json", "w", encoding="utf-8") as f:
+with open("mission-control/products-raw.json", "w", encoding="utf-8") as f:
     json.dump(all_products, f, indent=2)
 
 # Analyze issues

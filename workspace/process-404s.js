@@ -730,7 +730,7 @@ for (const [from, to] of redirects) {
   count++;
 }
 
-fs.writeFileSync('C:\\Users\\Fsuels\\clawd\\dlm-bulk-redirects.csv', csv, 'utf8');
+fs.writeFileSync('dlm-bulk-redirects.csv', csv, 'utf8');
 
 // Stats
 const stats = {
