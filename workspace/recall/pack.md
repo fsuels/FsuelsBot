@@ -10,6 +10,7 @@
 - **Cutting edge.** Most advanced personal AI agent possible.
 - **More with less.** Smartest, most elegant solution. Efficiency = intelligence.
 - **Consult the Council if in doubt.** Don't guess on design decisions.
+- **All 3 AIs agree = implement.** When Council consensus is unanimous, implement immediately. No need to ask.
 
 ## 🎯 THE MANTRA
 
@@ -25,7 +26,7 @@
 6. **Product cleanup** — Scripts ready, needs Shopify API token. [needs-francisco]
 7. **Pinterest billing** — Mastercard 9844 expired. [needs-francisco]
 8. **TikTok pixel** — Setup incomplete. [open]
-9. **3-round Council loop** — Round 1 ✅, Round 2 ✅, implementing Round 2, Round 3 pending. [open]
+9. **Council memory system** — Round 1 ✅, Round 2 ✅, Round 3 ✅, implementing Round 3 consensus changes. [open]
 10. **Biweekly Council cycle** — Cron set for 1st & 15th of each month. [recurring]
 
 ## ⏳ WAITING ON
@@ -42,15 +43,8 @@ BuckyDrop (orders, 1d) | GMC (review, 2d) | Pinterest (approval, 1d) | Francisco
 ## 🧠 CONTEXT
 
 **DLM:** Rebuilding from ~$15K/yr. 100% focus. Dropship via BuckyDrop. Biggest blocker: GMC suspension.
-**System:** Memory v3 in progress. Ledger 67 events. Knowledge 14 files. Incremental consolidation with checkpoints.
-**Francisco:** Sleeping since ~3:28 AM. Review results when he wakes.
-
-## 📡 7-DAY FORECAST
-
-1. [HIGH] BuckyDrop support response expected ~Jan 29-30
-2. [HIGH] Pinterest merchant review result expected ~Jan 29
-3. [MEDIUM] GMC misrepresentation review ongoing — may need follow-up if no response by Jan 31
-4. [LOW] Biweekly Council improvement cycle starts Feb 1
+**System:** Memory v3 live. Ledger 67 events. Council Round 3 complete — implementing consensus changes (compaction, deterministic pack, no forecast, simplified indexes, git versioning, weekly rebuild). Adaptive council rounds up to 6 now active.
+**Standing order:** Always implement when all 3 Council AIs agree.
 
 ## 📚 PROCEDURES
 

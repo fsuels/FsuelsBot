@@ -262,18 +262,11 @@ Facts age. Old facts become unreliable. The system tracks freshness automaticall
 ## ⏳ WAITING ON — External dependencies
 ## 🎯 TODAY'S FOCUS — Priority work for the day
 ## 🧠 CONTEXT — Current projects, recent decisions, Francisco's state
-## 📡 7-DAY FORECAST — Predicted upcoming events and deadlines
 ## 📚 PROCEDURES — Key operational procedures
 ## 🔑 ACCOUNTS — Quick reference account IDs
 ```
 
-### 7-Day Forecast (Novel Feature)
-
-During nightly consolidation, the sub-agent generates a forecast section:
-- Based on: open loops, patterns, commitments, deadlines
-- Format: 3-5 predictions with HIGH/MEDIUM/LOW confidence
-- Gives the AI genuine "foresight" — knowing what's coming before being asked
-- Zero infrastructure — just another section in the pack
+**Note:** 7-Day Forecast was removed per Council Round 3 consensus (all 3 AIs agreed). Without structured due dates and external data, forecasts were speculative noise wasting pack budget. Those ~200 words are now available for actual commitments and context.
 
 ### Open Loops (Commitment Tracking)
 
@@ -290,8 +283,47 @@ When a new fact contradicts an old one:
 - The old event stays in the ledger (never deleted) but stops being surfaced
 - This is **memory self-cleaning** — the system corrects itself
 
-### Generation Rules
+### Deterministic Pack Builder Rules
 
+The pack is NOT a summary lottery. It follows **explicit, deterministic rules** so output is predictable and debuggable.
+
+**Fixed Section Order** (always in this order, no rearranging):
+1. 🔴 P0 CONSTRAINTS — always included, no exceptions
+2. 🎯 THE MANTRA — always included (1 line)
+3. 📋 OPEN COMMITMENTS — oldest first, with status and age
+4. ⏳ WAITING ON — derived from open commitments with external dependencies
+5. 🎯 TODAY'S FOCUS — top 3-5 priority items for the day
+6. 🧠 CONTEXT — current state of active projects
+7. 📚 PROCEDURES — key operational procedures (compact)
+8. 🔑 ACCOUNTS — quick reference IDs (compact)
+
+**Word Budgets Per Section** (total ≤ 3,000 words):
+| Section | Budget | Notes |
+|---------|--------|-------|
+| P0 CONSTRAINTS | 200 | Fixed, rarely changes |
+| MANTRA | 20 | One line |
+| OPEN COMMITMENTS | 500 | All open loops, oldest first |
+| WAITING ON | 150 | One-liner per dependency |
+| TODAY'S FOCUS | 300 | Top priorities only |
+| CONTEXT | 800 | Active projects, recent decisions |
+| PROCEDURES | 500 | Essential how-tos |
+| ACCOUNTS | 200 | IDs only, no descriptions |
+| **Buffer** | 330 | For overflow in any section |
+
+**Explicit Inclusion Rules:**
+- P0 events → ALWAYS in P0 CONSTRAINTS section
+- Open commitments (status: "open", not superseded) → ALWAYS in OPEN COMMITMENTS
+- Superseded events → NEVER included anywhere
+- Expired P3 (>30 days) → excluded
+- Expired P2 (>90 days) → excluded
+- Stale facts (>30 days unverified) → flagged with ⚠️ if included
+
+**Simple Conflict Detection:**
+- When two active facts about the same entity contradict → include BOTH with ⚠️ CONFLICT flag
+- Example: `⚠️ CONFLICT: EVT-042 says X, EVT-067 says Y — needs resolution`
+- Conflicts are surfaced, not silently resolved
+
+**General Rules:**
 1. **Regenerated at 3 AM daily** by consolidation sub-agent
 2. **Can be regenerated on-demand** during sessions if context changes
 3. **Must stay under 3,000 words** — brevity is essential
@@ -353,15 +385,15 @@ Live extraction means the ledger stays current. The 3 AM consolidation catches a
 
 ## Index Files (`memory/index/`)
 
-**What:** Simple JSON files that act as a "poor man's database" — preventing expensive full-ledger scans.
+**What:** Minimal index to prevent expensive full-ledger scans. Only one index is maintained.
 
 | File | Content | Purpose |
 |------|---------|---------|
-| `memory/index/entities.json` | Entity name → event ID array | Find all events about an entity |
 | `memory/index/open-loops.json` | Array of open commitment event IDs | Surface open commitments in pack |
-| `memory/index/tags.json` | Tag → event ID array | Find events by topic |
 
-**Rebuilt incrementally** during nightly consolidation. Only new events are indexed.
+**Note:** `entities.json` and `tags.json` were removed per Council Round 3 consensus — they are derivable on-the-fly during consolidation and were a maintenance/corruption risk. Only `open-loops.json` is actively useful.
+
+**Rebuilt incrementally** during nightly consolidation. **Full rebuild from scratch once weekly** (see Weekly Full Rebuild cron) as a correctness reset to prevent silent index drift.
 
 ## Checkpoint (`memory/checkpoint.json`)
 
@@ -454,13 +486,54 @@ This system EVOLVES from what we have. Nothing is destroyed.
 
 ---
 
+## Ledger Compaction (Monthly / Threshold-Based)
+
+**Problem:** At 150-400 events, the ledger becomes too large for reliable consolidation. Token overflow causes silent corruption.
+
+**Solution:** Monthly compaction keeps the active ledger under 150 events.
+
+### When to Run
+- Monthly (checked during nightly consolidation)
+- OR when active events exceed 150
+
+### How It Works
+1. Read full ledger
+2. **Resolved chains** (commitment: open → updated → closed): compress into ONE summary event
+3. **Superseded facts**: replace chain with single final-correct-fact event
+4. **P0/P1 permanent constraints**: preserve as-is (never compacted)
+5. **Expired P2/P3 events**: archive without replacement
+6. Archive old events to `memory/ledger-archive-YYYY.jsonl`
+7. Write compacted events as new `memory/ledger.jsonl`
+8. Reset checkpoint to reflect new ledger state
+9. Full rebuild of all indexes
+
+**This is the ONE exception to append-only.** Compaction is a controlled, atomic rewrite — not an edit. The archive preserves full history.
+
+## Git Versioning
+
+Every nightly consolidation begins with:
+```
+git add memory/ knowledge/ recall/
+git commit -m "pre-consolidation YYYY-MM-DD"
+```
+
+This creates automatic rollback points. If a consolidation corrupts state, `git revert` restores everything. Zero cost, massive safety net.
+
+## Weekly Full Index Rebuild
+
+Once per week (Sunday 4 AM cron), rebuild `memory/index/open-loops.json` from scratch by scanning the full ledger. This prevents silent drift from incremental-only updates. Think of it as defragmentation — the incremental updates work fine day-to-day, but a weekly full rebuild catches any accumulated bugs.
+
 ## Key Design Decisions
 
 1. **Files Claude can read/write natively** — markdown + JSON + JSONL. No databases.
-2. **Append-only ledger** — immutability prevents data loss.
+2. **Append-only ledger** — immutability prevents data loss (except during monthly compaction).
 3. **Sub-agents for maintenance** — Claude IS the processor, no external scripts needed.
 4. **Evolve, don't replace** — existing files stay. New system layers on top.
 5. **Recall pack solves context window** — curated 3K words beats random 50K words.
 6. **Priority system drives retention** — P0 permanent, P3 ephemeral.
+7. **Minimal indexes** — only open-loops.json maintained; entities/tags derived on-the-fly.
+8. **Git versioning** — automatic rollback points before every consolidation.
+9. **Monthly compaction** — keeps active ledger under 150 events, archives the rest.
+10. **Weekly full rebuild** — correctness reset prevents silent index drift.
 
 *This document is the canonical reference for how memory works. When in doubt, follow this.*

@@ -10,10 +10,10 @@ Runs automatically via cron at 3 AM EST daily. Can also be triggered manually.
 
 ## Steps
 
-### 0. Read Checkpoint + Indexes
+### 0. Read Checkpoint + Index
 - Read `memory/checkpoint.json` → `last_processed_event_id`, `events_processed`
-- Read `memory/index/entities.json`, `open-loops.json`, `tags.json`
-- These are your working state — no full ledger scan needed
+- Read `memory/index/open-loops.json` (the only maintained index — entities and tags are derivable on-the-fly)
+- This is your working state — no full ledger scan needed
 
 ### 1. Read Today's Raw Memory
 - Open `memory/YYYY-MM-DD.md` for today's date
@@ -29,7 +29,7 @@ For each noteworthy item in the daily log:
 - For corrections: include `"supersedes": "EVT-XXX"`
 - For related events: include `"related": ["EVT-XXX"]`
 - Append to `memory/ledger.jsonl` (NEVER edit existing lines)
-- Update index files as you go
+- Update `memory/index/open-loops.json` if commitment events are added
 
 ### 3. Update Knowledge Base
 - **New entity?** → Create `knowledge/entities/<name>.md`
@@ -60,25 +60,40 @@ For each noteworthy item in the daily log:
 - Log results to `memory/integrity-log.md`
 - If any check fails: flag in pack context
 
-### 8. Generate 7-Day Forecast
-- Based on: open loops, patterns, commitments, deadlines
-- Generate 3-5 predictions with HIGH/MEDIUM/LOW confidence
-- Add as 📡 7-Day Forecast section in pack
-
-### 9. Regenerate Recall Pack
+### 8. Regenerate Recall Pack
 - Rewrite `recall/pack.md` — single unified file
 - Sections: P0 constraints, mantra, open commitments, waiting-on, focus, context, forecast, procedures, accounts
 - Keep under 3,000 words
 
-### 10. Update Checkpoint
+### 9. Update Checkpoint
 - Write `memory/checkpoint.json` with last processed event ID and timestamp
 
-### 11. Write Consolidation Report
+### 10. Write Consolidation Report
 - Create `knowledge/consolidation-reports/YYYY-MM-DD.md`
 - Include: events extracted, knowledge updated, stale facts, open loops, conflicts, integrity, forecast
+
+### 11. Git Versioning (Safety Net)
+- Run `git add memory/ knowledge/ recall/ && git commit -m "consolidation YYYY-MM-DD"` BEFORE writing any changes
+- This creates an automatic rollback point — one bad consolidation can be undone
+- Zero cost, free safety net
+
+### 12. Ledger Compaction Check (Monthly)
+- Check if active (non-archived) events exceed **150**
+- If yes, run compaction:
+  1. Read full ledger
+  2. For each resolved chain (commitment created → updated → closed): create ONE summary event
+  3. Superseded facts → replaced by final correct fact as single event
+  4. P0/P1 permanent constraints → preserved as-is
+  5. Archive old events to `memory/ledger-archive-YYYY.jsonl`
+  6. Write compacted events as new `memory/ledger.jsonl` (this is the ONE exception to append-only — compaction is a controlled rewrite)
+  7. Reset checkpoint to reflect new ledger state
+  8. Rebuild all indexes from scratch
+- **Target:** Keep active ledger under 150 events at all times
+- **Only runs monthly** (or when threshold exceeded)
 
 ## Notes
 - Should NOT message Francisco (3 AM)
 - Critical findings → log for 8 AM daily report
-- Should take < 5 minutes
+- Should take < 5 minutes (compaction may take longer)
 - ALWAYS read checkpoint first → never process full ledger
+- Git commit BEFORE writing changes (rollback safety)

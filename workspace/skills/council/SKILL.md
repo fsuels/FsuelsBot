@@ -188,8 +188,8 @@ Instead of asking all AIs the same question, share YOUR draft answer and ask the
 
 This is like a writer sending their manuscript to critics — the goal isn't praise, it's finding every weakness before it ships.
 
-## Advanced Mode: Feedback Loop (Multi-Round)
-The most powerful mode. Each AI iterates on the others' work:
+## Advanced Mode: Feedback Loop (Adaptive Multi-Round, Max 6)
+The most powerful mode. Each AI iterates on the others' work. Runs **adaptively** — continues as long as meaningful improvements are found, stops when gains plateau. **Maximum 6 rounds.**
 
 **Round 1 — First Take**
 - Ask all AIs the same question
@@ -199,13 +199,30 @@ The most powerful mode. Each AI iterates on the others' work:
 - Go back to each AI: "Here's what two other experts proposed: [paste summaries]. Don't just critique — BUILD A BETTER SOLUTION. What did they miss? What's wrong? And most importantly: what's a SUPERIOR approach that beats all of these?"
 - Each AI must produce a new answer that's better than everyone's Round 1
 
-**Round 3 — Final Synthesis**
-- You (Claude) now have: original answers + improved answers + counter-arguments
+**Round 3+ — Adaptive Continuation**
+- After each round, **evaluate whether meaningful improvement occurred** compared to the previous round
+- **Continue** if: new insights emerged, strategies got materially better, blind spots were uncovered, or disagreements led to stronger synthesis
+- **Stop** if: responses are rehashing the same points, improvements are marginal/cosmetic, AIs are agreeing without adding substance, or you're seeing diminishing returns
+- Maximum of **6 rounds total** — hard cap, no exceptions
+
+**Final Synthesis (after stopping)**
+- You (Claude) now have: all rounds of answers + critiques + counter-arguments
 - The best ideas from each round have survived; the weak ones are gone
 - Synthesize the ultimate answer — one that none of the AIs could have reached alone
-- Deliver to Francisco with full reasoning: what survived, what got killed, and why the final answer is the strongest
+- Deliver to Francisco with full reasoning: what survived, what got killed, why you stopped at round N, and why the final answer is the strongest
 
 This creates a genuine feedback loop — each AI pushes the others to think harder. The final answer has been stress-tested from every angle.
+
+**Adaptive stopping rule:**
+```
+for round in 2..6:
+    run round
+    if no_meaningful_improvement(round vs round-1):
+        stop → synthesize
+    else:
+        continue
+synthesize after round 6 (hard cap)
+```
 
 **When to use multi-round:**
 - High-stakes decisions (spending money, major strategy pivots)
