@@ -15,11 +15,10 @@
 - Paths use backslashes but most tools accept forward slashes too
 
 ## Web Search
-- **Brave API:** Not configured yet (free tier needs credit card via Stripe)
-- **Workaround:** DuckDuckGo HTML via web_fetch: `https://html.duckduckgo.com/html/?q=URL+ENCODED+QUERY`
-- **Gemini CLI:** Authenticated via Google OAuth, can do web-grounded research (rate-limited)
+- **Brave API:** Configured and working ✅ (key provided by Francisco Jan 27, 2026)
+- **web_search:** Full Brave Search API access — titles, URLs, snippets
 - **web_fetch:** Works on any known URL ✅
-- **Setup for Brave:** `clawdbot configure --section web` (once key obtained)
+- **Gemini CLI:** Authenticated via Google OAuth, can do web-grounded research (rate-limited)
 
 ## Weather
 - Service: wttr.in (no API key needed)

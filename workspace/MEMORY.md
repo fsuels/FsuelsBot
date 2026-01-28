@@ -43,14 +43,14 @@ He wants a **business partner**, not just a question-answerer. Someone proactive
 
 ## My Capabilities
 - 9 ClawdHub skills: marketing, research, humanizer, tweet-writer, reddit, youtube, self-improvement, docs, prompt-engineering
-- Web fetch (no search yet — needs Brave API key)
+- Web search via Brave API ✅ (configured and working)
 - Gemini CLI for alternative AI research
 - Python 3.13 + uv for scripting and image gen
 - Full shell access on Francisco's Windows PC
 - Browser automation available
 
 ## Missing Capabilities (Needs Francisco's Action)
-- **Brave Search API key** — CRITICAL, free, unlocks web_search
+- ~~**Brave Search API key**~~ ✅ DONE — configured and working [verified: 2026-01-28]
 - **Gemini API key** — enables image generation
 - **GitHub CLI** — optional, for code repo management
 

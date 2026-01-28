@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-01-28T00:06:00-05:00",
+  "lastUpdated": "2026-01-28T02:25:00-05:00",
   "columns": {
     "blocked": {
       "label": "🚫 Blocked",
@@ -130,20 +130,6 @@
           ],
           "benefit": "💰 WHAT YOU GAIN: Cleaner analytics = better business decisions.",
           "project": "dlm"
-        },
-        {
-          "id": "MC-016",
-          "title": "Get Brave Search API key",
-          "description": "FREE tier. Unlocks web_search for competitor research and market analysis.",
-          "priority": "medium",
-          "assignee": "francisco",
-          "created": "2026-01-26",
-          "tags": [
-            "tools",
-            "api"
-          ],
-          "benefit": "💰 WHAT YOU GAIN: I can search the internet for you — competitor prices, trends, opportunities.",
-          "project": "agent"
         },
         {
           "id": "MC-017",
@@ -710,6 +696,19 @@
             "quality"
           ],
           "benefit": "💰 Reliable memory = reliable AI. No more lost context or conflicting info.",
+          "project": "agent"
+        },
+        {
+          "id": "MC-130",
+          "title": "✅ Brave Search API key configured",
+          "description": "Francisco provided the Brave Search API key. web_search now fully functional for competitor research, market analysis, and real-time information.",
+          "completed": "2026-01-27",
+          "tags": [
+            "tools",
+            "api",
+            "search"
+          ],
+          "benefit": "💰 Full internet search capability — competitor prices, trends, opportunities.",
           "project": "agent"
         }
       ]
