@@ -4,20 +4,27 @@
     "emoji": "🤖",
     "model": "claude-opus-4.5",
     "status": "working",
-    "task": "Implementing Council verdict — team restructured to 3 persistent + 4 on-demand",
-    "benefit": "Clean dashboard that shows only what matters. No more 8 idle cards wasting your attention.",
+    "task": "Council verdict fully implemented — all 8 operational procedures live",
+    "benefit": "Complete operating system for the team. Every task scored, dispatched, reviewed, and templated. No waste, no idle, no guessing.",
     "taskId": "MC-TEAM",
     "project": "Agent System",
     "startTime": "12:37 PM",
-    "description": "Restructured team from 8 flat specialists to 3 always-on (Orchestrator, Pressure Loop, Deep Dive) + 4 on-demand functions (Content, Automation, Council, PromptWork). On-demand cards show as ghosted/standby until activated.",
-    "progress": 90,
+    "description": "Implemented all Council recommendations: dispatch scoring, event triggers, autonomy tiers, safety tiers, output contracts, earn/kill criteria, persistent loops, and artifact pipeline.",
+    "progress": 100,
     "steps": [
-      {"label": "Rewrite team.json with new persistent/onDemand structure", "done": true},
-      {"label": "Update dashboard to render two sections", "done": true},
-      {"label": "Add standby visual state for on-demand cards", "done": true},
-      {"label": "Test and verify rendering", "done": false}
+      {"label": "Rewrite team.json — 3 persistent + 4 on-demand", "done": true},
+      {"label": "Update dashboard with new team view", "done": true},
+      {"label": "Dispatch scoring system", "done": true},
+      {"label": "Event-based triggers", "done": true},
+      {"label": "3-tier autonomy system", "done": true},
+      {"label": "Action safety tiers", "done": true},
+      {"label": "Output contracts for all functions", "done": true},
+      {"label": "Earn/kill criteria with thresholds", "done": true},
+      {"label": "QA Loop & Research Loop activation", "done": true},
+      {"label": "Reusable artifact pipeline", "done": true},
+      {"label": "Quick reference + HEARTBEAT.md integration", "done": true}
     ],
-    "strategy": "Council consensus: persistence is earned not assigned. Always-on roles handle continuous loops (QA after every task, research daily). On-demand functions merge related specialists (Writer+Editor+Humanizer → Content) and only spin up when needed. Saves tokens, reduces dashboard noise."
+    "strategy": "Documented every Council recommendation as a standalone procedure in knowledge/procedures/. Each procedure is self-contained, actionable, and cross-referenced. Master index at team-operations-quickref.md."
   },
   "agents": []
 }

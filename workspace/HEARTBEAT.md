@@ -1,5 +1,24 @@
 # HEARTBEAT.md
 
+## Core Loops (check every heartbeat)
+
+### Pressure Loop Check
+- Any sub-agent tasks completed since last heartbeat? → Run pressure check
+- Any errors logged? → Check for patterns in .learnings/
+- 3+ similar tasks this week? → Propose template/automation
+- Review recent outputs for improvement opportunities
+
+### Research Loop Check
+- Any pending research briefs to deliver?
+- Seasonal events approaching (<30 days)? → Research opportunities
+- Competitor changes detected? → Alert + response proposal
+- If no research done today → light opportunity scan
+
+### Dispatch Check
+- Backlog items scoring 12+? → Execute immediately
+- Backlog items scoring 8-11? → Queue as priority for today
+- Uncommitted git changes? → Commit and push
+
 ## Periodic Checks (rotate through, 2-4x daily)
 
 ### Self-Improvement (weekly)
@@ -8,6 +27,7 @@
 - Review `.learnings/` files for patterns and promote insights
 - Review recent `memory/` files and update MEMORY.md with key takeaways
 - Check ClawdHub for new relevant skills
+- Review earn/kill metrics for all agents
 
 ### Quick Checks (daily)
 - Weather in Naples FL (if human might be going out)
@@ -23,3 +43,8 @@
 ### Git Backup (auto via cron at 11 PM)
 - Workspace auto-commits and pushes to github.com/fsuels/FsuelsBot
 - If heartbeat, check if there are uncommitted changes and push
+
+## Dashboard Discipline
+- ALWAYS update current-task.json when starting/finishing tasks
+- ALWAYS update team.json status when dispatching/completing work
+- Include: description, benefit, progress, steps, strategy for every task
