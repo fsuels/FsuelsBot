@@ -1,9 +1,9 @@
 # Active Conversation Thread
-*Last updated: 2026-01-28 12:15 EST*
+*Last updated: 2026-01-28 12:25 EST*
 
 ## Current Topic
-- Francisco: "Never be idle" — always have work running
-- Launched productive sub-agents, fixing issues in parallel
+- Francisco: building a proper Mission Control dashboard he can audit
+- Full task detail panels with: what, why, progress, steps, strategy
 
 ## Active Right Now
 1. 🏛️ **Council v2** — Team architecture debate (sub-agent running)

@@ -877,10 +877,16 @@
   }
 
   /* Expanded card shows details */
+  .team-card {
+    transition: all 0.2s ease !important;
+  }
   .team-card.expanded {
     padding: 12px 14px !important;
-    background: var(--surface2) !important;
+    background: linear-gradient(135deg, var(--surface2), rgba(88,166,255,0.04)) !important;
     border-color: var(--accent) !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.25), 0 0 0 1px rgba(88,166,255,0.1) !important;
+    z-index: 10;
+    position: relative;
   }
   .team-card.expanded .team-card-caps { display: flex !important; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
   .team-card.expanded .team-card-footer { display: flex !important; margin-top: 8px; }
@@ -900,99 +906,136 @@
   .team-card.expanded .team-card-benefit { display: block !important; }
 
   /* Rich detail panel */
-  .task-detail-panel {
+  .task-detail-panel,
+  .orch-detail-panel {
     display: none;
-    margin-top: 8px;
-    padding: 10px 12px;
-    background: rgba(0,0,0,0.2);
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    font-size: 12px;
-    line-height: 1.5;
+    margin-top: 10px;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, rgba(22,27,34,0.95), rgba(33,38,45,0.95));
+    border-radius: 12px;
+    border: 1px solid rgba(88,166,255,0.15);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.03);
+    font-size: 13px;
+    line-height: 1.6;
+    animation: panelSlideIn 0.25s ease-out;
+  }
+  @keyframes panelSlideIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
   }
   .team-card.expanded .task-detail-panel { display: block !important; }
+  .orch-detail-panel { width: 100%; }
+  .orchestrator-bar.expanded .orch-detail-panel { display: block; }
+
   .task-detail-section {
-    margin-bottom: 10px;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
   }
-  .task-detail-section:last-child { margin-bottom: 0; }
+  .task-detail-section:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+
   .task-detail-label {
-    font-size: 10px;
+    font-size: 11px;
     text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--accent);
+    letter-spacing: 1.2px;
     font-weight: 700;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
   }
+  .task-detail-label.what { color: var(--accent); }
+  .task-detail-label.why { color: var(--done); }
+  .task-detail-label.progress { color: var(--medium); }
+  .task-detail-label.plan { color: #d2a8ff; }
+  .task-detail-label.strategy { color: var(--accent); }
+
   .task-detail-text {
     color: var(--text);
-    font-size: 12px;
-    line-height: 1.5;
+    font-size: 13px;
+    line-height: 1.6;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 8px;
   }
+  .task-detail-text.benefit {
+    background: rgba(63,185,80,0.06);
+    border-left: 3px solid var(--done);
+    color: #7ee787;
+  }
+
   .task-progress-bar {
-    height: 6px;
-    background: var(--border);
-    border-radius: 3px;
+    height: 8px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 4px;
     overflow: hidden;
-    margin-top: 4px;
+    margin-top: 6px;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.3);
   }
   .task-progress-fill {
     height: 100%;
-    border-radius: 3px;
-    background: var(--done);
-    transition: width 0.3s ease;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #238636, #3fb950, #56d364);
+    transition: width 0.5s ease;
+    box-shadow: 0 0 8px rgba(63,185,80,0.3);
   }
   .task-progress-label {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--text-dim);
-    margin-top: 2px;
+    margin-top: 4px;
     text-align: right;
+    font-weight: 600;
   }
+
   .task-steps {
     list-style: none;
     padding: 0;
     margin: 0;
   }
   .task-steps li {
-    padding: 3px 0;
-    font-size: 12px;
+    padding: 6px 10px;
+    font-size: 13px;
     display: flex;
     align-items: center;
-    gap: 6px;
-  }
-  .task-steps li.done { color: var(--done); }
-  .task-steps li.pending { color: var(--text-dim); }
-  .task-strategy {
-    padding: 8px 10px;
-    background: rgba(88,166,255,0.06);
+    gap: 8px;
     border-radius: 6px;
-    border-left: 3px solid var(--accent);
-    color: var(--text);
-    font-size: 12px;
-    line-height: 1.5;
+    margin-bottom: 3px;
+    transition: background 0.15s;
+  }
+  .task-steps li:hover { background: rgba(255,255,255,0.03); }
+  .task-steps li.done {
+    color: var(--done);
+  }
+  .task-steps li.done::before {
+    content: '';
+    display: none;
+  }
+  .task-steps li.pending {
+    color: var(--text-dim);
   }
 
-  /* Orchestrator detail panel */
-  .orch-detail-panel {
-    display: none;
-    width: 100%;
-    margin-top: 10px;
-    padding: 12px 14px;
-    background: rgba(0,0,0,0.2);
+  .task-strategy {
+    padding: 10px 14px;
+    background: rgba(88,166,255,0.04);
     border-radius: 8px;
-    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    color: var(--text);
     font-size: 13px;
-    line-height: 1.5;
+    line-height: 1.6;
+    font-style: italic;
   }
-  .orchestrator-bar.expanded .orch-detail-panel { display: block; }
-  .orchestrator-bar.expanded .orch-benefit { display: none !important; }
   .team-card-expand-hint {
     font-size: 10px;
     color: var(--accent);
     text-align: right;
-    margin-top: 4px;
-    opacity: 0.6;
+    margin-top: 3px;
+    opacity: 0.5;
+    transition: opacity 0.15s;
   }
-  .team-card.expanded .team-card-expand-hint { display: none; }
+  .team-card:hover .team-card-expand-hint { opacity: 0.9; }
+  .team-card.expanded .team-card-expand-hint { opacity: 0.7; }
+  .team-card.expanded .hint-expand { display: none !important; }
+  .team-card.expanded .hint-collapse { display: inline !important; }
 
   @media (max-width: 800px) {
     .activity-split { flex-direction: column; }
@@ -1304,15 +1347,29 @@ function renderActivityOffline() {
 
 function renderDetailPanel(data, cssClass) {
   if (!data) return '';
-  const desc = data.description ? `<div class="task-detail-section"><div class="task-detail-label">📋 What</div><div class="task-detail-text">${esc(data.description)}</div></div>` : '';
-  const benefit = data.benefit ? `<div class="task-detail-section"><div class="task-detail-label">💰 Why it matters</div><div class="task-detail-text" style="color:var(--done);">${esc(data.benefit)}</div></div>` : '';
-  const progress = data.progress != null ? `<div class="task-detail-section"><div class="task-detail-label">📊 Progress</div><div class="task-progress-bar"><div class="task-progress-fill" style="width:${data.progress}%"></div></div><div class="task-progress-label">${data.progress}% complete</div></div>` : '';
+  const doneCount = data.steps ? data.steps.filter(s => s.done).length : 0;
+  const totalCount = data.steps ? data.steps.length : 0;
+  const pct = data.progress != null ? data.progress : (totalCount > 0 ? Math.round(doneCount / totalCount * 100) : null);
+
+  const desc = data.description
+    ? `<div class="task-detail-section"><div class="task-detail-label what">📋 WHAT IS THIS</div><div class="task-detail-text">${esc(data.description)}</div></div>`
+    : '';
+  const benefit = data.benefit
+    ? `<div class="task-detail-section"><div class="task-detail-label why">💰 WHY IT MATTERS</div><div class="task-detail-text benefit">${esc(data.benefit)}</div></div>`
+    : '';
+  const progress = pct != null
+    ? `<div class="task-detail-section"><div class="task-detail-label progress">📊 PROGRESS</div><div class="task-progress-bar"><div class="task-progress-fill" style="width:${pct}%"></div></div><div class="task-progress-label">${pct}% complete${totalCount ? ' · ' + doneCount + '/' + totalCount + ' steps' : ''}</div></div>`
+    : '';
   let stepsHtml = '';
   if (data.steps && data.steps.length) {
-    const items = data.steps.map(s => `<li class="${s.done ? 'done' : 'pending'}">${s.done ? '✅' : '⬜'} ${esc(s.label)}</li>`).join('');
-    stepsHtml = `<div class="task-detail-section"><div class="task-detail-label">📝 Plan</div><ul class="task-steps">${items}</ul></div>`;
+    const items = data.steps.map(s =>
+      `<li class="${s.done ? 'done' : 'pending'}">${s.done ? '✅' : '⬜'} ${esc(s.label)}</li>`
+    ).join('');
+    stepsHtml = `<div class="task-detail-section"><div class="task-detail-label plan">📝 PLAN</div><ul class="task-steps">${items}</ul></div>`;
   }
-  const strategy = data.strategy ? `<div class="task-detail-section"><div class="task-detail-label">🧠 Strategy</div><div class="task-strategy">${esc(data.strategy)}</div></div>` : '';
+  const strategy = data.strategy
+    ? `<div class="task-detail-section"><div class="task-detail-label strategy">🧠 STRATEGY</div><div class="task-strategy">${esc(data.strategy)}</div></div>`
+    : '';
   return `<div class="${cssClass}">${desc}${benefit}${progress}${stepsHtml}${strategy}</div>`;
 }
 
@@ -1345,7 +1402,7 @@ function renderTeamMemberCard(member, liveAgent) {
       </div>
       <div class="team-card-status">${statusEmoji[s] || '•'} ${esc(s)}</div>
     </div>
-    <div class="team-card-expand-hint">▸ tap for details</div>
+    <div class="team-card-expand-hint"><span class="hint-expand">▸ tap for details</span><span class="hint-collapse" style="display:none">▾ collapse</span></div>
     ${taskLine}
     ${detailPanel}
     <div class="team-card-desc">${esc(member.description || '')}</div>
