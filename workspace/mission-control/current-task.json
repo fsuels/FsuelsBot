@@ -4,39 +4,22 @@
     "emoji": "🤖",
     "model": "claude-opus-4.5",
     "status": "working",
-    "task": "Dashboard UX overhaul — full task audit capability",
+    "task": "Reviewing Council verdict on team restructure + implementing dashboard polish",
+    "benefit": "Getting the team structure right means every token spent produces real output instead of idle specialists burning money",
     "taskId": "MC-UX",
     "project": "Agent System",
     "startTime": "12:15 PM",
-    "description": "Rebuilding Mission Control dashboard so Francisco can see exactly what's being worked on, why, and audit the strategy at any time. Split layout with compact team sidebar and large live feed.",
-    "benefit": "You can audit any task at a glance — what it is, why it matters, progress, and full strategy. No more guessing.",
-    "progress": 70,
+    "description": "Council debate completed. Reviewing the verdict to restructure the team from 8 idle specialists down to 3 persistent + 4 on-demand. Also finishing dashboard UX improvements.",
+    "progress": 85,
     "steps": [
       {"label": "Split layout (team left, feed right)", "done": true},
       {"label": "Clickable expandable team cards", "done": true},
       {"label": "Business value (Why) on every task", "done": true},
-      {"label": "Full task detail panel with steps + strategy", "done": false},
-      {"label": "Live progress tracking", "done": false}
+      {"label": "Full task detail panel with steps + strategy", "done": true},
+      {"label": "Visual polish — gradients, animations, colors", "done": true},
+      {"label": "Review Council verdict + implement restructure", "done": false}
     ],
-    "strategy": "Restructured from stacked layout to side-by-side split. Team cards compact in 300px sidebar, live feed takes remaining space. Each task card expands on click to show full audit info: description, benefit, progress bar, step checklist, and strategy notes. Data lives in current-task.json so it updates in real-time as work happens."
+    "strategy": "Council debated with Grok + ChatGPT + Opus verdict. Consensus: cut from 8 to 3 persistent roles + 4 on-demand functions. Key insight: 'Persistence is earned, not assigned.'"
   },
-  "agents": [
-    {
-      "name": "The Council",
-      "skill": "council",
-      "status": "working",
-      "task": "Debating optimal team architecture",
-      "description": "Full Council debate protocol: Grok thinks first, then ChatGPT, then Gemini cross-examines, then Opus delivers final verdict. Question: Is 8 specialists the right number? How to prevent idling? On-demand vs persistent roles?",
-      "benefit": "Stops wasting tokens on idle specialists. Finds the optimal team size and dispatch method so every token spent produces real output.",
-      "progress": 50,
-      "steps": [
-        {"label": "Grok initial analysis", "done": true},
-        {"label": "ChatGPT counter-analysis", "done": true},
-        {"label": "Gemini cross-examination", "done": false},
-        {"label": "Opus final verdict", "done": false},
-        {"label": "Write recommendations to file", "done": false}
-      ],
-      "strategy": "Using the Council multi-AI debate protocol. Three free AIs (Grok, ChatGPT, Gemini) debate independently, then cross-examine each other's positions. Opus 4.5 delivers the binding verdict. This gives us diverse perspectives at zero extra cost — all on existing subscriptions."
-    }
-  ]
+  "agents": []
 }

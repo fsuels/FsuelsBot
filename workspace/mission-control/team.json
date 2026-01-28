@@ -68,11 +68,11 @@
       "avatar": null,
       "model": "multi-ai",
       "skill": "council",
-      "status": "working",
+      "status": "idle",
       "description": "6 AIs debating every big decision. Grok, ChatGPT, Gemini, Open Arena + Opus judge.",
       "capabilities": ["Strategy Debates", "Multi-AI Analysis", "Decision Making", "Critical Review"],
-      "lastActive": "2026-01-28T12:16:00-05:00",
-      "tasksCompleted": 3,
+      "lastActive": "2026-01-28T12:27:00-05:00",
+      "tasksCompleted": 4,
       "color": "#f85149"
     },
     {
