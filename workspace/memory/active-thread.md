@@ -1,15 +1,29 @@
 # Active Conversation Thread
-*Last updated: 2026-01-28 12:25 EST*
+*Last updated: 2026-01-28 12:30 EST*
 
 ## Current Topic
-- Francisco: building a proper Mission Control dashboard he can audit
-- Full task detail panels with: what, why, progress, steps, strategy
+- Mission Control dashboard UX — Francisco giving live feedback, iterating fast
+- Just fixed: expanded cards staying open across live poll refreshes
 
-## Active Right Now
-1. 🏛️ **Council v2** — Team architecture debate (sub-agent running)
-2. 🔬 **DLM Competitor Deep Dive** — Full competitive analysis + Valentine's Day opportunities (sub-agent running)
-3. ✅ Security fixes applied (duplicate process killed, port already patched)
-4. ✅ Conversation continuity system built (this file + AGENTS.md updated)
+## What Francisco Wants (Dashboard)
+1. ✅ Split layout (team left, feed right) — "I like the split"
+2. ✅ Bigger, readable live feed
+3. ✅ Clickable task cards with details
+4. ✅ Business value ("Why") on every task
+5. ✅ Full audit: description, benefit, progress, steps, strategy
+6. ✅ Visually polished — gradients, animations, colors
+7. ✅ Cards stay open when clicked (persist across poll)
+8. ❓ Waiting for Francisco's feedback on latest version
+
+## Council Verdict (just delivered)
+- Cut from 8 specialists → 3 persistent + 4 on-demand
+- Francisco hasn't responded yet — asked "Want me to implement this restructure now?"
+
+## DLM Competitor Research (just delivered)
+- Valentine's Day 17 days away — urgent
+- Untapped niches: Daddy & Me, Grandma & Me, Pet + Owner
+- Pricing sweet spot: $18-38
+- Francisco hasn't responded yet on priorities
 
 ## Waiting On (external)
 - GMC reinstatement review (submitted Jan 26)
@@ -17,14 +31,11 @@
 - Pinterest approval (submitted Jan 27)
 - Francisco: Google Ads "Add" click, Shopify API token, Pinterest billing card
 
-## Recent Flow (today)
-1. Morning: Edge TTS, security hardening, SOUL.md updates
-2. Gateway token auth, skill audit, AGENTS.md alignment
-3. Proactive agency model — form opinions, decide confidently
-4. Team dashboard issue — specialists all showing IDLE
-5. Session memory search enabled
-6. Context loss → built active-thread.md continuity system
-7. **NOW:** Never idle — Council + DLM research running
-
-## What Francisco Last Said
-- "I need you to be never idle"
+## Recent Conversation Flow
+1. Context loss after compaction → built active-thread.md
+2. "Never be idle" → launched Council + DLM research
+3. Dashboard too small → split layout
+4. Can't see tasks → clickable cards
+5. Need to audit strategy → full detail panels
+6. Visually friendly → gradients, polish
+7. Closes when I click → fixed polling state persistence
