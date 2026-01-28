@@ -3,17 +3,24 @@ Mission Control Activity Server
 Serves dashboard + live activity feed from Clawdbot logs
 """
 import http.server
+import http.cookies
 import json
 import os
 import re
 import time
+import secrets
 import threading
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
+from urllib.parse import urlparse, parse_qs
 
 PORT = 8765
 LOG_DIR = r"\tmp\clawdbot"
 DASHBOARD_DIR = os.path.dirname(os.path.abspath(__file__))
+DASHBOARD_KEY = os.environ.get("DASHBOARD_KEY", "a6132abf77194fd10a77317a094771f1")
+
+# Session tokens for wifi auth
+_valid_sessions = {}
 
 # Shared state
 activity_state = {
@@ -338,8 +345,54 @@ def tail_log():
 class ActivityHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=DASHBOARD_DIR, **kwargs)
-    
+
+    def _check_auth(self):
+        """Check ?key= param or session cookie. Returns True, False, or 'redirect'."""
+        # Localhost always allowed
+        client_ip = self.client_address[0]
+        if client_ip in ("127.0.0.1", "::1"):
+            return True
+
+        # Check query param for key
+        parsed = urlparse(self.path)
+        params = parse_qs(parsed.query)
+        if params.get("key", [None])[0] == DASHBOARD_KEY:
+            session_id = secrets.token_hex(16)
+            _valid_sessions[session_id] = time.time()
+            self.send_response(302)
+            self.send_header("Set-Cookie", f"mc_session={session_id}; Path=/; HttpOnly; SameSite=Strict; Max-Age=86400")
+            self.send_header("Location", parsed.path or "/")
+            self.end_headers()
+            return "redirect"
+
+        # Check cookie
+        cookie_header = self.headers.get("Cookie", "")
+        if cookie_header:
+            cookies = http.cookies.SimpleCookie()
+            try:
+                cookies.load(cookie_header)
+                session = cookies.get("mc_session")
+                if session and session.value in _valid_sessions:
+                    if time.time() - _valid_sessions[session.value] < 86400:
+                        return True
+                    else:
+                        del _valid_sessions[session.value]
+            except Exception:
+                pass
+
+        return False
+
     def do_GET(self):
+        auth = self._check_auth()
+        if auth == "redirect":
+            return
+        if not auth:
+            self.send_response(403)
+            self.send_header("Content-Type", "text/html")
+            self.end_headers()
+            self.wfile.write(b"<h1>403 Forbidden</h1><p>Access denied.</p>")
+            return
+
         # Strip query string for path matching
         path = self.path.split('?')[0]
         
@@ -417,7 +470,7 @@ def main():
     print(f"Activity API: http://localhost:{PORT}/api/activity")
     print(f"LAN: http://192.168.4.25:{PORT}")
     
-    server = http.server.HTTPServer(('127.0.0.1', PORT), ActivityHandler)
+    server = http.server.HTTPServer(('0.0.0.0', PORT), ActivityHandler)
     server.allow_reuse_address = True
     print("Server bound and listening...")
     try:

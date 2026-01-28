@@ -7,10 +7,11 @@
       "emoji": "🤖",
       "model": "claude-opus-4.5",
       "status": "working",
+      "task": "Dashboard sync + talking to Francisco",
       "description": "Runs the show. Delegates work, makes decisions, talks to Francisco. 30% production, 70% routing.",
       "capabilities": ["Planning", "Delegation", "Communication", "Memory"],
-      "lastActive": "2026-01-28T12:37:00-05:00",
-      "tasksCompleted": 132
+      "lastActive": "2026-01-28T14:03:00-05:00",
+      "tasksCompleted": 136
     },
     {
       "id": "qa-loop",
@@ -35,8 +36,8 @@
       "status": "idle",
       "description": "Daily scans for competitors, market trends, AI advances, and money-making opportunities. Proactive, not reactive.",
       "capabilities": ["Web Research", "Competitor Analysis", "Market Trends", "Opportunity Mining"],
-      "lastActive": "2026-01-28T12:22:00-05:00",
-      "tasksCompleted": 10
+      "lastActive": "2026-01-28T13:54:00-05:00",
+      "tasksCompleted": 12
     }
   ],
   "onDemand": [
@@ -73,11 +74,12 @@
       "emoji": "🏛️",
       "model": "multi-ai",
       "skill": "council",
-      "status": "working",
+      "status": "done",
+      "lastResult": "4 sessions completed today — architecture deployed",
       "description": "Grok + ChatGPT + Gemini debate, Opus delivers verdict. Invoked only for high-impact decisions where diverse perspectives matter.",
       "capabilities": ["Strategy Debates", "Multi-AI Analysis", "Decision Making", "Critical Review"],
-      "lastActive": "2026-01-28T12:27:00-05:00",
-      "tasksCompleted": 4
+      "lastActive": "2026-01-28T13:32:00-05:00",
+      "tasksCompleted": 8
     },
     {
       "id": "prompt-work",
