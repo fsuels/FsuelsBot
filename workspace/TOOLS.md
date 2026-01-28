@@ -57,7 +57,9 @@
 - ALWAYS put the message in Telegram for copy/paste — never ask Francisco to type it himself
 
 ## Browser Best Practices
+- **NEVER leave a mess in tabs** — close tabs from the same platform when done. Keep it clean at all times.
 - **ALWAYS check open tabs first** with `browser tabs` before opening new ones
+- **Close duplicates immediately** — only keep tabs actively needed for current work
 - Shopify store handle is `dresslikemommy-com` (NOT `dresslikemommy`)
 - Shopify app iframes (Google & YouTube, etc.) use cross-origin frames — standard refs don't work; use aria refs with `f` prefix or screenshots + keyboard navigation
 - Google Merchant Center branding page: `https://merchants.google.com/mc/branding?a=124884876`
