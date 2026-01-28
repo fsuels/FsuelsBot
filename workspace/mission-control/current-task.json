@@ -1,13 +1,25 @@
 {
   "orchestrator": {
     "name": "Fsuels Bot",
-    "emoji": "\ud83e\udd16",
+    "emoji": "🤖",
     "model": "claude-opus-4.5",
     "status": "working",
-    "task": "Activity dashboard redesign + Gateway back-link",
-    "taskId": "MC-DASH",
+    "task": "Overnight improvement — Council debating ultimate agent system",
+    "taskId": "MC-NIGHT",
     "project": "Agent System",
-    "startTime": "2:25 AM"
+    "startTime": "2:50 AM"
   },
-  "agents": []
+  "agents": [
+    {
+      "name": "The Council",
+      "emoji": "🏛️",
+      "role": "Board of Advisors",
+      "model": "multi-ai",
+      "status": "working",
+      "task": "Debating: Perfect Memory + Task Completion Guarantees + Self-Improvement (Full Feedback Loop)",
+      "progress": 15,
+      "startTime": "2:50 AM",
+      "skill": "council"
+    }
+  ]
 }

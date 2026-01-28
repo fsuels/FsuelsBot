@@ -117,8 +117,26 @@ The loop:
 
 The system that improves itself is worth infinitely more than the system that just follows orders. Memory is the flywheel. Without it, nothing compounds.
 
+## Digital Workforce — The Company
+[source: Telegram 2026-01-28 02:35-02:48 EST] [verified: 2026-01-28]
+
+Francisco's vision: **Each skill = a digital employee.** The system is a company.
+- I (Fsuels Bot) am the CEO/orchestrator — I delegate to specialists
+- Every skill file maps to a team member with name, role, avatar, model
+- Team roster stored in `mission-control/team.json` (8 specialists + me)
+- Activity tab renamed "Team" — shows digital workforce grid as default landing
+- When sub-agents spawn, their matching team card lights up
+- Inspired by Twin.so (AI company builder) — Hugo Mercier, $10M seed, 147K agents deployed
+
+### Twin.so Research (2026-01-28)
+- @twin_labs on X — only 2 posts, 3K followers. CEO @hugomercierooo is the real account (8.9K followers)
+- Launched publicly Jan 27, 2026 — 1.3M views on launch post
+- Key features we can learn from: worker cards, live execution view, chat-first builder, schedule manager, memory explorer, live stat counters
+- They're cloud SaaS ($10M funded). We're local, free, on Francisco's own machine. Different approach, same vision.
+
 ## Tools Built
-- **Mission Control** — `mission-control/index.html` + `data.json`. Interactive dashboard: Kanban, Brain, Summary, Activity views. Multi-project filter (DLM/Agent). Served on port 8765. [verified: 2026-01-28]
+- **Mission Control** — `mission-control/index.html` + `data.json`. Interactive dashboard: Team (default), Kanban, Brain, Summary views. Multi-project filter (DLM/Agent). Served on port 8765. [verified: 2026-01-28]
+- **Digital Workforce Grid** — `mission-control/team.json`. 8 specialist cards with avatars, roles, models, capabilities, task counts. Twin.so-inspired worker cards. [verified: 2026-01-28]
 - **Activity Monitor** — `mission-control/activity-server.py`. Python backend tails Clawdbot logs, serves real-time activity JSON. Shows status (working/thinking/idle), current task, tool calls, errors. [verified: 2026-01-28]
 - **Current Task Tracker** — `mission-control/current-task.json`. Written by Clawd when starting tasks. Dashboard displays task ID, project, title, progress. [verified: 2026-01-28]
 - **The Council** — `skills/council/SKILL.md`. Multi-AI debate system: Grok, ChatGPT, Gemini, Open Arena → Opus 4.5 synthesis. 3 modes. $0 extra. [verified: 2026-01-28]
@@ -147,3 +165,5 @@ The system that improves itself is worth infinitely more than the system that ju
 | 2026-01-28 | Added AI Budget Rules | $0 extra rule, all subscription details [source: memory/2026-01-27.md late session] |
 | 2026-01-28 | Added crash prevention lessons | Large sessions, gateway service, unhandled-rejections flag, proxy pattern [source: memory/2026-01-28.md] |
 | 2026-01-28 | Added NEVER BE IDLE directive | Francisco's proactivity mandate [source: Telegram 2026-01-28 00:54 EST] |
+| 2026-01-28 | Added Digital Workforce section | Twin.so research, team.json roster, Activity→Team view redesign [source: Telegram 2026-01-28 02:35 EST] |
+| 2026-01-28 | Council overnight session launched | Full Feedback Loop: memory, task completion, self-improvement architecture [source: Telegram 2026-01-28 02:48 EST] |
