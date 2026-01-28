@@ -66,9 +66,13 @@
 ## X (Twitter) Account
 - **Handle:** @Cogitolux
 - **Display name:** CogitoLux
+- **This is Francisco's PERSONAL account**
 - **Access:** Browser automation via clawd profile (logged in)
-- **Rules:** NEVER post without explicit permission from Francisco
-- **Can do:** Read feed, notifications, DMs, draft tweets, research
+- **ONLY TWO uses:**
+  1. **Research** — read feeds, track experts, find AI news
+  2. **Grok** — use X's built-in AI for queries
+- **NEVER:** post, reply, like, retweet, DM, or interact publicly
+- **Can follow** new accounts when Francisco approves
 - **Daily research brief:** 9 AM EST via cron job — AI agents, Clawdbot, Claude news
 
 ## GitHub Repository
