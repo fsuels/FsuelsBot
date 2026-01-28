@@ -27,7 +27,7 @@
 6. **Product cleanup** — Scripts ready, needs Shopify API token. [needs-francisco]
 7. **Pinterest billing** — Mastercard 9844 expired. [needs-francisco]
 8. **TikTok pixel** — Setup incomplete. [open]
-9. **Council memory system** — R1 ✅, R2 ✅, R3 ✅ (B-), R4 ✅ (B+). Rounds 5-6 at 7:20 AM. [open]
+9. **Council memory system** — R1-R4 complete. Grade: B- → A-. Council says: run 2-4 weeks, then R5 if needed. [monitoring]
 10. **Biweekly Council cycle** — Cron set for 1st & 15th of each month. [recurring]
 
 ## ⏳ WAITING ON
@@ -44,7 +44,7 @@ BuckyDrop (orders, 1d) | GMC (review, 2d) | Pinterest (approval, 1d) | Francisco
 ## 🧠 CONTEXT
 
 **DLM:** Rebuilding from ~$15K/yr. 100% focus. Dropship via BuckyDrop. Biggest blocker: GMC suspension.
-**System:** Memory v3 live. Ledger 67 events. Grade: **B- (R3) → B+ (R4)**. Round 4 implemented: integrity test suite, binding type decay exemption, entity snapshots, event-driven compaction. Debate Round 4 still running. Rounds 5-6 resume at 7:20 AM.
+**System:** Memory v3 live. Ledger ~70 events. **Grade: B- (R3) → A- (R4 debate)**. Full grade leap. All debate R4 changes implemented: Memory CI test harness (7 categories), pinned invariants (P0 outside word budget), wiki provenance (cite source events), plus survey R4: integrity checks, binding decay exemption, entity snapshots, event-driven compaction. Council recommends: run 2-4 weeks before Round 5.
 **Standing order:** Always implement when all 3 Council AIs agree. Always aim for A+.
 
 ## 📚 PROCEDURES

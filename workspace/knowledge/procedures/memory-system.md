@@ -227,6 +227,23 @@ Patterns, lessons, and wisdom learned from experience.
 4. Consolidation sub-agent updates these nightly
 5. Can also be updated manually during sessions when new info emerges
 
+### Wiki Provenance Requirement (Council R4 Consensus)
+
+**Every statement in a knowledge file must cite its source ledger event ID.**
+
+Format: `[source: EVT-YYYYMMDD-NNN]`
+
+Example:
+```markdown
+## Key Facts
+- Francisco's birthday is March 11, 1981 [source: EVT-20260127-005] [verified: 2026-01-27]
+- DLM uses BuckyDrop for dropshipping [source: EVT-20260127-012] [verified: 2026-01-27]
+```
+
+**Why:** The wiki is a "compiled view" of the ledger, not an independent canon. Citations make the wiki auditable and prevent wiki-ledger drift. The Memory CI suite validates that every wiki statement has a valid source event.
+
+**If a statement has no source:** Either find the source event and cite it, or create a new ledger event to establish the fact, then cite that.
+
 ### Confidence Decay (Binding vs Decayable)
 
 Events are split into two decay regimes:
@@ -297,9 +314,18 @@ When a new fact contradicts an old one:
 
 The pack is NOT a summary lottery. It follows **explicit, deterministic rules** so output is predictable and debuggable.
 
+**Pinned Invariants (NEVER compete for word budget):**
+The following items are ALWAYS included in the pack, regardless of word limits:
+- All P0 constraints (verbatim)
+- The mantra
+- Core security rules
+- Critical procedures that must never be forgotten
+
+These are pinned — they don't eat into section budgets. This prevents "quiet forgetting" of guardrails.
+
 **Fixed Section Order** (always in this order, no rearranging):
-1. 🔴 P0 CONSTRAINTS — always included, no exceptions
-2. 🎯 THE MANTRA — always included (1 line)
+1. 🔴 P0 CONSTRAINTS — always included, PINNED (outside word budget)
+2. 🎯 THE MANTRA — always included, PINNED
 3. 📋 OPEN COMMITMENTS — oldest first, with status and age
 4. ⏳ WAITING ON — derived from open commitments with external dependencies
 5. 🎯 TODAY'S FOCUS — top 3-5 priority items for the day
@@ -307,18 +333,18 @@ The pack is NOT a summary lottery. It follows **explicit, deterministic rules** 
 7. 📚 PROCEDURES — key operational procedures (compact)
 8. 🔑 ACCOUNTS — quick reference IDs (compact)
 
-**Word Budgets Per Section** (total ≤ 3,000 words):
+**Word Budgets Per Section** (total ≤ 3,000 words, EXCLUDING pinned invariants):
 | Section | Budget | Notes |
 |---------|--------|-------|
-| P0 CONSTRAINTS | 200 | Fixed, rarely changes |
-| MANTRA | 20 | One line |
+| P0 CONSTRAINTS | PINNED | Outside budget, always full |
+| MANTRA | PINNED | Outside budget |
 | OPEN COMMITMENTS | 500 | All open loops, oldest first |
 | WAITING ON | 150 | One-liner per dependency |
 | TODAY'S FOCUS | 300 | Top priorities only |
 | CONTEXT | 800 | Active projects, recent decisions |
 | PROCEDURES | 500 | Essential how-tos |
 | ACCOUNTS | 200 | IDs only, no descriptions |
-| **Buffer** | 330 | For overflow in any section |
+| **Buffer** | 550 | For overflow (budget recovered from pinning P0) |
 
 **Explicit Inclusion Rules:**
 - P0 events → ALWAYS in P0 CONSTRAINTS section
