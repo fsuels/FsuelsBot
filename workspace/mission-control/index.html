@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mission Control">
+<meta name="theme-color" content="#0d1117">
 <title>Mission Control — DLM Command Center</title>
 <style>
   :root {
@@ -1046,7 +1050,147 @@
 
   @media (max-width: 800px) {
     .activity-split { flex-direction: column; }
-    .activity-split-left { flex: 0 0 auto; max-height: 200px; }
+    .activity-split-left { flex: 0 0 auto; max-height: none; }
+
+    /* === MOBILE OVERRIDES === */
+    #app {
+      padding: 12px 8px 80px 8px !important;
+    }
+
+    /* Header */
+    .header-title { font-size: 20px !important; }
+    .header-subtitle { font-size: 13px !important; }
+
+    /* Status bar */
+    .status-bar {
+      flex-wrap: wrap;
+      gap: 6px;
+      font-size: 13px !important;
+    }
+
+    /* Nav tabs — bigger touch targets */
+    .nav-tabs {
+      flex-wrap: wrap;
+      gap: 6px !important;
+      justify-content: center;
+    }
+    .nav-tabs button {
+      padding: 10px 16px !important;
+      font-size: 14px !important;
+      min-height: 44px;
+    }
+
+    /* Project filter buttons */
+    .project-filters {
+      flex-wrap: wrap;
+      gap: 6px !important;
+      justify-content: center;
+    }
+    .project-filters button {
+      padding: 8px 14px !important;
+      font-size: 13px !important;
+      min-height: 40px;
+    }
+
+    /* Orchestrator bar */
+    .orch-bar {
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      gap: 8px !important;
+      padding: 14px !important;
+    }
+    .orch-bar .orch-task {
+      font-size: 14px !important;
+      white-space: normal !important;
+      overflow: visible !important;
+      text-overflow: unset !important;
+    }
+    .orch-bar .orch-model {
+      font-size: 12px !important;
+    }
+
+    /* Team cards — full width, bigger text */
+    .team-card {
+      padding: 14px !important;
+      margin-bottom: 10px !important;
+    }
+    .team-card .agent-name {
+      font-size: 16px !important;
+    }
+    .team-card .agent-role {
+      font-size: 13px !important;
+    }
+    .team-card .agent-status {
+      font-size: 13px !important;
+      padding: 4px 10px !important;
+    }
+    .team-card .agent-detail {
+      font-size: 13px !important;
+      line-height: 1.5 !important;
+    }
+    .team-card-expand-hint {
+      font-size: 13px !important;
+      padding: 6px 0 !important;
+    }
+
+    /* Section headers */
+    .section-header {
+      font-size: 15px !important;
+    }
+
+    /* Activity feed */
+    .activity-feed-header {
+      font-size: 18px !important;
+    }
+    .activity-item {
+      font-size: 15px !important;
+      padding: 10px 8px !important;
+      line-height: 1.4 !important;
+    }
+    .activity-time {
+      font-size: 13px !important;
+      min-width: 70px !important;
+    }
+    .activity-icon {
+      font-size: 20px !important;
+    }
+    .activity-message {
+      font-size: 14px !important;
+    }
+
+    /* Bottom stats bar — fixed, safe from Safari nav */
+    .bottom-stats {
+      position: fixed !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      padding: 10px 12px !important;
+      padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
+      font-size: 13px !important;
+      background: var(--bg) !important;
+      border-top: 1px solid var(--border) !important;
+      z-index: 100 !important;
+      display: flex !important;
+      flex-wrap: wrap !important;
+      gap: 8px !important;
+      justify-content: center !important;
+    }
+
+    /* Expanded card detail panels */
+    .task-detail-panel {
+      padding: 12px !important;
+      font-size: 13px !important;
+    }
+    .task-detail-panel h4 {
+      font-size: 14px !important;
+    }
+    .task-detail-panel .progress-bar {
+      height: 10px !important;
+    }
+    .task-detail-panel .step-item {
+      font-size: 13px !important;
+      padding: 6px 0 !important;
+    }
   }
 </style>
 </head>

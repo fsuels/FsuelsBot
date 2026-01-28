@@ -4,46 +4,43 @@
     "emoji": "🤖",
     "model": "claude-opus-4.5",
     "status": "working",
-    "task": "Dashboard sync + context recovery — talking to Francisco",
-    "benefit": "Accurate dashboard reflects real work. Francisco can trust what he sees.",
-    "taskId": "DASH-SYNC",
-    "project": "Agent System",
-    "startTime": "2:03 PM",
-    "description": "Fixing stale dashboard that showed Council as working when all sub-agents completed. Updating team.json and current-task.json to reflect actual state.",
-    "progress": 60,
+    "task": "Fixing GMC blockers + V-Day setup — 2 sub-agents + direct Shopify work",
+    "benefit": "Fix 6 GMC blocking issues (35% → 82% reinstatement) + launch Valentine's collection. Both are revenue-critical.",
+    "taskId": "DLM-FIX",
+    "project": "Dress Like Mommy",
+    "startTime": "2:44 PM",
+    "description": "Parallel execution: (1) Writing proper policy pages, (2) Auditing boilerplate product descriptions, (3) Removing fake urgency elements from Shopify theme. Then Valentine's Day collection launch.",
+    "progress": 25,
     "steps": [
-      {"label": "Check all sub-agent statuses", "done": true},
-      {"label": "Update current-task.json", "done": true},
-      {"label": "Update team.json", "done": true},
-      {"label": "Resume productive work", "done": false}
+      {"label": "GMC reinstatement research", "done": true},
+      {"label": "V-Day competitor research", "done": true},
+      {"label": "GMC store audit — 6 blockers found", "done": true},
+      {"label": "V-Day collection plan", "done": true},
+      {"label": "Write policy pages (Privacy, Terms, Shipping)", "done": false},
+      {"label": "Audit boilerplate product descriptions", "done": false},
+      {"label": "Remove fake urgency elements", "done": false},
+      {"label": "Add business info to footer", "done": false},
+      {"label": "Create Valentine's Day collection on Shopify", "done": false},
+      {"label": "Swap Christmas → Valentine's in nav", "done": false}
     ],
-    "strategy": "Verify actual sub-agent state via sessions_list, then update dashboard JSON files to match reality. Then pick next high-TPS task."
+    "strategy": "Fix GMC blockers first (policies, urgency, footer), then V-Day collection. Parallel: content team writes policies while we audit products."
   },
-  "agents": [],
-  "recentCompleted": [
+  "agents": [
     {
-      "name": "GMC Reinstatement Research",
+      "name": "Policy Pages",
+      "skill": "Content()",
       "status": "done",
-      "completedAt": "1:54 PM",
-      "result": "23.7 KB report with 14-item checklist, 5-day action plan, appeal template. Confidence: 0.72"
+      "task": "Privacy Policy, Terms of Service, and Shipping Info page — all written, GDPR/CCPA compliant, FKG Trading LLC",
+      "benefit": "Fixes 3 of 6 GMC blocking issues. Ready to upload to Shopify.",
+      "progress": 100
     },
     {
-      "name": "V-Day Competitor Research",
+      "name": "Boilerplate Audit",
+      "skill": "Catalog Engineer",
       "status": "done",
-      "completedAt": "2:08 PM",
-      "result": "25KB report — 13 competitors, top 5 product types, key tactics, market gaps found"
-    },
-    {
-      "name": "Product Description Template",
-      "status": "done",
-      "completedAt": "1:49 PM",
-      "result": "Template saved to dlm-tasks/product-description-template.md"
-    },
-    {
-      "name": "Compound Loop Architecture",
-      "status": "done",
-      "completedAt": "1:32 PM",
-      "result": "27 files, 1832 insertions. 4 cron jobs live. First run tonight 9 PM."
+      "task": "Full catalog audit complete — 160 of 340 products (47%) flagged, 57 HIGH priority, 1 CRITICAL (supplier URL exposed)",
+      "benefit": "Now we know exactly which products to fix. Worst: exposed 1688.com supplier URL + 49 alicdn image URLs.",
+      "progress": 100
     }
   ]
 }

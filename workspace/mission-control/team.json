@@ -7,10 +7,10 @@
       "emoji": "🤖",
       "model": "claude-opus-4.5",
       "status": "working",
-      "task": "Dashboard sync + talking to Francisco",
-      "description": "Runs the show. Delegates work, makes decisions, talks to Francisco. 30% production, 70% routing.",
+      "task": "Coordinating GMC audit + V-Day collection — 2 agents dispatched",
+      "description": "Runs the show. Delegates work, makes decisions, talks to Francisco.",
       "capabilities": ["Planning", "Delegation", "Communication", "Memory"],
-      "lastActive": "2026-01-28T14:03:00-05:00",
+      "lastActive": "2026-01-28T14:13:00-05:00",
       "tasksCompleted": 136
     },
     {
@@ -21,7 +21,7 @@
       "model": "claude-sonnet-4",
       "skill": "self-improvement",
       "status": "idle",
-      "description": "After every task: Can this be faster? Automated? Templated? Eliminated? Catches errors, logs learnings, promotes insights.",
+      "description": "Reviews completed tasks for improvement. Will review GMC audit + V-Day plan when done.",
       "capabilities": ["Error Tracking", "Pattern Detection", "Process Improvement", "Optimization"],
       "lastActive": "2026-01-28T11:52:00-05:00",
       "tasksCompleted": 16
@@ -33,11 +33,12 @@
       "emoji": "🔬",
       "model": "gemini-2.5-pro",
       "skill": "research",
-      "status": "idle",
-      "description": "Daily scans for competitors, market trends, AI advances, and money-making opportunities. Proactive, not reactive.",
+      "status": "done",
+      "task": "GMC + V-Day research complete — now in execution phase",
+      "description": "Research done. 3 reports delivered: GMC reinstatement (23KB), V-Day competitors (25KB), product template.",
       "capabilities": ["Web Research", "Competitor Analysis", "Market Trends", "Opportunity Mining"],
-      "lastActive": "2026-01-28T13:54:00-05:00",
-      "tasksCompleted": 12
+      "lastActive": "2026-01-28T14:08:00-05:00",
+      "tasksCompleted": 14
     }
   ],
   "onDemand": [
@@ -49,7 +50,7 @@
       "model": "claude-sonnet-4",
       "skills": ["tweet-writer", "humanizer"],
       "status": "standby",
-      "description": "Creates content, polishes tone, strips AI fingerprints. Tweets, product descriptions, blog posts, social copy. Spun up only when content is needed.",
+      "description": "Next up: will humanize V-Day product descriptions once collection plan is approved.",
       "capabilities": ["Writing", "Editing", "AI Detection Removal", "Social Copy"],
       "lastActive": null,
       "tasksCompleted": 0
@@ -62,7 +63,7 @@
       "model": "claude-sonnet-4",
       "skills": ["coding-agent", "github"],
       "status": "standby",
-      "description": "Builds scripts, tools, automations. GitHub ops, CI/CD, API integrations. Spun up only when code or infra work is needed.",
+      "description": "Next up: will implement Shopify changes (collection pages, product updates, trust badges).",
       "capabilities": ["Python", "JavaScript", "GitHub", "CI/CD", "Automation"],
       "lastActive": "2026-01-28T02:38:00-05:00",
       "tasksCompleted": 17
@@ -75,8 +76,8 @@
       "model": "multi-ai",
       "skill": "council",
       "status": "done",
-      "lastResult": "4 sessions completed today — architecture deployed",
-      "description": "Grok + ChatGPT + Gemini debate, Opus delivers verdict. Invoked only for high-impact decisions where diverse perspectives matter.",
+      "lastResult": "4 sessions completed — architecture deployed, now executing",
+      "description": "All Council sessions done today. Next use: when V-Day strategy needs multi-perspective review.",
       "capabilities": ["Strategy Debates", "Multi-AI Analysis", "Decision Making", "Critical Review"],
       "lastActive": "2026-01-28T13:32:00-05:00",
       "tasksCompleted": 8
@@ -89,7 +90,7 @@
       "model": "claude-opus-4.5",
       "skill": "prompt-engineering-expert",
       "status": "standby",
-      "description": "System prompt design, agent architecture, instruction optimization. Used when building or tuning AI agents.",
+      "description": "System prompt design, agent architecture, instruction optimization.",
       "capabilities": ["Prompt Design", "System Instructions", "Agent Architecture"],
       "lastActive": null,
       "tasksCompleted": 0
