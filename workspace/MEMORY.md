@@ -1,6 +1,6 @@
 # MEMORY.md — Long-Term Memory
 
-*Last updated: 2026-01-27*
+*Last updated: 2026-01-28*
 
 ## Who I Am
 - Bot for Francisco Suels Ferro, running on his Windows 10 PC in Naples, FL
@@ -68,6 +68,11 @@ He wants a **business partner**, not just a question-answerer. Someone proactive
 - ClawdHub search frequently times out — use broad queries
 - Less is more with AI tools (per Clawdbot creator @steipete)
 - Context is precious — don't waste it on unnecessary tools
+- **Large sessions cause crashes** — 118K+ tokens → API timeouts → `TypeError: fetch failed` → process crash. Keep sessions compact. [verified: 2026-01-28]
+- **Gateway MUST be installed as service** — `clawdbot gateway install` creates Windows Scheduled Task for auto-restart. Critical for stability. [verified: 2026-01-28]
+- **`--unhandled-rejections=warn`** — Add to gateway.cmd Node.js args to prevent crash on fetch failures. Applied but needs gateway restart. [verified: 2026-01-28]
+- **NEVER BE IDLE** — Francisco's directive: if tasks exist in Mission Control, I should be working on them proactively. Don't wait for prompts. [verified: 2026-01-28]
+- **Activity server needs to proxy** — Gateway is loopback-only, phone can't reach it directly. Activity server on 0.0.0.0:8765 proxies /api/status. [verified: 2026-01-28]
 
 ## Francisco's Values
 - Self-reliant, does everything himself
@@ -112,6 +117,24 @@ The loop:
 
 The system that improves itself is worth infinitely more than the system that just follows orders. Memory is the flywheel. Without it, nothing compounds.
 
+## Tools Built
+- **Mission Control** — `mission-control/index.html` + `data.json`. Interactive dashboard: Kanban, Brain, Summary, Activity views. Multi-project filter (DLM/Agent). Served on port 8765. [verified: 2026-01-28]
+- **Activity Monitor** — `mission-control/activity-server.py`. Python backend tails Clawdbot logs, serves real-time activity JSON. Shows status (working/thinking/idle), current task, tool calls, errors. [verified: 2026-01-28]
+- **Current Task Tracker** — `mission-control/current-task.json`. Written by Clawd when starting tasks. Dashboard displays task ID, project, title, progress. [verified: 2026-01-28]
+- **The Council** — `skills/council/SKILL.md`. Multi-AI debate system: Grok, ChatGPT, Gemini, Open Arena → Opus 4.5 synthesis. 3 modes. $0 extra. [verified: 2026-01-28]
+- **Overnight Build System** — 2 AM cron job. Reviews day, picks ONE improvement, builds it, commits to git. Reports in `overnight-builds/YYYY-MM-DD.md`. [verified: 2026-01-28]
+- **SEO Scripts** — `scripts/audit_products.py`, `cleanup_products.py`, `seo_optimizer.py`. Ready but need Shopify API key (MC-027). [verified: 2026-01-28]
+- **Watchdog** — `scripts/clawdbot-watchdog.ps1`. Backup crash recovery monitor. [verified: 2026-01-28]
+
+## AI Budget Rules [verified: 2026-01-28]
+- Claude Max $100/mo (flat) — runs Clawdbot. Opus 4.5 + Sonnet unlimited.
+- X/Grok — included in X sub. Browser access only.
+- ChatGPT Pro — flat sub. Browser access only.
+- Open Arena — free. Browser access only.
+- Gemini CLI — free. Terminal access.
+- **$0 extra allowed.** Never add paid services without explicit approval.
+[source: memory/2026-01-27.md]
+
 ## Changelog
 | Date | What Changed | Why |
 |------|-------------|-----|
@@ -120,3 +143,7 @@ The system that improves itself is worth infinitely more than the system that ju
 | 2026-01-27 | Updated DLM project status with detailed platform fixes | GMC shipping fixed, logos under review, Google Ads root cause found, product data audit completed, BuckyDrop studied [source: memory/2026-01-27.md] |
 | 2026-01-27 | Added BuckyDrop support contact + workflow notes | Scott Buckydrop (+86 158 2758 0519 WhatsApp), Francisco's product workflow: source→edit→push, 71 unpushed are intentional [source: memory/2026-01-27.md] |
 | 2026-01-27 | Fixed Microsoft Ads UET — Purchases goal tag | Changed from old dresslikemommy.com (36000629) to ShopifyImport (36005151). 4/5 goals now correct. [source: memory/2026-01-27.md] |
+| 2026-01-28 | Added Tools Built section | Mission Control, Activity Monitor, Council, Overnight Build, SEO Scripts, Watchdog documented [source: memory/2026-01-28.md] |
+| 2026-01-28 | Added AI Budget Rules | $0 extra rule, all subscription details [source: memory/2026-01-27.md late session] |
+| 2026-01-28 | Added crash prevention lessons | Large sessions, gateway service, unhandled-rejections flag, proxy pattern [source: memory/2026-01-28.md] |
+| 2026-01-28 | Added NEVER BE IDLE directive | Francisco's proactivity mandate [source: Telegram 2026-01-28 00:54 EST] |
