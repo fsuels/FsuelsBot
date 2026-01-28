@@ -1,8 +1,8 @@
 {
-  "taskId": "PROACTIVE",
-  "taskTitle": "Mission Control multi-project support + Activity Monitor improvements",
-  "project": "Agent System",
-  "startedAt": "2026-01-28T02:05:00-05:00",
-  "status": "working",
-  "progress": "Built project filter, task-level display, and status proxy. Committing and moving to next task."
+  "taskId": "MC-BLOG-2",
+  "taskTitle": "5 new SEO blog posts drafted (batch 2)",
+  "project": "Dress Like Mommy",
+  "startedAt": "2026-01-28T02:08:00-05:00",
+  "status": "completed",
+  "progress": "All 5 posts written: Mother's Day, Birthday Party, Wedding Guest, Back to School, Christmas. 27,000+ words total. Ready to publish."
 }
