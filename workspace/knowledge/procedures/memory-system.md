@@ -296,6 +296,31 @@ When certain words appear in user input, load additional knowledge files:
 
 ---
 
+## Live Extraction (During Sessions)
+
+**Don't wait for consolidation.** When something important happens during a conversation, append it to the ledger immediately:
+
+1. Identify the event (decision, commitment, fact, insight, etc.)
+2. Determine priority (P0-P3)
+3. Get the next sequential ID for today (`EVT-YYYYMMDD-NNN`)
+4. Append the JSON line to `memory/ledger.jsonl`
+
+**When to live-extract:**
+- Francisco makes a decision → log it NOW
+- A commitment is made → log it NOW
+- A new P0 constraint is established → log it NOW
+- A significant milestone is reached → log it NOW
+- An important fact is discovered → log it NOW
+
+**When to leave for consolidation:**
+- Routine session events (P2/P3)
+- Information already captured in the daily log
+- Minor updates that don't need immediate recall
+
+Live extraction means the ledger stays current. The 3 AM consolidation catches anything missed and rebuilds the recall pack.
+
+---
+
 ## Consolidation Process
 
 ### When: 3 AM daily (cron-spawned sub-agent)

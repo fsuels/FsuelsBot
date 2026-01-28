@@ -1,5 +1,5 @@
 # Recall Pack — 2026-01-28
-*Generated: 2026-01-28 03:20 EST | Next regeneration: 2026-01-29 03:00 EST*
+*Generated: 2026-01-28 03:35 EST | Next regeneration: 2026-01-29 03:00 EST*
 
 ## 🔴 P0 CONSTRAINTS (always active)
 
@@ -9,6 +9,9 @@
 - **Expert-quality execution.** Run each platform like a paid specialist. Highest income, lowest cost.
 - **Cutting edge.** FsuelsBot must be the most advanced personal AI agent possible.
 - **Memory is paramount.** The Compound Loop: Council → Execute → Remember → Learn → Improve overnight → Repeat. Memory is the flywheel.
+- **More with less.** Always the smartest, most elegant solution. Lean > bloated. Efficiency = intelligence.
+- **Think outside the box.** We are creating cutting-edge technology, inventing new ways. Not just consensus — push boundaries.
+- **Consult the Council if in doubt.** Do not guess on design decisions. Always validate with multi-AI debate.
 
 ## 📋 OPEN COMMITMENTS
 
@@ -35,11 +38,12 @@
 
 ## 🎯 TODAY'S FOCUS (Jan 28)
 
-1. **COMPLETE: Memory system build** (top priority per Francisco 03:09 AM)
-2. Check BuckyDrop support response (cron at 8 AM)
-3. Resume locale redirect batch (~3,179 remaining)
-4. Daily AI research brief (cron at 9 AM)
-5. Work on any DLM tasks Francisco assigns
+1. ✅ **DONE: Memory system v1 built** (4 layers, 61 events, 14 knowledge files, recall pack, cron)
+2. 🔄 **IN PROGRESS: 3-round Council improvement loop** — Round 1 running (sub-agent: council-memory-innovations). Must implement results → launch Round 2 → implement → launch Round 3 → implement. All 3 rounds mandatory.
+3. Check BuckyDrop support response (cron at 8 AM)
+4. Resume locale redirect batch (~3,179 remaining)
+5. Daily AI research brief (cron at 9 AM)
+6. Work on any DLM tasks Francisco assigns
 
 ## 🧠 ACTIVE CONTEXT
 
@@ -64,5 +68,28 @@ Problems to solve: perfect memory, guaranteed task completion, best-in-class des
 
 - **WhatsApp messaging:** Draft in Telegram → Francisco copies to WhatsApp (I can't control WhatsApp app)
 - **Browser:** Always check open tabs first. Shopify handle = `dresslikemommy-com`.
-- **Stability:** Keep sessions compact (<118K tokens). Close excess browser tabs.
+- **Stability:** Keep sessions compact (<118K tokens). Close excess browser tabs. Use sub-agents for heavy work.
 - **External actions:** Ask before sending emails, tweets, posts. Safe to read/search/organize freely.
+- **Live extraction:** When important events happen during conversation, append to `memory/ledger.jsonl` immediately. Don't wait for 3 AM consolidation.
+- **Council:** For any design doubts or significant decisions, run a Council session. Available AIs: Grok 4.1 Thinking, ChatGPT 5.2, Gemini CLI. Protocol: `skills/council/SKILL.md`.
+- **More with less:** Always the smartest, most elegant solution. Lean > bloated. Efficiency = intelligence.
+
+## 🔑 KEY ACCOUNT IDS (quick reference)
+
+- Shopify: `dresslikemommy-com.myshopify.com`
+- Google Merchant Center: `124884876`
+- Google Ads: `399-097-6848` (AW-853411529)
+- GA4: `G-N4EQNK0MMB` (property 330266838)
+- Facebook Pixel: `547553035448852`
+- Microsoft UET: `36005151` (ShopifyImport)
+- Pinterest: `2620007050621`
+- TikTok: `CCGG1MRC77UB2PF1KBE0`
+- BuckyDrop contact: Scott (+86 158 2758 0519, WhatsApp)
+
+## 📊 SYSTEM STATUS
+
+- **Memory system:** 4-layer architecture LIVE (ledger 61 events, knowledge 14 files, recall pack, 3 AM consolidation, live extraction active)
+- **Council:** Round 1 of 3-round improvement loop running (sub-agent council-memory-innovations)
+- **Cron jobs:** 7 active (BuckyDrop monitor, overnight build, memory consolidation, research brief, git backup, weekly improvement, DLM urgent alert)
+- **Mission Control:** Active on port 8765, 28 tasks tracked
+- **Next build:** Memory improvements from Council loop → then Task completion system (Phase 2)
