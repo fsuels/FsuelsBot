@@ -33,18 +33,32 @@ For each extracted event:
 - If a new fact contradicts an existing one, log a `conflict` type event
 - Update the knowledge file to reflect the latest information, noting the change
 
-### 5. Regenerate Recall Pack
-- Rewrite `recall/pack.md` following the format in memory-system.md
-- Include: P0 constraints, open commitments, waiting-on items, today's focus, active context
-- Keep under 3,000 words
+### 5. Check Confidence Decay
+- Scan knowledge files for `[verified: YYYY-MM-DD]` dates
+- Facts verified >30 days ago: flag as `[⚠️ STALE]` in delta pack
+- Facts verified >60 days ago: exclude from delta pack unless explicitly relevant
+- Preferences, principles, and identities do NOT decay
+
+### 6. Check Open Loops
+- Scan ledger for commitment events with `"status": "open"`
+- Identify top 3 oldest open commitments
+- Check if any have corresponding milestone/closing events → mark as closed
+- Surface open commitments in delta pack
+
+### 7. Regenerate Delta Pack (NOT core)
+- Rewrite `recall/delta.md` — open commitments, waiting-on, today's focus, active context
+- Rewrite `recall/pack.md` — combine `recall/core.md` + `recall/delta.md`
+- Do NOT modify `recall/core.md` unless a new P0 constraint was discovered
+- Keep combined pack under 3,000 words
 - See procedure: recall-pack-generation.md for details
 
-### 6. Write Consolidation Report
+### 8. Write Consolidation Report
 - Create `knowledge/consolidation-reports/YYYY-MM-DD.md`
-- Include: events extracted count, knowledge files created/updated, conflicts found, recall pack regenerated
+- Include: events extracted, knowledge files updated, stale facts flagged, open loops status, conflicts found
 
 ## Notes
 - The consolidation sub-agent runs with full access to the workspace
 - It should NOT send messages to Francisco (it's 3 AM)
 - If something critical is found (P0 conflict, data loss risk), log it for the 8 AM daily report
 - Consolidation should take < 5 minutes
+- Live-extracted events (source: "live") don't need re-extraction — skip them during step 2

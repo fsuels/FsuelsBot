@@ -1,49 +1,65 @@
-# Procedure: Recall Pack Generation
+# Procedure: Recall Pack Generation (Delta Architecture)
 *Last updated: 2026-01-28*
-*Source: Council architecture*
+*Source: Council Round 1 — Delta Recall Pack innovation*
 
 ## When to Use
-- Automatically at 3 AM during consolidation
-- On-demand when major context changes (new P0 constraint, new project, etc.)
+- Automatically at 3 AM during consolidation (delta only)
+- On-demand when major context changes (new P0 → update core too)
 
-## Steps
+## Delta Architecture
 
-### 1. Gather P0 Constraints
-- Scan `memory/ledger.jsonl` for all events with `"priority":"P0"`
-- Include ALL of them — P0 is always loaded, no exceptions
-- Also check `knowledge/principles/` for P0-priority files
+The pack is split into two files for efficiency:
+- **`recall/core.md`** — Stable context (P0 constraints, mantra, procedures, account IDs). Rarely changes.
+- **`recall/delta.md`** — Rolling context (commitments, waiting-on, focus, context). Rebuilt nightly.
+- **`recall/pack.md`** — Combined view (core + delta). What sessions actually load.
 
-### 2. Gather Open Commitments
-- Scan ledger for `"type":"commitment"` events
-- Exclude any that have a corresponding `"type":"milestone"` event confirming completion
-- List each with: what, to whom, when due (if known), last action taken
+Consolidation only rebuilds `delta.md` and `pack.md`. Core stays stable.
 
-### 3. Identify Waiting-On Items
-- From open commitments, find any where we're waiting for external response
-- Include: who we're waiting on, what for, when we last followed up
+## Steps: Rebuild Delta
+
+### 1. Gather Open Commitments
+- Scan `memory/ledger.jsonl` for `"type":"commitment"` with `"status":"open"` (or no status)
+- Exclude any with a corresponding closing event (`"status":"closed"`)
+- Sort by age (oldest first)
+- Surface the **top 3 oldest** prominently
+- List all others below
+
+### 2. Identify Waiting-On Items
+- From open commitments, find external dependencies
+- Include: who, what, when last followed up, age in days
+
+### 3. Check Stale Facts (Confidence Decay)
+- If any knowledge file facts are >30 days since `[verified: date]`, note in delta
+- If any are >60 days, flag for re-verification
 
 ### 4. Determine Today's Focus
-- Check active tasks (if task system exists)
-- Check upcoming deadlines within 48 hours
-- Check any scheduled events or reminders
+- Active tasks and deadlines within 48 hours
+- Scheduled events or cron jobs
+- Ongoing projects needing attention
 
 ### 5. Build Active Context
-- Summarize current project status (DLM, any other active projects)
-- Include recent decisions that affect today's work (last 72 hours)
-- Note any recent conversations or directives from Francisco
+- Current project status (DLM, other active)
+- Recent decisions (last 72 hours)
+- Francisco's last known state/directives
 
-### 6. Write the Pack
-- Format as markdown following the template in memory-system.md
-- **MUST stay under 3,000 words** — this is injected into every session
-- Prioritize: P0 > open commitments > waiting-on > today's focus > context
-- If space is tight, cut context section first
+### 6. Write Delta
+- Write `recall/delta.md`
+- Keep delta section under ~2,000 words
 
-### 7. Save
-- Write to `recall/pack.md`
-- Note generation timestamp at the top
+### 7. Combine into Pack
+- Write `recall/pack.md` = contents of `core.md` + `---` separator + contents of `delta.md`
+- Keep combined under 3,000 words total
+
+## Steps: Update Core (rare)
+
+Only when a new P0 constraint is established:
+1. Add the constraint to `recall/core.md`
+2. Rebuild `recall/pack.md`
+3. Log the core change in the consolidation report
 
 ## Quality Checks
-- Is every P0 constraint included? (if not, add it)
-- Are there open commitments with no follow-up plan? (if so, flag them)
-- Is the pack under 3,000 words? (if not, trim context section)
-- Does the pack help someone with NO prior context understand what's happening? (if not, add more context)
+- Every P0 constraint in core? ✅
+- Top 3 oldest open commitments in delta? ✅
+- Stale facts flagged? ✅
+- Combined pack under 3,000 words? ✅
+- Superseded events excluded? ✅

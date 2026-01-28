@@ -73,8 +73,11 @@ The memory system has 4 layers, each serving a different purpose:
 | `content` | Yes | String | Human-readable description |
 | `entity` | No | String | Primary entity (snake_case) |
 | `tags` | No | Array | Categorization tags |
-| `source` | Yes | String | Where this info came from |
+| `source` | Yes | String | Where this info came from (`"live"` for real-time extraction) |
 | `session` | No | String | Session identifier |
+| `related` | No | Array | IDs of related events (Memory Chains) |
+| `supersedes` | No | String | ID of event this corrects/replaces (Supersession Protocol) |
+| `status` | No | String | For commitments: `"open"` or `"closed"` (Open Loops) |
 
 ### Event Types
 
@@ -103,9 +106,11 @@ The memory system has 4 layers, each serving a different purpose:
 ### Rules
 
 1. **NEVER edit or delete lines** from ledger.jsonl
-2. **To correct info:** Append a NEW event with type `fact` or `conflict` that supersedes the old one. Reference the old event ID in content.
+2. **To correct info:** Append a NEW event with `"supersedes": "EVT-XXX"` — old event stays but stops being surfaced
 3. **IDs are sequential per day:** EVT-20260128-001, EVT-20260128-002, etc.
-4. **Always include source:** Where did you learn this? Memory file, conversation, web search?
+4. **Always include source:** Where did you learn this? Use `"live"` for real-time extraction during conversations
+5. **Memory Chains:** When writing an event related to previous events, add `"related": ["EVT-XXX", "EVT-YYY"]`
+6. **Open Loops:** Commitment events should include `"status": "open"`. When fulfilled, append a closing event with `"status": "closed"`
 
 ---
 
@@ -223,42 +228,65 @@ Patterns, lessons, and wisdom learned from experience.
 4. Consolidation sub-agent updates these nightly
 5. Can also be updated manually during sessions when new info emerges
 
+### Confidence Decay
+
+Facts age. Old facts become unreliable. The system tracks freshness automatically.
+
+**Rules:**
+- Every fact in a knowledge file MUST have `[verified: YYYY-MM-DD]`
+- During nightly consolidation, check age of all verified facts:
+  - **< 30 days:** Fresh ✅ — include in recall pack normally
+  - **30-60 days:** Aging ⚠️ — flag `[⚠️ STALE]` in recall pack
+  - **> 60 days:** Stale ❌ — drop from recall pack unless explicitly relevant to today's tasks
+- **What decays:** Facts, account statuses, platform states, business metrics
+- **What does NOT decay:** Preferences, principles, identities, relationships, procedures
+- Stale facts are NOT deleted — they stay in knowledge files, just aren't surfaced
+- Re-verification: when a fact is confirmed current, update its `[verified: date]`
+
 ---
 
-## Layer 4: Recall Pack (`recall/pack.md`)
+## Layer 4: Recall Pack (Delta Architecture)
 
-**What:** A curated, compact document regenerated daily that contains EXACTLY what the AI needs to know at the start of every session.
+**What:** A curated, compact document loaded at session start. Contains EXACTLY what the AI needs to know.
 
-**This is the most important innovation.** The recall pack solves the context window problem: instead of loading all memory files (too much), or loading nothing (too little), we load a carefully curated summary of what matters RIGHT NOW.
+**This is the most important innovation.** Instead of loading all files (too much) or nothing (too little), we load a carefully curated summary of what matters RIGHT NOW.
 
-### Format
+### Delta Architecture (Split Design)
+
+The recall pack uses a **core + delta** split for efficiency:
+
+| File | Content | Changes |
+|------|---------|---------|
+| `recall/core.md` | Identity, P0 constraints, mantra, procedures, account IDs | Rarely (only on new P0 constraints) |
+| `recall/delta.md` | Open commitments, waiting-on, today's focus, active context | Nightly (by consolidation) |
+| `recall/pack.md` | Combined view (core + delta) | Nightly (auto-generated) |
+
+**Why split?** Consolidation only rebuilds the delta. The core is stable — rewriting it every night wastes work. This is "more with less."
+
+**Session startup reads `recall/pack.md`** (the combined view). One file, all context.
+
+### Pack Format
 
 ```markdown
 # Recall Pack — YYYY-MM-DD
-
-## 🔴 P0 CONSTRAINTS (always loaded)
-- [Critical rules that must never be violated]
-- [Budget constraints, security rules, core directives]
-
-## 📋 OPEN COMMITMENTS
-- [Things promised to Francisco or others]
-- [Deadlines and follow-ups]
-
-## ⏳ WAITING ON
-- [External dependencies — who, what, when last followed up]
-
-## 🎯 TODAY'S FOCUS
-- [Priority tasks for the day]
-- [Upcoming deadlines within 48h]
-
-## 🧠 ACTIVE CONTEXT
-- [Current project status]
-- [Recent decisions that affect today's work]
-- [Anything the AI needs to remember from recent sessions]
-
-## 📚 LOADED PROCEDURES
-- [Procedures relevant to today's likely tasks]
+<!-- CORE section: P0 constraints, mantra, procedures, account IDs -->
+<!-- DELTA section: open commitments, waiting-on, focus, context -->
 ```
+
+### Open Loops (Commitment Tracking)
+
+Commitment-type events in the ledger have a `"status"` field: `"open"` or `"closed"`.
+- The delta pack ALWAYS surfaces the **top 3 oldest open commitments**
+- When a commitment is fulfilled, append a new event with `"status": "closed"`
+- This prevents things from falling through the cracks
+
+### Supersession Protocol
+
+When a new fact contradicts an old one:
+- The new event includes `"supersedes": "EVT-XXX"` pointing to the old event ID
+- The recall pack builder automatically **excludes superseded events**
+- The old event stays in the ledger (never deleted) but stops being surfaced
+- This is **memory self-cleaning** — the system corrects itself
 
 ### Generation Rules
 
