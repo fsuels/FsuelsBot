@@ -1,0 +1,22 @@
+# Environment variables (secrets)
+.env
+.env.*
+
+# Temp files
+nul
+temp_*.json
+
+# Node
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Claude/AI session files
+.claude/

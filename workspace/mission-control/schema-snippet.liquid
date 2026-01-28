@@ -1,0 +1,118 @@
+{% comment %}
+  Schema.org Product Structured Data for DressLikeMommy.com
+  
+  HOW TO INSTALL:
+  1. Go to Shopify Admin > Online Store > Themes > Edit code
+  2. Find snippets/ folder (or sections/)
+  3. Create new snippet: "product-schema"
+  4. Paste this content
+  5. In your product template (product.liquid or main-product.liquid), add:
+     {% render 'product-schema' %}
+  
+  This generates Product + BreadcrumbList schema for Google rich results.
+{% endcomment %}
+
+{% if product %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": {{ product.title | json }},
+  "description": {{ product.description | strip_html | truncate: 500 | json }},
+  "url": "{{ shop.url }}{{ product.url }}",
+  "brand": {
+    "@type": "Brand",
+    "name": "Dress Like Mommy"
+  },
+  "sku": {{ product.selected_or_first_available_variant.sku | default: product.handle | json }},
+  {% if product.featured_image %}
+  "image": [
+    "{{ product.featured_image | image_url: width: 1200 }}"
+    {% for image in product.images offset: 1 limit: 4 %}
+    , "{{ image | image_url: width: 1200 }}"
+    {% endfor %}
+  ],
+  {% endif %}
+  {% if product.metafields.reviews.rating %}
+  "aggregateRating": {
+    "@type": "AggregateRating",
+    "ratingValue": {{ product.metafields.reviews.rating.value | json }},
+    "reviewCount": {{ product.metafields.reviews.rating_count.value | default: 1 | json }}
+  },
+  {% endif %}
+  "offers": {
+    "@type": "AggregateOffer",
+    "priceCurrency": "{{ cart.currency.iso_code }}",
+    "lowPrice": {{ product.price_min | money_without_currency | remove: ',' | json }},
+    "highPrice": {{ product.price_max | money_without_currency | remove: ',' | json }},
+    "offerCount": {{ product.variants.size }},
+    "availability": "{% if product.available %}https://schema.org/InStock{% else %}https://schema.org/OutOfStock{% endif %}",
+    "url": "{{ shop.url }}{{ product.url }}",
+    "seller": {
+      "@type": "Organization",
+      "name": "Dress Like Mommy"
+    }
+  },
+  "category": {{ product.type | default: "Matching Family Outfits" | json }},
+  {% if product.tags.size > 0 %}
+  "keywords": {{ product.tags | join: ', ' | json }},
+  {% endif %}
+  "isRelatedTo": {
+    "@type": "Product",
+    "name": "Matching Family Outfits",
+    "category": "Mommy and Me Outfits"
+  }
+}
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "{{ shop.url }}"
+    }
+    {% if product.collections.size > 0 %}
+    ,{
+      "@type": "ListItem",
+      "position": 2,
+      "name": {{ product.collections.first.title | json }},
+      "item": "{{ shop.url }}{{ product.collections.first.url }}"
+    }
+    {% endif %}
+    ,{
+      "@type": "ListItem",
+      "position": {% if product.collections.size > 0 %}3{% else %}2{% endif %},
+      "name": {{ product.title | json }},
+      "item": "{{ shop.url }}{{ product.url }}"
+    }
+  ]
+}
+</script>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "Dress Like Mommy",
+  "url": "https://dresslikemommy.com",
+  "logo": "https://dresslikemommy.com/cdn/shop/files/dlm-square-logo.png",
+  "sameAs": [
+    "https://www.facebook.com/dresslikemommy",
+    "https://www.instagram.com/dresslikemommy",
+    "https://www.pinterest.com/dresslikemommy"
+  ],
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "telephone": "+1-786-309-6006",
+    "contactType": "customer service",
+    "email": "info@dresslikemommy.com",
+    "availableLanguage": "English"
+  }
+}
+</script>
+{% endif %}

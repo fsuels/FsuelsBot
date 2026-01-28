@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "skills": {
+    "marketing-mode": {
+      "version": "1.0.0",
+      "installedAt": 1769486610408
+    },
+    "self-improving-agent": {
+      "version": "1.0.2",
+      "installedAt": 1769486621894
+    },
+    "clawd-docs-v2": {
+      "version": "2.2.0",
+      "installedAt": 1769486642827
+    },
+    "youtube-watcher": {
+      "version": "1.0.0",
+      "installedAt": 1769486672041
+    },
+    "humanizer": {
+      "version": "1.0.0",
+      "installedAt": 1769486674424
+    },
+    "research": {
+      "version": "1.0.1",
+      "installedAt": 1769486687109
+    },
+    "tweet-writer": {
+      "version": "1.0.0",
+      "installedAt": 1769486693782
+    },
+    "reddit": {
+      "version": "1.0.0",
+      "installedAt": 1769486734610
+    },
+    "prompt-engineering-expert": {
+      "version": "1.0.0",
+      "installedAt": 1769486747364
+    }
+  }
+}
