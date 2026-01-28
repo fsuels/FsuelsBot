@@ -355,6 +355,135 @@
   .activity { display: none; padding: 16px; overflow-y: auto; flex: 1; }
   .activity.active { display: flex; flex-direction: column; gap: 16px; }
 
+  /* Orchestrator bar */
+  .orchestrator-bar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 20px;
+    background: rgba(88,166,255,0.06);
+    border: 1px solid rgba(88,166,255,0.15);
+    border-radius: 12px;
+  }
+  .orchestrator-bar .orch-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .orchestrator-bar .orch-dot.idle { background: var(--text-dim); }
+  .orchestrator-bar .orch-dot.working { background: var(--done); animation: blink 2s infinite; }
+  .orchestrator-bar .orch-dot.thinking { background: var(--accent); animation: blink 1.5s infinite; }
+  .orchestrator-bar .orch-name { font-weight: 700; font-size: 15px; }
+  .orchestrator-bar .orch-task { color: var(--text-dim); font-size: 13px; flex: 1; margin-left: 8px; }
+  .orchestrator-bar .orch-model { font-size: 11px; color: var(--text-dim); font-family: monospace; }
+
+  /* Agent cards grid */
+  .agents-section-title {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    padding-left: 4px;
+  }
+  .agents-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 12px;
+  }
+  .agent-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    transition: all 0.2s ease;
+    position: relative;
+  }
+  .agent-card:hover { border-color: rgba(88,166,255,0.3); }
+  .agent-card.working { border-left: 3px solid var(--done); }
+  .agent-card.thinking { border-left: 3px solid var(--accent); }
+  .agent-card.idle { border-left: 3px solid var(--text-dim); }
+  .agent-card.done { border-left: 3px solid var(--accent); }
+  .agent-card.error { border-left: 3px solid var(--critical); }
+
+  .agent-card-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .agent-avatar {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .agent-card.working .agent-avatar { background: rgba(63,185,80,0.12); }
+  .agent-card.thinking .agent-avatar { background: rgba(88,166,255,0.12); }
+  .agent-card.idle .agent-avatar { background: rgba(139,148,158,0.12); }
+  .agent-card.done .agent-avatar { background: rgba(88,166,255,0.12); }
+  .agent-card.error .agent-avatar { background: rgba(248,81,73,0.12); }
+
+  .agent-card-info { flex: 1; min-width: 0; }
+  .agent-card-name { font-size: 15px; font-weight: 600; }
+  .agent-card-role { font-size: 11px; color: var(--text-dim); }
+  .agent-status-badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .agent-card.working .agent-status-badge { background: rgba(63,185,80,0.12); color: var(--done); }
+  .agent-card.thinking .agent-status-badge { background: rgba(88,166,255,0.12); color: var(--accent); }
+  .agent-card.idle .agent-status-badge { background: rgba(139,148,158,0.15); color: var(--text-dim); }
+  .agent-card.done .agent-status-badge { background: rgba(88,166,255,0.12); color: var(--accent); }
+  .agent-card.error .agent-status-badge { background: rgba(248,81,73,0.12); color: var(--critical); }
+
+  .agent-card-task {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.4;
+    margin-bottom: 10px;
+    min-height: 36px;
+  }
+  .agent-progress {
+    height: 3px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .agent-progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s ease;
+  }
+  .agent-card.working .agent-progress-fill { background: var(--done); animation: pulse-bar 2s infinite; }
+  .agent-card.thinking .agent-progress-fill { background: var(--accent); animation: pulse-bar 1.5s infinite; }
+  .agent-card.done .agent-progress-fill { background: var(--accent); }
+  .agent-card.error .agent-progress-fill { background: var(--critical); }
+  @keyframes pulse-bar { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+
+  .agent-card-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  /* No agents empty state */
+  .no-agents {
+    text-align: center;
+    padding: 24px;
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+
+  /* Legacy hero for fallback */
   .activity-hero {
     display: flex;
     align-items: center;
@@ -498,6 +627,8 @@
     .card-title { font-size: 15px; }
     .brain-grid { grid-template-columns: 1fr; }
     .activity-hero { flex-direction: column; text-align: center; padding: 16px; }
+    .orchestrator-bar { flex-wrap: wrap; }
+    .agents-grid { grid-template-columns: 1fr; }
     .status-orb { width: 60px; height: 60px; font-size: 28px; }
     .activity-body { flex-direction: column; }
     .activity-sidebar { flex-direction: row; flex-wrap: wrap; }
@@ -803,54 +934,94 @@ function renderActivityOffline() {
     </div>`;
 }
 
+function renderAgentCard(agent) {
+  const s = agent.status || 'idle';
+  return `<div class="agent-card ${esc(s)}">
+    <div class="agent-card-top">
+      <div class="agent-avatar">${agent.emoji || '🤖'}</div>
+      <div class="agent-card-info">
+        <div class="agent-card-name">${esc(agent.name || 'Agent')}</div>
+        <div class="agent-card-role">${esc(agent.role || agent.model || '')}</div>
+      </div>
+      <div class="agent-status-badge">${esc(s)}</div>
+    </div>
+    <div class="agent-card-task">${esc(agent.task || 'No task assigned')}</div>
+    <div class="agent-progress">
+      <div class="agent-progress-fill" style="width:${agent.progress || (s === 'done' ? 100 : s === 'working' ? 50 : 0)}%"></div>
+    </div>
+    <div class="agent-card-meta">
+      <span>${esc(agent.model || '')}</span>
+      <span>${esc(agent.startTime || '')}</span>
+    </div>
+  </div>`;
+}
+
 function renderActivity(act) {
-  const statusIcons = { idle: '💤', working: '⚡', thinking: '🧠' };
-  const statusLabels = { idle: 'Idle', working: 'Working', thinking: 'Thinking' };
-  const statusColors = { idle: 'var(--text-dim)', working: 'var(--done)', thinking: 'var(--accent)' };
-
-  const icon = statusIcons[act.status] || '❓';
-  const label = statusLabels[act.status] || act.status;
-  const color = statusColors[act.status] || 'var(--text)';
   const hlt = act.highLevelTask;
-  const task = hlt ? hlt.taskTitle : (act.currentTask || 'Waiting for a task...');
-  const tool = act.currentTool ? `🔧 Tool: ${act.currentTool}` : '';
-  const project = hlt ? hlt.project : '';
-  const taskId = hlt ? hlt.taskId : '';
-  const progress = hlt ? hlt.progress : '';
 
-  // Feed items
-  // Filter: only show meaningful events (skip "Done:" clutter, keep starts + errors)
+  // Parse orchestrator + sub-agents from current-task.json
+  const orch = hlt && hlt.orchestrator ? hlt.orchestrator : null;
+  const subAgents = hlt && hlt.agents ? hlt.agents : [];
+
+  // Orchestrator info (fallback to activity state)
+  const orchStatus = orch ? orch.status : act.status;
+  const orchTask = orch ? orch.task : (act.currentTask || 'Waiting for a task...');
+  const orchModel = orch ? orch.model : (act.sessionInfo || {}).model || 'claude-opus-4.5';
+  const orchName = orch ? orch.name : 'Fsuels Bot';
+  const orchEmoji = orch ? orch.emoji : '🤖';
+  const orchTaskId = orch ? (orch.taskId || '') : '';
+  const orchProject = orch ? (orch.project || '') : '';
+
+  // Build orchestrator bar
+  const orchBar = `<div class="orchestrator-bar">
+    <div class="orch-dot ${esc(orchStatus)}"></div>
+    <div class="orch-name">${orchEmoji} ${esc(orchName)}</div>
+    <div class="orch-task">
+      ${orchTaskId ? `<span style="color:var(--accent);font-family:monospace;font-size:11px;">${esc(orchTaskId)}</span> · ` : ''}
+      ${esc(orchTask)}
+      ${orchProject ? ` <span style="font-size:11px;opacity:0.6;">· ${esc(orchProject)}</span>` : ''}
+    </div>
+    <div class="orch-model">${esc(orchModel)}</div>
+  </div>`;
+
+  // Build agent cards
+  let agentSection = '';
+  if (subAgents.length > 0) {
+    const workingCount = subAgents.filter(a => a.status === 'working' || a.status === 'thinking').length;
+    const doneCount = subAgents.filter(a => a.status === 'done').length;
+    agentSection = `
+      <div class="agents-section-title">
+        Digital Team — ${subAgents.length} agent${subAgents.length > 1 ? 's' : ''} 
+        ${workingCount > 0 ? `(${workingCount} working` : '('}${doneCount > 0 ? (workingCount > 0 ? `, ${doneCount} done)` : `${doneCount} done)`) : (workingCount > 0 ? ')' : 'all idle)')}
+      </div>
+      <div class="agents-grid">
+        ${subAgents.map(a => renderAgentCard(a)).join('')}
+      </div>`;
+  } else {
+    agentSection = `<div class="no-agents">💤 No sub-agents running — Fsuels Bot is working solo</div>`;
+  }
+
+  // Feed items — show agent label when known
   const meaningful = (act.recentEvents || []).filter(ev => {
     if (ev.type === 'error') return true;
-    if (ev.type === 'tool_end') return false; // Skip "done" items to reduce noise
+    if (ev.type === 'tool_end') return false;
     return true;
   });
   const feedItems = meaningful.slice(0, 25).map(ev => {
     const isError = ev.type === 'error';
+    const agentLabel = ev.agentName ? `<span style="color:var(--accent);font-weight:600;font-size:11px;margin-right:4px;">[${esc(ev.agentName)}]</span>` : '';
     return `<div class="feed-item ${isError ? 'error-item' : ''}">
       <span class="fi-icon">${esc(ev.icon || '•')}</span>
       <span class="fi-time">${formatTime(ev.time)}</span>
-      <span class="fi-msg">${esc(friendlyMessage(ev.message))}</span>
+      <span class="fi-msg">${agentLabel}${esc(friendlyMessage(ev.message))}</span>
     </div>`;
   }).join('');
 
   const stats = act.stats || {};
-  const session = act.sessionInfo || {};
 
   document.getElementById('activityView').innerHTML = `
-    <div class="activity-hero">
-      <div class="status-orb ${esc(act.status)}">
-        ${icon}
-      </div>
-      <div class="status-info">
-        <h2 style="color:${color};">${label}</h2>
-        ${taskId ? `<div style="font-size:12px;color:var(--accent);font-family:monospace;margin-bottom:2px;">${esc(taskId)}${project ? ' · ' + esc(project) : ''}</div>` : ''}
-        <div class="task-label" style="font-size:16px;font-weight:600;">${esc(task)}</div>
-        ${progress ? `<div class="task-label" style="margin-top:4px;font-size:13px;color:var(--text-dim);">📍 ${esc(progress)}</div>` : ''}
-        ${tool ? `<div class="task-label" style="margin-top:4px;font-size:13px;">🔧 Currently: ${esc(act.currentTask || tool)}</div>` : ''}
-        <div class="since">Since ${timeAgo(act.statusSince)}</div>
-      </div>
-    </div>
+    ${orchBar}
+    ${agentSection}
 
     <div class="activity-body">
       <div class="activity-feed">
@@ -871,24 +1042,19 @@ function renderActivity(act) {
           <div class="sub-text">Since last restart</div>
         </div>
         <div class="activity-stat-card">
-          <h3>🏁 Runs Completed</h3>
+          <h3>🏁 Runs</h3>
           <div class="big-num" style="color:var(--done);">${stats.runsCompleted || 0}</div>
           <div class="sub-text">Requests processed</div>
         </div>
         <div class="activity-stat-card">
-          <h3>❌ Errors Today</h3>
+          <h3>❌ Errors</h3>
           <div class="big-num" style="color:${(stats.errorsToday || 0) > 0 ? 'var(--critical)' : 'var(--done)'};">${stats.errorsToday || 0}</div>
           ${stats.lastError ? `<div class="sub-text" style="color:var(--critical);margin-top:4px;">${esc(stats.lastError)}</div>` : '<div class="sub-text">All clear ✅</div>'}
         </div>
         <div class="activity-stat-card">
-          <h3>🤖 Model</h3>
-          <div style="font-size:15px;font-weight:600;color:var(--text);margin-top:4px;">${esc(session.model || 'unknown')}</div>
-          <div class="sub-text">Provider: ${esc(session.provider || 'unknown')}</div>
-        </div>
-        <div class="activity-stat-card">
-          <h3>⏱️ Up Since</h3>
-          <div style="font-size:14px;font-weight:600;color:var(--text);margin-top:4px;">${formatTime(stats.upSince)}</div>
-          <div class="sub-text">${timeAgo(stats.upSince)}</div>
+          <h3>👥 Team</h3>
+          <div class="big-num" style="color:var(--accent);">${1 + subAgents.length}</div>
+          <div class="sub-text">${subAgents.length > 0 ? `1 orchestrator + ${subAgents.length} agent${subAgents.length > 1 ? 's' : ''}` : 'Solo mode'}</div>
         </div>
       </div>
     </div>

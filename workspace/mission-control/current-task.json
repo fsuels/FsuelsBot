@@ -1,8 +1,13 @@
 {
-  "taskId": "MC-BLOG-2",
-  "taskTitle": "5 new SEO blog posts drafted (batch 2)",
-  "project": "Dress Like Mommy",
-  "startedAt": "2026-01-28T02:08:00-05:00",
-  "status": "completed",
-  "progress": "All 5 posts written: Mother's Day, Birthday Party, Wedding Guest, Back to School, Christmas. 27,000+ words total. Ready to publish."
+  "orchestrator": {
+    "name": "Fsuels Bot",
+    "emoji": "\ud83e\udd16",
+    "model": "claude-opus-4.5",
+    "status": "working",
+    "task": "Activity dashboard redesign + Gateway back-link",
+    "taskId": "MC-DASH",
+    "project": "Agent System",
+    "startTime": "2:25 AM"
+  },
+  "agents": []
 }

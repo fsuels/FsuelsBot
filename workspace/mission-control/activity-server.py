@@ -47,7 +47,7 @@ def load_current_task():
             mtime = os.path.getmtime(CURRENT_TASK_FILE)
             # Only show if updated in last 30 minutes
             if time.time() - mtime < 1800:
-                with open(CURRENT_TASK_FILE, 'r') as f:
+                with open(CURRENT_TASK_FILE, 'r', encoding='utf-8') as f:
                     return json.load(f)
     except:
         pass
@@ -345,14 +345,14 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
         
         if path == '/api/activity':
             self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
             self.send_header('Access-Control-Allow-Origin', '*')
             self.send_header('Cache-Control', 'no-cache')
             self.end_headers()
             with state_lock:
                 response = dict(activity_state)
                 response["highLevelTask"] = load_current_task()
-                self.wfile.write(json.dumps(response, indent=2).encode())
+                self.wfile.write(json.dumps(response, indent=2, ensure_ascii=False).encode('utf-8'))
             return
         
         if path == '/api/health':
