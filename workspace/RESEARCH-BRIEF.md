@@ -132,4 +132,12 @@ Daily research → actionable insights → improvement opportunities for FsuelsB
 
 **💬 Best from the Comments** — Hidden gems found in reply threads
 
+**📋 Proposals (ranked by impact)**
+For each proposal:
+- What it is & who's using it successfully
+- How it improves FsuelsBot specifically
+- Effort: low / medium / high
+- Recommendation: do it now / schedule it / investigate more / skip
+- Francisco decides: ✅ approve → I execute same day
+
 **🎯 Action Items** — What to do today
