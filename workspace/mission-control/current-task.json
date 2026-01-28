@@ -4,27 +4,32 @@
     "emoji": "🤖",
     "model": "claude-opus-4.5",
     "status": "working",
-    "task": "Council verdict fully implemented — all 8 operational procedures live",
-    "benefit": "Complete operating system for the team. Every task scored, dispatched, reviewed, and templated. No waste, no idle, no guessing.",
-    "taskId": "MC-TEAM",
+    "task": "Council 6-round debate: Elon + Karpathy + Sutskever — permanent principles for our system",
+    "benefit": "Three of the sharpest minds in tech stress-testing how we operate. Could reshape our entire approach.",
+    "taskId": "COUNCIL-3V",
     "project": "Agent System",
-    "startTime": "12:37 PM",
-    "description": "Implemented all Council recommendations: dispatch scoring, event triggers, autonomy tiers, safety tiers, output contracts, earn/kill criteria, persistent loops, and artifact pipeline.",
-    "progress": 100,
+    "startTime": "12:56 PM",
+    "description": "Full 6-round Council debate applying Elon's 5-step deletion algorithm, Karpathy's fast verification loops, and Sutskever's continual learning to our system. Should any become permanent principles?",
+    "progress": 5,
     "steps": [
-      {"label": "Rewrite team.json — 3 persistent + 4 on-demand", "done": true},
-      {"label": "Update dashboard with new team view", "done": true},
-      {"label": "Dispatch scoring system", "done": true},
-      {"label": "Event-based triggers", "done": true},
-      {"label": "3-tier autonomy system", "done": true},
-      {"label": "Action safety tiers", "done": true},
-      {"label": "Output contracts for all functions", "done": true},
-      {"label": "Earn/kill criteria with thresholds", "done": true},
-      {"label": "QA Loop & Research Loop activation", "done": true},
-      {"label": "Reusable artifact pipeline", "done": true},
-      {"label": "Quick reference + HEARTBEAT.md integration", "done": true}
+      {"label": "Round 1: Initial positions on all questions", "done": false},
+      {"label": "Round 2: Cross-examination", "done": false},
+      {"label": "Round 3: Revised positions", "done": false},
+      {"label": "Round 4: Deep dive — permanent principles text", "done": false},
+      {"label": "Round 5: Deep dive — apply to today + 10-second rule", "done": false},
+      {"label": "Round 6: Final convergence", "done": false},
+      {"label": "Opus verdict + implementation plan", "done": false}
     ],
-    "strategy": "Documented every Council recommendation as a standalone procedure in knowledge/procedures/. Each procedure is self-contained, actionable, and cross-referenced. Master index at team-operations-quickref.md."
+    "strategy": "6-round multi-AI debate (Grok + ChatGPT + Gemini → cross-exam → convergence → deep dives → final positions → Opus verdict). Covers: permanent principles, deletions from today's work, Pressure Loop changes, DLM strategy, 10-second verification rule."
   },
-  "agents": []
+  "agents": [
+    {
+      "name": "The Council",
+      "skill": "council",
+      "status": "working",
+      "task": "6-round debate: Elon (delete first) + Karpathy (fast verification) + Sutskever (continual learning)",
+      "benefit": "Permanent operating principles from three of the sharpest minds in tech",
+      "progress": 0
+    }
+  ]
 }

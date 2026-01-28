@@ -73,7 +73,7 @@
       "emoji": "🏛️",
       "model": "multi-ai",
       "skill": "council",
-      "status": "standby",
+      "status": "working",
       "description": "Grok + ChatGPT + Gemini debate, Opus delivers verdict. Invoked only for high-impact decisions where diverse perspectives matter.",
       "capabilities": ["Strategy Debates", "Multi-AI Analysis", "Decision Making", "Critical Review"],
       "lastActive": "2026-01-28T12:27:00-05:00",
