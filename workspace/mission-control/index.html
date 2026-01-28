@@ -33,6 +33,7 @@
     width: 100vw;
     height: 100vh;
     overflow: hidden;
+    overflow-x: hidden;
   }
 
   /* === LAYOUT SHELL (fixed viewport) === */
@@ -42,6 +43,7 @@
     width: 100vw;
     height: 100vh;
     overflow: hidden;
+    overflow-x: hidden;
   }
 
   /* === HEADER === */
@@ -125,6 +127,7 @@
     font-size: 12px;
     flex-shrink: 0;
     flex-wrap: wrap;
+    overflow: hidden;
   }
   .stat {
     display: flex;
@@ -339,7 +342,7 @@
   .summary-block li:last-child { border: none; }
 
   /* === ACTIVITY VIEW === */
-  .activity { display: none; padding: 16px; overflow-y: auto; flex: 1; }
+  .activity { display: none; padding: 16px; overflow-y: auto; overflow-x: hidden; flex: 1; }
   .activity.active { display: flex; flex-direction: column; gap: 16px; }
 
   /* Orchestrator bar */
@@ -351,6 +354,8 @@
     background: rgba(88,166,255,0.06);
     border: 1px solid rgba(88,166,255,0.15);
     border-radius: 12px;
+    overflow: hidden;
+    min-width: 0;
   }
   .orchestrator-bar .orch-dot {
     width: 10px; height: 10px;
@@ -361,7 +366,7 @@
   .orchestrator-bar .orch-dot.working { background: var(--done); animation: blink 2s infinite; }
   .orchestrator-bar .orch-dot.thinking { background: var(--accent); animation: blink 1.5s infinite; }
   .orchestrator-bar .orch-name { font-weight: 700; font-size: 15px; }
-  .orchestrator-bar .orch-task { color: var(--text-dim); font-size: 13px; flex: 1; margin-left: 8px; }
+  .orchestrator-bar .orch-task { color: var(--text-dim); font-size: 13px; flex: 1; margin-left: 8px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .orchestrator-bar .orch-model { font-size: 11px; color: var(--text-dim); font-family: monospace; }
 
   /* Agent cards grid */
@@ -491,8 +496,9 @@
   /* === TEAM ROSTER === */
   .team-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
     gap: 12px;
+    overflow: hidden;
   }
   .team-card {
     background: var(--surface);
@@ -631,6 +637,8 @@
     border-radius: 10px;
     font-size: 12px;
     flex-shrink: 0;
+    overflow: hidden;
+    flex-wrap: wrap;
   }
   .live-footer .lf-stat {
     display: flex;
