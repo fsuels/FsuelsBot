@@ -114,6 +114,11 @@ Daily research → actionable insights → improvement opportunities for FsuelsB
 - Every finding should answer: "Can we use this for FsuelsBot? How? Today?"
 - Install new skills, apply prompt tricks, test memory techniques — don't just report
 - **Research → Test → Implement → Report.** Not research → report → forget.
+- **DO NOT OVERWHELM** — Francisco doesn't want a news dump. Only bring things
+  that truly make a difference. If it's not worth implementing, don't mention it.
+- Max 2-3 proposals per brief. Only high-impact, practical improvements.
+- If nothing meaningful happened that day, say so in one line and move on.
+- Respect his time. Short, sharp, actionable. No filler.
 
 ## Daily Brief Format
 ### 🔬 [Date] AI Research Brief
