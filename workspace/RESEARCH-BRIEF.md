@@ -109,6 +109,11 @@ Daily research → actionable insights → improvement opportunities for FsuelsB
 - Pay special attention to replies from verified accounts and people with many followers
 - Look for: code snippets, GitHub links, tool recommendations, "I tried X and it works"
 - Save any useful links or repos found in comments
+- **FOCUS ON PRACTICAL IMPLEMENTATIONS** — not theory, not hype. Things that work.
+- If it's good → test it, try to implement it, THEN report results to Francisco
+- Every finding should answer: "Can we use this for FsuelsBot? How? Today?"
+- Install new skills, apply prompt tricks, test memory techniques — don't just report
+- **Research → Test → Implement → Report.** Not research → report → forget.
 
 ## Daily Brief Format
 ### 🔬 [Date] AI Research Brief
