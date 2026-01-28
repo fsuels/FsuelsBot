@@ -488,6 +488,162 @@
     border-radius: 12px;
   }
 
+  /* === TEAM ROSTER === */
+  .team-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+  }
+  .team-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    transition: all 0.2s ease;
+    position: relative;
+    cursor: pointer;
+    overflow: hidden;
+  }
+  .team-card:hover { border-color: rgba(88,166,255,0.3); box-shadow: 0 4px 16px rgba(0,0,0,0.2); transform: translateY(-1px); }
+  .team-card.status-working { border-left: 4px solid var(--done); }
+  .team-card.status-thinking { border-left: 4px solid var(--accent); }
+  .team-card.status-idle { border-left: 4px solid var(--border); }
+  .team-card.status-done { border-left: 4px solid var(--accent); }
+  .team-card.status-error { border-left: 4px solid var(--critical); }
+
+  .team-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .team-avatar {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+    background: rgba(255,255,255,0.05);
+  }
+  .team-card.status-working .team-avatar { background: rgba(63,185,80,0.15); }
+  .team-card.status-thinking .team-avatar { background: rgba(88,166,255,0.15); }
+
+  .team-card-identity { flex: 1; min-width: 0; }
+  .team-card-name { font-size: 15px; font-weight: 700; }
+  .team-card-role { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+  .team-card-status {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 8px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    flex-shrink: 0;
+  }
+  .team-card.status-working .team-card-status { background: rgba(63,185,80,0.15); color: var(--done); }
+  .team-card.status-thinking .team-card-status { background: rgba(88,166,255,0.15); color: var(--accent); }
+  .team-card.status-idle .team-card-status { background: rgba(139,148,158,0.15); color: var(--text-dim); }
+  .team-card.status-done .team-card-status { background: rgba(88,166,255,0.15); color: var(--accent); }
+  .team-card.status-error .team-card-status { background: rgba(248,81,73,0.15); color: var(--critical); }
+
+  .team-card-desc {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+  .team-card-caps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+  .team-cap {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.05);
+    color: var(--text-dim);
+  }
+  .team-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    color: var(--text-dim);
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  .team-model {
+    font-family: monospace;
+    padding: 2px 6px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 4px;
+    font-size: 10px;
+  }
+  .team-card-task {
+    font-size: 12px;
+    color: var(--text);
+    padding: 8px 10px;
+    background: rgba(63,185,80,0.06);
+    border-radius: 6px;
+    border-left: 2px solid var(--done);
+    margin-bottom: 10px;
+    display: none;
+  }
+  .team-card.status-working .team-card-task,
+  .team-card.status-thinking .team-card-task { display: block; }
+
+  /* Team section header */
+  .team-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0;
+    margin-bottom: 8px;
+  }
+  .team-section-title {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-dim);
+    font-weight: 700;
+  }
+  .team-counter {
+    font-size: 12px;
+    color: var(--text-dim);
+    display: flex;
+    gap: 12px;
+  }
+  .team-counter span { display: flex; align-items: center; gap: 4px; }
+  .team-counter .dot { width: 6px; height: 6px; border-radius: 50%; }
+
+  /* Live footer bar */
+  .live-footer {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 8px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .live-footer .lf-stat {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .live-footer .lf-value { font-weight: 700; font-size: 14px; }
+
+  @media (max-width: 600px) {
+    .team-grid { grid-template-columns: 1fr; }
+    .live-footer { flex-wrap: wrap; gap: 8px; }
+  }
+
   /* Legacy hero for fallback */
   .activity-hero {
     display: flex;
@@ -664,8 +820,8 @@
       <a href="http://127.0.0.1:18789/overview" target="_blank" rel="noopener" id="gatewayLink" onclick="event.stopPropagation(); event.preventDefault(); window.open(this.href, 'gateway', 'noopener,noreferrer');" style="color:var(--accent);text-decoration:none;font-size:12px;display:flex;align-items:center;gap:3px;">⚙️ Control</a>
     </div>
     <div class="tabs">
-      <button class="tab" onclick="switchView('activity', event)">⚡ Activity</button>
-      <button class="tab active" onclick="switchView('kanban', event)">📋 Kanban</button>
+      <button class="tab active" onclick="switchView('activity', event)">⚡ Team</button>
+      <button class="tab" onclick="switchView('kanban', event)">📋 Kanban</button>
       <button class="tab" onclick="switchView('brain', event)">🧠 Brain</button>
       <button class="tab" onclick="switchView('summary', event)">📊 Summary</button>
     </div>
@@ -675,8 +831,8 @@
 <div class="stats-bar" id="statsBar"></div>
 <div class="stats-bar" id="projectBar" style="gap:8px;padding:4px 12px;border-bottom:1px solid var(--border);"></div>
 
-<div class="activity" id="activityView"></div>
-<div class="kanban active" id="kanbanView"></div>
+<div class="activity active" id="activityView"></div>
+<div class="kanban" id="kanbanView"></div>
 <div class="brain" id="brainView"></div>
 <div class="summary" id="summaryView"></div>
 
@@ -684,6 +840,7 @@
 
 <script>
 let data = null;
+let teamData = null;
 let activeProject = 'all';
 
 function esc(s) {
@@ -697,6 +854,13 @@ async function loadData() {
     data = await resp.json();
   } catch(e) { data = window.__DATA__; }
   render();
+}
+
+async function loadTeam() {
+  try {
+    const resp = await fetch('./team.json?' + Date.now());
+    teamData = await resp.json();
+  } catch(e) { teamData = null; }
 }
 
 function switchView(view, e) {
@@ -852,6 +1016,10 @@ function render() {
 }
 
 loadData();
+loadTeam().then(() => {
+  // Activity/Team is default view, start polling
+  startActivityPolling();
+});
 
 // === Clawdbot Status ===
 async function checkStatus() {
@@ -919,6 +1087,10 @@ function friendlyMessage(msg) {
 }
 
 async function fetchActivity() {
+  // Refresh team data periodically
+  if (!teamData) {
+    try { await loadTeam(); } catch(e) {}
+  }
   try {
     const resp = await fetch('/api/activity?' + Date.now(), { signal: AbortSignal.timeout(5000) });
     const act = await resp.json();
@@ -929,56 +1101,53 @@ async function fetchActivity() {
 }
 
 function renderActivityOffline() {
-  document.getElementById('activityView').innerHTML = `
-    <div class="activity-hero">
-      <div class="status-orb idle">💤</div>
-      <div class="status-info">
-        <h2 style="color:var(--text-dim);">Activity Server Offline</h2>
-        <div class="task-label">Start the activity server to see live updates</div>
-        <div class="since" style="margin-top:8px;font-family:monospace;color:var(--accent);">python mission-control/activity-server.py</div>
-      </div>
-    </div>`;
+  // Even offline, show the team roster
+  renderTeamView(null);
 }
 
-function renderAgentCard(agent) {
-  const s = agent.status || 'idle';
-  const pct = agent.progress || (s === 'done' ? 100 : s === 'working' ? 50 : 0);
+function renderTeamMemberCard(member, liveAgent) {
+  // If there's a matching live sub-agent, merge its status
+  const s = liveAgent ? (liveAgent.status || 'working') : (member.status || 'idle');
+  const currentTask = liveAgent ? liveAgent.task : null;
   const statusEmoji = { working: '⚡', thinking: '🧠', done: '✅', idle: '💤', error: '⚠️' };
-  return `<div class="agent-card ${esc(s)}">
-    <div class="agent-card-top">
-      <div class="agent-avatar">${agent.emoji || '🤖'}</div>
-      <div class="agent-card-info">
-        <div class="agent-card-name">${esc(agent.name || 'Agent')}</div>
-        <div class="agent-card-role">${esc(agent.role || 'Sub-agent')}</div>
+  const caps = (member.capabilities || []).map(c => `<span class="team-cap">${esc(c)}</span>`).join('');
+  const lastAct = member.lastActive ? timeAgo(member.lastActive) : 'Never';
+  const tasksDone = member.tasksCompleted || 0;
+
+  return `<div class="team-card status-${esc(s)}" onclick="this.querySelector('.team-card-desc').style.display=this.querySelector('.team-card-desc').style.display==='none'?'block':'none'">
+    <div class="team-card-header">
+      <div class="team-avatar">${member.emoji || '🤖'}</div>
+      <div class="team-card-identity">
+        <div class="team-card-name">${esc(member.name)}</div>
+        <div class="team-card-role">${esc(member.role)}</div>
       </div>
-      <div class="agent-status-badge">${statusEmoji[s] || '•'} ${esc(s)}</div>
+      <div class="team-card-status">${statusEmoji[s] || '•'} ${esc(s)}</div>
     </div>
-    <div class="agent-card-task">${esc(agent.task || 'No task assigned')}</div>
-    <div class="agent-progress">
-      <div class="agent-progress-fill" style="width:${pct}%"></div>
-    </div>
-    <div class="agent-card-meta">
-      <span class="agent-model">${esc(agent.model || 'unknown')}</span>
-      <span>${pct}% · Started ${esc(agent.startTime || '—')}</span>
+    ${currentTask ? `<div class="team-card-task">${esc(currentTask)}</div>` : ''}
+    <div class="team-card-desc" style="display:none">${esc(member.description || '')}</div>
+    <div class="team-card-caps">${caps}</div>
+    <div class="team-card-footer">
+      <span class="team-model">${esc(member.model || 'unknown')}</span>
+      <span>${tasksDone} tasks · ${s === 'idle' ? 'Last: ' + lastAct : 'Active now'}</span>
     </div>
   </div>`;
 }
 
-function renderActivity(act) {
-  const hlt = act.highLevelTask;
+function renderTeamView(act) {
+  const team = teamData ? teamData.team : [];
+  const hlt = act ? act.highLevelTask : null;
 
   // Parse orchestrator + sub-agents from current-task.json
   const orch = hlt && hlt.orchestrator ? hlt.orchestrator : null;
   const subAgents = hlt && hlt.agents ? hlt.agents : [];
 
-  // Orchestrator info (fallback to activity state)
-  const orchStatus = orch ? orch.status : act.status;
-  const orchTask = orch ? orch.task : (act.currentTask || 'Waiting for a task...');
-  const orchModel = orch ? orch.model : (act.sessionInfo || {}).model || 'claude-opus-4.5';
+  // Orchestrator info
+  const orchStatus = orch ? orch.status : (act ? act.status : 'idle');
+  const orchTask = orch ? orch.task : (act ? (act.currentTask || 'Waiting for a task...') : 'Offline');
+  const orchModel = orch ? orch.model : 'claude-opus-4.5';
   const orchName = orch ? orch.name : 'Fsuels Bot';
   const orchEmoji = orch ? orch.emoji : '🤖';
   const orchTaskId = orch ? (orch.taskId || '') : '';
-  const orchProject = orch ? (orch.project || '') : '';
 
   // Build orchestrator bar
   const orchBar = `<div class="orchestrator-bar">
@@ -987,35 +1156,43 @@ function renderActivity(act) {
     <div class="orch-task">
       ${orchTaskId ? `<span style="color:var(--accent);font-family:monospace;font-size:11px;">${esc(orchTaskId)}</span> · ` : ''}
       ${esc(orchTask)}
-      ${orchProject ? ` <span style="font-size:11px;opacity:0.6;">· ${esc(orchProject)}</span>` : ''}
     </div>
     <div class="orch-model">${esc(orchModel)}</div>
   </div>`;
 
-  // Build agent cards
-  let agentSection = '';
-  if (subAgents.length > 0) {
-    const workingCount = subAgents.filter(a => a.status === 'working' || a.status === 'thinking').length;
-    const doneCount = subAgents.filter(a => a.status === 'done').length;
-    agentSection = `
-      <div class="agents-section-title">
-        Digital Team — ${subAgents.length} agent${subAgents.length > 1 ? 's' : ''} 
-        ${workingCount > 0 ? `(${workingCount} working` : '('}${doneCount > 0 ? (workingCount > 0 ? `, ${doneCount} done)` : `${doneCount} done)`) : (workingCount > 0 ? ')' : 'all idle)')}
-      </div>
-      <div class="agents-grid">
-        ${subAgents.map(a => renderAgentCard(a)).join('')}
-      </div>`;
-  } else {
-    agentSection = `<div class="no-agents">💤 No sub-agents running — Fsuels Bot is working solo</div>`;
-  }
+  // Build team member cards (skip orchestrator — it's in the bar)
+  const specialists = team.filter(m => m.id !== 'orchestrator');
+  const workingCount = specialists.filter(m => m.status === 'working' || m.status === 'thinking').length + subAgents.length;
+  const totalMembers = specialists.length;
 
-  // Feed items — show agent label when known
-  const meaningful = (act.recentEvents || []).filter(ev => {
+  // Match live sub-agents to team members by skill
+  const teamCards = specialists.map(member => {
+    const liveAgent = subAgents.find(a =>
+      (a.skill && a.skill === member.skill) ||
+      (a.name && a.name === member.name)
+    );
+    return renderTeamMemberCard(member, liveAgent);
+  }).join('');
+
+  // Team section header
+  const teamSection = `
+    <div class="team-section-header">
+      <div class="team-section-title">👥 Digital Workforce — ${totalMembers} Specialists</div>
+      <div class="team-counter">
+        <span><span class="dot" style="background:var(--done)"></span> ${workingCount} Active</span>
+        <span><span class="dot" style="background:var(--text-dim)"></span> ${totalMembers - workingCount} Idle</span>
+      </div>
+    </div>
+    <div class="team-grid">${teamCards}</div>`;
+
+  // Feed items
+  const events = act ? (act.recentEvents || []) : [];
+  const meaningful = events.filter(ev => {
     if (ev.type === 'error') return true;
     if (ev.type === 'tool_end') return false;
     return true;
   });
-  const feedItems = meaningful.slice(0, 25).map(ev => {
+  const feedItems = meaningful.slice(0, 20).map(ev => {
     const isError = ev.type === 'error';
     const agentLabel = ev.agentName ? `<span style="color:var(--accent);font-weight:600;font-size:11px;margin-right:4px;">[${esc(ev.agentName)}]</span>` : '';
     return `<div class="feed-item ${isError ? 'error-item' : ''}">
@@ -1025,48 +1202,43 @@ function renderActivity(act) {
     </div>`;
   }).join('');
 
-  const stats = act.stats || {};
+  // Stats
+  const stats = act ? (act.stats || {}) : {};
+  const totalTasks = team.reduce((sum, m) => sum + (m.tasksCompleted || 0), 0);
+
+  // Live stats footer bar
+  const footer = `<div class="live-footer">
+    <div class="lf-stat"><span style="font-size:14px;">👥</span> <span class="lf-value">${totalMembers + 1}</span> Team</div>
+    <div class="lf-stat"><span style="font-size:14px;">✅</span> <span class="lf-value">${totalTasks}</span> Tasks Done</div>
+    <div class="lf-stat"><span style="font-size:14px;">🔧</span> <span class="lf-value">${stats.toolCalls || 0}</span> Tool Calls</div>
+    <div class="lf-stat"><span style="font-size:14px;">🏁</span> <span class="lf-value">${stats.runsCompleted || 0}</span> Runs</div>
+    <div class="lf-stat"><span style="font-size:14px;">${(stats.errorsToday || 0) > 0 ? '⚠️' : '✅'}</span> <span class="lf-value" style="color:${(stats.errorsToday || 0) > 0 ? 'var(--critical)' : 'var(--done)'};">${stats.errorsToday || 0}</span> Errors</div>
+    <div style="margin-left:auto;font-size:11px;color:var(--text-dim);">${act ? 'Updated ' + timeAgo(act.lastUpdate) : 'Offline'}</div>
+  </div>`;
 
   document.getElementById('activityView').innerHTML = `
     ${orchBar}
-    ${agentSection}
+    ${teamSection}
 
-    <div class="activity-body">
-      <div class="activity-feed">
+    <div class="activity-body" style="margin-top:8px;">
+      <div class="activity-feed" style="flex:1;">
         <div class="feed-header">
           <span class="live-dot"></span>
           Live Activity Feed
-          <span style="margin-left:auto;font-size:11px;color:var(--text-dim);">Updated ${timeAgo(act.lastUpdate)}</span>
+          <span style="margin-left:auto;font-size:11px;color:var(--text-dim);">${act ? 'Updated ' + timeAgo(act.lastUpdate) : 'Offline'}</span>
         </div>
         <div class="feed-body">
-          ${feedItems || '<div style="padding:20px;text-align:center;color:var(--text-dim);">No activity yet. Events will appear here as Clawdbot works.</div>'}
-        </div>
-      </div>
-
-      <div class="activity-sidebar">
-        <div class="activity-stat-card">
-          <h3>🔧 Tool Calls</h3>
-          <div class="big-num" style="color:var(--accent);">${stats.toolCalls || 0}</div>
-          <div class="sub-text">Since last restart</div>
-        </div>
-        <div class="activity-stat-card">
-          <h3>🏁 Runs</h3>
-          <div class="big-num" style="color:var(--done);">${stats.runsCompleted || 0}</div>
-          <div class="sub-text">Requests processed</div>
-        </div>
-        <div class="activity-stat-card">
-          <h3>❌ Errors</h3>
-          <div class="big-num" style="color:${(stats.errorsToday || 0) > 0 ? 'var(--critical)' : 'var(--done)'};">${stats.errorsToday || 0}</div>
-          ${stats.lastError ? `<div class="sub-text" style="color:var(--critical);margin-top:4px;">${esc(stats.lastError)}</div>` : '<div class="sub-text">All clear ✅</div>'}
-        </div>
-        <div class="activity-stat-card">
-          <h3>👥 Team</h3>
-          <div class="big-num" style="color:var(--accent);">${1 + subAgents.length}</div>
-          <div class="sub-text">${subAgents.length > 0 ? `1 orchestrator + ${subAgents.length} agent${subAgents.length > 1 ? 's' : ''}` : 'Solo mode'}</div>
+          ${feedItems || '<div style="padding:20px;text-align:center;color:var(--text-dim);">No activity yet. Events appear here as agents work.</div>'}
         </div>
       </div>
     </div>
+
+    ${footer}
   `;
+}
+
+function renderActivity(act) {
+  renderTeamView(act);
 }
 </script>
 </body>
