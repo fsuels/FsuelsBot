@@ -886,6 +886,18 @@
   .team-card.expanded .team-card-footer { display: flex !important; margin-top: 8px; }
   .team-card.expanded .team-card-desc { display: block !important; margin-top: 8px; font-size: 12px; color: var(--text-dim); line-height: 1.4; }
   .team-card.expanded .team-card-task { display: block !important; }
+  .team-card-benefit {
+    display: none;
+    margin-top: 6px;
+    padding: 6px 10px;
+    background: rgba(63,185,80,0.08);
+    border-radius: 6px;
+    border-left: 3px solid var(--done);
+    font-size: 12px;
+    color: var(--done);
+    line-height: 1.4;
+  }
+  .team-card.expanded .team-card-benefit { display: block !important; }
   .team-card-expand-hint {
     font-size: 10px;
     color: var(--accent);
@@ -1207,6 +1219,7 @@ function renderTeamMemberCard(member, liveAgent) {
   // If there's a matching live sub-agent, merge its status
   const s = liveAgent ? (liveAgent.status || 'working') : (member.status || 'idle');
   const currentTask = liveAgent ? liveAgent.task : null;
+  const taskBenefit = liveAgent ? liveAgent.benefit : null;
   const statusEmoji = { working: '⚡', thinking: '🧠', done: '✅', idle: '💤', error: '⚠️' };
   const caps = (member.capabilities || []).map(c => `<span class="team-cap">${esc(c)}</span>`).join('');
   const lastAct = member.lastActive ? timeAgo(member.lastActive) : 'Never';
@@ -1219,6 +1232,11 @@ function renderTeamMemberCard(member, liveAgent) {
       ? `<div class="team-card-task" style="display:block;background:rgba(139,148,158,0.06);border-left-color:var(--text-dim);">💤 Waiting for assignment · Last active: ${lastAct}</div>`
       : '');
 
+  // Benefit line: "Why this matters to you"
+  const benefitLine = taskBenefit
+    ? `<div class="team-card-benefit">💰 <b>Why:</b> ${esc(taskBenefit)}</div>`
+    : '';
+
   return `<div class="team-card status-${esc(s)}" onclick="this.classList.toggle('expanded')">
     <div class="team-card-header">
       <div class="team-avatar">${member.emoji || '🤖'}</div>
@@ -1230,6 +1248,7 @@ function renderTeamMemberCard(member, liveAgent) {
     </div>
     <div class="team-card-expand-hint">▸ tap for details</div>
     ${taskLine}
+    ${benefitLine}
     <div class="team-card-desc">${esc(member.description || '')}</div>
     <div class="team-card-caps">${caps}</div>
     <div class="team-card-footer">
@@ -1256,7 +1275,8 @@ function renderTeamView(act) {
   const orchTaskId = orch ? (orch.taskId || '') : '';
 
   // Build orchestrator bar
-  const orchBar = `<div class="orchestrator-bar">
+  const orchBenefit = orch ? (orch.benefit || '') : '';
+  const orchBar = `<div class="orchestrator-bar" onclick="var b=this.querySelector('.orch-benefit');if(b)b.style.display=b.style.display==='none'?'block':'none';" style="cursor:pointer;flex-wrap:wrap;">
     <div class="orch-dot ${esc(orchStatus)}"></div>
     <div class="orch-name">${orchEmoji} ${esc(orchName)}</div>
     <div class="orch-task">
@@ -1264,6 +1284,7 @@ function renderTeamView(act) {
       ${esc(orchTask)}
     </div>
     <div class="orch-model">${esc(orchModel)}</div>
+    ${orchBenefit ? `<div class="orch-benefit" style="display:none;width:100%;margin-top:8px;padding:8px 12px;background:rgba(63,185,80,0.08);border-radius:6px;border-left:3px solid var(--done);font-size:13px;color:var(--done);line-height:1.4;">💰 <b>Why:</b> ${esc(orchBenefit)}</div>` : ''}
   </div>`;
 
   // Build team member cards (skip orchestrator — it's in the bar)

@@ -4,7 +4,8 @@
     "emoji": "🤖",
     "model": "claude-opus-4.5",
     "status": "working",
-    "task": "Dashboard UX fix + reviewing competitor research results",
+    "task": "Improving Mission Control dashboard so you can track all work in real-time",
+    "benefit": "You can see at a glance what's running, why it matters, and whether it's worth your time",
     "taskId": "MC-UX",
     "project": "Agent System",
     "startTime": "12:15 PM"
@@ -14,7 +15,8 @@
       "name": "The Council",
       "skill": "council",
       "status": "working",
-      "task": "Debating optimal team architecture — right number of specialists, dispatch method, autonomy levels"
+      "task": "Debating optimal team architecture — right number of specialists, dispatch method, prevent idling",
+      "benefit": "Stops wasting tokens on idle specialists. Gets more done with less cost."
     }
   ]
 }
