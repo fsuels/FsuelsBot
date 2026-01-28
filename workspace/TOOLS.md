@@ -87,3 +87,19 @@
 - Repo root: C:\dev\FsuelsBot
 - Memory: memory/ directory with daily files
 - Skills: skills/ directory with ClawdHub installs
+
+## AI Subscriptions (Fixed Budget — $0 extra allowed)
+- **Claude Max** — $100/month flat. Opus 4.5 + Sonnet unlimited. Runs Clawdbot.
+- **X / Grok** — Included in X subscription. Grok 4.1 Thinking via browser.
+- **ChatGPT Pro** — Flat subscription. ChatGPT 5.2 + GPTs via browser.
+- **Open Arena** — Free. Open-source models via browser.
+- **Gemini CLI** — Free. Google OAuth authenticated. Terminal access.
+- **RULE:** Never add any paid service/API without Francisco's explicit approval.
+
+## The Council (Multi-AI System)
+- Skill: `skills/council/SKILL.md`
+- Sessions saved: `council-sessions/`
+- Trigger: "Council: [question]"
+- Modes: Standard, Inner Critic, Feedback Loop (multi-round)
+- Architecture: Sonnet orchestrates → free AIs think → Opus 4.5 delivers final verdict
+- Cost per session: $0 extra (all existing subscriptions)
