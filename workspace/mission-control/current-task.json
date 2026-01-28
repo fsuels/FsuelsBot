@@ -4,10 +4,17 @@
     "emoji": "🤖",
     "model": "claude-opus-4.5",
     "status": "working",
-    "task": "Security hardening + dispatching improvement tasks to team",
-    "taskId": "MC-SEC",
+    "task": "Dashboard UX fix + reviewing competitor research results",
+    "taskId": "MC-UX",
     "project": "Agent System",
-    "startTime": "11:48 AM"
+    "startTime": "12:15 PM"
   },
-  "agents": []
+  "agents": [
+    {
+      "name": "The Council",
+      "skill": "council",
+      "status": "working",
+      "task": "Debating optimal team architecture — right number of specialists, dispatch method, autonomy levels"
+    }
+  ]
 }

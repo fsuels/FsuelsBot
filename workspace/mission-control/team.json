@@ -11,8 +11,8 @@
       "status": "working",
       "description": "Runs the show. Delegates to specialists, makes decisions, talks to Francisco.",
       "capabilities": ["Planning", "Delegation", "Communication", "Memory"],
-      "lastActive": "2026-01-28T02:35:00-05:00",
-      "tasksCompleted": 130,
+      "lastActive": "2026-01-28T12:19:00-05:00",
+      "tasksCompleted": 131,
       "color": "#58a6ff"
     },
     {
@@ -26,8 +26,8 @@
       "status": "idle",
       "description": "Deep research via Gemini CLI. Competitor intel, market analysis, trend spotting.",
       "capabilities": ["Web Research", "Competitor Analysis", "Market Trends", "Data Synthesis"],
-      "lastActive": "2026-01-28T12:15:00-05:00",
-      "tasksCompleted": 9,
+      "lastActive": "2026-01-28T12:22:00-05:00",
+      "tasksCompleted": 10,
       "color": "#3fb950"
     },
     {
@@ -71,7 +71,7 @@
       "status": "working",
       "description": "6 AIs debating every big decision. Grok, ChatGPT, Gemini, Open Arena + Opus judge.",
       "capabilities": ["Strategy Debates", "Multi-AI Analysis", "Decision Making", "Critical Review"],
-      "lastActive": "2026-01-27T22:00:00-05:00",
+      "lastActive": "2026-01-28T12:16:00-05:00",
       "tasksCompleted": 3,
       "color": "#f85149"
     },
