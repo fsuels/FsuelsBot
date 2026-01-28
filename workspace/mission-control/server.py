@@ -74,6 +74,10 @@ class ReusableTCPServer(socketserver.TCPServer):
 if __name__ == "__main__":
     if not GATEWAY_TOKEN:
         print("WARNING: CLAWDBOT_GATEWAY_TOKEN not set. Status proxy will fail.")
-    with ReusableTCPServer(("127.0.0.1", PORT), MissionControlHandler) as httpd:
-        print(f"Mission Control serving on http://127.0.0.1:{PORT}")
+    with ReusableTCPServer(("0.0.0.0", PORT), MissionControlHandler) as httpd:
+        import socket
+        local_ip = socket.gethostbyname(socket.gethostname())
+        print(f"Mission Control serving on:")
+        print(f"  Local:   http://127.0.0.1:{PORT}")
+        print(f"  Network: http://{local_ip}:{PORT}  (use this on your phone)")
         httpd.serve_forever()

@@ -351,12 +351,140 @@
   .summary-block li { padding: 6px 0; font-size: 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
   .summary-block li:last-child { border: none; }
 
+  /* === ACTIVITY VIEW === */
+  .activity { display: none; padding: 16px; overflow-y: auto; flex: 1; }
+  .activity.active { display: flex; flex-direction: column; gap: 16px; }
+
+  .activity-hero {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .status-orb {
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .status-orb.idle { background: rgba(139,148,158,0.15); }
+  .status-orb.working { background: rgba(63,185,80,0.15); animation: pulse-green 2s infinite; }
+  .status-orb.thinking { background: rgba(88,166,255,0.15); animation: pulse-blue 1.5s infinite; }
+  @keyframes pulse-green {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(63,185,80,0.4); }
+    50% { box-shadow: 0 0 20px 10px rgba(63,185,80,0.15); }
+  }
+  @keyframes pulse-blue {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(88,166,255,0.4); }
+    50% { box-shadow: 0 0 20px 10px rgba(88,166,255,0.15); }
+  }
+  .status-info h2 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .status-info .task-label { font-size: 15px; color: var(--text-dim); }
+  .status-info .since { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+
+  .activity-body { display: flex; gap: 16px; flex: 1; min-height: 0; }
+
+  .activity-feed {
+    flex: 2;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .feed-header {
+    padding: 12px 16px;
+    font-weight: 700;
+    font-size: 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .feed-header .live-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #3fb950;
+    animation: blink 1.5s infinite;
+  }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+  .feed-body {
+    padding: 8px;
+    overflow-y: auto;
+    flex: 1;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .feed-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    transition: background 0.15s;
+    font-size: 13px;
+  }
+  .feed-item:hover { background: rgba(255,255,255,0.03); }
+  .feed-item .fi-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .feed-item .fi-time {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: 'SFMono-Regular', Consolas, monospace;
+    flex-shrink: 0;
+    min-width: 65px;
+  }
+  .feed-item .fi-msg { color: var(--text); line-height: 1.4; word-break: break-word; }
+  .feed-item.error-item { background: rgba(248,81,73,0.06); }
+  .feed-item.error-item .fi-msg { color: var(--critical); }
+
+  .activity-sidebar {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 220px;
+  }
+  .activity-stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .activity-stat-card h3 {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+  .activity-stat-card .big-num {
+    font-size: 32px;
+    font-weight: 700;
+  }
+  .activity-stat-card .sub-text {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
   /* === MOBILE (phones only) === */
   @media (max-width: 600px) {
     header { flex-wrap: wrap; padding: 8px; gap: 6px; }
     header h1 { font-size: 14px; }
     .header-right { flex-wrap: wrap; width: 100%; justify-content: center; }
-    .tab { padding: 8px 10px; font-size: 12px; }
+    .tab { padding: 6px 8px; font-size: 11px; }
     .stats-bar { flex-wrap: wrap; gap: 8px; padding: 6px 8px; justify-content: center; }
     .updated { width: 100%; text-align: center; margin-left: 0; }
     .kanban.active {
@@ -369,6 +497,11 @@
     .card { padding: 14px; }
     .card-title { font-size: 15px; }
     .brain-grid { grid-template-columns: 1fr; }
+    .activity-hero { flex-direction: column; text-align: center; padding: 16px; }
+    .status-orb { width: 60px; height: 60px; font-size: 28px; }
+    .activity-body { flex-direction: column; }
+    .activity-sidebar { flex-direction: row; flex-wrap: wrap; }
+    .activity-stat-card { flex: 1; min-width: 140px; }
   }
 
   /* Touch devices */
@@ -394,6 +527,7 @@
     </div>
     <a href="http://127.0.0.1:18789/overview" target="_blank" rel="noopener" id="gatewayLink" onclick="event.preventDefault(); window.open(this.href, 'gateway', 'noopener,noreferrer');">⚙️ Gateway</a>
     <div class="tabs">
+      <button class="tab" onclick="switchView('activity', event)">⚡ Activity</button>
       <button class="tab active" onclick="switchView('kanban', event)">📋 Kanban</button>
       <button class="tab" onclick="switchView('brain', event)">🧠 Brain</button>
       <button class="tab" onclick="switchView('summary', event)">📊 Summary</button>
@@ -403,6 +537,7 @@
 
 <div class="stats-bar" id="statsBar"></div>
 
+<div class="activity" id="activityView"></div>
 <div class="kanban active" id="kanbanView"></div>
 <div class="brain" id="brainView"></div>
 <div class="summary" id="summaryView"></div>
@@ -428,9 +563,12 @@ async function loadData() {
 function switchView(view, e) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   e.target.classList.add('active');
+  document.getElementById('activityView').classList.toggle('active', view === 'activity');
   document.getElementById('kanbanView').classList.toggle('active', view === 'kanban');
   document.getElementById('brainView').classList.toggle('active', view === 'brain');
   document.getElementById('summaryView').classList.toggle('active', view === 'summary');
+  if (view === 'activity') startActivityPolling();
+  else stopActivityPolling();
 }
 
 function renderCard(task) {
@@ -571,6 +709,154 @@ async function checkStatus() {
 }
 checkStatus();
 setInterval(checkStatus, 30000);
+
+// === Activity Monitor ===
+let activityInterval = null;
+
+function startActivityPolling() {
+  fetchActivity();
+  if (!activityInterval) activityInterval = setInterval(fetchActivity, 3000);
+}
+
+function stopActivityPolling() {
+  if (activityInterval) { clearInterval(activityInterval); activityInterval = null; }
+}
+
+function formatTime(isoStr) {
+  if (!isoStr) return '';
+  try {
+    const d = new Date(isoStr);
+    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  } catch { return ''; }
+}
+
+function timeAgo(isoStr) {
+  if (!isoStr) return '';
+  try {
+    const now = Date.now();
+    const then = new Date(isoStr).getTime();
+    const diff = Math.floor((now - then) / 1000);
+    if (diff < 60) return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff/3600)}h ${Math.floor((diff%3600)/60)}m ago`;
+    return `${Math.floor(diff/86400)}d ago`;
+  } catch { return ''; }
+}
+
+function friendlyMessage(msg) {
+  if (!msg) return '';
+  // Clean up technical log messages for human readability
+  return msg
+    .replace(/runId=\S+/g, '')
+    .replace(/sessionId=\S+/g, '')
+    .replace(/toolCallId=\S+/g, '')
+    .replace(/conn=\S+/g, '')
+    .replace(/id=\S+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+async function fetchActivity() {
+  try {
+    const resp = await fetch('/api/activity?' + Date.now(), { signal: AbortSignal.timeout(5000) });
+    const act = await resp.json();
+    renderActivity(act);
+  } catch (e) {
+    renderActivityOffline();
+  }
+}
+
+function renderActivityOffline() {
+  document.getElementById('activityView').innerHTML = `
+    <div class="activity-hero">
+      <div class="status-orb idle">💤</div>
+      <div class="status-info">
+        <h2 style="color:var(--text-dim);">Activity Server Offline</h2>
+        <div class="task-label">Start the activity server to see live updates</div>
+        <div class="since" style="margin-top:8px;font-family:monospace;color:var(--accent);">python mission-control/activity-server.py</div>
+      </div>
+    </div>`;
+}
+
+function renderActivity(act) {
+  const statusIcons = { idle: '💤', working: '⚡', thinking: '🧠' };
+  const statusLabels = { idle: 'Idle', working: 'Working', thinking: 'Thinking' };
+  const statusColors = { idle: 'var(--text-dim)', working: 'var(--done)', thinking: 'var(--accent)' };
+
+  const icon = statusIcons[act.status] || '❓';
+  const label = statusLabels[act.status] || act.status;
+  const color = statusColors[act.status] || 'var(--text)';
+  const task = act.currentTask || 'Waiting for a task...';
+  const tool = act.currentTool ? `🔧 Tool: ${act.currentTool}` : '';
+
+  // Feed items
+  const feedItems = (act.recentEvents || []).slice(0, 30).map(ev => {
+    const isError = ev.type === 'error';
+    return `<div class="feed-item ${isError ? 'error-item' : ''}">
+      <span class="fi-icon">${esc(ev.icon || '•')}</span>
+      <span class="fi-time">${formatTime(ev.time)}</span>
+      <span class="fi-msg">${esc(friendlyMessage(ev.message))}</span>
+    </div>`;
+  }).join('');
+
+  const stats = act.stats || {};
+  const session = act.sessionInfo || {};
+
+  document.getElementById('activityView').innerHTML = `
+    <div class="activity-hero">
+      <div class="status-orb ${esc(act.status)}">
+        ${icon}
+      </div>
+      <div class="status-info">
+        <h2 style="color:${color};">${label}</h2>
+        <div class="task-label">${esc(task)}</div>
+        ${tool ? `<div class="task-label" style="margin-top:4px;font-size:13px;">${esc(tool)}</div>` : ''}
+        <div class="since">Since ${timeAgo(act.statusSince)}</div>
+      </div>
+    </div>
+
+    <div class="activity-body">
+      <div class="activity-feed">
+        <div class="feed-header">
+          <span class="live-dot"></span>
+          Live Activity Feed
+          <span style="margin-left:auto;font-size:11px;color:var(--text-dim);">Updated ${timeAgo(act.lastUpdate)}</span>
+        </div>
+        <div class="feed-body">
+          ${feedItems || '<div style="padding:20px;text-align:center;color:var(--text-dim);">No activity yet. Events will appear here as Clawdbot works.</div>'}
+        </div>
+      </div>
+
+      <div class="activity-sidebar">
+        <div class="activity-stat-card">
+          <h3>🔧 Tool Calls</h3>
+          <div class="big-num" style="color:var(--accent);">${stats.toolCalls || 0}</div>
+          <div class="sub-text">Since last restart</div>
+        </div>
+        <div class="activity-stat-card">
+          <h3>🏁 Runs Completed</h3>
+          <div class="big-num" style="color:var(--done);">${stats.runsCompleted || 0}</div>
+          <div class="sub-text">Requests processed</div>
+        </div>
+        <div class="activity-stat-card">
+          <h3>❌ Errors Today</h3>
+          <div class="big-num" style="color:${(stats.errorsToday || 0) > 0 ? 'var(--critical)' : 'var(--done)'};">${stats.errorsToday || 0}</div>
+          ${stats.lastError ? `<div class="sub-text" style="color:var(--critical);margin-top:4px;">${esc(stats.lastError)}</div>` : '<div class="sub-text">All clear ✅</div>'}
+        </div>
+        <div class="activity-stat-card">
+          <h3>🤖 Model</h3>
+          <div style="font-size:15px;font-weight:600;color:var(--text);margin-top:4px;">${esc(session.model || 'unknown')}</div>
+          <div class="sub-text">Provider: ${esc(session.provider || 'unknown')}</div>
+        </div>
+        <div class="activity-stat-card">
+          <h3>⏱️ Up Since</h3>
+          <div style="font-size:14px;font-weight:600;color:var(--text);margin-top:4px;">${formatTime(stats.upSince)}</div>
+          <div class="sub-text">${timeAgo(stats.upSince)}</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
 </script>
 </body>
 </html>
