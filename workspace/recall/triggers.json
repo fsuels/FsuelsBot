@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "description": "When patterns match user input, load additional knowledge files for richer context.",
+  "note": "Future enhancement — not yet auto-processed. For now, manually load relevant knowledge files when topics come up.",
+  "triggers": [
+    {
+      "patterns": ["shopify", "store", "products", "DLM", "dress like mommy", "dresslikemommy"],
+      "load": ["knowledge/entities/dress-like-mommy.md"],
+      "priority": "high"
+    },
+    {
+      "patterns": ["buckydrop", "supplier", "shipping", "orders", "fulfillment", "stuck orders"],
+      "load": ["knowledge/entities/buckydrop.md"],
+      "priority": "high"
+    },
+    {
+      "patterns": ["budget", "cost", "price", "spend", "pay", "subscription", "money"],
+      "load": ["knowledge/principles/budget-rules.md"],
+      "priority": "high"
+    },
+    {
+      "patterns": ["security", "private", "password", "token", "credential", "secret"],
+      "load": ["knowledge/principles/security-rules.md"],
+      "priority": "high"
+    },
+    {
+      "patterns": ["karina", "giselle", "amanda", "wife", "daughter", "family"],
+      "load": ["knowledge/entities/francisco.md"],
+      "priority": "medium"
+    },
+    {
+      "patterns": ["crash", "timeout", "disconnect", "stability", "restart"],
+      "load": ["knowledge/insights/system-stability.md"],
+      "priority": "medium"
+    },
+    {
+      "patterns": ["memory", "recall", "remember", "forget", "ledger", "knowledge base"],
+      "load": ["knowledge/procedures/memory-system.md"],
+      "priority": "medium"
+    },
+    {
+      "patterns": ["council", "debate", "grok", "chatgpt", "gemini", "multi-ai"],
+      "load": ["knowledge/entities/fsuels-bot.md"],
+      "priority": "low"
+    },
+    {
+      "patterns": ["tool", "open source", "free", "self-hosted"],
+      "load": ["knowledge/principles/tool-selection.md"],
+      "priority": "low"
+    }
+  ]
+}

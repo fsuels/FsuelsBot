@@ -11,16 +11,65 @@ If `BOOTSTRAP.md` exists, that's your birth certificate. Follow it, figure out w
 Before doing anything else:
 1. Read `SOUL.md` — this is who you are
 2. Read `USER.md` — this is who you're helping
-3. Read `memory/YYYY-MM-DD.md` (today + yesterday) for recent context
-4. **If in MAIN SESSION** (direct chat with your human): Also read `MEMORY.md`
+3. **Read `recall/pack.md`** — curated context for today (the key step!)
+4. Read `memory/YYYY-MM-DD.md` (today + yesterday) for recent raw context
+5. **If in MAIN SESSION** (direct chat with your human): Also read `MEMORY.md`
+
+The recall pack is your cheat sheet — it contains P0 constraints, open commitments, waiting-on items, and today's focus. It's regenerated nightly by the consolidation sub-agent.
 
 Don't ask permission. Just do it.
 
-## Memory
+## Memory System (4 Layers)
 
 You wake up fresh each session. These files are your continuity:
-- **Daily notes:** `memory/YYYY-MM-DD.md` (create `memory/` if needed) — raw logs of what happened
-- **Long-term:** `MEMORY.md` — your curated memories, like a human's long-term memory
+
+| Layer | Files | Purpose |
+|-------|-------|---------|
+| 1. Raw Capture | `memory/YYYY-MM-DD.md` | Daily session logs (append-only per day) |
+| 2. Event Ledger | `memory/ledger.jsonl` | Structured events (**append-only, NEVER edit**) |
+| 3. Knowledge Base | `knowledge/` | Curated wiki (entities, procedures, principles, insights) |
+| 4. Recall Pack | `recall/pack.md` | Session context injection (regenerated nightly) |
+
+**Info flows DOWN:** Raw logs → ledger events → knowledge files → recall pack.
+**The ledger is the source of truth.** If knowledge files contradict the ledger, the ledger wins.
+
+For full details: `knowledge/procedures/memory-system.md`
+
+### Layer 1: Daily Notes (`memory/YYYY-MM-DD.md`)
+- Raw logs of what happened each day. Create `memory/` if needed.
+- At end of each session, add `## Priority Extracts` with tagged items:
+  ```
+  - [P0] Critical constraint discovered
+  - [P1] Important business decision made
+  - [P2] New preference noted
+  ```
+
+### Layer 2: Event Ledger (`memory/ledger.jsonl`)
+- **APPEND-ONLY. NEVER EDIT OR DELETE LINES.**
+- One JSON object per line. Schema: `{ts, id, type, priority, content, entity, tags, source, session}`
+- Types: fact, decision, preference, commitment, constraint, procedure, relationship, insight, milestone, conflict
+- Priority: P0 (permanent), P1 (indefinite), P2 (90-day), P3 (30-day)
+- IDs: `EVT-YYYYMMDD-NNN` (sequential per day)
+- To correct info: append a NEW event that supersedes the old one
+
+### Layer 3: Knowledge Base (`knowledge/`)
+- `entities/` — People, companies, projects, accounts
+- `procedures/` — How-to guides for the AI
+- `principles/` — Standing rules, preferences, constraints
+- `insights/` — Learned patterns, wisdom, technical lessons
+- Updated by nightly consolidation + manually during sessions
+
+### Layer 4: Recall Pack (`recall/pack.md`)
+- **The most important file for session startup.** Contains exactly what you need to know.
+- Sections: P0 constraints, open commitments, waiting-on, today's focus, active context
+- Regenerated at 3 AM by consolidation sub-agent
+- Must stay under 3,000 words
+
+### 🧠 MEMORY.md - Long-Term Memory (Legacy)
+- Still maintained as a human-readable summary
+- **ONLY load in main session** (direct chats with your human)
+- **DO NOT load in shared contexts** (Discord, group chats, sessions with other people)
+- Over time, recall pack + knowledge base will be the primary memory source
 
 Capture what matters. Decisions, context, things to remember. Skip the secrets unless asked to keep them.
 

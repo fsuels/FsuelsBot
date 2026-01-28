@@ -1,0 +1,31 @@
+Two other AI experts proposed architectures for the same problem (personal AI assistant with perfect memory, guaranteed task completion, and continuous self-improvement). Here are their key proposals:
+
+EXPERT A (Grok) proposed:
+- Simple markdown/JSON file-based approach, no databases
+- Priority system P0-P3 on all memory entries
+- MEMORY.md as master + per-topic .md files in TOPICS/ directory
+- Simple regex/grep text search for recall at session startup
+- Single tasks.json file as source of truth
+- 5-state task machine: NEW, IN_PROGRESS, BLOCKED, DONE, ARCHIVED
+- 3-level escalation: reminder -> spawn sub-agent -> dead-man Telegram alert
+- Simple performance.json with daily metrics
+- A/B testing via even/odd day system prompt alternation
+- Overnight reflection agent proposes exactly 3 improvements
+- 4 simple Python scripts under 100 lines each
+- Focus on simplicity and building TODAY
+
+EXPERT B (ChatGPT) proposed:
+- Event-sourced architecture with append-only JSONL ledgers as single source of truth
+- SQLite FTS5 for indexing + materialized views rebuilt from ledgers
+- Structured memory types: fact, decision, preference, commitment, relationship, asset, procedure
+- "Recall Pack" concept injected into every planning step with trigger words
+- 10-state task machine: CAPTURED, TRIAGED, PLANNED, READY, EXECUTING, WAITING_EXTERNAL, BLOCKED_INTERNAL, VERIFYING, DONE, CANCELLED
+- Required "Definition of Done" with completion proofs for every task
+- 5-level escalation (L0 silent to L4 dead-man switch blocking ALL new work)
+- Experiments registry with A/B testing, guardrails, and automatic rollback
+- Incident logging: MISSED_DEADLINE, WRONG_RECALL, BAD_EXTRACTION, EXECUTION_FAILURE
+- Nightly offline eval replaying yesterday's transcripts
+- Cron every 1-5 minutes for task reconciliation
+- The most complex and thorough proposal
+
+Don't just critique - BUILD A BETTER SOLUTION. What did they miss? What's wrong with their approaches? And most importantly: what's a SUPERIOR architecture that combines the best of everything and beats all proposals? Be specific with file structures, state machines, and cron schedules.

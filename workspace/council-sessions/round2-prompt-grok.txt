@@ -1,0 +1,26 @@
+Two other AI experts proposed architectures for the same problem (personal AI assistant with perfect memory, guaranteed task completion, and continuous self-improvement). Here are their key proposals:
+
+EXPERT A (ChatGPT) proposed:
+- Event-sourced architecture with append-only JSONL ledgers as single source of truth for memory AND tasks
+- SQLite FTS5 for indexing, materialized views rebuilt from ledgers
+- Structured memory types: fact, decision, preference, commitment, relationship, asset, procedure, context, reflection
+- "Recall Pack" injected into every planning step, with specific trigger words (decide, send, pay, publish)
+- 10-state task machine: CAPTURED, TRIAGED, PLANNED, READY, EXECUTING, WAITING_EXTERNAL, BLOCKED_INTERNAL, VERIFYING, DONE, CANCELLED
+- Required "Definition of Done" with completion proofs for every task
+- 5-level escalation (L0 silent dashboard to L4 dead-man switch that blocks ALL new work)
+- Experiments registry with A/B testing, guardrails, and automatic rollback
+- Incident logging with typed failures (MISSED_DEADLINE, WRONG_RECALL, BAD_EXTRACTION, etc.)
+- Nightly offline eval that replays yesterday's transcripts to test improvements
+- Cron every 1-5 minutes for reconciliation
+
+EXPERT B (Gemini) proposed:
+- "Cortex" orchestrator: a lightweight Python script that runs every minute, checks file state, and only wakes Claude when needed
+- "Second Brain" knowledge base with categorized directories: entities/, procedures/, principles/, insights/
+- Dual logging: raw markdown + structured JSONL simultaneously
+- Individual task files (one JSON per task, not one big file)
+- "Patch" system for improvements: proposed patches -> council critique -> validated -> applied
+- Council of Critics: other AIs review proposed improvements before applying
+- Virtuous cycle: Task failures -> patches -> updated procedures -> better recall next time
+- Memory consolidation produces typed outputs: new_entities, updated_entities, new_procedures, new_principles, new_insights
+
+Don't just critique - BUILD A BETTER SOLUTION. What did they miss? What's wrong with their approaches? And most importantly: what's a SUPERIOR architecture that combines the best of everything and beats all proposals? Be specific with file structures, state machines, and cron schedules.
