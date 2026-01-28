@@ -417,7 +417,7 @@ def main():
     print(f"Activity API: http://localhost:{PORT}/api/activity")
     print(f"LAN: http://192.168.4.25:{PORT}")
     
-    server = http.server.HTTPServer(('0.0.0.0', PORT), ActivityHandler)
+    server = http.server.HTTPServer(('127.0.0.1', PORT), ActivityHandler)
     server.allow_reuse_address = True
     print("Server bound and listening...")
     try:
