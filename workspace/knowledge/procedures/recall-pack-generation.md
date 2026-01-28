@@ -1,65 +1,48 @@
-# Procedure: Recall Pack Generation (Delta Architecture)
+# Procedure: Recall Pack Generation
 *Last updated: 2026-01-28*
-*Source: Council Round 1 — Delta Recall Pack innovation*
+*Source: Council Round 1 + Round 2 (merged single-file approach)*
 
 ## When to Use
-- Automatically at 3 AM during consolidation (delta only)
-- On-demand when major context changes (new P0 → update core too)
+- Automatically at 3 AM during consolidation
+- On-demand when major context changes
 
-## Delta Architecture
+## Architecture
+**One file: `recall/pack.md`**. No splits. "More with less."
 
-The pack is split into two files for efficiency:
-- **`recall/core.md`** — Stable context (P0 constraints, mantra, procedures, account IDs). Rarely changes.
-- **`recall/delta.md`** — Rolling context (commitments, waiting-on, focus, context). Rebuilt nightly.
-- **`recall/pack.md`** — Combined view (core + delta). What sessions actually load.
+## Steps
 
-Consolidation only rebuilds `delta.md` and `pack.md`. Core stays stable.
+### 1. P0 Constraints
+- Scan ledger for P0-priority constraint events
+- Include ALL — P0 is always loaded, no exceptions
 
-## Steps: Rebuild Delta
+### 2. Open Commitments (oldest first)
+- Read `memory/index/open-loops.json` for open commitment IDs
+- Sort by age (oldest first), list all with status and age
+- Top 3 oldest get special prominence
 
-### 1. Gather Open Commitments
-- Scan `memory/ledger.jsonl` for `"type":"commitment"` with `"status":"open"` (or no status)
-- Exclude any with a corresponding closing event (`"status":"closed"`)
-- Sort by age (oldest first)
-- Surface the **top 3 oldest** prominently
-- List all others below
+### 3. Waiting-On
+- From open commitments, identify external dependencies
+- Include: who, what, age
 
-### 2. Identify Waiting-On Items
-- From open commitments, find external dependencies
-- Include: who, what, when last followed up, age in days
+### 4. Today's Focus
+- Active tasks, deadlines within 48h, scheduled events
 
-### 3. Check Stale Facts (Confidence Decay)
-- If any knowledge file facts are >30 days since `[verified: date]`, note in delta
-- If any are >60 days, flag for re-verification
+### 5. Context
+- Current project status, recent decisions (72h), Francisco's state
+- Flag any stale facts or integrity issues
 
-### 4. Determine Today's Focus
-- Active tasks and deadlines within 48 hours
-- Scheduled events or cron jobs
-- Ongoing projects needing attention
+### 6. 7-Day Forecast
+- 3-5 predictions based on open loops, patterns, deadlines
+- Tag: HIGH / MEDIUM / LOW confidence
 
-### 5. Build Active Context
-- Current project status (DLM, other active)
-- Recent decisions (last 72 hours)
-- Francisco's last known state/directives
-
-### 6. Write Delta
-- Write `recall/delta.md`
-- Keep delta section under ~2,000 words
-
-### 7. Combine into Pack
-- Write `recall/pack.md` = contents of `core.md` + `---` separator + contents of `delta.md`
-- Keep combined under 3,000 words total
-
-## Steps: Update Core (rare)
-
-Only when a new P0 constraint is established:
-1. Add the constraint to `recall/core.md`
-2. Rebuild `recall/pack.md`
-3. Log the core change in the consolidation report
+### 7. Procedures + Accounts
+- Key operational procedures (compact)
+- Account IDs (single line, quick reference)
 
 ## Quality Checks
-- Every P0 constraint in core? ✅
-- Top 3 oldest open commitments in delta? ✅
-- Stale facts flagged? ✅
-- Combined pack under 3,000 words? ✅
+- Every P0 constraint included? ✅
+- Top 3 oldest open commitments surfaced? ✅
 - Superseded events excluded? ✅
+- Stale facts flagged? ✅
+- Forecast present? ✅
+- Under 3,000 words? ✅

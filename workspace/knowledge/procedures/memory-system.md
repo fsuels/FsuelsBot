@@ -79,7 +79,7 @@ The memory system has 4 layers, each serving a different purpose:
 | `supersedes` | No | String | ID of event this corrects/replaces (Supersession Protocol) |
 | `status` | No | String | For commitments: `"open"` or `"closed"` (Open Loops) |
 
-### Event Types
+### Event Types (7 canonical types)
 
 | Type | Description | Example |
 |------|-------------|---------|
@@ -90,9 +90,8 @@ The memory system has 4 layers, each serving a different purpose:
 | `constraint` | A limitation or rule | "$0 extra budget for any new tools" |
 | `procedure` | How something should be done | "WhatsApp: draft in Telegram, Francisco copies" |
 | `relationship` | Connection between entities | "Scott is BuckyDrop support contact" |
-| `insight` | Learned pattern or wisdom | "Large sessions >118K tokens cause crashes" |
-| `milestone` | Something achieved | "Published 10 blog posts on DLM" |
-| `conflict` | Contradiction needing resolution | "GMC says logos rejected, but we uploaded new ones" |
+
+**Use tags instead of types for:** `insight` (tag on a fact), `milestone` (tag on any event), `conflict` (auto-detected by integrity checks). This keeps the type system lean while preserving all information.
 
 ### Priority Levels
 
@@ -245,33 +244,36 @@ Facts age. Old facts become unreliable. The system tracks freshness automaticall
 
 ---
 
-## Layer 4: Recall Pack (Delta Architecture)
+## Layer 4: Recall Pack (`recall/pack.md`)
 
-**What:** A curated, compact document loaded at session start. Contains EXACTLY what the AI needs to know.
+**What:** A single curated document loaded at session start. Contains EXACTLY what the AI needs to know.
 
 **This is the most important innovation.** Instead of loading all files (too much) or nothing (too little), we load a carefully curated summary of what matters RIGHT NOW.
 
-### Delta Architecture (Split Design)
+**One file. One read.** No splits, no indirection. "More with less."
 
-The recall pack uses a **core + delta** split for efficiency:
-
-| File | Content | Changes |
-|------|---------|---------|
-| `recall/core.md` | Identity, P0 constraints, mantra, procedures, account IDs | Rarely (only on new P0 constraints) |
-| `recall/delta.md` | Open commitments, waiting-on, today's focus, active context | Nightly (by consolidation) |
-| `recall/pack.md` | Combined view (core + delta) | Nightly (auto-generated) |
-
-**Why split?** Consolidation only rebuilds the delta. The core is stable — rewriting it every night wastes work. This is "more with less."
-
-**Session startup reads `recall/pack.md`** (the combined view). One file, all context.
-
-### Pack Format
+### Pack Sections
 
 ```markdown
 # Recall Pack — YYYY-MM-DD
-<!-- CORE section: P0 constraints, mantra, procedures, account IDs -->
-<!-- DELTA section: open commitments, waiting-on, focus, context -->
+## 🔴 P0 CONSTRAINTS — Rules that must never be violated
+## 🎯 THE MANTRA — Core mission
+## 📋 OPEN COMMITMENTS — Oldest first, with status and age
+## ⏳ WAITING ON — External dependencies
+## 🎯 TODAY'S FOCUS — Priority work for the day
+## 🧠 CONTEXT — Current projects, recent decisions, Francisco's state
+## 📡 7-DAY FORECAST — Predicted upcoming events and deadlines
+## 📚 PROCEDURES — Key operational procedures
+## 🔑 ACCOUNTS — Quick reference account IDs
 ```
+
+### 7-Day Forecast (Novel Feature)
+
+During nightly consolidation, the sub-agent generates a forecast section:
+- Based on: open loops, patterns, commitments, deadlines
+- Format: 3-5 predictions with HIGH/MEDIUM/LOW confidence
+- Gives the AI genuine "foresight" — knowing what's coming before being asked
+- Zero infrastructure — just another section in the pack
 
 ### Open Loops (Commitment Tracking)
 
@@ -346,6 +348,42 @@ When certain words appear in user input, load additional knowledge files:
 - Minor updates that don't need immediate recall
 
 Live extraction means the ledger stays current. The 3 AM consolidation catches anything missed and rebuilds the recall pack.
+
+---
+
+## Index Files (`memory/index/`)
+
+**What:** Simple JSON files that act as a "poor man's database" — preventing expensive full-ledger scans.
+
+| File | Content | Purpose |
+|------|---------|---------|
+| `memory/index/entities.json` | Entity name → event ID array | Find all events about an entity |
+| `memory/index/open-loops.json` | Array of open commitment event IDs | Surface open commitments in pack |
+| `memory/index/tags.json` | Tag → event ID array | Find events by topic |
+
+**Rebuilt incrementally** during nightly consolidation. Only new events are indexed.
+
+## Checkpoint (`memory/checkpoint.json`)
+
+**What:** Tracks the last event processed by consolidation.
+
+```json
+{
+  "last_processed_event_id": "EVT-20260128-018",
+  "last_run_ts": "2026-01-28T04:00:00-05:00",
+  "events_processed": 67
+}
+```
+
+**Why:** Without this, consolidation must read the ENTIRE ledger every night. At 500+ events, that exceeds the context window and fails. With checkpoints, consolidation only processes NEW events since the last run.
+
+## Memory Integrity (`memory/integrity.json`)
+
+**What:** Validation checks run during nightly consolidation.
+
+Checks: no duplicate IDs, valid JSON, sequential IDs, valid supersession references, valid related references, consistent indexes, valid checkpoint.
+
+Results logged to `memory/integrity-log.md`. If any check fails, flag in the recall pack's context section.
 
 ---
 

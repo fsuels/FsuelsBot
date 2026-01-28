@@ -1,64 +1,84 @@
-# Procedure: Memory Consolidation (Nightly)
+# Procedure: Memory Consolidation (Nightly — Incremental)
 *Last updated: 2026-01-28*
-*Source: Council architecture*
+*Source: Council architecture (Round 1 + Round 2 improvements)*
 
 ## When to Use
 Runs automatically via cron at 3 AM EST daily. Can also be triggered manually.
 
+## Key Principle: Incremental Processing
+**Never process the entire ledger.** Read `memory/checkpoint.json` to find the last processed event, then only process new events. This prevents context window overflow as the ledger grows.
+
 ## Steps
+
+### 0. Read Checkpoint + Indexes
+- Read `memory/checkpoint.json` → `last_processed_event_id`, `events_processed`
+- Read `memory/index/entities.json`, `open-loops.json`, `tags.json`
+- These are your working state — no full ledger scan needed
 
 ### 1. Read Today's Raw Memory
 - Open `memory/YYYY-MM-DD.md` for today's date
 - If file doesn't exist or is empty, skip to step 5
 
-### 2. Extract Structured Events
+### 2. Extract Structured Events (incremental)
 For each noteworthy item in the daily log:
-- Create a JSONL event object with: ts, id, type, priority, content, entity, tags, source, session
-- Determine the correct type (fact, decision, preference, commitment, constraint, procedure, relationship, insight, milestone, conflict)
-- Assign priority P0-P3 based on importance
-- Append each event to `memory/ledger.jsonl` (NEVER edit existing lines)
-- Use sequential IDs: EVT-YYYYMMDD-NNN (continue from last ID used for that date)
+- **Skip items already live-extracted** (source: "live" events after checkpoint)
+- Create JSONL event: ts, id, type, priority, content, entity, tags, source, session
+- Valid types (7): `fact, decision, preference, commitment, constraint, procedure, relationship`
+  - Use tags for: insight, milestone, conflict (not standalone types)
+- For commitments: include `"status": "open"`
+- For corrections: include `"supersedes": "EVT-XXX"`
+- For related events: include `"related": ["EVT-XXX"]`
+- Append to `memory/ledger.jsonl` (NEVER edit existing lines)
+- Update index files as you go
 
 ### 3. Update Knowledge Base
-For each extracted event:
-- **New entity mentioned?** → Create `knowledge/entities/<name>.md` from template
-- **New info about existing entity?** → Update the entity file, add [verified: date]
-- **New procedure discovered?** → Create `knowledge/procedures/<name>.md`
-- **New rule or constraint?** → Create `knowledge/principles/<name>.md`
-- **New insight or lesson?** → Create or update `knowledge/insights/<name>.md`
-- Always note what changed at the bottom of updated files
+- **New entity?** → Create `knowledge/entities/<name>.md`
+- **Updated info?** → Update entity file, add `[verified: YYYY-MM-DD]`
+- **New procedure?** → Create `knowledge/procedures/<name>.md`
+- **New rule?** → Create `knowledge/principles/<name>.md`
+- **New insight?** → Update `knowledge/insights/<relevant>.md`
 
-### 4. Check for Conflicts
-- Compare new events against existing knowledge
-- If a new fact contradicts an existing one, log a `conflict` type event
-- Update the knowledge file to reflect the latest information, noting the change
+### 4. Auto-Detect Conflicts
+- For new fact events: check same-entity events in index for contradictions
+- If contradiction found: add ⚠️ Conflicts note to pack context section
+- Human resolves by telling AI → creates superseding event
 
-### 5. Check Confidence Decay
-- Scan knowledge files for `[verified: YYYY-MM-DD]` dates
-- Facts verified >30 days ago: flag as `[⚠️ STALE]` in delta pack
-- Facts verified >60 days ago: exclude from delta pack unless explicitly relevant
-- Preferences, principles, and identities do NOT decay
+### 5. Confidence Decay (type-aware)
+- Commitments: valid until status=closed (no time decay)
+- Constraints: permanent unless superseded
+- Preferences: stale if not referenced in 60 days
+- Facts: warning at 30 days, drop from pack at 90 days
+- Flag stale items in pack context section
 
 ### 6. Check Open Loops
-- Scan ledger for commitment events with `"status": "open"`
-- Identify top 3 oldest open commitments
-- Check if any have corresponding milestone/closing events → mark as closed
-- Surface open commitments in delta pack
+- Read `memory/index/open-loops.json` (don't scan full ledger)
+- Check for corresponding closing events → update index
+- Surface all open commitments in pack, top 3 oldest first
 
-### 7. Regenerate Delta Pack (NOT core)
-- Rewrite `recall/delta.md` — open commitments, waiting-on, today's focus, active context
-- Rewrite `recall/pack.md` — combine `recall/core.md` + `recall/delta.md`
-- Do NOT modify `recall/core.md` unless a new P0 constraint was discovered
-- Keep combined pack under 3,000 words
-- See procedure: recall-pack-generation.md for details
+### 7. Run Integrity Checks
+- Validate: no duplicate IDs, valid JSON, valid supersession refs, valid related refs
+- Log results to `memory/integrity-log.md`
+- If any check fails: flag in pack context
 
-### 8. Write Consolidation Report
+### 8. Generate 7-Day Forecast
+- Based on: open loops, patterns, commitments, deadlines
+- Generate 3-5 predictions with HIGH/MEDIUM/LOW confidence
+- Add as 📡 7-Day Forecast section in pack
+
+### 9. Regenerate Recall Pack
+- Rewrite `recall/pack.md` — single unified file
+- Sections: P0 constraints, mantra, open commitments, waiting-on, focus, context, forecast, procedures, accounts
+- Keep under 3,000 words
+
+### 10. Update Checkpoint
+- Write `memory/checkpoint.json` with last processed event ID and timestamp
+
+### 11. Write Consolidation Report
 - Create `knowledge/consolidation-reports/YYYY-MM-DD.md`
-- Include: events extracted, knowledge files updated, stale facts flagged, open loops status, conflicts found
+- Include: events extracted, knowledge updated, stale facts, open loops, conflicts, integrity, forecast
 
 ## Notes
-- The consolidation sub-agent runs with full access to the workspace
-- It should NOT send messages to Francisco (it's 3 AM)
-- If something critical is found (P0 conflict, data loss risk), log it for the 8 AM daily report
-- Consolidation should take < 5 minutes
-- Live-extracted events (source: "live") don't need re-extraction — skip them during step 2
+- Should NOT message Francisco (3 AM)
+- Critical findings → log for 8 AM daily report
+- Should take < 5 minutes
+- ALWAYS read checkpoint first → never process full ledger

@@ -1,0 +1,39 @@
+{
+  "description": "Memory integrity checks — run during nightly consolidation",
+  "checks": [
+    {
+      "name": "no_duplicate_ids",
+      "description": "Every event ID in ledger.jsonl is unique"
+    },
+    {
+      "name": "valid_json",
+      "description": "Every line in ledger.jsonl is valid JSON"
+    },
+    {
+      "name": "sequential_ids",
+      "description": "IDs follow EVT-YYYYMMDD-NNN pattern and are sequential per day"
+    },
+    {
+      "name": "supersession_valid",
+      "description": "Every 'supersedes' reference points to an existing event ID"
+    },
+    {
+      "name": "related_valid",
+      "description": "Every ID in 'related' arrays exists in the ledger"
+    },
+    {
+      "name": "open_loops_consistent",
+      "description": "Open loop index matches actual open commitments in ledger"
+    },
+    {
+      "name": "entity_index_consistent",
+      "description": "Entity index matches actual entity references in ledger"
+    },
+    {
+      "name": "checkpoint_valid",
+      "description": "Checkpoint event ID exists and is the last event processed"
+    }
+  ],
+  "last_run": null,
+  "last_result": null
+}
