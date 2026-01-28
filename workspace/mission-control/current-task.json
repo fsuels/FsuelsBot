@@ -1,13 +1,8 @@
 {
-  "taskId": "MC-029",
-  "taskTitle": "Finishing remaining locale redirects",
-  "project": "Dress Like Mommy",
+  "taskId": "PROACTIVE",
+  "taskTitle": "Mission Control multi-project support + Activity Monitor improvements",
+  "project": "Agent System",
   "startedAt": "2026-01-28T02:05:00-05:00",
   "status": "working",
-  "progress": "Starting redirect batch process",
-  "subtasks": [
-    "Generate redirect URLs for remaining 3,179 locales",
-    "Upload via Shopify Admin API",
-    "Verify redirects are working"
-  ]
+  "progress": "Built project filter, task-level display, and status proxy. Committing and moving to next task."
 }
