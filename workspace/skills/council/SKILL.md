@@ -1,7 +1,11 @@
 # 🧠 The Council — Multi-AI Debate & Synthesis
 
 ## Philosophy
-A single LLM is a writer who publishes their first draft — no editor, no critics, no revision. The Council is the editorial board. It externalizes the "inner critic" that LLMs lack. When multiple AIs examine the same problem, their disagreements expose blind spots, their agreements build confidence, and their unique insights spark ideas no single brain would find. Like a writer sending their book to expert critics — the goal isn't to collect praise, it's to find the flaws and make it stronger.
+The Council is a **congress of experts** — not a survey, not a panel, not a vote. It's a room full of the brightest minds in AI, brought together to seek **genuine understanding**. They don't just answer questions — they debate, challenge, build on each other's ideas, and push each other beyond what any one of them would reach alone.
+
+A single LLM is a writer who publishes their first draft — no editor, no critics, no revision. The Council externalizes the "inner critic" that LLMs lack. When multiple AIs examine the same problem through real debate, their disagreements expose blind spots, their agreements (tested under fire) build real confidence, and the cross-pollination of ideas sparks breakthroughs no single mind would find.
+
+The goal is never just "get an answer." It's **better understanding** — of the problem, the constraints, the possibilities, and the path forward. Every session should leave us knowing more than when we started.
 
 ## The Bigger Vision
 The Council is not a tool you use sometimes. It's a **permanent improvement engine**. The best and brightest AI minds — debating, challenging, refining — to always find better solutions. Not just for answering questions, but for continuously evolving every aspect of Francisco's business and workflow. The debates never stop. The ideas compound. What's best today gets beaten tomorrow.
