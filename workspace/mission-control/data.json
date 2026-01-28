@@ -1,57 +1,21 @@
 {
-  "lastUpdated": "2026-01-27T12:55:00-05:00",
+  "lastUpdated": "2026-01-28T00:06:00-05:00",
   "columns": {
     "blocked": {
       "label": "🚫 Blocked",
       "color": "#e74c3c",
       "tasks": [
         {
-          "id": "MC-001",
-          "title": "Upload logos to Google Merchant Center",
-          "description": "Rectangular (1200x600) and Square (1000x1000) logos ready but were previously uploaded and REJECTED.",
-          "details": "WHAT HAPPENED: Logos were already uploaded to Google Merchant Center at some point, but Google rejected them. Rejection reason: 'The text in your logo must be readable on small screens. Try uploading a more simple logo, like your favicon.'\n\nWHAT WE HAVE: Two logo files ready — dlm-logo-rectangular.png (1200x600, 2:1 ratio) and dlm-logo-square.png (1000x1000, 1:1 ratio). Both meet size requirements.\n\nWHAT'S NEEDED: Redesign both logos to be simpler — just the dress icon or bold 'DLM' text, similar to a favicon. Current logos have too much small text detail.\n\nWHERE TO UPLOAD: Settings → Business Info → 'Business logos and colors for ads' section (this section wasn't visible in the new MC UI during our attempt — may need Francisco to log in directly).\n\nFILES: C:\\dev\\FsuelsBot\\workspace\\dlm-logo-rectangular.png, C:\\dev\\FsuelsBot\\workspace\\dlm-logo-square.png",
-          "priority": "high",
-          "assignee": "both",
-          "created": "2026-01-27",
-          "tags": [
-            "google",
-            "merchant-center",
-            "logos"
-          ],
-          "blockedReason": "Logos rejected — text not readable at small sizes. Need simpler design.",
-          "benefit": "💰 WHAT YOU GAIN: Without approved logos, your products cant appear in Google Shopping free listings or ads. Thats 7,800 products invisible to shoppers. Fix this = free traffic from Google."
-        },
-        {
-          "id": "MC-002",
-          "title": "Fix Google Merchant Center Misrepresentation",
-          "description": "All 7,800 products blocked from Free Listings in US & UK.",
-          "details": "THE PROBLEM: Google flagged the store for 'Misrepresentation' — all 7,800 products are blocked from appearing in Free Listings in both US and UK markets. This is the #1 revenue blocker.\n\nREVIEW STATUS: Review was requested on Jan 26, 2026. Google says it takes a few days to complete.\n\nWHAT GOOGLE WANTS:\n1. Transparency about business identity, model, policies, and customer interaction\n2. Online reputation — reviews, badges, seals of approval\n3. Professional design with SSL certificate (SSL is already active ✅)\n4. Business information in Merchant Center settings (already filled ✅)\n5. SEO guidelines, seller ratings, product data matching\n\nWHAT WE'VE DONE SO FAR:\n- Updated Shopify store name to 'Dress Like Mommy' ✅\n- Added business info to MC (address, phone, email) ✅\n- Updated Facebook page with phone, address, hours ✅\n- Logo variants created (but rejected — see MC-001) ⚠️\n\nWHAT STILL NEEDS DOING:\n- Get logos approved (MC-001)\n- Add trust signals to website (Judge.me reviews widget, trust badges)\n- Ensure all policy pages are visible and professional\n- Wait for Google's review response",
-          "priority": "critical",
-          "assignee": "both",
-          "created": "2026-01-26",
-          "tags": [
-            "google",
-            "merchant-center",
-            "critical"
-          ],
-          "blockedReason": "Review in progress (requested Jan 26). Need logos approved + trust signals.",
-          "benefit": "💰 WHAT YOU GAIN: This is your #1 revenue blocker. ALL 7,800 products are blocked from Google Free Listings in US and UK. Fixing this alone could bring back hundreds of organic clicks per month — for FREE. During peak, DLM got 2,420 clicks/year from Google. Unblocking = immediate traffic."
-        },
-        {
           "id": "MC-003",
           "title": "Fix Google Ads conversion tracking",
-          "description": "All 16 conversion actions dead — zero ROI tracking.",
-          "details": "THE PROBLEM: All 16 Google Ads conversion actions show no recent conversions. The store has NO way to track return on ad spend.\n\nROOT CAUSE: Dual-system conflict. There are 6 legacy conversion actions (created manually, old tracking snippets removed during Shopify migration) and 7 Shopify Google app actions (set to Secondary instead of Primary). Plus 3 duplicate/test actions.\n\nTHE FIX:\n1. Retire all 6 legacy conversion actions (they have no tracking code anymore)\n2. Promote Shopify-managed actions to Primary\n3. Remove duplicate/test actions\n4. Verify conversion tracking fires on test purchase\n\nBLOCKER: Google Ads campaigns are pointless while Merchant Center is suspended — products can't show in Shopping ads anyway. Fix MC suspension first.\n\nACCOUNT: Google Ads AW-853411529, Account 399-097-6848, logged in as testhqfinds@gmail.com\n\nREPORT: See memory/dlm-gads-report.md for full analysis",
+          "description": "Shopify conversion measurement not added to Google Ads. Need to click 'Add' in Shopify Google & YouTube settings.",
+          "details": "ROOT CAUSE: Google & YouTube Shopify app IS connected to Google Ads (399-097-6848) but Shopify conversion measurement was NEVER added. The app detected existing old conversion tracking and didn't auto-add.\n\nWHAT WE FIXED: All 6 legacy 'from adwords' conversion actions demoted from Primary to Secondary. Google Shopping App Purchase is now Primary.\n\nSTILL NEEDED: Francisco must click 'Add' button in Shopify → Google & YouTube → Settings → Google Ads section (yellow box) to enable Shopify conversion measurement.\n\nAlso need: Promote GA4 purchase to Primary, promote Google Shopping App Begin Checkout to Primary.",
           "priority": "high",
-          "assignee": "clawd",
+          "assignee": "francisco",
           "created": "2026-01-26",
-          "tags": [
-            "google",
-            "ads",
-            "conversion-tracking"
-          ],
-          "blockedReason": "Merchant Center suspension must be resolved first",
-          "benefit": "💰 WHAT YOU GAIN: Without conversion tracking, you are flying blind on ad spend. You cant know which ads make money and which waste it. Fix this before spending any money on Google Ads."
+          "tags": ["google", "ads", "conversion-tracking"],
+          "blockedReason": "Francisco needs to click 'Add' in Shopify Google & YouTube settings",
+          "benefit": "💰 WHAT YOU GAIN: Without this, Google Ads has zero conversion data. You cant optimize ads if you dont know which ones make money."
         }
       ]
     },
@@ -60,185 +24,155 @@
       "color": "#3498db",
       "tasks": [
         {
-          "id": "MC-004",
-          "title": "Bulk import ~500 redirect URLs",
-          "description": "21% of page views hitting 404s — 591 broken URLs in Google Search Console.",
-          "details": "THE PROBLEM: 562 page views (21% of ALL views) and 565 users (27%) are hitting 404 pages. '404 Not Found' is literally the #1 most viewed 'page' on the site.\n\nSCALE: 591 unique broken URLs identified in Google Search Console.\n\nPATTERNS:\n1. Nested /collections/*/products/* paths — Shopify serves products at /products/*, not nested. ~60% of 404s.\n2. Locale-prefixed URLs (/en-ae/, /en-be/, /en-hk/, /en-se/, /en-ie/, /en-au/, /en-at/) — old international market URLs. ~30% of 404s.\n3. Discontinued products — old products still indexed. ~10% of 404s.\n\nWHAT'S ALREADY DONE: 50+ redirects already configured in Shopify covering the top priority URLs.\n\nWHAT'S NEEDED:\n1. Export full 591 URL list from GSC (started — was mid-export when disconnected)\n2. Run Python script to auto-generate redirect mappings\n3. Generate Shopify-format CSV (columns: 'Redirect from', 'Redirect to')\n4. Upload via Shopify Admin → Online Store → Navigation → URL Redirects → Import\n\nSHOPIFY LIMIT: 200,000 redirects allowed. We're well within.\n\nREPORT: See memory/dlm-redirects-report.md",
-          "priority": "high",
-          "assignee": "clawd",
-          "created": "2026-01-26",
-          "tags": [
-            "shopify",
-            "seo",
-            "404s"
-          ],
-          "benefit": "💰 WHAT YOU GAIN: 21% of everyone visiting your site hits a dead page and LEAVES. Thats ~1 in 5 potential customers lost. Fixing 404s = more visitors stay on site = more sales. Also improves Google SEO ranking (Google penalizes sites with lots of 404s)."
-        },
-        {
-          "id": "MC-005",
-          "title": "Fix Microsoft UET double-firing",
-          "description": "Microsoft Ads tracking tag firing 2x — all data inflated by 2x.",
-          "details": "THE PROBLEM: Microsoft UET tag (ID: 36005151) is loading twice on every page — 2x bat.bing.com/bat.js loads + 2x bingshoppingtool proxy loads. All Microsoft Ads data is inflated by 2x.\n\nIMPACT: The 224% ROAS we measured may actually be ~112% (still profitable). Conversion data, audience data, everything is doubled.\n\nROOT CAUSE: Likely a duplicate tag installation — one from Shopify's Microsoft channel app, one from a manual install or another app.\n\nTHE FIX:\n1. Identify both tag sources in the Shopify theme code\n2. Remove the duplicate\n3. Verify single-fire with browser DevTools\n\nWHY IT MATTERS: Microsoft Ads was the BEST performing channel — $5,118 spent → $11,489 revenue. Australia = 897% ROAS, Canada = 464%. Once fixed and unpaused, this is the fastest path to revenue.\n\nACCOUNT: Microsoft Ads Account 477439, Customer 770182, UET Tag 36005151",
-          "priority": "medium",
-          "assignee": "clawd",
-          "created": "2026-01-26",
-          "tags": [
-            "microsoft",
-            "ads",
-            "tracking"
-          ],
-          "benefit": "💰 WHAT YOU GAIN: Microsoft Ads was your BEST channel — 224% ROAS (.24 back for every  spent). But the tracking is broken (counting everything 2x). Fix this so when we unpause ads, we have accurate data to optimize. Direct path to revenue."
-        },
-        {
           "id": "MC-008",
           "title": "Fix TikTok pixel (not firing)",
-          "description": "TikTok pixel connected in Shopify but window.ttq doesn't exist on the site.",
-          "details": "THE PROBLEM: TikTok pixel is connected via Shopify's TikTok channel app, and shows in Shopify Web Pixels list, but window.ttq (the TikTok pixel object) doesn't exist when tested on the live site.\n\nIMPACT: No TikTok conversion tracking. If we ever run TikTok ads, we'd have zero data.\n\nLIKELY CAUSE: Shopify Web Pixels run in a sandboxed iframe, so window.ttq may not be accessible from the main page context. The pixel might actually be firing correctly inside the sandbox. Need to verify via TikTok Events Manager instead of browser console.\n\nFIX: Check TikTok Events Manager for recent events. If truly not firing, reinstall the TikTok channel app.",
+          "description": "TikTok pixel connected in Shopify but setup never completed. Permissions not approved.",
           "priority": "low",
           "assignee": "clawd",
           "created": "2026-01-26",
-          "tags": [
-            "tiktok",
-            "tracking",
-            "pixel"
-          ],
-          "benefit": "💰 WHAT YOU GAIN: TikTok is the #1 discovery platform for fashion. If you ever run TikTok ads (cheap, huge reach for fashion), you need the pixel working first to track conversions. Low priority now, essential later."
-        },
-        {
-          "id": "MC-009",
-          "title": "Fix Pinterest tag (not firing)",
-          "description": "Pinterest tag connected in Shopify but window.pintrk doesn't exist on the site.",
-          "details": "THE PROBLEM: Same as TikTok — Pinterest tag connected via Shopify's Pinterest channel app, shows in Web Pixels, but window.pintrk doesn't exist in browser console.\n\nIMPACT: No Pinterest conversion tracking. Pinterest has 849 followers and 216 pins (dormant ~3 years).\n\nLIKELY CAUSE: Same as TikTok — Shopify Web Pixels sandbox. Need to verify via Pinterest Tag Manager/Analytics.\n\nFIX: Check Pinterest Analytics for recent tag events. If truly not firing, reinstall Pinterest channel app.\n\nNOTE: Pinterest is low priority since the account has been dormant for 3 years.",
-          "priority": "low",
-          "assignee": "clawd",
-          "created": "2026-01-26",
-          "tags": [
-            "pinterest",
-            "tracking",
-            "pixel"
-          ],
-          "benefit": "💰 WHAT YOU GAIN: Pinterest is a visual shopping platform — perfect for mommy-and-me outfits. You have 849 followers already. Once reactivated, Pinterest can drive free organic traffic from product pins."
+          "tags": ["tiktok", "tracking"],
+          "benefit": "💰 WHAT YOU GAIN: TikTok is the #1 discovery platform for fashion. Fix this before running any TikTok ads."
         },
         {
           "id": "MC-010",
           "title": "Block Muhammed Yazici (fraud)",
-          "description": "4+ orders, multiple refunds and chargebacks. Fraudulent customer pattern.",
-          "details": "THE EVIDENCE:\n- Order #9403 (Oct 9, 2025): Refunded, $0\n- Order #9401 (Oct 7, 2025): Refunded, $0\n- Order #9407 (Oct 18, 2025): OPEN chargeback, $14.99\n- Order #9406 (Oct 17, 2025): Chargeback submitted, $14.99\n\n4+ orders in October, 2 refunded, 2 chargebacks. Classic fraud pattern — possibly card testing.\n\nACTION: Block this customer in Shopify. Go to Customers → Find Muhammed Yazici → Block.\n\nASSIGNEE: Francisco (needs Shopify admin action).",
+          "description": "4+ orders, multiple refunds and chargebacks. Classic fraud pattern.",
           "priority": "medium",
           "assignee": "francisco",
           "created": "2026-01-27",
-          "tags": [
-            "shopify",
-            "fraud",
-            "security"
-          ],
-          "benefit": "💰 WHAT YOU GAIN: Stop losing money to a fraudster. Muhammed Yazici has cost you chargebacks and refunds across 4+ orders. Blocking prevents future losses."
+          "tags": ["shopify", "fraud", "security"],
+          "benefit": "💰 WHAT YOU GAIN: Stop losing money to a fraudster. Block in Shopify → Customers."
         },
         {
           "id": "MC-011",
           "title": "Unpause Microsoft Ads campaigns",
-          "description": "224% ROAS proven. All 11 campaigns paused. Quick revenue opportunity.",
-          "details": "THE OPPORTUNITY: Microsoft Ads was DLM's best-performing paid channel:\n- Total spend: $5,118\n- Total revenue: $11,489\n- Overall ROAS: 224%\n- Australia: 897% ROAS (best)\n- Canada: 464% ROAS\n- USA: Lower but still positive\n\nALL 11 campaigns are currently PAUSED.\n\nBEFORE UNPAUSING:\n1. Fix UET double-firing (MC-005) — current data is inflated 2x\n2. Fix shopping feed error\n3. Set up remarketing audiences (currently none)\n4. Review and update bids\n\nACCOUNT: Microsoft Ads Account 477439, Customer 770182, User X0875435 (suelsferro@hotmail.com)\n\n83.75% of impressions lost to rank — there's massive room to grow.",
+          "description": "224% ROAS proven. All 11 campaigns paused. UET now fixed. Quick revenue opportunity.",
           "priority": "medium",
           "assignee": "both",
           "created": "2026-01-26",
-          "tags": [
-            "microsoft",
-            "ads",
-            "revenue"
-          ],
-          "dependsOn": "MC-005",
-          "benefit": "💰 WHAT YOU GAIN: FASTEST path to revenue. Microsoft Ads ALREADY PROVED 224% ROAS. Australia alone was 897% ROAS. Unpause = money starts coming in within days. Estimated -5K/month revenue if we restore previous performance."
+          "tags": ["microsoft", "ads", "revenue"],
+          "benefit": "💰 WHAT YOU GAIN: FASTEST path to revenue. 224% ROAS proven. Unpause = money within days."
         },
         {
           "id": "MC-012",
           "title": "Rebuild Facebook Ads campaigns",
-          "description": "All 11 campaigns dormant since Nov 2019. Payment expired. Pixel still healthy.",
-          "details": "CURRENT STATE:\n- 11 campaigns, ALL off since November 2019 (6+ years dormant)\n- $0 spend since 2022\n- Payment method expired: Amex ending 4007, exp Jan 2023\n- $4.33 outstanding balance\n- 543 ads, mostly dynamic product catalog\n\nGOOD NEWS:\n- Facebook Pixel (547553035448852) IS healthy — 7.1K events in last 28 days\n- Full e-commerce funnel tracked (PageView, ViewContent, AddToCart, Purchase)\n- Account is salvageable — not suspended\n\nTO REBUILD:\n1. Add new payment method\n2. Pay $4.33 outstanding balance\n3. Build new audiences (lookalikes from purchasers, website visitors)\n4. Create fresh campaigns with updated creative\n5. Start with low budget ($10-20/day) and scale\n\nPAGE: facebook.com/dresslikemommy (Page ID: 942388912516328)\nADS ACCOUNT: act=49685920, Business ID: 422152645220050",
+          "description": "All 11 campaigns dormant since Nov 2019. Payment expired. Pixel still healthy (7.1K events/28 days).",
           "priority": "medium",
           "assignee": "both",
           "created": "2026-01-26",
-          "tags": [
-            "facebook",
-            "ads",
-            "revenue"
-          ],
-          "benefit": "💰 WHAT YOU GAIN: Facebook/Instagram ads can reach millions of moms. Your pixel already tracks 7.1K events/month — you have data to build lookalike audiences. Even /day could drive +/month in sales with good targeting."
+          "tags": ["facebook", "ads", "revenue"],
+          "benefit": "💰 WHAT YOU GAIN: Facebook pixel tracks 7.1K events/month. Even $10/day could drive $1K+/month."
         },
         {
           "id": "MC-013",
           "title": "Reply to Peggy Spino (FB Messenger)",
           "description": "Customer ordered Dec 2024, nightgowns never received, 3 unanswered messages.",
-          "details": "CUSTOMER: Peggy Spino\nCHANNEL: Facebook Messenger\nORDER: December 10, 2024 — nightgowns\nSTATUS: Never received. Sent 3 messages over 3 months, only got auto-replies.\n\nRISK: High chargeback risk. Customer has been patient but 3 months of silence is unacceptable.\n\nACTION: Reply on Facebook Messenger ASAP. Apologize, offer full refund or immediate re-shipment. Include discount code for future purchase.\n\nASSIGNEE: Francisco (needs FB Messenger access).",
           "priority": "high",
           "assignee": "francisco",
           "created": "2026-01-27",
-          "tags": [
-            "facebook",
-            "customer-service",
-            "urgent"
-          ],
-          "benefit": "💰 WHAT YOU GAIN: Peggy has been waiting 3 months. If she files a chargeback, you lose the order amount PLUS a -75 fee. A quick apology + refund costs less and might save a customer. Also prevents negative reviews."
+          "tags": ["facebook", "customer-service", "urgent"],
+          "benefit": "💰 WHAT YOU GAIN: Prevent chargeback ($75 fee). Quick apology + refund costs less."
         },
         {
           "id": "MC-014",
           "title": "Reply to Instagram DMs & comments",
-          "description": "7 DMs + 18 comments unanswered. Includes return requests and pricing questions.",
-          "details": "INSTAGRAM DMs (7 unanswered):\n- Stephanie Buckley: Tried to return for a WEEK (April 2024, 9+ months unanswered)\n- 6 others: TBD — need review\n\nINSTAGRAM COMMENTS (18+ unread):\n- 4 asking 'Price please' — unanswered pricing questions = lost sales\n- Others: TBD — need review\n\nIMPACT: Every unanswered DM and comment is a potential customer lost. Pricing questions are the easiest conversions — they WANT to buy.\n\nACTION: Francisco reviews and responds to each.\n\nACCOUNT: @matchingdressesmotherdaughter",
+          "description": "7 DMs + 18 comments unanswered. 4 people asking 'Price please' = lost sales.",
           "priority": "medium",
           "assignee": "francisco",
           "created": "2026-01-26",
-          "tags": [
-            "instagram",
-            "customer-service",
-            "social"
-          ],
-          "benefit": "💰 WHAT YOU GAIN: 4 people asked PRICE PLEASE on Instagram — they literally want to BUY. Every unanswered pricing question is a lost sale. Quick replies = immediate revenue potential."
+          "tags": ["instagram", "customer-service"],
+          "benefit": "💰 WHAT YOU GAIN: 4 people literally want to buy. Answer them."
         },
         {
           "id": "MC-015",
           "title": "Install Cloudflare/Blockify for bot blocking",
-          "description": "55% of ALL traffic is Chinese bots — zero engagement, $0 revenue.",
-          "details": "THE PROBLEM: 1,134 users from China (55% of ALL traffic) with zero engagement and $0 revenue. This is bot traffic.\n\nWHAT WE DID: Deactivated International market (131 regions including China) and Eurozone market (43 regions) in Shopify. Only US market + dedicated UK/Canada/Australia markets remain.\n\nWHAT STILL NEEDS DOING: The market deactivation blocks CHECKOUT from those countries but doesn't block the actual traffic/bots from hitting the site and inflating analytics.\n\nFIX: Install an IP-blocking app like Blockify or set up Cloudflare to block bot IPs at the network level.\n\nPRIORITY: Low — the bots aren't causing direct harm now that checkout is blocked, but they pollute analytics data.",
+          "description": "55% of ALL traffic is Chinese bots. Markets deactivated but bots still hit site.",
           "priority": "low",
           "assignee": "clawd",
           "created": "2026-01-26",
-          "tags": [
-            "security",
-            "shopify",
-            "bots"
-          ],
-          "benefit": "💰 WHAT YOU GAIN: Cleaner analytics data. Right now 55% of your traffic is fake — your conversion rate looks worse than reality. Clean data = better decisions about where to spend marketing dollars."
+          "tags": ["security", "shopify", "bots"],
+          "benefit": "💰 WHAT YOU GAIN: Cleaner analytics = better business decisions."
         },
         {
           "id": "MC-016",
           "title": "Get Brave Search API key",
           "description": "FREE tier. Unlocks web_search for competitor research and market analysis.",
-          "details": "WHAT: Sign up for Brave Search API free tier at https://brave.com/search/api/\n\nWHY: Currently I can't do web searches directly. I rely on web_fetch (needs known URLs) or Gemini CLI (rate-limited). The Brave API would unlock full web_search capability for:\n- Competitor research\n- Market analysis\n- Trend monitoring\n- Quick fact-checking\n\nHOW: Go to brave.com/search/api → Sign up → Get API key → Run: clawdbot configure --section web\n\nNOTE: Free tier requires a credit card via Stripe but charges nothing for basic usage.\n\nASSIGNEE: Francisco (needs to sign up with his info).",
           "priority": "medium",
           "assignee": "francisco",
           "created": "2026-01-26",
-          "tags": [
-            "tools",
-            "api",
-            "capability"
-          ],
-          "benefit": "💰 WHAT YOU GAIN: Gives me the ability to search the internet for you — competitor prices, trending products, market research, SEO opportunities. Without it, Im limited to sites I already know about."
+          "tags": ["tools", "api"],
+          "benefit": "💰 WHAT YOU GAIN: I can search the internet for you — competitor prices, trends, opportunities."
         },
         {
           "id": "MC-017",
           "title": "Set up Mac Mini as Clawdbot server",
-          "description": "Mac Mini arriving Thu Jan 29. Dedicated always-on server + local open-source LLMs.",
-          "details": "WHAT: Francisco bought a Mac Mini ($999) arriving Thursday January 29.\n\nPLAN:\n1. Set up macOS with Clawdbot\n2. Install Ollama for local open-source LLMs\n3. Research best models for Apple Silicon (Llama 3, Mistral, etc.)\n4. Migrate Clawdbot from Windows PC to Mac Mini\n5. Configure for 24/7 always-on operation\n\nBENEFITS:\n- No more disconnections (dedicated server, not a PC that sleeps)\n- Local AI inference (free, no API costs for some tasks)\n- Better reliability and uptime\n- Can run multiple services simultaneously\n\nTIMELINE: Arrives Jan 29, setup over the weekend.",
+          "description": "Mac Mini arriving Thu Jan 29. Dedicated always-on server.",
           "priority": "medium",
           "assignee": "both",
           "created": "2026-01-26",
-          "tags": [
-            "infrastructure",
-            "mac-mini",
-            "migration"
-          ],
-          "benefit": "💰 WHAT YOU GAIN: 24/7 uptime (no more disconnections), free local AI for content generation and analysis (saves API costs), dedicated server that doesnt interfere with your PC."
+          "tags": ["infrastructure", "mac-mini"],
+          "benefit": "💰 WHAT YOU GAIN: 24/7 uptime, no disconnections, free local AI."
+        },
+        {
+          "id": "MC-027",
+          "title": "Create Shopify API key for product cleanup",
+          "description": "Need Admin API access to run SEO cleanup on all 340 products programmatically.",
+          "priority": "high",
+          "assignee": "francisco",
+          "created": "2026-01-27",
+          "tags": ["shopify", "api", "seo"],
+          "benefit": "💰 WHAT YOU GAIN: Lets me fix 1,712 missing alt texts, remove 3,758 size tags, clean supplier URLs, optimize titles — all automatically. Without this, each product must be edited by hand."
+        },
+        {
+          "id": "MC-028",
+          "title": "Update expired Pinterest billing (Mastercard 9844)",
+          "description": "Pinterest billing card expired. Needs new payment method for ads.",
+          "priority": "low",
+          "assignee": "francisco",
+          "created": "2026-01-27",
+          "tags": ["pinterest", "billing"],
+          "benefit": "💰 WHAT YOU GAIN: Enables Pinterest ads when ready. Merchant review submitted but billing needed for ads."
+        },
+        {
+          "id": "MC-029",
+          "title": "Finish remaining 3,179 locale redirects",
+          "description": "Batch script was interrupted at 2,047 of 5,226. Need to re-run remaining.",
+          "priority": "medium",
+          "assignee": "clawd",
+          "created": "2026-01-27",
+          "tags": ["shopify", "seo", "redirects"],
+          "benefit": "💰 WHAT YOU GAIN: Fixes remaining broken locale URLs in Google Search Console. Every 404 fixed = better SEO ranking."
+        },
+        {
+          "id": "MC-030",
+          "title": "Add Blog to main navigation",
+          "description": "Blog posts live but not linked from main top nav. Footer link added but top nav would drive more traffic.",
+          "priority": "low",
+          "assignee": "francisco",
+          "created": "2026-01-27",
+          "tags": ["shopify", "navigation", "blog"],
+          "benefit": "💰 WHAT YOU GAIN: More visitors discover blog content = more SEO juice = more organic traffic."
+        },
+        {
+          "id": "MC-031",
+          "title": "Run Shopify product cleanup script",
+          "description": "Scripts ready: cleanup_products.py, seo_optimizer.py. Needs API key (MC-027).",
+          "priority": "high",
+          "assignee": "clawd",
+          "created": "2026-01-27",
+          "tags": ["shopify", "seo", "automation"],
+          "dependsOn": "MC-027",
+          "benefit": "💰 WHAT YOU GAIN: Auto-fix 340 products: add alt text (1,712 images), remove junk tags (3,758), classify product types (101 empty), optimize titles (194). Massive SEO boost."
+        },
+        {
+          "id": "MC-032",
+          "title": "Send drafted customer emails",
+          "description": "5 emails drafted and ready in mission-control/customer-emails.md. Francisco to review and send.",
+          "priority": "high",
+          "assignee": "francisco",
+          "created": "2026-01-27",
+          "tags": ["shopify", "customer-service", "emails"],
+          "benefit": "💰 WHAT YOU GAIN: $627 exposure across 5 customers. Proactive outreach prevents chargebacks ($75 fee each)."
         }
       ]
     },
@@ -247,49 +181,56 @@
       "color": "#f39c12",
       "tasks": [
         {
+          "id": "MC-001",
+          "title": "Google Merchant Center logos under review",
+          "description": "New simplified logos (bold DLM + full text) uploaded. Under review 5-7 business days.",
+          "details": "Previous logos were REJECTED for text not readable at small sizes. Generated new clean logos:\n- Square: 1000x1000, bold 'DLM' in pink on light pink circle\n- Rectangular: 2000x1000, bold 'DRESS LIKE MOMMY' with pink accent bars\nBoth uploaded Jan 27. Status: Under review.",
+          "priority": "high",
+          "assignee": "clawd",
+          "created": "2026-01-27",
+          "tags": ["google", "merchant-center", "logos"],
+          "benefit": "💰 WHAT YOU GAIN: Approved logos = products visible in Google Shopping free listings and ads."
+        },
+        {
+          "id": "MC-002",
+          "title": "Google Merchant Center misrepresentation review",
+          "description": "Review in progress since Jan 26. Shipping fix applied (48 countries), logos resubmitted, all business info complete.",
+          "details": "FIXES APPLIED:\n- International Standard Shipping created for 48 countries ✅\n- New simplified logos uploaded ✅\n- Business info complete (name, address, phone, email) ✅\n- Return policy verified (30 days, 7,860 products) ✅\n- Trust badges active (Latino-owned, Small business) ✅\n- Social profiles linked (Facebook, Instagram) ✅\n- 196 URL redirects fixing broken links ✅\nWaiting for Google's review response.",
+          "priority": "critical",
+          "assignee": "both",
+          "created": "2026-01-26",
+          "tags": ["google", "merchant-center", "critical"],
+          "benefit": "💰 WHAT YOU GAIN: Unblocks ALL 7,800 products from Google Free Listings. #1 revenue blocker."
+        },
+        {
           "id": "MC-019",
           "title": "Order #9432 — Diane Mcgahan ($64.98)",
           "description": "Shopify Protect expires Jan 28. Push to BuckyDrop and get tracking TODAY.",
-          "details": "ORDER DETAILS:\n- Order #9432, placed January 21, 2026\n- Customer: Diane Mcgahan (bd.mcgahan@yahoo.com)\n- Items: 2 — Matching Family Cable Knit Sweaters (Adult S/White + Child 2yr/White)\n- Total: $64.98\n- Payment: Shop Pay (Visa ending 0577)\n- Shipping: 730 Burkholder Road, Red Lion PA 17356\n\nURGENCY: Shopify Protect active but EXPIRES JANUARY 28 (TOMORROW). If no tracking uploaded by then, chargeback protection is lost.\n\nACTION: Push to BuckyDrop for immediate fulfillment. Get tracking number uploaded to Shopify ASAP.\n\nASSIGNEE: Francisco (handling manually).\nSTATUS: Francisco said he'd handle this himself.",
           "priority": "critical",
           "assignee": "francisco",
           "created": "2026-01-27",
-          "tags": [
-            "shopify",
-            "orders",
-            "urgent"
-          ],
-          "benefit": "💰 WHAT YOU GAIN: If you dont upload tracking by Jan 28, Shopify Protect expires and youre exposed to a .98 chargeback with ZERO protection. Getting tracking = free insurance on this order."
+          "tags": ["shopify", "orders", "urgent"],
+          "benefit": "💰 WHAT YOU GAIN: Shopify Protect expires Jan 28. Get tracking = free insurance on $64.98."
         },
         {
           "id": "MC-020",
           "title": "Order #9428 — Kathy Jurecek ($402.84)",
           "description": "Largest unfulfilled order. Address mismatch. Shopify Protect already expired.",
-          "details": "ORDER DETAILS:\n- Order #9428, placed December 27, 2025 (31 days ago)\n- Customer: Kathy Jurecek (koj41611@aol.com)\n- Items: 16 — Family Matching Holiday Safari Animal Pajamas (multiple sizes)\n- Total: $402.84 (LARGEST unfulfilled order)\n- Payment: Shop Pay (Visa ending 4720) — Payout received $388.44\n- Shipping: Kate Jurecek, 4310 Pecan Bayou, Corpus Christi TX 78410 (+1 361-537-3980)\n\nFLAGS:\n⚠️ ADDRESS ISSUE: Shopify flagged name mismatch — 'Kate' (shipping) vs 'Kathy' (billing)\n⚠️ Shopify Protect EXPIRED January 3 — NO chargeback protection\n⚠️ Christmas pajamas — seasonal urgency has passed\n⚠️ 1st-time customer\n\nACTION: Email customer at koj41611@aol.com to confirm address. If confirmed, fulfill. If no response in 48h, consider refunding. $402 exposure with zero protection.\n\nASSIGNEE: Francisco (handling manually).",
           "priority": "critical",
           "assignee": "francisco",
           "created": "2026-01-27",
-          "tags": [
-            "shopify",
-            "orders",
-            "urgent"
-          ],
-          "benefit": "💰 WHAT YOU GAIN: .84 is your largest unfulfilled order. Shopify Protect already expired. If Kathy chargebacks, you lose  + fees. Contacting her first gives you a chance to fulfill or refund on YOUR terms."
+          "tags": ["shopify", "orders", "urgent"],
+          "benefit": "💰 WHAT YOU GAIN: $402 at risk with zero protection. Contact customer before chargeback."
         },
         {
-          "id": "MC-018",
-          "title": "Build Mission Control dashboard",
-          "description": "Kanban board + Second Brain for tracking all tasks and storing ideas/research.",
-          "details": "WHAT WAS BUILT:\n- Interactive HTML dashboard at mission-control/index.html\n- Data stored in mission-control/data.json\n- Served via Python HTTP server on port 8765\n\nTHREE VIEWS:\n1. 📋 Kanban Board — 4 columns (Blocked, In Progress, To Do, Done) with color-coded priority badges, assignee labels, and expandable card details\n2. 🧠 Second Brain — Ideas (4), Research (5), Insights (2) organized with tags\n3. 📊 Summary — Critical items, Francisco's action items, Clawd's queue, completed tasks\n\nSTATS: 28 total tasks, 4 critical, 17 Clawd tasks, 6 Francisco tasks, 8 completed\n\nTECH: Single-page HTML/CSS/JS app, dark theme, GitHub-inspired design. Data backed by JSON file that Clawd updates as tasks progress.\n\nSTATUS: V1 built and screenshots sent. Currently enhancing with expandable detail panels per Francisco's request.",
-          "priority": "high",
+          "id": "MC-009",
+          "title": "Pinterest merchant review in progress",
+          "description": "Submitted Jan 27. 9-item checklist completed. Takes up to 48 hours.",
+          "priority": "medium",
           "assignee": "clawd",
           "created": "2026-01-27",
-          "tags": [
-            "tools",
-            "productivity",
-            "dashboard"
-          ],
-          "benefit": "💰 WHAT YOU GAIN: Total visibility into everything were working on. No more asking whats going on — you open the board and see it all. Accountability, organization, nothing falls through cracks."
+          "tags": ["pinterest", "merchant"],
+          "benefit": "💰 WHAT YOU GAIN: Pinterest approval = free organic product pins to 849 followers."
         }
       ]
     },
@@ -300,157 +241,242 @@
         {
           "id": "MC-100",
           "title": "Full platform audit (all channels)",
-          "description": "Comprehensive audit of every marketing/sales platform connected to DLM.",
-          "details": "WHAT WAS DONE: Complete audit of all connected platforms overnight (Jan 26-27):\n\n✅ GOOGLE ANALYTICS (G-N4EQNK0MMB): Working. Single clean gtag.js load.\n✅ GOOGLE ADS (AW-853411529): Tag present but ALL 16 conversion actions dead.\n✅ GOOGLE MERCHANT CENTER (124884876): SUSPENDED — Misrepresentation flag. All 7,800 products blocked.\n✅ GOOGLE SEARCH CONSOLE: 2,420 clicks/12mo, 384K impressions, 0.6% CTR. Only 304/4,885 pages indexed. 591 404s. Only 35 backlinks.\n✅ FACEBOOK PIXEL (547553035448852): Working. 7.1K events/28 days.\n✅ FACEBOOK ADS: 11 campaigns ALL off since Nov 2019. Payment expired.\n⚠️ MICROSOFT UET (36005151): DOUBLE-FIRING — data inflated 2x.\n❌ TIKTOK PIXEL: Not working — window.ttq doesn't exist.\n❌ PINTEREST TAG: Not working — window.pintrk doesn't exist.\n✅ MICROSOFT ADS: $5,118 spent → $11,489 revenue → 224% ROAS (all paused).\n\nREPORTS SAVED: memory/dlm-shopify-deep-report.md, memory/dlm-gads-report.md, memory/dlm-gsc-report.md, memory/dlm-fixes-2-report.md",
-          "priority": "high",
-          "assignee": "clawd",
-          "created": "2026-01-26",
+          "description": "Complete audit of Google Analytics, Google Ads, Merchant Center, Search Console, Facebook, Microsoft, TikTok, Pinterest.",
           "completed": "2026-01-27",
-          "tags": [
-            "audit",
-            "all-platforms"
-          ],
-          "benefit": "💰 WHAT YOU GAINED: Complete picture of your entire digital presence for the first time. Found  in at-risk orders,  in lost chargebacks, 7,800 blocked products, and a profitable ad channel nobody was using. This audit is the foundation for everything else."
+          "tags": ["audit", "all-platforms"],
+          "benefit": "💰 Found $987 at-risk orders, 7,800 blocked products, and a profitable ad channel nobody was using."
         },
         {
           "id": "MC-101",
           "title": "Fix Shopify store name",
-          "description": "Store name was lowercase 'dresslikemommy.com' — unprofessional.",
-          "details": "WHAT WAS DONE: Changed Shopify store name from 'dresslikemommy.com' to 'Dress Like Mommy' in Shopify Admin settings.\n\nWHY: The lowercase domain name as store name looked unprofessional and hurt credibility. Google Merchant Center and other platforms pull this name for display.\n\nRESULT: Store name now shows as 'Dress Like Mommy' across all integrated platforms.",
-          "priority": "medium",
-          "assignee": "clawd",
-          "created": "2026-01-26",
+          "description": "Changed from 'dresslikemommy.com' to 'Dress Like Mommy'.",
           "completed": "2026-01-26",
-          "tags": [
-            "shopify",
-            "branding"
-          ],
-          "benefit": "💰 WHAT YOU GAINED: Professional branding across Google Shopping, Merchant Center, and all integrated platforms. Small change, big credibility boost. Google cares about professional appearance when evaluating misrepresentation flags."
+          "tags": ["shopify", "branding"],
+          "benefit": "💰 Professional branding across all platforms."
         },
         {
           "id": "MC-102",
           "title": "Update Facebook Page info",
-          "description": "Facebook page was missing phone, address, hours, and price range.",
-          "details": "WHAT WAS DONE: Updated facebook.com/dresslikemommy with:\n- Phone: +1 786-309-6006 (Google Voice)\n- Address: Naples, FL 34119\n- Hours: Always open (online store)\n- Price range: $$ (moderate)\n\nWHY: Incomplete business info hurts credibility and Google's trust assessment. Facebook page is linked to Merchant Center.\n\nWHAT STILL NEEDS DOING: Reply to 11 unread Messenger chats (especially Peggy Spino). Enable reviews on the page. Respond to/hide old negative comments.",
-          "priority": "medium",
-          "assignee": "clawd",
-          "created": "2026-01-26",
+          "description": "Added phone, address, hours, price range.",
           "completed": "2026-01-26",
-          "tags": [
-            "facebook",
-            "branding"
-          ],
-          "benefit": "💰 WHAT YOU GAINED: Complete business profile on Facebook increases trust with customers AND helps with Googles misrepresentation review (they check your social presence). Also makes the FB page functional for customer inquiries."
+          "tags": ["facebook", "branding"],
+          "benefit": "💰 Complete business profile increases trust + helps Google review."
         },
         {
           "id": "MC-103",
           "title": "Kill Chinese bot traffic",
-          "description": "55% of ALL traffic was bots from China with zero engagement.",
-          "details": "WHAT WAS DONE:\n1. Deactivated International market (131 regions including China) in Shopify\n2. Deactivated Eurozone market (43 regions)\n3. Created dedicated markets for target countries: UK (GBP), Canada (CAD), Australia (AUD)\n4. All new markets configured with Dynamic FX\n\nSCALE: 1,134 users from China = 55% of ALL traffic, $0 revenue, 0% engagement. This was massively inflating analytics and making all metrics unreliable.\n\nRESULT: Checkout now blocked for non-target countries. Analytics should become more accurate within days. Site still accessible (can't block at IP level without Cloudflare/Blockify).\n\nNOTE: BuckyDrop fulfillment ships from China (Guangzhou) — bot traffic may have been related to supplier/fulfillment pipeline scanning.",
-          "priority": "high",
-          "assignee": "clawd",
-          "created": "2026-01-26",
+          "description": "Deactivated 131+ regions, kept US/UK/CA/AU markets only.",
           "completed": "2026-01-26",
-          "tags": [
-            "shopify",
-            "security",
-            "markets"
-          ],
-          "benefit": "💰 WHAT YOU GAINED: Your analytics data is now ~2x more accurate. Before, 55% of traffic was fake bots. Now conversion rates, bounce rates, and revenue data actually reflect real human behavior. Better data = better business decisions."
+          "tags": ["shopify", "security"],
+          "benefit": "💰 Analytics now 2x more accurate. Better data = better decisions."
         },
         {
           "id": "MC-104",
           "title": "Security hardening",
-          "description": "Full security audit and hardening of Clawdbot installation.",
-          "details": "WHAT WAS DONE:\n1. Ran clawdbot security audit --deep (found 4 critical, 2 warn, 1 info)\n2. Fixed file permissions using icacls — restricted .clawdbot to Fsuels/SYSTEM/Admins only\n3. Enabled logging.redactSensitive: 'tools' — tool outputs won't leak secrets in logs\n4. Added comprehensive prompt injection defenses to SOUL.md\n\nSECURITY POSTURE:\n✅ Gateway: loopback only, token auth\n✅ Channels: allowlist/pairing only\n✅ File permissions: locked via icacls\n✅ Log redaction: enabled\n✅ Prompt injection defenses: documented\n✅ Model: Claude Opus 4.5 (most injection-resistant)\n\nNOTE: 4 'critical' file permission findings are Windows false positives — Node.js fs.stat() reports 666 on Windows regardless of actual ACLs.",
-          "priority": "high",
-          "assignee": "clawd",
-          "created": "2026-01-26",
+          "description": "File permissions, log redaction, prompt injection defenses.",
           "completed": "2026-01-26",
-          "tags": [
-            "security",
-            "clawdbot"
-          ],
-          "benefit": "💰 WHAT YOU GAINED: Protection against hackers, data leaks, and prompt injection attacks. Your personal info (address, financials, business credentials) is secured. Peace of mind that your AI assistant isnt a liability."
+          "tags": ["security", "clawdbot"],
+          "benefit": "💰 Personal info and business credentials secured."
         },
         {
           "id": "MC-105",
           "title": "Install 9 ClawdHub skills",
-          "description": "Expanded Clawd's capabilities with marketing, research, and content skills.",
-          "details": "SKILLS INSTALLED:\n1. marketing-mode 1.0.0 — 23 marketing frameworks\n2. self-improving-agent 1.0.2 — learn from mistakes\n3. clawd-docs-v2 2.2.0 — better Clawdbot docs access\n4. youtube-watcher 1.0.0 — competitive video research\n5. humanizer 1.0.0 — make AI content sound human\n6. research 1.0.1 — deep research via Gemini CLI\n7. tweet-writer 1.0.0 — social media content\n8. reddit 1.0.0 — market research on Reddit\n9. prompt-engineering-expert 1.0.0 — better at prompting\n\nIMPACT: These skills give Clawd specialized capabilities for marketing analysis, content creation, competitor research, and self-improvement.",
-          "priority": "medium",
-          "assignee": "clawd",
-          "created": "2026-01-26",
+          "description": "Marketing, research, humanizer, tweet-writer, prompt engineering + more.",
           "completed": "2026-01-26",
-          "tags": [
-            "clawdbot",
-            "skills",
-            "capability"
-          ],
-          "benefit": "💰 WHAT YOU GAINED: Expanded my capabilities — I can now do marketing analysis (23 frameworks), deep research, humanize AI content, write social posts, analyze YouTube competitors, and learn from my own mistakes. Better tools = better results for you."
+          "tags": ["clawdbot", "skills"],
+          "benefit": "💰 Expanded AI capabilities: 23 marketing frameworks, deep research, content creation."
         },
         {
           "id": "MC-106",
           "title": "Create logo variants for Merchant Center",
-          "description": "Generated properly-sized rectangular and square logos from existing design.",
-          "details": "WHAT WAS DONE: Created two logo variants from existing DLM logo:\n- Rectangular: dlm-logo-rectangular.png — 1200x600 (2:1 ratio)\n- Square: dlm-logo-square.png — 1000x1000 (1:1 ratio)\n\nFILES CREATED:\n- C:\\dev\\FsuelsBot\\workspace\\dlm-logo-rectangular.png (285KB)\n- C:\\dev\\FsuelsBot\\workspace\\dlm-logo-square.png (206KB)\n\nSTATUS: Logos meet size/ratio requirements but were REJECTED by Google for having text too small to read at mobile sizes. Need simpler redesign — see MC-001.\n\nSCRIPT: create_logos.py used Python PIL to resize.",
-          "priority": "medium",
-          "assignee": "clawd",
-          "created": "2026-01-26",
-          "completed": "2026-01-26",
-          "tags": [
-            "branding",
-            "logos"
-          ],
-          "benefit": "💰 WHAT YOU GAINED: Logo files ready for Merchant Center — correct sizes and ratios. However, they were rejected for being too detailed. Need simpler versions, but the sizing work is done."
+          "description": "Generated rectangular + square logos. First version rejected, simplified versions uploaded.",
+          "completed": "2026-01-27",
+          "tags": ["branding", "logos"],
+          "benefit": "💰 Logos needed for Google Shopping visibility."
         },
         {
           "id": "MC-107",
           "title": "Unfulfilled orders report",
-          "description": "Complete audit of all unfulfilled Shopify orders with priority action checklist.",
-          "details": "WHAT WAS DONE: Audited all 50 orders showing under Shopify's unfulfilled filter.\n\nFINDINGS:\n- 5 truly unfulfilled orders — $711.22 at risk\n- 2 partially fulfilled — $314.83 combined\n- 4 refunded (no action, $0)\n- ~39 actually fulfilled but showing as unfulfilled (Shopify quirk)\n- 5 chargeback issues (3 lost, 1 open, 1 submitted)\n\nTOTAL EXPOSURE: $987.08 across 7 actionable orders\nTOTAL CHARGEBACK LOSSES: $395.78 (3 lost disputes)\n\nMOST CRITICAL: Order #9432 ($64.98) — Shopify Protect expires Jan 28\nLARGEST: Order #9428 ($402.84) — address mismatch, no protection\nOLDEST: Order #9383 ($55.97) — 9 MONTHS unfulfilled\n\nPRIORITY ACTION CHECKLIST: 14 items created, organized by urgency.\n\nREPORT: memory/dlm-unfulfilled-orders-report.md",
-          "priority": "critical",
-          "assignee": "clawd",
-          "created": "2026-01-27",
+          "description": "Audited all 50 orders. Found $987 at risk, 14 action items.",
           "completed": "2026-01-27",
-          "tags": [
-            "shopify",
-            "orders",
-            "report"
-          ],
-          "benefit": "💰 WHAT YOU GAINED: Found  at risk across 7 orders you didnt know about. 2 orders are CRITICAL today. Without this report, youd have lost Shopify Protect on Order #9432 tomorrow and potentially faced + in chargebacks on Order #9428."
+          "tags": ["shopify", "orders"],
+          "benefit": "💰 Found $987 at risk across 7 orders."
         },
         {
           "id": "MC-108",
           "title": "Deep competitor research",
-          "description": "Full competitive analysis of 10 mommy-and-me competitors across budget and premium tiers.",
-          "details": "WHAT WAS DONE: Analyzed 10 competitors across 2 tiers.\n\nBUDGET TIER: PatPat ($720M funded, 486K monthly visits), Popreal (612K visits), Amazon sellers, Etsy sellers\nPREMIUM TIER: Ivy City Co (894K Instagram), JessaKae ($2M first year), Hanna Andersson (3.3M visits), Posh Peanut, Sparkle In Pink, Hill House Home\n\nKEY FINDINGS:\n- DLM gets 0.04% of Hanna Andersson's traffic\n- DLM stuck in no-mans land (priced above budget, no brand equity of premium)\n- 2025 tariff changes = existential threat to China dropship model\n- 8 exploitable gaps identified\n\nREPORT: mission-control/competitor-research.md",
-          "priority": "medium",
-          "assignee": "clawd",
-          "created": "2026-01-27",
+          "description": "10 competitors profiled (PatPat, Ivy City Co, Sparkle In Pink, etc). 8 gaps found.",
           "completed": "2026-01-27",
-          "tags": [
-            "research",
-            "strategy",
-            "competitors"
-          ],
-          "benefit": "💰 WHAT YOU GAINED: Complete map of the competitive battlefield. Now you know PatPat has $720M behind it, Ivy City Co was built purely on Instagram, and the tariff changes threaten your entire model. Informed the strategic pivot discussion."
+          "tags": ["research", "competitors"],
+          "benefit": "💰 Complete competitive map. Informed strategy decisions."
         },
         {
           "id": "MC-109",
-          "title": "Draft customer emails for overdue orders",
-          "description": "5 professional email drafts for customers with unfulfilled orders to prevent chargebacks.",
-          "details": "WHAT WAS DONE: Drafted 5 ready-to-send emails:\n\n1. KATHY JURECEK (#9428, $402.84) — Address confirmation email\n2. SALLY CLOUD (#9392, $154.92) — Apology + refund/ship choice\n3. LIDSON CHARITE (#9383, $55.97) — Apology + full refund + discount code\n4. AMANDA KEESEE (#9388, $15.99) — Partial refund for missing item\n5. PEGGY SPINO (FB Messenger) — Reply draft to prevent chargeback\n\nFrancisco needs to review and send. Includes checklist and discount codes to create.\n\nFILE: mission-control/customer-emails.md",
-          "priority": "high",
-          "assignee": "clawd",
-          "created": "2026-01-27",
+          "title": "Draft 5 customer emails",
+          "description": "Kathy Jurecek, Sally Cloud, Lidson Charite, Amanda Keesee, Peggy Spino.",
           "completed": "2026-01-27",
-          "tags": [
-            "shopify",
-            "customer-service",
-            "emails"
-          ],
-          "benefit": "💰 WHAT YOU GAINED: 5 professional emails ready to copy-paste and send. Total exposure: $627.46 across these customers. Proactive outreach prevents chargebacks ($75 fee each) and protects your Shopify reputation."
+          "tags": ["customer-service", "emails"],
+          "benefit": "💰 $627 exposure protected. Ready to copy-paste and send."
+        },
+        {
+          "id": "MC-110",
+          "title": "URL redirects imported (196 + 2,047 locale)",
+          "description": "196 redirects via CSV upload + 2,047 locale redirects via API batch. Covers collections, products, pages across 99 locale prefixes.",
+          "completed": "2026-01-27",
+          "tags": ["shopify", "seo", "redirects"],
+          "benefit": "💰 Fixed 2,243 broken URLs. Every 404 fixed = better SEO + fewer lost visitors."
+        },
+        {
+          "id": "MC-111",
+          "title": "Complete tag duplication audit",
+          "description": "All 6 platforms audited via HTML source + network analysis + platform dashboards. Google/FB/Microsoft clean. Pinterest & TikTok not working.",
+          "completed": "2026-01-27",
+          "tags": ["tracking", "audit"],
+          "benefit": "💰 Confirmed Google, Google Ads, Facebook data is trustworthy for decisions."
+        },
+        {
+          "id": "MC-112",
+          "title": "Pinterest merchant approval submitted",
+          "description": "Completed 9-item checklist. Submitted for review (48hr wait). Previous rejection likely due to 591 broken links (now fixed).",
+          "completed": "2026-01-27",
+          "tags": ["pinterest", "merchant"],
+          "benefit": "💰 Approval = free organic product pins to 849 followers."
+        },
+        {
+          "id": "MC-113",
+          "title": "Google Merchant Center shipping + logos fix",
+          "description": "Created International Standard Shipping for 48 countries. Uploaded new simplified logos (bold DLM). Both under review.",
+          "completed": "2026-01-27",
+          "tags": ["google", "merchant-center", "shipping"],
+          "benefit": "💰 Shipping fix addresses root cause of misrepresentation flag. Logos needed for Shopping ads."
+        },
+        {
+          "id": "MC-114",
+          "title": "Google Ads conversion cleanup",
+          "description": "Demoted ALL 6 legacy 'from adwords' actions from Primary to Secondary. Google Shopping App Purchase now Primary.",
+          "completed": "2026-01-27",
+          "tags": ["google", "ads", "conversions"],
+          "benefit": "💰 Google Ads now tracks the right conversions. No more dead legacy actions inflating data."
+        },
+        {
+          "id": "MC-115",
+          "title": "10 SEO blog posts published",
+          "description": "First blog content since 2016! 12,000+ words, 90+ internal links. Valentine's Day, matching outfits guide, Easter dresses, spring photos, swimsuits, daddy & me, pajamas, family photos, budget outfits, complete guide.",
+          "completed": "2026-01-27",
+          "tags": ["blog", "seo", "content"],
+          "benefit": "💰 10 pages of SEO content targeting high-value keywords. Blog was dormant since 2016. Each post can rank in Google and drive free organic traffic."
+        },
+        {
+          "id": "MC-116",
+          "title": "Schema.org structured data installed",
+          "description": "BreadcrumbList + Organization schema added to all product pages via Liquid snippet.",
+          "completed": "2026-01-27",
+          "tags": ["seo", "schema", "technical"],
+          "benefit": "💰 Rich snippets in Google search results = higher click-through rates = more free traffic."
+        },
+        {
+          "id": "MC-117",
+          "title": "Blog layout + navigation fixed",
+          "description": "Changed from collage to grid layout. Added Blog link to footer. Deleted old 2016 placeholder post.",
+          "completed": "2026-01-27",
+          "tags": ["blog", "shopify"],
+          "benefit": "💰 Clean blog experience. Footer link ensures visitors can find blog content."
+        },
+        {
+          "id": "MC-118",
+          "title": "BuckyDrop stuck orders audit",
+          "description": "Found 10 orders stuck in processing. 4 never purchased, 3 sitting in warehouse, 2 short delivered. CN ¥2,228 (~$306) exposure.",
+          "completed": "2026-01-27",
+          "tags": ["buckydrop", "orders", "audit"],
+          "benefit": "💰 Identified $306 stuck in BuckyDrop pipeline. Action plan for each order."
+        },
+        {
+          "id": "MC-119",
+          "title": "BuckyDrop support email sent",
+          "description": "Detailed email to support@buckydrop.com listing all 10 stuck orders with specific questions for each.",
+          "completed": "2026-01-27",
+          "tags": ["buckydrop", "support"],
+          "benefit": "💰 Proactive outreach to resolve $306 in stuck orders."
+        },
+        {
+          "id": "MC-120",
+          "title": "Microsoft Ads UET Purchases goal fixed",
+          "description": "Changed Purchases conversion goal from old tag (36000629) to correct ShopifyImport tag (36005151). 4 of 5 goals now use correct tag.",
+          "completed": "2026-01-27",
+          "tags": ["microsoft", "ads", "tracking"],
+          "benefit": "💰 Microsoft Ads conversion data now accurate. Ready to unpause campaigns with clean tracking."
+        },
+        {
+          "id": "MC-121",
+          "title": "Product data audit (340 products)",
+          "description": "Found: 157 with supplier URLs in tags, 3,758 size tags to remove, 101 empty product_types, 1,712 images with no alt text, 49 with alicdn images in descriptions.",
+          "completed": "2026-01-27",
+          "tags": ["shopify", "products", "audit"],
+          "benefit": "💰 Complete picture of product data issues. Every fix = better SEO + more professional store."
+        },
+        {
+          "id": "MC-122",
+          "title": "SEO optimization scripts built",
+          "description": "audit_products.py, cleanup_products.py, seo_optimizer.py ready. Supports --dry-run, batch processing, rate limiting. Needs Shopify API key.",
+          "completed": "2026-01-27",
+          "tags": ["scripts", "seo", "automation"],
+          "benefit": "💰 Automated cleanup of 340 products. Would take days by hand, scripts do it in minutes."
+        },
+        {
+          "id": "MC-123",
+          "title": "Blog content strategy created",
+          "description": "10 topics prioritized by seasonal urgency. Competitor blog analysis. Template and SEO guidelines. Seasonal calendar with Google Trends data.",
+          "completed": "2026-01-27",
+          "tags": ["blog", "strategy", "content"],
+          "benefit": "💰 Strategic content roadmap. Every post targets specific keywords and seasons."
+        },
+        {
+          "id": "MC-124",
+          "title": "Product optimization guide (986 lines)",
+          "description": "Covers all 6 platforms: Google Shopping, Pinterest, Meta, TikTok, SEO, AI Search. Master tag taxonomy, description templates, Schema.org. 8-week implementation plan.",
+          "completed": "2026-01-27",
+          "tags": ["guide", "optimization", "platforms"],
+          "benefit": "💰 Expert-level playbook for every platform. Actionable steps, not theory."
+        },
+        {
+          "id": "MC-125",
+          "title": "The Council built (multi-AI debate system)",
+          "description": "6 AIs: Opus (judge), Sonnet (orchestrator), Grok, ChatGPT, Gemini, Open Arena. 3 modes: Standard, Inner Critic, Feedback Loop. $0 extra cost.",
+          "completed": "2026-01-27",
+          "tags": ["council", "ai", "system"],
+          "benefit": "💰 4+ AI brains debating every major decision. Better answers than any single AI. All on existing subscriptions."
+        },
+        {
+          "id": "MC-126",
+          "title": "Overnight self-improvement (2 AM cron)",
+          "description": "Nightly build job: reviews day, picks ONE improvement, builds it, commits to git, sends morning report. Council-powered.",
+          "completed": "2026-01-27",
+          "tags": ["automation", "improvement", "cron"],
+          "benefit": "💰 AI gets stronger every night while you sleep. Compound improvements. $0 extra cost."
+        },
+        {
+          "id": "MC-127",
+          "title": "Mission Control dashboard built",
+          "description": "Interactive HTML dashboard with Kanban, Second Brain, Summary views. Mobile-friendly. LAN accessible. Clawdbot status indicator.",
+          "completed": "2026-01-27",
+          "tags": ["tools", "dashboard"],
+          "benefit": "💰 Total visibility into everything. No more asking what's going on."
+        },
+        {
+          "id": "MC-128",
+          "title": "Grok + ChatGPT AI loops verified",
+          "description": "Proved Clawd can type questions into Grok (X) and ChatGPT (browser), read responses, and bring back insights. Foundation for The Council.",
+          "completed": "2026-01-27",
+          "tags": ["council", "ai", "proof-of-concept"],
+          "benefit": "💰 Unlocked multi-AI capability. 6 brains for the price of 1."
+        },
+        {
+          "id": "MC-129",
+          "title": "Memory integrity rules established",
+          "description": "Source references, verification dates, no silent overwrites, changelog tracking. Applied to all memory files.",
+          "completed": "2026-01-27",
+          "tags": ["memory", "rules", "quality"],
+          "benefit": "💰 Reliable memory = reliable AI. No more lost context or conflicting info."
         }
       ]
     }
@@ -460,126 +486,108 @@
       {
         "id": "SB-001",
         "title": "Pivot or expand beyond mommy-and-me?",
-        "description": "Francisco is open to pivoting niches or expanding. Worth researching adjacent markets — family matching outfits (broader), couples matching, pet + owner matching, sports team family sets.",
-        "created": "2026-01-26",
-        "tags": [
-          "strategy",
-          "pivot"
-        ]
+        "description": "Francisco open to pivoting. Adjacent markets: family matching, couples matching, pet + owner, sports team sets.",
+        "tags": ["strategy", "pivot"]
       },
       {
         "id": "SB-002",
         "title": "Microsoft Ads = hidden goldmine",
-        "description": "224% overall ROAS, Australia at 897% ROAS. All campaigns paused. Quick revenue win — fix UET double-firing, unpause campaigns, and money starts flowing again. Estimated revenue recovery: $2-5K/month.",
-        "created": "2026-01-26",
-        "tags": [
-          "revenue",
-          "microsoft-ads",
-          "quick-win"
-        ]
+        "description": "224% ROAS, Australia 897%. All paused. UET now fixed. Fastest revenue path.",
+        "tags": ["revenue", "microsoft-ads"]
       },
       {
         "id": "SB-003",
         "title": "Email marketing is untapped",
-        "description": "Shopify has abandoned cart recovery but no active email campaigns. Klaviyo or Shopify Email could drive repeat purchases. With 7,800 products and seasonal collections, email is a natural fit.",
-        "created": "2026-01-26",
-        "tags": [
-          "marketing",
-          "email",
-          "revenue"
-        ]
+        "description": "No active email campaigns. Klaviyo or Shopify Email could drive repeat purchases.",
+        "tags": ["marketing", "email"]
       },
       {
         "id": "SB-004",
         "title": "Local LLMs on Mac Mini",
-        "description": "Mac Mini arriving Jan 29. Can run Ollama with local models for free inference. Research best models for Apple Silicon. Could handle content generation, product descriptions, customer service drafts without API costs.",
-        "created": "2026-01-26",
-        "tags": [
-          "infrastructure",
-          "ai",
-          "mac-mini"
-        ]
+        "description": "Mac Mini arriving Jan 29. Ollama for free local inference. Content generation without API costs.",
+        "tags": ["infrastructure", "ai"]
+      },
+      {
+        "id": "SB-005",
+        "title": "The Council — multi-AI debate system",
+        "description": "6 AIs debating = better answers than any single AI. Standard, Inner Critic, Feedback Loop modes. Permanent improvement engine.",
+        "tags": ["ai", "council", "system"]
+      },
+      {
+        "id": "SB-006",
+        "title": "AI Service Business (PARKED)",
+        "description": "AI-powered Shopify consulting: $500 audit / $1,500-3,000/mo management. DLM as case study. Parked until DLM profitable.",
+        "tags": ["business-idea", "parked"]
       }
     ],
     "research": [
       {
         "id": "SR-001",
         "title": "Google Search Console findings",
-        "description": "2,420 clicks/12mo, 384K impressions, 0.6% CTR. Only 304/4,885 pages indexed. 591 404s. Only 35 backlinks (critical). Wholesale page is biggest keyword opportunity.",
-        "created": "2026-01-26",
-        "tags": [
-          "seo",
-          "search-console",
-          "data"
-        ]
+        "description": "2,420 clicks/12mo, 384K impressions, 0.6% CTR. Only 304/4,885 pages indexed. 591 404s. Only 35 backlinks.",
+        "tags": ["seo", "data"]
       },
       {
         "id": "SR-002",
         "title": "Shopify store performance",
-        "description": "$572 last 30 days, 5 orders, 0.1% conversion rate, 0% returning customers. $17.6M in slow-moving inventory (at retail). 28 unfulfilled orders.",
-        "created": "2026-01-26",
-        "tags": [
-          "shopify",
-          "performance",
-          "data"
-        ]
+        "description": "$572 last 30 days, 5 orders, 0.1% conversion rate, 0% returning customers.",
+        "tags": ["shopify", "data"]
       },
       {
         "id": "SR-003",
         "title": "Facebook Ads history",
-        "description": "11 campaigns ALL off since Nov 2019. $0 spend since 2022. Payment expired. Pixel IS healthy (7.1K events/28 days). 543 ads mostly dynamic catalog. Account salvageable.",
-        "created": "2026-01-26",
-        "tags": [
-          "facebook",
-          "ads",
-          "history"
-        ]
+        "description": "11 campaigns off since Nov 2019. Pixel healthy (7.1K events/28 days). Account salvageable.",
+        "tags": ["facebook", "data"]
       },
       {
         "id": "SR-004",
         "title": "Microsoft Ads performance",
-        "description": "$5,118 spent → $11,489 revenue → 224% ROAS. Australia = 897%, Canada = 464%. 83.75% impressions lost to rank. NO remarketing audiences.",
-        "created": "2026-01-26",
-        "tags": [
-          "microsoft",
-          "ads",
-          "performance"
-        ]
+        "description": "$5,118 spent → $11,489 revenue → 224% ROAS. UET now fixed and accurate.",
+        "tags": ["microsoft", "data"]
       },
       {
         "id": "SR-005",
-        "title": "Tag audit results",
-        "description": "GA4 ✅, Google Ads ✅ (but conversions dead), FB Pixel ✅, Microsoft UET ⚠️ (double-firing), TikTok ❌ (not working), Pinterest ❌ (not working). No GTM.",
-        "created": "2026-01-26",
-        "tags": [
-          "tracking",
-          "audit",
-          "tags"
-        ]
+        "title": "Tag audit results (all platforms clean)",
+        "description": "GA4 ✅, Google Ads ✅, FB Pixel ✅, Microsoft UET ✅ (fixed), TikTok ❌, Pinterest ❌.",
+        "tags": ["tracking", "audit"]
+      },
+      {
+        "id": "SR-006",
+        "title": "BuckyDrop study",
+        "description": "221 products, 150 pushed to Shopify, 71 unpushed (not worth pushing — wrong niche). 6 overdue shipments. Free plan.",
+        "tags": ["buckydrop", "supply-chain"]
+      },
+      {
+        "id": "SR-007",
+        "title": "Product data health",
+        "description": "340 products: 46% have supplier URLs in tags, 100% images missing alt text, 30% empty product_type, 14% have alicdn images.",
+        "tags": ["shopify", "products", "seo"]
       }
     ],
     "insights": [
       {
         "id": "SI-001",
         "title": "Revenue recovery priority order",
-        "description": "1) Fix MC suspension (unblocks 7,800 products) → 2) Unpause Microsoft Ads (proven 224% ROAS) → 3) Rebuild Facebook Ads → 4) SEO fixes (404s, indexing). This order maximizes revenue per effort.",
-        "created": "2026-01-27",
-        "tags": [
-          "strategy",
-          "priority",
-          "revenue"
-        ]
+        "description": "1) Fix MC suspension → 2) Unpause Microsoft Ads → 3) Rebuild Facebook Ads → 4) SEO fixes.",
+        "tags": ["strategy", "priority"]
       },
       {
         "id": "SI-002",
         "title": "Fulfillment is the #1 reputation problem",
-        "description": "Multiple orders 7-9 months unfulfilled. Negative FB reviews all about unfulfilled orders. Instagram DMs about returns unanswered. This pattern will kill the business faster than any marketing fix.",
-        "created": "2026-01-27",
-        "tags": [
-          "fulfillment",
-          "reputation",
-          "critical"
-        ]
+        "description": "Multiple orders 7-9 months unfulfilled. Negative reviews all about fulfillment. Fix before any marketing.",
+        "tags": ["fulfillment", "critical"]
+      },
+      {
+        "id": "SI-003",
+        "title": "The Compound Loop (core principle)",
+        "description": "Council → Execute → Remember → Learn → Improve overnight → Repeat. Memory is the flywheel. System grows stronger every day.",
+        "tags": ["philosophy", "system"]
+      },
+      {
+        "id": "SI-004",
+        "title": "Fix FREE things first",
+        "description": "Francisco's directive: no paid ads until foundation is solid. SEO, content, tracking, data cleanup first.",
+        "tags": ["strategy", "priority"]
       }
     ]
   }
