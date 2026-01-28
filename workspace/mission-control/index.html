@@ -898,6 +898,93 @@
     line-height: 1.4;
   }
   .team-card.expanded .team-card-benefit { display: block !important; }
+
+  /* Rich detail panel */
+  .task-detail-panel {
+    display: none;
+    margin-top: 8px;
+    padding: 10px 12px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .team-card.expanded .task-detail-panel { display: block !important; }
+  .task-detail-section {
+    margin-bottom: 10px;
+  }
+  .task-detail-section:last-child { margin-bottom: 0; }
+  .task-detail-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .task-detail-text {
+    color: var(--text);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .task-progress-bar {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 4px;
+  }
+  .task-progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--done);
+    transition: width 0.3s ease;
+  }
+  .task-progress-label {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 2px;
+    text-align: right;
+  }
+  .task-steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .task-steps li {
+    padding: 3px 0;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .task-steps li.done { color: var(--done); }
+  .task-steps li.pending { color: var(--text-dim); }
+  .task-strategy {
+    padding: 8px 10px;
+    background: rgba(88,166,255,0.06);
+    border-radius: 6px;
+    border-left: 3px solid var(--accent);
+    color: var(--text);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  /* Orchestrator detail panel */
+  .orch-detail-panel {
+    display: none;
+    width: 100%;
+    margin-top: 10px;
+    padding: 12px 14px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .orchestrator-bar.expanded .orch-detail-panel { display: block; }
+  .orchestrator-bar.expanded .orch-benefit { display: none !important; }
   .team-card-expand-hint {
     font-size: 10px;
     color: var(--accent);
@@ -1215,6 +1302,20 @@ function renderActivityOffline() {
   renderTeamView(null);
 }
 
+function renderDetailPanel(data, cssClass) {
+  if (!data) return '';
+  const desc = data.description ? `<div class="task-detail-section"><div class="task-detail-label">📋 What</div><div class="task-detail-text">${esc(data.description)}</div></div>` : '';
+  const benefit = data.benefit ? `<div class="task-detail-section"><div class="task-detail-label">💰 Why it matters</div><div class="task-detail-text" style="color:var(--done);">${esc(data.benefit)}</div></div>` : '';
+  const progress = data.progress != null ? `<div class="task-detail-section"><div class="task-detail-label">📊 Progress</div><div class="task-progress-bar"><div class="task-progress-fill" style="width:${data.progress}%"></div></div><div class="task-progress-label">${data.progress}% complete</div></div>` : '';
+  let stepsHtml = '';
+  if (data.steps && data.steps.length) {
+    const items = data.steps.map(s => `<li class="${s.done ? 'done' : 'pending'}">${s.done ? '✅' : '⬜'} ${esc(s.label)}</li>`).join('');
+    stepsHtml = `<div class="task-detail-section"><div class="task-detail-label">📝 Plan</div><ul class="task-steps">${items}</ul></div>`;
+  }
+  const strategy = data.strategy ? `<div class="task-detail-section"><div class="task-detail-label">🧠 Strategy</div><div class="task-strategy">${esc(data.strategy)}</div></div>` : '';
+  return `<div class="${cssClass}">${desc}${benefit}${progress}${stepsHtml}${strategy}</div>`;
+}
+
 function renderTeamMemberCard(member, liveAgent) {
   // If there's a matching live sub-agent, merge its status
   const s = liveAgent ? (liveAgent.status || 'working') : (member.status || 'idle');
@@ -1232,10 +1333,8 @@ function renderTeamMemberCard(member, liveAgent) {
       ? `<div class="team-card-task" style="display:block;background:rgba(139,148,158,0.06);border-left-color:var(--text-dim);">💤 Waiting for assignment · Last active: ${lastAct}</div>`
       : '');
 
-  // Benefit line: "Why this matters to you"
-  const benefitLine = taskBenefit
-    ? `<div class="team-card-benefit">💰 <b>Why:</b> ${esc(taskBenefit)}</div>`
-    : '';
+  // Rich detail panel (description, benefit, progress, steps, strategy)
+  const detailPanel = liveAgent ? renderDetailPanel(liveAgent, 'task-detail-panel') : '';
 
   return `<div class="team-card status-${esc(s)}" onclick="this.classList.toggle('expanded')">
     <div class="team-card-header">
@@ -1248,7 +1347,7 @@ function renderTeamMemberCard(member, liveAgent) {
     </div>
     <div class="team-card-expand-hint">▸ tap for details</div>
     ${taskLine}
-    ${benefitLine}
+    ${detailPanel}
     <div class="team-card-desc">${esc(member.description || '')}</div>
     <div class="team-card-caps">${caps}</div>
     <div class="team-card-footer">
@@ -1274,17 +1373,18 @@ function renderTeamView(act) {
   const orchEmoji = orch ? orch.emoji : '🤖';
   const orchTaskId = orch ? (orch.taskId || '') : '';
 
-  // Build orchestrator bar
-  const orchBenefit = orch ? (orch.benefit || '') : '';
-  const orchBar = `<div class="orchestrator-bar" onclick="var b=this.querySelector('.orch-benefit');if(b)b.style.display=b.style.display==='none'?'block':'none';" style="cursor:pointer;flex-wrap:wrap;">
+  // Build orchestrator bar with full detail panel
+  const orchDetailPanel = orch ? renderDetailPanel(orch, 'orch-detail-panel') : '';
+  const orchBar = `<div class="orchestrator-bar" onclick="this.classList.toggle('expanded')" style="cursor:pointer;flex-wrap:wrap;">
     <div class="orch-dot ${esc(orchStatus)}"></div>
     <div class="orch-name">${orchEmoji} ${esc(orchName)}</div>
     <div class="orch-task">
       ${orchTaskId ? `<span style="color:var(--accent);font-family:monospace;font-size:11px;">${esc(orchTaskId)}</span> · ` : ''}
       ${esc(orchTask)}
+      <span style="color:var(--accent);font-size:11px;margin-left:6px;">▸ click for details</span>
     </div>
     <div class="orch-model">${esc(orchModel)}</div>
-    ${orchBenefit ? `<div class="orch-benefit" style="display:none;width:100%;margin-top:8px;padding:8px 12px;background:rgba(63,185,80,0.08);border-radius:6px;border-left:3px solid var(--done);font-size:13px;color:var(--done);line-height:1.4;">💰 <b>Why:</b> ${esc(orchBenefit)}</div>` : ''}
+    ${orchDetailPanel}
   </div>`;
 
   // Build team member cards (skip orchestrator — it's in the bar)

@@ -4,19 +4,39 @@
     "emoji": "🤖",
     "model": "claude-opus-4.5",
     "status": "working",
-    "task": "Improving Mission Control dashboard so you can track all work in real-time",
-    "benefit": "You can see at a glance what's running, why it matters, and whether it's worth your time",
+    "task": "Dashboard UX overhaul — full task audit capability",
     "taskId": "MC-UX",
     "project": "Agent System",
-    "startTime": "12:15 PM"
+    "startTime": "12:15 PM",
+    "description": "Rebuilding Mission Control dashboard so Francisco can see exactly what's being worked on, why, and audit the strategy at any time. Split layout with compact team sidebar and large live feed.",
+    "benefit": "You can audit any task at a glance — what it is, why it matters, progress, and full strategy. No more guessing.",
+    "progress": 70,
+    "steps": [
+      {"label": "Split layout (team left, feed right)", "done": true},
+      {"label": "Clickable expandable team cards", "done": true},
+      {"label": "Business value (Why) on every task", "done": true},
+      {"label": "Full task detail panel with steps + strategy", "done": false},
+      {"label": "Live progress tracking", "done": false}
+    ],
+    "strategy": "Restructured from stacked layout to side-by-side split. Team cards compact in 300px sidebar, live feed takes remaining space. Each task card expands on click to show full audit info: description, benefit, progress bar, step checklist, and strategy notes. Data lives in current-task.json so it updates in real-time as work happens."
   },
   "agents": [
     {
       "name": "The Council",
       "skill": "council",
       "status": "working",
-      "task": "Debating optimal team architecture — right number of specialists, dispatch method, prevent idling",
-      "benefit": "Stops wasting tokens on idle specialists. Gets more done with less cost."
+      "task": "Debating optimal team architecture",
+      "description": "Full Council debate protocol: Grok thinks first, then ChatGPT, then Gemini cross-examines, then Opus delivers final verdict. Question: Is 8 specialists the right number? How to prevent idling? On-demand vs persistent roles?",
+      "benefit": "Stops wasting tokens on idle specialists. Finds the optimal team size and dispatch method so every token spent produces real output.",
+      "progress": 50,
+      "steps": [
+        {"label": "Grok initial analysis", "done": true},
+        {"label": "ChatGPT counter-analysis", "done": true},
+        {"label": "Gemini cross-examination", "done": false},
+        {"label": "Opus final verdict", "done": false},
+        {"label": "Write recommendations to file", "done": false}
+      ],
+      "strategy": "Using the Council multi-AI debate protocol. Three free AIs (Grok, ChatGPT, Gemini) debate independently, then cross-examine each other's positions. Opus 4.5 delivers the binding verdict. This gives us diverse perspectives at zero extra cost — all on existing subscriptions."
     }
   ]
 }
