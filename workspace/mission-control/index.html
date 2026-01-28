@@ -516,6 +516,12 @@
   .team-card.status-idle { border-left: 4px solid var(--border); }
   .team-card.status-done { border-left: 4px solid var(--accent); }
   .team-card.status-error { border-left: 4px solid var(--critical); }
+  .team-card.status-standby {
+    border-left: 4px solid rgba(88,166,255,0.2);
+    opacity: 0.55;
+  }
+  .team-card.status-standby:hover { opacity: 0.85; }
+  .team-card.status-standby.expanded { opacity: 1; }
 
   .team-card-header {
     display: flex;
@@ -553,6 +559,7 @@
   .team-card.status-idle .team-card-status { background: rgba(139,148,158,0.15); color: var(--text-dim); }
   .team-card.status-done .team-card-status { background: rgba(88,166,255,0.15); color: var(--accent); }
   .team-card.status-error .team-card-status { background: rgba(248,81,73,0.15); color: var(--critical); }
+  .team-card.status-standby .team-card-status { background: rgba(88,166,255,0.1); color: rgba(88,166,255,0.5); }
 
   .team-card-desc {
     font-size: 12px;
@@ -1394,17 +1401,20 @@ function renderTeamMemberCard(member, liveAgent) {
   const s = liveAgent ? (liveAgent.status || 'working') : (member.status || 'idle');
   const currentTask = liveAgent ? liveAgent.task : null;
   const taskBenefit = liveAgent ? liveAgent.benefit : null;
-  const statusEmoji = { working: '⚡', thinking: '🧠', done: '✅', idle: '💤', error: '⚠️' };
+  const statusEmoji = { working: '⚡', thinking: '🧠', done: '✅', idle: '💤', error: '⚠️', standby: '🔵' };
   const caps = (member.capabilities || []).map(c => `<span class="team-cap">${esc(c)}</span>`).join('');
   const lastAct = member.lastActive ? timeAgo(member.lastActive) : 'Never';
   const tasksDone = member.tasksCompleted || 0;
 
-  // Task line: show current task or idle status
-  const taskLine = currentTask
-    ? `<div class="team-card-task">${esc(currentTask)}</div>`
-    : (s === 'idle'
-      ? `<div class="team-card-task" style="display:block;background:rgba(139,148,158,0.06);border-left-color:var(--text-dim);">💤 Waiting for assignment · Last active: ${lastAct}</div>`
-      : '');
+  // Task line: show current task, idle status, or standby
+  let taskLine = '';
+  if (currentTask) {
+    taskLine = `<div class="team-card-task">${esc(currentTask)}</div>`;
+  } else if (s === 'standby') {
+    taskLine = `<div class="team-card-task" style="display:block;background:rgba(88,166,255,0.04);border-left-color:rgba(88,166,255,0.3);">🔵 On standby — spins up when needed</div>`;
+  } else if (s === 'idle') {
+    taskLine = `<div class="team-card-task" style="display:block;background:rgba(139,148,158,0.06);border-left-color:var(--text-dim);">💤 Waiting for assignment · Last active: ${lastAct}</div>`;
+  }
 
   // Rich detail panel (description, benefit, progress, steps, strategy)
   const detailPanel = liveAgent ? renderDetailPanel(liveAgent, 'task-detail-panel') : '';
@@ -1463,30 +1473,47 @@ function renderTeamView(act) {
     ${orchDetailPanel}
   </div>`;
 
-  // Build team member cards (skip orchestrator — it's in the bar)
-  const specialists = team.filter(m => m.id !== 'orchestrator');
-  const workingCount = specialists.filter(m => m.status === 'working' || m.status === 'thinking').length + subAgents.length;
-  const totalMembers = specialists.length;
+  // New structure: persistent[] + onDemand[]
+  const persistent = teamData ? (teamData.persistent || []) : [];
+  const onDemand = teamData ? (teamData.onDemand || []) : [];
+  // Fallback: old flat team[] array
+  const flatTeam = teamData ? (teamData.team || []) : [];
+  const allMembers = persistent.length > 0 ? [...persistent, ...onDemand] : flatTeam;
 
-  // Match live sub-agents to team members by skill
-  const teamCards = specialists.map(member => {
-    const liveAgent = subAgents.find(a =>
-      (a.skill && a.skill === member.skill) ||
+  // Skip orchestrator from card list (shown in bar)
+  const persistentCards = persistent.filter(m => m.id !== 'orchestrator');
+  const activeCount = allMembers.filter(m => m.status === 'working' || m.status === 'thinking').length + subAgents.length;
+
+  // Match live sub-agents to team members
+  function matchAgent(member) {
+    return subAgents.find(a =>
+      (a.skill && (a.skill === member.skill || (member.skills && member.skills.includes(a.skill)))) ||
       (a.name && a.name === member.name)
     );
-    return renderTeamMemberCard(member, liveAgent);
-  }).join('');
+  }
 
-  // Team section header
-  const teamSection = `
+  const persistentHtml = persistentCards.map(m => renderTeamMemberCard(m, matchAgent(m))).join('');
+  const onDemandHtml = onDemand.map(m => renderTeamMemberCard(m, matchAgent(m))).join('');
+
+  // Team section with two groups
+  const teamSection = persistent.length > 0 ? `
     <div class="team-section-header">
-      <div class="team-section-title">👥 Digital Workforce — ${totalMembers} Specialists</div>
+      <div class="team-section-title">🟢 Always On</div>
       <div class="team-counter">
-        <span><span class="dot" style="background:var(--done)"></span> ${workingCount} Active</span>
-        <span><span class="dot" style="background:var(--text-dim)"></span> ${totalMembers - workingCount} Idle</span>
+        <span><span class="dot" style="background:var(--done)"></span> ${activeCount} Active</span>
       </div>
     </div>
-    <div class="team-grid">${teamCards}</div>`;
+    <div class="team-grid">${persistentHtml}</div>
+    <div class="team-section-header" style="margin-top:12px;">
+      <div class="team-section-title">🔵 On Demand</div>
+    </div>
+    <div class="team-grid">${onDemandHtml}</div>
+  ` : `
+    <div class="team-section-header">
+      <div class="team-section-title">👥 Team — ${allMembers.length}</div>
+    </div>
+    <div class="team-grid">${allMembers.filter(m => m.id !== 'orchestrator').map(m => renderTeamMemberCard(m, matchAgent(m))).join('')}</div>
+  `;
 
   // Feed items
   const events = act ? (act.recentEvents || []) : [];
@@ -1507,7 +1534,8 @@ function renderTeamView(act) {
 
   // Stats
   const stats = act ? (act.stats || {}) : {};
-  const totalTasks = team.reduce((sum, m) => sum + (m.tasksCompleted || 0), 0);
+  const totalTasks = allMembers.reduce((sum, m) => sum + (m.tasksCompleted || 0), 0);
+  const totalMembers = allMembers.filter(m => m.id !== 'orchestrator').length;
 
   // Live stats footer bar
   const footer = `<div class="live-footer">

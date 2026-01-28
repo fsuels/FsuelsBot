@@ -4,22 +4,20 @@
     "emoji": "🤖",
     "model": "claude-opus-4.5",
     "status": "working",
-    "task": "Reviewing Council verdict on team restructure + implementing dashboard polish",
-    "benefit": "Getting the team structure right means every token spent produces real output instead of idle specialists burning money",
-    "taskId": "MC-UX",
+    "task": "Implementing Council verdict — team restructured to 3 persistent + 4 on-demand",
+    "benefit": "Clean dashboard that shows only what matters. No more 8 idle cards wasting your attention.",
+    "taskId": "MC-TEAM",
     "project": "Agent System",
-    "startTime": "12:15 PM",
-    "description": "Council debate completed. Reviewing the verdict to restructure the team from 8 idle specialists down to 3 persistent + 4 on-demand. Also finishing dashboard UX improvements.",
-    "progress": 85,
+    "startTime": "12:37 PM",
+    "description": "Restructured team from 8 flat specialists to 3 always-on (Orchestrator, Pressure Loop, Deep Dive) + 4 on-demand functions (Content, Automation, Council, PromptWork). On-demand cards show as ghosted/standby until activated.",
+    "progress": 90,
     "steps": [
-      {"label": "Split layout (team left, feed right)", "done": true},
-      {"label": "Clickable expandable team cards", "done": true},
-      {"label": "Business value (Why) on every task", "done": true},
-      {"label": "Full task detail panel with steps + strategy", "done": true},
-      {"label": "Visual polish — gradients, animations, colors", "done": true},
-      {"label": "Review Council verdict + implement restructure", "done": false}
+      {"label": "Rewrite team.json with new persistent/onDemand structure", "done": true},
+      {"label": "Update dashboard to render two sections", "done": true},
+      {"label": "Add standby visual state for on-demand cards", "done": true},
+      {"label": "Test and verify rendering", "done": false}
     ],
-    "strategy": "Council debated with Grok + ChatGPT + Opus verdict. Consensus: cut from 8 to 3 persistent roles + 4 on-demand functions. Key insight: 'Persistence is earned, not assigned.'"
+    "strategy": "Council consensus: persistence is earned not assigned. Always-on roles handle continuous loops (QA after every task, research daily). On-demand functions merge related specialists (Writer+Editor+Humanizer → Content) and only spin up when needed. Saves tokens, reduces dashboard noise."
   },
   "agents": []
 }
