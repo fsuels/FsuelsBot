@@ -21,6 +21,7 @@ activity_state = {
     "statusSince": datetime.now(timezone.utc).isoformat(),
     "currentTask": None,
     "currentTool": None,
+    "highLevelTask": None,
     "recentEvents": [],
     "sessionInfo": {
         "model": "claude-opus-4-5",
@@ -36,6 +37,21 @@ activity_state = {
     },
     "lastUpdate": datetime.now(timezone.utc).isoformat()
 }
+
+CURRENT_TASK_FILE = os.path.join(DASHBOARD_DIR, "current-task.json")
+
+def load_current_task():
+    """Load the high-level task file written by Clawd"""
+    try:
+        if os.path.exists(CURRENT_TASK_FILE):
+            mtime = os.path.getmtime(CURRENT_TASK_FILE)
+            # Only show if updated in last 30 minutes
+            if time.time() - mtime < 1800:
+                with open(CURRENT_TASK_FILE, 'r') as f:
+                    return json.load(f)
+    except:
+        pass
+    return None
 state_lock = threading.Lock()
 
 def get_log_file():
@@ -334,7 +350,9 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header('Cache-Control', 'no-cache')
             self.end_headers()
             with state_lock:
-                self.wfile.write(json.dumps(activity_state, indent=2).encode())
+                response = dict(activity_state)
+                response["highLevelTask"] = load_current_task()
+                self.wfile.write(json.dumps(response, indent=2).encode())
             return
         
         if path == '/api/health':

@@ -778,8 +778,12 @@ function renderActivity(act) {
   const icon = statusIcons[act.status] || '❓';
   const label = statusLabels[act.status] || act.status;
   const color = statusColors[act.status] || 'var(--text)';
-  const task = act.currentTask || 'Waiting for a task...';
+  const hlt = act.highLevelTask;
+  const task = hlt ? hlt.taskTitle : (act.currentTask || 'Waiting for a task...');
   const tool = act.currentTool ? `🔧 Tool: ${act.currentTool}` : '';
+  const project = hlt ? hlt.project : '';
+  const taskId = hlt ? hlt.taskId : '';
+  const progress = hlt ? hlt.progress : '';
 
   // Feed items
   // Filter: only show meaningful events (skip "Done:" clutter, keep starts + errors)
@@ -807,8 +811,10 @@ function renderActivity(act) {
       </div>
       <div class="status-info">
         <h2 style="color:${color};">${label}</h2>
-        <div class="task-label">${esc(task)}</div>
-        ${tool ? `<div class="task-label" style="margin-top:4px;font-size:13px;">${esc(tool)}</div>` : ''}
+        ${taskId ? `<div style="font-size:12px;color:var(--accent);font-family:monospace;margin-bottom:2px;">${esc(taskId)}${project ? ' · ' + esc(project) : ''}</div>` : ''}
+        <div class="task-label" style="font-size:16px;font-weight:600;">${esc(task)}</div>
+        ${progress ? `<div class="task-label" style="margin-top:4px;font-size:13px;color:var(--text-dim);">📍 ${esc(progress)}</div>` : ''}
+        ${tool ? `<div class="task-label" style="margin-top:4px;font-size:13px;">🔧 Currently: ${esc(act.currentTask || tool)}</div>` : ''}
         <div class="since">Since ${timeAgo(act.statusSince)}</div>
       </div>
     </div>

@@ -1,0 +1,13 @@
+{
+  "taskId": "MC-029",
+  "taskTitle": "Finishing remaining locale redirects",
+  "project": "Dress Like Mommy",
+  "startedAt": "2026-01-28T02:05:00-05:00",
+  "status": "working",
+  "progress": "Starting redirect batch process",
+  "subtasks": [
+    "Generate redirect URLs for remaining 3,179 locales",
+    "Upload via Shopify Admin API",
+    "Verify redirects are working"
+  ]
+}
