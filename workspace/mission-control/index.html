@@ -342,8 +342,8 @@
   .summary-block li:last-child { border: none; }
 
   /* === ACTIVITY VIEW === */
-  .activity { display: none; padding: 16px; overflow-y: auto; overflow-x: hidden; flex: 1; }
-  .activity.active { display: flex; flex-direction: column; gap: 16px; }
+  .activity { display: none; padding: 12px; overflow: hidden; flex: 1; }
+  .activity.active { display: flex; flex-direction: column; gap: 10px; }
 
   /* Orchestrator bar */
   .orchestrator-bar {
@@ -630,12 +630,12 @@
   .live-footer {
     display: flex;
     align-items: center;
-    gap: 16px;
-    padding: 8px 16px;
+    gap: 18px;
+    padding: 10px 18px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 10px;
-    font-size: 12px;
+    font-size: 14px;
     flex-shrink: 0;
     overflow: hidden;
     flex-wrap: wrap;
@@ -643,9 +643,9 @@
   .live-footer .lf-stat {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
   }
-  .live-footer .lf-value { font-weight: 700; font-size: 14px; }
+  .live-footer .lf-value { font-weight: 700; font-size: 16px; }
 
   @media (max-width: 600px) {
     .team-grid { grid-template-columns: 1fr; }
@@ -699,9 +699,9 @@
     overflow: hidden;
   }
   .feed-header {
-    padding: 14px 20px;
+    padding: 16px 20px;
     font-weight: 700;
-    font-size: 16px;
+    font-size: 18px;
     border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
@@ -719,35 +719,34 @@
     50% { opacity: 0.3; }
   }
   .feed-body {
-    padding: 12px;
+    padding: 14px;
     overflow-y: auto;
     flex: 1;
-    min-height: 300px;
-    max-height: 500px;
+    min-height: 400px;
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
   }
   .feed-item {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
-    padding: 10px 14px;
+    gap: 14px;
+    padding: 12px 16px;
     border-radius: 8px;
     transition: background 0.15s;
-    font-size: 15px;
+    font-size: 17px;
   }
   .feed-item:hover { background: rgba(255,255,255,0.05); }
-  .feed-item .fi-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+  .feed-item .fi-icon { font-size: 24px; flex-shrink: 0; margin-top: 2px; }
   .feed-item .fi-time {
-    font-size: 13px;
+    font-size: 15px;
     color: var(--text-dim);
     font-family: 'SFMono-Regular', Consolas, monospace;
     flex-shrink: 0;
-    min-width: 75px;
+    min-width: 85px;
   }
-  .feed-item .fi-msg { color: var(--text); line-height: 1.5; word-break: break-word; font-size: 15px; }
-  .feed-item.error-item { background: rgba(248,81,73,0.06); }
-  .feed-item.error-item .fi-msg { color: var(--critical); }
+  .feed-item .fi-msg { color: var(--text); line-height: 1.5; word-break: break-word; font-size: 17px; }
+  .feed-item.error-item { background: rgba(248,81,73,0.08); }
+  .feed-item.error-item .fi-msg { color: var(--critical); font-weight: 500; }
 
   .activity-sidebar {
     flex: 1;
@@ -810,6 +809,76 @@
   @media (pointer: coarse) {
     .card { padding: 12px 14px; min-height: 44px; }
     .tab { min-height: 40px; }
+  }
+
+  /* === SPLIT LAYOUT: Team left, Feed right === */
+  .activity-split {
+    display: flex;
+    gap: 12px;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .activity-split-left {
+    flex: 0 0 300px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .activity-split-left::-webkit-scrollbar { width: 4px; }
+  .activity-split-left::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  .activity-split-right {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: hidden;
+  }
+  .activity-split-right .activity-feed {
+    flex: 1;
+    min-height: 0;
+  }
+  .activity-split-right .feed-body {
+    min-height: 0;
+    max-height: none;
+    flex: 1;
+  }
+
+  /* Compact team cards for sidebar */
+  .team-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 6px !important;
+  }
+  .team-card {
+    padding: 8px 10px !important;
+    border-radius: 10px !important;
+  }
+  .team-card-header {
+    gap: 8px !important;
+    margin-bottom: 0 !important;
+  }
+  .team-avatar {
+    width: 30px !important; height: 30px !important;
+    border-radius: 8px !important;
+    font-size: 16px !important;
+  }
+  .team-card-name { font-size: 13px !important; }
+  .team-card-role { font-size: 10px !important; }
+  .team-card-status { font-size: 9px !important; padding: 2px 6px !important; }
+  .team-card-caps { display: none !important; }
+  .team-card-footer { display: none !important; }
+  .team-card-desc { display: none !important; }
+  .team-card-task {
+    font-size: 11px !important;
+    padding: 4px 8px !important;
+    margin-top: 6px !important;
+    margin-bottom: 0 !important;
+  }
+
+  @media (max-width: 800px) {
+    .activity-split { flex-direction: column; }
+    .activity-split-left { flex: 0 0 auto; max-height: 200px; }
   }
 </style>
 </head>
@@ -1204,7 +1273,7 @@ function renderTeamView(act) {
   });
   const feedItems = meaningful.slice(0, 20).map(ev => {
     const isError = ev.type === 'error';
-    const agentLabel = ev.agentName ? `<span style="color:var(--accent);font-weight:600;font-size:11px;margin-right:4px;">[${esc(ev.agentName)}]</span>` : '';
+    const agentLabel = ev.agentName ? `<span style="color:var(--accent);font-weight:600;font-size:14px;margin-right:6px;">[${esc(ev.agentName)}]</span>` : '';
     return `<div class="feed-item ${isError ? 'error-item' : ''}">
       <span class="fi-icon">${esc(ev.icon || '•')}</span>
       <span class="fi-time">${formatTime(ev.time)}</span>
@@ -1223,22 +1292,26 @@ function renderTeamView(act) {
     <div class="lf-stat"><span style="font-size:14px;">🔧</span> <span class="lf-value">${stats.toolCalls || 0}</span> Tool Calls</div>
     <div class="lf-stat"><span style="font-size:14px;">🏁</span> <span class="lf-value">${stats.runsCompleted || 0}</span> Runs</div>
     <div class="lf-stat"><span style="font-size:14px;">${(stats.errorsToday || 0) > 0 ? '⚠️' : '✅'}</span> <span class="lf-value" style="color:${(stats.errorsToday || 0) > 0 ? 'var(--critical)' : 'var(--done)'};">${stats.errorsToday || 0}</span> Errors</div>
-    <div style="margin-left:auto;font-size:11px;color:var(--text-dim);">${act ? 'Updated ' + timeAgo(act.lastUpdate) : 'Offline'}</div>
+    <div style="margin-left:auto;font-size:13px;color:var(--text-dim);">${act ? 'Updated ' + timeAgo(act.lastUpdate) : 'Offline'}</div>
   </div>`;
 
   document.getElementById('activityView').innerHTML = `
     ${orchBar}
-    ${teamSection}
 
-    <div class="activity-body" style="margin-top:8px;">
-      <div class="activity-feed" style="flex:1;">
-        <div class="feed-header">
-          <span class="live-dot"></span>
-          Live Activity Feed
-          <span style="margin-left:auto;font-size:13px;color:var(--text-dim);">${act ? 'Updated ' + timeAgo(act.lastUpdate) : 'Offline'}</span>
-        </div>
-        <div class="feed-body">
-          ${feedItems || '<div style="padding:20px;text-align:center;color:var(--text-dim);">No activity yet. Events appear here as agents work.</div>'}
+    <div class="activity-split">
+      <div class="activity-split-left">
+        ${teamSection}
+      </div>
+      <div class="activity-split-right">
+        <div class="activity-feed" style="flex:1;display:flex;flex-direction:column;">
+          <div class="feed-header">
+            <span class="live-dot"></span>
+            Live Activity Feed
+            <span style="margin-left:auto;font-size:14px;color:var(--text-dim);">${act ? 'Updated ' + timeAgo(act.lastUpdate) : 'Offline'}</span>
+          </div>
+          <div class="feed-body" style="flex:1;max-height:none;">
+            ${feedItems || '<div style="padding:30px;text-align:center;color:var(--text-dim);font-size:16px;">No activity yet. Events appear here as agents work.</div>'}
+          </div>
         </div>
       </div>
     </div>

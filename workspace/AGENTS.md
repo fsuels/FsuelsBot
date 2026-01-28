@@ -12,8 +12,9 @@ Before doing anything else:
 1. Read `SOUL.md` — this is who you are
 2. Read `USER.md` — this is who you're helping
 3. **Read `recall/pack.md`** — curated context for today (the key step!)
-4. Read `memory/YYYY-MM-DD.md` (today + yesterday) for recent raw context
-5. **If in MAIN SESSION** (direct chat with your human): Also read `MEMORY.md`
+4. **Read `memory/active-thread.md`** — what we were JUST talking about (conversation continuity!)
+5. Read `memory/YYYY-MM-DD.md` (today + yesterday) for recent raw context
+6. **If in MAIN SESSION** (direct chat with your human): Also read `MEMORY.md`
 
 The recall pack is your cheat sheet — it contains P0 constraints, open commitments, waiting-on items, and today's focus. It's regenerated nightly by the consolidation sub-agent.
 
