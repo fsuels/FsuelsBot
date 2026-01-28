@@ -5,7 +5,7 @@ The Council is a **congress of experts** — not a survey, not a panel, not a vo
 
 A single LLM is a writer who publishes their first draft — no editor, no critics, no revision. The Council externalizes the "inner critic" that LLMs lack. When multiple AIs examine the same problem through real debate, their disagreements expose blind spots, their agreements (tested under fire) build real confidence, and the cross-pollination of ideas sparks breakthroughs no single mind would find.
 
-The goal is never just "get an answer." It's **better understanding** — of the problem, the constraints, the possibilities, and the path forward. Every session should leave us knowing more than when we started.
+The goal is never just "get an answer." It's **better understanding** that leads to **better solutions**. Understanding is the means — superior solutions are the end. Every session should leave us with a solution that didn't exist before the debate started.
 
 ## The Bigger Vision
 The Council is not a tool you use sometimes. It's a **permanent improvement engine**. The best and brightest AI minds — debating, challenging, refining — to always find better solutions. Not just for answering questions, but for continuously evolving every aspect of Francisco's business and workflow. The debates never stop. The ideas compound. What's best today gets beaten tomorrow.
