@@ -71,6 +71,22 @@ Daily research → actionable insights → improvement opportunities for FsuelsB
 - @TOEwithCurt — theories of everything, consciousness, AI
 - @Naveen_Jain_CEO — entrepreneur, Viome
 
+### 👑 AI Visionaries & CEOs (TOP PRIORITY)
+- @karpathy — Andrej Karpathy, ex-Tesla AI / ex-OpenAI, educator
+- @iaboryk — Ilya Sutskever, co-founder OpenAI, SSI
+- @sama — Sam Altman, CEO OpenAI
+- @DarioAmodei — Dario Amodei, CEO Anthropic (Claude)
+- @elonmusk — Elon Musk, xAI / Grok / Tesla
+- @demaborossenisabis — Demis Hassabis, CEO Google DeepMind
+- @ylecun — Yann LeCun, Chief AI Scientist Meta
+- @fchollet — François Chollet, Keras creator, ARC Prize
+- @DrJimFan — Jim Fan, NVIDIA senior research, embodied AI
+- @AmandaAskell — Amanda Askell, Anthropic (Claude character/alignment)
+- @alexalbert__ — Alex Albert, Anthropic (prompt engineering lead)
+- @noaboroswn — Noam Brown, OpenAI (reasoning/o1)
+- @hwchase17 — Harrison Chase, LangChain founder
+- @JeffDean — Jeff Dean, Google Chief Scientist
+
 ### 🧠 Other Thinkers
 - @MrBeast — content strategy
 - @zittrain — Harvard Law, tech policy
@@ -86,6 +102,14 @@ Daily research → actionable insights → improvement opportunities for FsuelsB
 - Anthropic blog
 - AI newsletters
 
+## Research Rules
+- **ALWAYS read the replies/comments** on important posts — the best tips, tricks,
+  workarounds, and tool recommendations are buried in the replies, not the main post
+- Click into threads, expand conversations, read what builders are sharing
+- Pay special attention to replies from verified accounts and people with many followers
+- Look for: code snippets, GitHub links, tool recommendations, "I tried X and it works"
+- Save any useful links or repos found in comments
+
 ## Daily Brief Format
 ### 🔬 [Date] AI Research Brief
 
@@ -100,5 +124,7 @@ Daily research → actionable insights → improvement opportunities for FsuelsB
 - Option B: [what] — [why it's good]
 
 **📊 From the Experts** — Best tweets/threads of the day
+
+**💬 Best from the Comments** — Hidden gems found in reply threads
 
 **🎯 Action Items** — What to do today
