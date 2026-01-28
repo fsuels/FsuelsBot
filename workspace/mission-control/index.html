@@ -91,20 +91,7 @@
     background: #888;
     flex-shrink: 0;
   }
-  #gatewayLink {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
-    background: var(--surface2);
-    border-radius: 6px;
-    font-size: 12px;
-    color: var(--accent);
-    text-decoration: none;
-    border: 1px solid var(--border);
-    white-space: nowrap;
-  }
-  #gatewayLink:hover { background: var(--border); }
+  #gatewayLink:hover { opacity: 0.8; }
   .tabs {
     display: flex;
     gap: 2px;
@@ -673,8 +660,9 @@
     <div id="clawdStatus" onclick="checkStatus()">
       <span id="statusDot"></span>
       <span id="statusText" style="color:var(--text-dim);">Checking...</span>
+      <span style="color:var(--border);margin:0 2px;">│</span>
+      <a href="http://127.0.0.1:18789/overview" target="_blank" rel="noopener" id="gatewayLink" onclick="event.stopPropagation(); event.preventDefault(); window.open(this.href, 'gateway', 'noopener,noreferrer');" style="color:var(--accent);text-decoration:none;font-size:12px;display:flex;align-items:center;gap:3px;">⚙️ Control</a>
     </div>
-    <a href="http://127.0.0.1:18789/overview" target="_blank" rel="noopener" id="gatewayLink" onclick="event.preventDefault(); window.open(this.href, 'gateway', 'noopener,noreferrer');">⚙️ Gateway</a>
     <div class="tabs">
       <button class="tab" onclick="switchView('activity', event)">⚡ Activity</button>
       <button class="tab active" onclick="switchView('kanban', event)">📋 Kanban</button>
