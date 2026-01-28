@@ -1,0 +1,23 @@
+I run a personal AI agent system (Claude-based, called Clawdbot) that manages my e-commerce business (Dress Like Mommy - mommy-and-me matching outfits, Shopify dropship, ~$15K/yr revenue). The system has: an Orchestrator (Opus), a QA Pressure Loop (Sonnet), a Research Loop (Gemini), and on-demand functions (Content, Automation, Council, PromptWork). We just built 8 procedure files, restructured from 8 idle specialists to 3+4 architecture, and built a dashboard with audit panels.
+
+I want to apply three tech visionaries ideas to this system:
+
+ELON MUSK 5-Step Algorithm: 1) Question every requirement 2) Delete ruthlessly (if you dont add back 10% you didnt delete enough) 3) Simplify/optimize only AFTER deleting 4) Accelerate cycle time 5) Automate last not first. Key: most people optimize things that shouldnt exist.
+
+ANDREJ KARPATHY Practical AI Workflow: 1) Vibe coding crossed a threshold 2) Bottleneck is HUMAN VERIFICATION - keep outputs small use killer GUIs for fast checks 3) Run agents locally with your real context 4) Slopacolypse coming in 2026 - tons of low-quality AI junk 5) Fix: constrain the AI make verification loops lightning-fast 6) Depth over breadth - build projects hit walls learn on the fly
+
+ILYA SUTSKEVER Age of Research: 1) Pure scaling hits limits 2) Breakthroughs needed in generalization better value functions continual learning 3) Self-play brain-inspired designs 4) AI that actually understands not just pattern-matches 5) Safety first big research bets
+
+Answer ALL FIVE questions with detailed positions:
+
+Q1: Should any of these ideas become PERMANENT P0 principles in our system? Draft the actual principle text.
+
+Q2: Apply all three lenses to what we built TODAY (8 procedures, 3+4 team, dashboard). Elon: what should be DELETED? Karpathy: is verification fast enough? outputs small enough? Sutskever: is our system actually learning/generalizing or just pattern-matching tasks?
+
+Q3: Whats the 10-second rule? Every output should be verifiable by the human operator in under 10 seconds. How do we enforce this? Does this change how dashboard artifacts and reports work?
+
+Q4: What does slopacolypse mean for a small e-commerce brand? If AI junk floods the market how does quality plus trust become the differentiator for a mommy-and-me matching outfits store?
+
+Q5: What should our QA Pressure Loop check include from these ideas? Should it ask Elons should this even exist? Should it check can the human verify this in 10 seconds?
+
+Give thorough detailed positions on each question. This is for a multi-AI debate - your positions will be challenged by other AIs.
