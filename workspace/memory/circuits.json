@@ -1,0 +1,47 @@
+{
+  "grok": {
+    "state": "closed",
+    "failure_count": 0,
+    "success_count": 0,
+    "last_failure": null,
+    "last_success": null,
+    "opened_at": null,
+    "last_error": null
+  },
+  "chatgpt": {
+    "state": "closed",
+    "failure_count": 0,
+    "success_count": 0,
+    "last_failure": null,
+    "last_success": null,
+    "opened_at": null,
+    "last_error": null
+  },
+  "gemini": {
+    "state": "closed",
+    "failure_count": 0,
+    "success_count": 0,
+    "last_failure": null,
+    "last_success": null,
+    "opened_at": null,
+    "last_error": null
+  },
+  "shopify": {
+    "state": "closed",
+    "failure_count": 0,
+    "success_count": 0,
+    "last_failure": null,
+    "last_success": null,
+    "opened_at": null,
+    "last_error": null
+  },
+  "buckydrop": {
+    "state": "closed",
+    "failure_count": 0,
+    "success_count": 0,
+    "last_failure": null,
+    "last_success": null,
+    "opened_at": null,
+    "last_error": null
+  }
+}
