@@ -2,1722 +2,354 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Mission Control">
-<meta name="theme-color" content="#0d1117">
-<title>Mission Control — DLM Command Center</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="refresh" content="15">
+<title>Mission Control</title>
 <style>
-  :root {
-    --bg: #0d1117;
-    --surface: #161b22;
-    --surface2: #21262d;
-    --border: #30363d;
-    --text: #e6edf3;
-    --text-dim: #8b949e;
-    --accent: #58a6ff;
-    --critical: #f85149;
-    --high: #f0883e;
-    --medium: #d29922;
-    --low: #3fb950;
-    --blocked: #f85149;
-    --todo: #58a6ff;
-    --progress: #d29922;
-    --done: #3fb950;
-  }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #0d1117;
+  color: #e6edf3;
+  min-height: 100vh;
+  padding: 20px;
+}
+.container { max-width: 1100px; margin: 0 auto; }
 
-  /* === RESET & BASE === */
-  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-    -webkit-text-size-adjust: 100%;
-    width: 100vw;
-    height: 100vh;
-    overflow: hidden;
-    overflow-x: hidden;
-  }
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #21262d;
+}
+.header h1 {
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.status-badge {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.status-badge.working { background: rgba(52,211,153,0.15); color: #34d399; }
+.status-badge.idle { background: rgba(139,148,158,0.15); color: #8b949e; }
+.status-badge.offline { background: rgba(248,81,73,0.15); color: #f85149; }
+.live-dot {
+  width: 10px;
+  height: 10px;
+  background: #3fb950;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
 
-  /* === LAYOUT SHELL (fixed viewport) === */
-  #app {
-    display: flex;
-    flex-direction: column;
-    width: 100vw;
-    height: 100vh;
-    overflow: hidden;
-    overflow-x: hidden;
-  }
+/* Current Task Card */
+.current-task {
+  background: linear-gradient(135deg, #161b22 0%, #1c2128 100%);
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.task-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.task-avatar { font-size: 40px; }
+.task-info { flex: 1; }
+.task-name { font-size: 14px; color: #8b949e; margin-bottom: 4px; }
+.task-title { font-size: 20px; font-weight: 600; color: #58a6ff; margin-bottom: 8px; }
+.task-desc { color: #8b949e; font-size: 14px; line-height: 1.5; }
+.progress-section { margin-top: 16px; }
+.progress-bar {
+  height: 8px;
+  background: #21262d;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #238636, #3fb950);
+  transition: width 0.5s;
+}
+.progress-label { font-size: 13px; color: #8b949e; }
 
-  /* === HEADER === */
-  header {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 6px 12px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    flex-shrink: 0;
-    min-height: 40px;
-  }
-  header h1 {
-    font-size: 15px;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    white-space: nowrap;
-  }
-  header h1 .rocket { font-size: 18px; }
-  header h1 .subtitle { font-size: 12px; color: var(--text-dim); font-weight: 400; }
-  .header-right {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: nowrap;
-  }
-  #clawdStatus {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 10px;
-    background: var(--surface2);
-    border-radius: 6px;
-    font-size: 12px;
-    cursor: pointer;
-    white-space: nowrap;
-    border: 1px solid transparent;
-  }
-  #clawdStatus:hover { border-color: var(--border); }
-  #statusDot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: #888;
-    flex-shrink: 0;
-  }
-  #gatewayLink:hover { opacity: 0.8; }
-  .tabs {
-    display: flex;
-    gap: 2px;
-    background: var(--surface2);
-    border-radius: 8px;
-    padding: 3px;
-  }
-  .tab {
-    padding: 5px 14px;
-    border-radius: 6px;
-    border: none;
-    background: transparent;
-    color: var(--text-dim);
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 500;
-    transition: all 0.15s;
-    white-space: nowrap;
-  }
-  .tab:hover { color: var(--text); background: rgba(255,255,255,0.06); }
-  .tab.active { background: var(--accent); color: #fff; }
+/* Steps */
+.steps-section {
+  margin-top: 16px;
+  border-top: 1px solid #21262d;
+  padding-top: 16px;
+}
+.steps-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 8px 0;
+}
+.steps-header:hover { opacity: 0.8; }
+.steps-title { font-size: 14px; color: #8b949e; font-weight: 600; }
+.steps-toggle { font-size: 12px; color: #58a6ff; }
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.steps-grid.collapsed { display: none; }
+.step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #0d1117;
+  border-radius: 6px;
+  font-size: 14px;
+}
+.step.done { color: #3fb950; }
+.step.pending { color: #8b949e; }
+.step.current { color: #58a6ff; background: rgba(88,166,255,0.1); }
 
-  /* === STATS BAR === */
-  .stats-bar {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 5px 12px;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    font-size: 12px;
-    flex-shrink: 0;
-    flex-wrap: wrap;
-    overflow: hidden;
-  }
-  .stat {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-  }
-  .stat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .stat-label { color: var(--text-dim); }
-  .stat-value { font-weight: 700; font-size: 14px; }
-  .updated { margin-left: auto; color: var(--text-dim); font-style: italic; font-size: 11px; }
+/* Details (expandable) */
+.details-section {
+  margin-top: 12px;
+  padding: 12px;
+  background: #0d1117;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #6e7681;
+  display: none;
+}
+.details-section.show { display: block; }
+.detail-item { padding: 4px 0; border-bottom: 1px solid #21262d; }
+.detail-item:last-child { border-bottom: none; }
 
-  /* === KANBAN VIEW === */
-  .kanban {
-    display: none;
-    flex: 1;
-    overflow: hidden;
-    background: var(--bg);
-  }
-  .kanban.active {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 6px;
-    padding: 6px;
-  }
-  .column {
-    min-width: 0;
-    background: var(--surface);
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-  .column-header {
-    padding: 10px 12px;
-    font-weight: 700;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-  }
-  .column-header .count {
-    background: var(--surface2);
-    border-radius: 12px;
-    padding: 2px 10px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-dim);
-  }
-  .column-body {
-    padding: 6px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    flex: 1;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
-  }
-  .column-body::-webkit-scrollbar { width: 5px; }
-  .column-body::-webkit-scrollbar-track { background: transparent; }
-  .column-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 5px; }
+/* Two Column Layout */
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+@media (max-width: 800px) {
+  .columns { grid-template-columns: 1fr; }
+}
 
-  /* === CARDS === */
-  .card {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 12px;
-    cursor: pointer;
-    transition: border-color 0.15s, box-shadow 0.15s;
-  }
-  .card:hover { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(88,166,255,0.15); }
-  .card-id {
-    font-size: 11px;
-    color: var(--text-dim);
-    font-family: 'SFMono-Regular', Consolas, monospace;
-    letter-spacing: 0.3px;
-  }
-  .card-title {
-    font-size: 14px;
-    font-weight: 600;
-    margin: 3px 0 8px;
-    line-height: 1.35;
-    color: var(--text);
-  }
-  .card-desc {
-    font-size: 13px;
-    color: var(--text-dim);
-    line-height: 1.5;
-    margin-bottom: 8px;
-    display: none;
-  }
-  .card.expanded .card-desc { display: block; }
+/* Team Section */
+.section {
+  background: #161b22;
+  border: 1px solid #21262d;
+  border-radius: 12px;
+  padding: 16px;
+}
+.section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #8b949e;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.team-list { display: flex; flex-direction: column; gap: 8px; }
+.team-member {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: #0d1117;
+  border-radius: 8px;
+}
+.team-member .emoji { font-size: 24px; }
+.team-member .info { flex: 1; }
+.team-member .name { font-weight: 600; font-size: 14px; }
+.team-member .role { font-size: 12px; color: #8b949e; }
+.team-member .status {
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 12px;
+}
+.team-member .status.working { background: rgba(52,211,153,0.15); color: #34d399; }
+.team-member .status.idle { background: rgba(139,148,158,0.15); color: #8b949e; }
+.team-member .status.done { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.team-member .status.standby { background: rgba(139,148,158,0.1); color: #6e7681; }
 
-  /* Benefit box */
-  .card-benefit {
-    display: none;
-    margin-top: 10px;
-    padding: 10px 12px;
-    background: rgba(63,185,80,0.08);
-    border-radius: 6px;
-    border-left: 3px solid var(--done);
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--done);
-    line-height: 1.5;
-  }
-  .card.expanded .card-benefit { display: block; }
+/* History Section */
+.history-list { display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; }
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: #0d1117;
+  border-radius: 8px;
+  font-size: 13px;
+}
+.history-item .icon { font-size: 16px; }
+.history-item .text { flex: 1; color: #8b949e; }
+.history-item .time { font-size: 11px; color: #484f58; }
 
-  /* Details box */
-  .card-details {
-    display: none;
-    margin-top: 8px;
-    padding: 10px 12px;
-    background: rgba(0,0,0,0.25);
-    border-radius: 6px;
-    border-left: 3px solid var(--accent);
-    font-size: 13px;
-    color: var(--text);
-    line-height: 1.6;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    max-height: 400px;
-    overflow-y: auto;
-  }
-  .card.expanded .card-details { display: block; }
-
-  .card-expand-hint {
-    font-size: 11px;
-    color: var(--accent);
-    text-align: right;
-    margin-top: 4px;
-    opacity: 0.7;
-  }
-  .card.expanded .card-expand-hint { display: none; }
-
-  /* Meta row: badges + tags */
-  .card-meta {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    flex-wrap: wrap;
-    padding-bottom: 2px;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-    margin-bottom: 2px;
-  }
-  .priority-badge {
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    padding: 2px 7px;
-    border-radius: 4px;
-    letter-spacing: 0.4px;
-  }
-  .priority-critical { background: rgba(248,81,73,0.2); color: var(--critical); }
-  .priority-high { background: rgba(240,136,62,0.2); color: var(--high); }
-  .priority-medium { background: rgba(210,153,34,0.2); color: var(--medium); }
-  .priority-low { background: rgba(63,185,80,0.2); color: var(--low); }
-  .assignee-badge {
-    font-size: 10px;
-    padding: 2px 7px;
-    border-radius: 4px;
-    background: rgba(88,166,255,0.12);
-    color: var(--accent);
-    font-weight: 500;
-  }
-  .tag {
-    font-size: 10px;
-    padding: 2px 6px;
-    border-radius: 3px;
-    background: rgba(255,255,255,0.06);
-    color: var(--text-dim);
-  }
-  .blocked-reason {
-    font-size: 12px;
-    color: var(--critical);
-    margin-top: 6px;
-    padding: 5px 8px;
-    background: rgba(248,81,73,0.08);
-    border-radius: 4px;
-    border-left: 3px solid var(--critical);
-    line-height: 1.4;
-  }
-
-  /* === SECOND BRAIN VIEW === */
-  .brain { display: none; padding: 20px; overflow-y: auto; flex: 1; }
-  .brain.active { display: block; }
-  .brain-section { margin-bottom: 28px; }
-  .brain-section h2 { font-size: 18px; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
-  .brain-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
-  .brain-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; transition: border-color 0.15s; }
-  .brain-card:hover { border-color: var(--accent); }
-  .brain-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
-  .brain-card p { font-size: 14px; color: var(--text-dim); line-height: 1.5; }
-  .brain-card .brain-tags { margin-top: 10px; display: flex; gap: 4px; flex-wrap: wrap; }
-  .brain-card .brain-date { font-size: 11px; color: var(--text-dim); margin-top: 8px; }
-  .idea-icon { color: #f0883e; }
-  .research-icon { color: #58a6ff; }
-  .insight-icon { color: #d2a8ff; }
-
-  /* === SUMMARY VIEW === */
-  .summary { display: none; padding: 20px; overflow-y: auto; flex: 1; max-width: 1000px; }
-  .summary.active { display: block; }
-  .summary h2 { font-size: 18px; margin-bottom: 16px; }
-  .summary-block { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 14px; }
-  .summary-block h3 { font-size: 15px; margin-bottom: 12px; color: var(--accent); }
-  .summary-block ul { list-style: none; padding: 0; }
-  .summary-block li { padding: 6px 0; font-size: 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
-  .summary-block li:last-child { border: none; }
-
-  /* === ACTIVITY VIEW === */
-  .activity { display: none; padding: 12px; overflow: hidden; flex: 1; }
-  .activity.active { display: flex; flex-direction: column; gap: 10px; }
-
-  /* Orchestrator bar */
-  .orchestrator-bar {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 14px 20px;
-    background: rgba(88,166,255,0.06);
-    border: 1px solid rgba(88,166,255,0.15);
-    border-radius: 12px;
-    overflow: hidden;
-    min-width: 0;
-  }
-  .orchestrator-bar .orch-dot {
-    width: 10px; height: 10px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-  .orchestrator-bar .orch-dot.idle { background: var(--text-dim); }
-  .orchestrator-bar .orch-dot.working { background: var(--done); animation: blink 2s infinite; }
-  .orchestrator-bar .orch-dot.thinking { background: var(--accent); animation: blink 1.5s infinite; }
-  .orchestrator-bar .orch-name { font-weight: 700; font-size: 15px; }
-  .orchestrator-bar .orch-task { color: var(--text-dim); font-size: 13px; flex: 1; margin-left: 8px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .orchestrator-bar .orch-model { font-size: 11px; color: var(--text-dim); font-family: monospace; }
-
-  /* Agent cards grid */
-  .agents-section-title {
-    font-size: 13px;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--text-dim);
-    padding: 4px 0;
-    font-weight: 700;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 4px;
-  }
-  .agents-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
-  }
-  .agent-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 20px;
-    margin-bottom: 16px;
-    transition: all 0.2s ease;
-    position: relative;
-  }
-  .agent-card:last-child { margin-bottom: 0; }
-  .agent-card:hover { border-color: rgba(88,166,255,0.3); box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
-  .agent-card.working { border-left: 4px solid var(--done); background: linear-gradient(135deg, rgba(63,185,80,0.04), var(--surface)); }
-  .agent-card.thinking { border-left: 4px solid var(--accent); background: linear-gradient(135deg, rgba(88,166,255,0.04), var(--surface)); }
-  .agent-card.idle { border-left: 4px solid var(--text-dim); }
-  .agent-card.done { border-left: 4px solid var(--accent); background: linear-gradient(135deg, rgba(88,166,255,0.03), var(--surface)); }
-  .agent-card.error { border-left: 4px solid var(--critical); background: linear-gradient(135deg, rgba(248,81,73,0.04), var(--surface)); }
-
-  .agent-card-top {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-bottom: 14px;
-  }
-  .agent-avatar {
-    width: 52px; height: 52px;
-    border-radius: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 26px;
-    flex-shrink: 0;
-  }
-  .agent-card.working .agent-avatar { background: rgba(63,185,80,0.15); }
-  .agent-card.thinking .agent-avatar { background: rgba(88,166,255,0.15); }
-  .agent-card.idle .agent-avatar { background: rgba(139,148,158,0.15); }
-  .agent-card.done .agent-avatar { background: rgba(88,166,255,0.15); }
-  .agent-card.error .agent-avatar { background: rgba(248,81,73,0.15); }
-
-  .agent-card-info { flex: 1; min-width: 0; }
-  .agent-card-name { font-size: 17px; font-weight: 700; }
-  .agent-card-role { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
-  .agent-status-badge {
-    font-size: 10px;
-    padding: 4px 10px;
-    border-radius: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
-  .agent-card.working .agent-status-badge { background: rgba(63,185,80,0.15); color: var(--done); }
-  .agent-card.thinking .agent-status-badge { background: rgba(88,166,255,0.15); color: var(--accent); }
-  .agent-card.idle .agent-status-badge { background: rgba(139,148,158,0.15); color: var(--text-dim); }
-  .agent-card.done .agent-status-badge { background: rgba(88,166,255,0.15); color: var(--accent); }
-  .agent-card.error .agent-status-badge { background: rgba(248,81,73,0.15); color: var(--critical); }
-
-  .agent-card-task {
-    font-size: 14px;
-    color: var(--text);
-    line-height: 1.5;
-    margin-bottom: 14px;
-    padding: 10px 14px;
-    background: rgba(255,255,255,0.02);
-    border-radius: 8px;
-    border-left: 2px solid var(--border);
-  }
-  .agent-progress {
-    height: 4px;
-    background: var(--border);
-    border-radius: 4px;
-    overflow: hidden;
-    margin-bottom: 10px;
-  }
-  .agent-progress-fill {
-    height: 100%;
-    border-radius: 4px;
-    transition: width 0.5s ease;
-  }
-  .agent-card.working .agent-progress-fill { background: var(--done); animation: pulse-bar 2s infinite; }
-  .agent-card.thinking .agent-progress-fill { background: var(--accent); animation: pulse-bar 1.5s infinite; }
-  .agent-card.done .agent-progress-fill { background: var(--accent); }
-  .agent-card.error .agent-progress-fill { background: var(--critical); }
-  @keyframes pulse-bar { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
-
-  .agent-card-meta {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 12px;
-    color: var(--text-dim);
-  }
-  .agent-card-meta .agent-model {
-    font-family: monospace;
-    padding: 2px 8px;
-    background: rgba(255,255,255,0.04);
-    border-radius: 4px;
-  }
-
-  /* No agents empty state */
-  .no-agents {
-    text-align: center;
-    padding: 32px;
-    color: var(--text-dim);
-    font-size: 14px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-  }
-
-  /* === TEAM ROSTER === */
-  .team-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 12px;
-    overflow: hidden;
-  }
-  .team-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 16px;
-    transition: all 0.2s ease;
-    position: relative;
-    cursor: pointer;
-    overflow: hidden;
-  }
-  .team-card:hover { border-color: rgba(88,166,255,0.3); box-shadow: 0 4px 16px rgba(0,0,0,0.2); transform: translateY(-1px); }
-  .team-card.status-working { border-left: 4px solid var(--done); }
-  .team-card.status-thinking { border-left: 4px solid var(--accent); }
-  .team-card.status-idle { border-left: 4px solid var(--border); }
-  .team-card.status-done { border-left: 4px solid var(--accent); }
-  .team-card.status-error { border-left: 4px solid var(--critical); }
-  .team-card.status-standby {
-    border-left: 4px solid rgba(88,166,255,0.2);
-    opacity: 0.55;
-  }
-  .team-card.status-standby:hover { opacity: 0.85; }
-  .team-card.status-standby.expanded { opacity: 1; }
-
-  .team-card-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 12px;
-  }
-  .team-avatar {
-    width: 48px; height: 48px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    flex-shrink: 0;
-    background: rgba(255,255,255,0.05);
-  }
-  .team-card.status-working .team-avatar { background: rgba(63,185,80,0.15); }
-  .team-card.status-thinking .team-avatar { background: rgba(88,166,255,0.15); }
-
-  .team-card-identity { flex: 1; min-width: 0; }
-  .team-card-name { font-size: 15px; font-weight: 700; }
-  .team-card-role { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
-  .team-card-status {
-    font-size: 10px;
-    padding: 3px 8px;
-    border-radius: 8px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-    flex-shrink: 0;
-  }
-  .team-card.status-working .team-card-status { background: rgba(63,185,80,0.15); color: var(--done); }
-  .team-card.status-thinking .team-card-status { background: rgba(88,166,255,0.15); color: var(--accent); }
-  .team-card.status-idle .team-card-status { background: rgba(139,148,158,0.15); color: var(--text-dim); }
-  .team-card.status-done .team-card-status { background: rgba(88,166,255,0.15); color: var(--accent); }
-  .team-card.status-error .team-card-status { background: rgba(248,81,73,0.15); color: var(--critical); }
-  .team-card.status-standby .team-card-status { background: rgba(88,166,255,0.1); color: rgba(88,166,255,0.5); }
-
-  .team-card-desc {
-    font-size: 12px;
-    color: var(--text-dim);
-    line-height: 1.5;
-    margin-bottom: 10px;
-  }
-  .team-card-caps {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    margin-bottom: 10px;
-  }
-  .team-cap {
-    font-size: 10px;
-    padding: 2px 8px;
-    border-radius: 4px;
-    background: rgba(255,255,255,0.05);
-    color: var(--text-dim);
-  }
-  .team-card-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 11px;
-    color: var(--text-dim);
-    padding-top: 8px;
-    border-top: 1px solid var(--border);
-  }
-  .team-model {
-    font-family: monospace;
-    padding: 2px 6px;
-    background: rgba(255,255,255,0.04);
-    border-radius: 4px;
-    font-size: 10px;
-  }
-  .team-card-task {
-    font-size: 12px;
-    color: var(--text);
-    padding: 8px 10px;
-    background: rgba(63,185,80,0.06);
-    border-radius: 6px;
-    border-left: 2px solid var(--done);
-    margin-bottom: 10px;
-    display: none;
-  }
-  .team-card.status-working .team-card-task,
-  .team-card.status-thinking .team-card-task { display: block; }
-
-  /* Team section header */
-  .team-section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 4px 0;
-    margin-bottom: 8px;
-  }
-  .team-section-title {
-    font-size: 13px;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--text-dim);
-    font-weight: 700;
-  }
-  .team-counter {
-    font-size: 12px;
-    color: var(--text-dim);
-    display: flex;
-    gap: 12px;
-  }
-  .team-counter span { display: flex; align-items: center; gap: 4px; }
-  .team-counter .dot { width: 6px; height: 6px; border-radius: 50%; }
-
-  /* Live footer bar */
-  .live-footer {
-    display: flex;
-    align-items: center;
-    gap: 18px;
-    padding: 10px 18px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    font-size: 14px;
-    flex-shrink: 0;
-    overflow: hidden;
-    flex-wrap: wrap;
-  }
-  .live-footer .lf-stat {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .live-footer .lf-value { font-weight: 700; font-size: 16px; }
-
-  @media (max-width: 600px) {
-    .team-grid { grid-template-columns: 1fr; }
-    .live-footer { flex-wrap: wrap; gap: 8px; }
-  }
-
-  /* Legacy hero for fallback */
-  .activity-hero {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    padding: 24px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-  }
-  .status-orb {
-    width: 80px; height: 80px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 36px;
-    flex-shrink: 0;
-    position: relative;
-  }
-  .status-orb.idle { background: rgba(139,148,158,0.15); }
-  .status-orb.working { background: rgba(63,185,80,0.15); animation: pulse-green 2s infinite; }
-  .status-orb.thinking { background: rgba(88,166,255,0.15); animation: pulse-blue 1.5s infinite; }
-  @keyframes pulse-green {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(63,185,80,0.4); }
-    50% { box-shadow: 0 0 20px 10px rgba(63,185,80,0.15); }
-  }
-  @keyframes pulse-blue {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(88,166,255,0.4); }
-    50% { box-shadow: 0 0 20px 10px rgba(88,166,255,0.15); }
-  }
-  .status-info h2 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
-  .status-info .task-label { font-size: 15px; color: var(--text-dim); }
-  .status-info .since { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
-
-  .activity-body { display: flex; gap: 16px; flex: 1; min-height: 0; }
-
-  .activity-feed {
-    flex: 2;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-  .feed-header {
-    padding: 16px 20px;
-    font-weight: 700;
-    font-size: 18px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-shrink: 0;
-  }
-  .feed-header .live-dot {
-    width: 10px; height: 10px;
-    border-radius: 50%;
-    background: #3fb950;
-    animation: blink 1.5s infinite;
-  }
-  @keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-  }
-  .feed-body {
-    padding: 14px;
-    overflow-y: auto;
-    flex: 1;
-    min-height: 400px;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
-  }
-  .feed-item {
-    display: flex;
-    align-items: flex-start;
-    gap: 14px;
-    padding: 12px 16px;
-    border-radius: 8px;
-    transition: background 0.15s;
-    font-size: 17px;
-  }
-  .feed-item:hover { background: rgba(255,255,255,0.05); }
-  .feed-item .fi-icon { font-size: 24px; flex-shrink: 0; margin-top: 2px; }
-  .feed-item .fi-time {
-    font-size: 15px;
-    color: var(--text-dim);
-    font-family: 'SFMono-Regular', Consolas, monospace;
-    flex-shrink: 0;
-    min-width: 85px;
-  }
-  .feed-item .fi-msg { color: var(--text); line-height: 1.5; word-break: break-word; font-size: 17px; }
-  .feed-item.error-item { background: rgba(248,81,73,0.08); }
-  .feed-item.error-item .fi-msg { color: var(--critical); font-weight: 500; }
-
-  .activity-sidebar {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    min-width: 220px;
-  }
-  .activity-stat-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 16px;
-  }
-  .activity-stat-card h3 {
-    font-size: 12px;
-    color: var(--text-dim);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 8px;
-  }
-  .activity-stat-card .big-num {
-    font-size: 32px;
-    font-weight: 700;
-  }
-  .activity-stat-card .sub-text {
-    font-size: 12px;
-    color: var(--text-dim);
-    margin-top: 4px;
-  }
-
-  /* === MOBILE (phones only) === */
-  @media (max-width: 600px) {
-    header { flex-wrap: wrap; padding: 8px; gap: 6px; }
-    header h1 { font-size: 14px; }
-    .header-right { flex-wrap: wrap; width: 100%; justify-content: center; }
-    .tab { padding: 6px 8px; font-size: 11px; }
-    .stats-bar { flex-wrap: wrap; gap: 8px; padding: 6px 8px; justify-content: center; }
-    .updated { width: 100%; text-align: center; margin-left: 0; }
-    .kanban.active {
-      grid-template-columns: 1fr;
-      gap: 12px;
-      padding: 8px;
-      overflow-y: auto;
-    }
-    .column-body { overflow-y: visible; }
-    .card { padding: 14px; }
-    .card-title { font-size: 15px; }
-    .brain-grid { grid-template-columns: 1fr; }
-    .activity-hero { flex-direction: column; text-align: center; padding: 16px; }
-    .orchestrator-bar { flex-wrap: wrap; }
-    .agents-grid { grid-template-columns: 1fr; }
-    .status-orb { width: 60px; height: 60px; font-size: 28px; }
-    .activity-body { flex-direction: column; }
-    .activity-sidebar { flex-direction: row; flex-wrap: wrap; }
-    .activity-stat-card { flex: 1; min-width: 140px; }
-  }
-
-  /* Touch devices */
-  @media (pointer: coarse) {
-    .card { padding: 12px 14px; min-height: 44px; }
-    .tab { min-height: 40px; }
-  }
-
-  /* === SPLIT LAYOUT: Team left, Feed right === */
-  .activity-split {
-    display: flex;
-    gap: 12px;
-    flex: 1;
-    min-height: 0;
-    overflow: hidden;
-  }
-  .activity-split-left {
-    flex: 0 0 300px;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
-  }
-  .activity-split-left::-webkit-scrollbar { width: 4px; }
-  .activity-split-left::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-  .activity-split-right {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    overflow: hidden;
-  }
-  .activity-split-right .activity-feed {
-    flex: 1;
-    min-height: 0;
-  }
-  .activity-split-right .feed-body {
-    min-height: 0;
-    max-height: none;
-    flex: 1;
-  }
-
-  /* Compact team cards for sidebar */
-  .team-grid {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 6px !important;
-  }
-  .team-card {
-    padding: 8px 10px !important;
-    border-radius: 10px !important;
-  }
-  .team-card-header {
-    gap: 8px !important;
-    margin-bottom: 0 !important;
-  }
-  .team-avatar {
-    width: 30px !important; height: 30px !important;
-    border-radius: 8px !important;
-    font-size: 16px !important;
-  }
-  .team-card-name { font-size: 13px !important; }
-  .team-card-role { font-size: 10px !important; }
-  .team-card-status { font-size: 9px !important; padding: 2px 6px !important; }
-  .team-card-caps { display: none; }
-  .team-card-footer { display: none; }
-  .team-card-desc { display: none; }
-  .team-card-task {
-    font-size: 11px !important;
-    padding: 4px 8px !important;
-    margin-top: 6px !important;
-    margin-bottom: 0 !important;
-  }
-
-  /* Expanded card shows details */
-  .team-card {
-    transition: all 0.2s ease !important;
-  }
-  .team-card.expanded {
-    padding: 12px 14px !important;
-    background: linear-gradient(135deg, var(--surface2), rgba(88,166,255,0.04)) !important;
-    border-color: var(--accent) !important;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.25), 0 0 0 1px rgba(88,166,255,0.1) !important;
-    z-index: 10;
-    position: relative;
-  }
-  .team-card.expanded .team-card-caps { display: flex !important; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
-  .team-card.expanded .team-card-footer { display: flex !important; margin-top: 8px; }
-  .team-card.expanded .team-card-desc { display: block !important; margin-top: 8px; font-size: 12px; color: var(--text-dim); line-height: 1.4; }
-  .team-card.expanded .team-card-task { display: block !important; }
-  .team-card-benefit {
-    display: none;
-    margin-top: 6px;
-    padding: 6px 10px;
-    background: rgba(63,185,80,0.08);
-    border-radius: 6px;
-    border-left: 3px solid var(--done);
-    font-size: 12px;
-    color: var(--done);
-    line-height: 1.4;
-  }
-  .team-card.expanded .team-card-benefit { display: block !important; }
-
-  /* Rich detail panel */
-  .task-detail-panel,
-  .orch-detail-panel {
-    display: none;
-    margin-top: 10px;
-    padding: 14px 16px;
-    background: linear-gradient(135deg, rgba(22,27,34,0.95), rgba(33,38,45,0.95));
-    border-radius: 12px;
-    border: 1px solid rgba(88,166,255,0.15);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.03);
-    font-size: 13px;
-    line-height: 1.6;
-    animation: panelSlideIn 0.25s ease-out;
-  }
-  @keyframes panelSlideIn {
-    from { opacity: 0; transform: translateY(-6px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .team-card.expanded .task-detail-panel { display: block !important; }
-  .orch-detail-panel { width: 100%; }
-  .orchestrator-bar.expanded .orch-detail-panel { display: block; }
-
-  .task-detail-section {
-    margin-bottom: 14px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-  }
-  .task-detail-section:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
-
-  .task-detail-label {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 1.2px;
-    font-weight: 700;
-    margin-bottom: 6px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .task-detail-label.what { color: var(--accent); }
-  .task-detail-label.why { color: var(--done); }
-  .task-detail-label.progress { color: var(--medium); }
-  .task-detail-label.plan { color: #d2a8ff; }
-  .task-detail-label.strategy { color: var(--accent); }
-
-  .task-detail-text {
-    color: var(--text);
-    font-size: 13px;
-    line-height: 1.6;
-    padding: 8px 12px;
-    background: rgba(255,255,255,0.02);
-    border-radius: 8px;
-  }
-  .task-detail-text.benefit {
-    background: rgba(63,185,80,0.06);
-    border-left: 3px solid var(--done);
-    color: #7ee787;
-  }
-
-  .task-progress-bar {
-    height: 8px;
-    background: rgba(255,255,255,0.06);
-    border-radius: 4px;
-    overflow: hidden;
-    margin-top: 6px;
-    box-shadow: inset 0 1px 2px rgba(0,0,0,0.3);
-  }
-  .task-progress-fill {
-    height: 100%;
-    border-radius: 4px;
-    background: linear-gradient(90deg, #238636, #3fb950, #56d364);
-    transition: width 0.5s ease;
-    box-shadow: 0 0 8px rgba(63,185,80,0.3);
-  }
-  .task-progress-label {
-    font-size: 12px;
-    color: var(--text-dim);
-    margin-top: 4px;
-    text-align: right;
-    font-weight: 600;
-  }
-
-  .task-steps {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-  .task-steps li {
-    padding: 6px 10px;
-    font-size: 13px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    border-radius: 6px;
-    margin-bottom: 3px;
-    transition: background 0.15s;
-  }
-  .task-steps li:hover { background: rgba(255,255,255,0.03); }
-  .task-steps li.done {
-    color: var(--done);
-  }
-  .task-steps li.done::before {
-    content: '';
-    display: none;
-  }
-  .task-steps li.pending {
-    color: var(--text-dim);
-  }
-
-  .task-strategy {
-    padding: 10px 14px;
-    background: rgba(88,166,255,0.04);
-    border-radius: 8px;
-    border-left: 3px solid var(--accent);
-    color: var(--text);
-    font-size: 13px;
-    line-height: 1.6;
-    font-style: italic;
-  }
-  .team-card-expand-hint {
-    font-size: 10px;
-    color: var(--accent);
-    text-align: right;
-    margin-top: 3px;
-    opacity: 0.5;
-    transition: opacity 0.15s;
-  }
-  .team-card:hover .team-card-expand-hint { opacity: 0.9; }
-  .team-card.expanded .team-card-expand-hint { opacity: 0.7; }
-  .team-card.expanded .hint-expand { display: none !important; }
-  .team-card.expanded .hint-collapse { display: inline !important; }
-
-  @media (max-width: 800px) {
-    .activity-split { flex-direction: column; }
-    .activity-split-left { flex: 0 0 auto; max-height: none; }
-
-    /* === MOBILE OVERRIDES === */
-    #app {
-      padding: 12px 8px 80px 8px !important;
-    }
-
-    /* Header */
-    .header-title { font-size: 20px !important; }
-    .header-subtitle { font-size: 13px !important; }
-
-    /* Status bar */
-    .status-bar {
-      flex-wrap: wrap;
-      gap: 6px;
-      font-size: 13px !important;
-    }
-
-    /* Nav tabs — bigger touch targets */
-    .nav-tabs {
-      flex-wrap: wrap;
-      gap: 6px !important;
-      justify-content: center;
-    }
-    .nav-tabs button {
-      padding: 10px 16px !important;
-      font-size: 14px !important;
-      min-height: 44px;
-    }
-
-    /* Project filter buttons */
-    .project-filters {
-      flex-wrap: wrap;
-      gap: 6px !important;
-      justify-content: center;
-    }
-    .project-filters button {
-      padding: 8px 14px !important;
-      font-size: 13px !important;
-      min-height: 40px;
-    }
-
-    /* Orchestrator bar */
-    .orch-bar {
-      flex-direction: column !important;
-      align-items: flex-start !important;
-      gap: 8px !important;
-      padding: 14px !important;
-    }
-    .orch-bar .orch-task {
-      font-size: 14px !important;
-      white-space: normal !important;
-      overflow: visible !important;
-      text-overflow: unset !important;
-    }
-    .orch-bar .orch-model {
-      font-size: 12px !important;
-    }
-
-    /* Team cards — full width, bigger text */
-    .team-card {
-      padding: 14px !important;
-      margin-bottom: 10px !important;
-    }
-    .team-card .agent-name {
-      font-size: 16px !important;
-    }
-    .team-card .agent-role {
-      font-size: 13px !important;
-    }
-    .team-card .agent-status {
-      font-size: 13px !important;
-      padding: 4px 10px !important;
-    }
-    .team-card .agent-detail {
-      font-size: 13px !important;
-      line-height: 1.5 !important;
-    }
-    .team-card-expand-hint {
-      font-size: 13px !important;
-      padding: 6px 0 !important;
-    }
-
-    /* Section headers */
-    .section-header {
-      font-size: 15px !important;
-    }
-
-    /* Activity feed */
-    .activity-feed-header {
-      font-size: 18px !important;
-    }
-    .activity-item {
-      font-size: 15px !important;
-      padding: 10px 8px !important;
-      line-height: 1.4 !important;
-    }
-    .activity-time {
-      font-size: 13px !important;
-      min-width: 70px !important;
-    }
-    .activity-icon {
-      font-size: 20px !important;
-    }
-    .activity-message {
-      font-size: 14px !important;
-    }
-
-    /* Bottom stats bar — fixed, safe from Safari nav */
-    .bottom-stats {
-      position: fixed !important;
-      bottom: 0 !important;
-      left: 0 !important;
-      right: 0 !important;
-      padding: 10px 12px !important;
-      padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
-      font-size: 13px !important;
-      background: var(--bg) !important;
-      border-top: 1px solid var(--border) !important;
-      z-index: 100 !important;
-      display: flex !important;
-      flex-wrap: wrap !important;
-      gap: 8px !important;
-      justify-content: center !important;
-    }
-
-    /* Expanded card detail panels */
-    .task-detail-panel {
-      padding: 12px !important;
-      font-size: 13px !important;
-    }
-    .task-detail-panel h4 {
-      font-size: 14px !important;
-    }
-    .task-detail-panel .progress-bar {
-      height: 10px !important;
-    }
-    .task-detail-panel .step-item {
-      font-size: 13px !important;
-      padding: 6px 0 !important;
-    }
-  }
+/* Footer */
+.footer {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #21262d;
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #484f58;
+}
 </style>
 </head>
 <body>
-<div id="app">
+<div class="container">
+  <div class="header">
+    <h1><span class="live-dot"></span> Mission Control</h1>
+    <div class="status-badge working" id="globalStatus">Loading...</div>
+  </div>
 
-<header>
-  <h1>
-    <span class="rocket">🚀</span>
-    Mission Control
-    <span class="subtitle">— Dress Like Mommy</span>
-  </h1>
-  <div class="header-right">
-    <div id="clawdStatus" onclick="checkStatus()">
-      <span id="statusDot"></span>
-      <span id="statusText" style="color:var(--text-dim);">Checking...</span>
-      <span style="color:var(--border);margin:0 2px;">│</span>
-      <a href="http://127.0.0.1:18789/overview" target="_blank" rel="noopener" id="gatewayLink" onclick="event.stopPropagation(); event.preventDefault(); window.open(this.href, 'gateway', 'noopener,noreferrer');" style="color:var(--accent);text-decoration:none;font-size:12px;display:flex;align-items:center;gap:3px;">⚙️ Control</a>
-    </div>
-    <div class="tabs">
-      <button class="tab active" onclick="switchView('activity', event)">⚡ Team</button>
-      <button class="tab" onclick="switchView('kanban', event)">📋 Kanban</button>
-      <button class="tab" onclick="switchView('brain', event)">🧠 Brain</button>
-      <button class="tab" onclick="switchView('summary', event)">📊 Summary</button>
+  <div class="current-task" id="currentTask">
+    <div class="task-header">
+      <span class="task-avatar">🤖</span>
+      <div class="task-info">
+        <div class="task-name">Loading...</div>
+        <div class="task-title">Loading current task...</div>
+        <div class="task-desc"></div>
+      </div>
     </div>
   </div>
-</header>
 
-<div class="stats-bar" id="statsBar"></div>
-<div class="stats-bar" id="projectBar" style="gap:8px;padding:4px 12px;border-bottom:1px solid var(--border);"></div>
+  <div class="columns">
+    <div class="section">
+      <div class="section-title">👥 Team</div>
+      <div class="team-list" id="teamList">Loading team...</div>
+    </div>
+    
+    <div class="section">
+      <div class="section-title">📋 Task History</div>
+      <div class="history-list" id="historyList">Loading history...</div>
+    </div>
+  </div>
 
-<div class="activity active" id="activityView"></div>
-<div class="kanban" id="kanbanView"></div>
-<div class="brain" id="brainView"></div>
-<div class="summary" id="summaryView"></div>
-
-</div><!-- #app -->
+  <div class="footer">
+    <span>Auto-refreshes every 15 seconds</span>
+    <span id="lastUpdate"></span>
+  </div>
+</div>
 
 <script>
-let data = null;
-let teamData = null;
-let activeProject = 'all';
-let expandedCards = new Set();  // Track which cards are expanded across re-renders
-let orchExpanded = false;       // Track orchestrator bar expanded state
-
-function esc(s) {
-  if (s == null) return '';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
-
 async function loadData() {
+  // Load current task
   try {
-    const resp = await fetch('./data.json?' + Date.now());
-    data = await resp.json();
-  } catch(e) { data = window.__DATA__; }
-  render();
-}
-
-async function loadTeam() {
-  try {
-    const resp = await fetch('./team.json?' + Date.now());
-    teamData = await resp.json();
-  } catch(e) { teamData = null; }
-}
-
-function switchView(view, e) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  e.target.classList.add('active');
-  document.getElementById('activityView').classList.toggle('active', view === 'activity');
-  document.getElementById('kanbanView').classList.toggle('active', view === 'kanban');
-  document.getElementById('brainView').classList.toggle('active', view === 'brain');
-  document.getElementById('summaryView').classList.toggle('active', view === 'summary');
-  if (view === 'activity') startActivityPolling();
-  else stopActivityPolling();
-}
-
-function renderCard(task) {
-  const blocked = task.blockedReason ? `<div class="blocked-reason">⛔ ${esc(task.blockedReason)}</div>` : '';
-  const assigneeLabel = task.assignee === 'clawd' ? '🤖 Clawd' : task.assignee === 'francisco' ? '👤 Francisco' : '👥 Both';
-  const projLabel = task.project === 'agent' ? '<span class="tag" style="background:rgba(210,168,255,0.15);color:#d2a8ff;">🤖 Agent</span>' : '';
-  const tags = (task.tags || []).slice(0, 4).map(t => `<span class="tag">${esc(t)}</span>`).join('');
-  const benefit = task.benefit ? `<div class="card-benefit">${esc(task.benefit)}</div>` : '';
-  const details = task.details ? `<div class="card-details">${esc(task.details)}</div>` : '';
-  const completed = task.completed ? `<div style="font-size:12px;color:var(--done);margin-top:4px;">✅ Completed: ${esc(task.completed)}</div>` : '';
-  const hasMore = (task.details || task.benefit) ? '<div class="card-expand-hint">▸ Click for details & business value</div>' : '';
-  return `
-    <div class="card" onclick="this.classList.toggle('expanded')">
-      <div class="card-id">${esc(task.id)}${task.completed ? ' ✅' : ''}</div>
-      <div class="card-title">${esc(task.title)}</div>
-      <div class="card-meta">
-        <span class="priority-badge priority-${esc(task.priority)}">${esc(task.priority)}</span>
-        <span class="assignee-badge">${assigneeLabel}</span>
-        ${projLabel}
-        ${tags}
+    const taskResp = await fetch('./current-task.json?' + Date.now());
+    const taskData = await taskResp.json();
+    const orch = taskData.orchestrator || taskData;
+    
+    // Update global status
+    const statusEl = document.getElementById('globalStatus');
+    statusEl.textContent = (orch.status || 'working').toUpperCase();
+    statusEl.className = 'status-badge ' + (orch.status || 'working');
+    
+    // Update task card
+    const doneSteps = (orch.steps || []).filter(s => s.done).length;
+    const totalSteps = (orch.steps || []).length;
+    const pct = orch.progress || (totalSteps ? Math.round(doneSteps/totalSteps*100) : 0);
+    
+    document.getElementById('currentTask').innerHTML = `
+      <div class="task-header">
+        <span class="task-avatar">${orch.emoji || '🤖'}</span>
+        <div class="task-info">
+          <div class="task-name">${orch.name || 'Fsuels Bot'} — ${orch.project || 'Working'}</div>
+          <div class="task-title">${orch.task || 'No active task'}</div>
+          <div class="task-desc">${orch.description || ''}</div>
+        </div>
       </div>
-      ${blocked}
-      ${completed}
-      ${benefit}
-      ${details}
-      ${hasMore}
-    </div>`;
-}
-
-function filterTasks(tasks) {
-  if (activeProject === 'all') return tasks;
-  return tasks.filter(t => t.project === activeProject);
-}
-
-function setProject(proj) {
-  activeProject = proj;
-  render();
-}
-
-function render() {
-  if (!data) return;
-  const cols = data.columns;
-  const order = ['blocked', 'inProgress', 'todo', 'done'];
-  const icons = { blocked: '🚫', inProgress: '🔨', todo: '📋', done: '✅' };
-  const colors = { blocked: 'var(--blocked)', inProgress: 'var(--progress)', todo: 'var(--todo)', done: 'var(--done)' };
-
-  // Render project filter bar
-  const projects = data.projects || {};
-  const projKeys = Object.keys(projects);
-  if (projKeys.length > 0) {
-    document.getElementById('projectBar').innerHTML = projKeys.map(k => {
-      const p = projects[k];
-      const isActive = activeProject === k;
-      return `<button onclick="setProject('${k}')" style="
-        padding:5px 14px;border-radius:6px;border:1px solid ${isActive ? p.color : 'var(--border)'};
-        background:${isActive ? p.color + '22' : 'transparent'};
-        color:${isActive ? p.color : 'var(--text-dim)'};
-        cursor:pointer;font-size:12px;font-weight:${isActive ? '700' : '500'};
-        transition:all 0.15s;
-      ">${p.icon || ''} ${esc(p.label)}</button>`;
-    }).join('');
-  } else {
-    document.getElementById('projectBar').style.display = 'none';
+      <div class="progress-section">
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+        <div class="progress-label">${pct}% complete${totalSteps ? ' — ' + doneSteps + ' of ' + totalSteps + ' steps done' : ''}</div>
+      </div>
+      ${orch.steps ? `
+        <div class="steps-section">
+          <div class="steps-header" onclick="toggleSteps()">
+            <span class="steps-title">📋 Steps (${orch.steps.filter(s=>s.done).length}/${orch.steps.length} done)</span>
+            <span class="steps-toggle" id="stepsToggle">▼ Show</span>
+          </div>
+          <div class="steps-grid collapsed" id="stepsGrid">${orch.steps.map((s,i) => {
+            const isCurrent = !s.done && (i === 0 || orch.steps[i-1].done);
+            return `<div class="step ${s.done ? 'done' : (isCurrent ? 'current' : 'pending')}">${s.done ? '✅' : (isCurrent ? '🔄' : '⬜')} ${s.label}</div>`;
+          }).join('')}</div>
+        </div>
+      ` : ''}
+      ${orch.details ? `
+        <div class="details-section" id="detailsSection">
+          <strong>🔍 Recent actions:</strong><br>
+          ${orch.details.map(d => `<div class="detail-item">${d}</div>`).join('')}
+        </div>
+      ` : ''}
+    `;
+  } catch(e) {
+    document.getElementById('currentTask').innerHTML = `<div class="task-desc">Could not load task</div>`;
   }
-
-  let total = 0, critCount = 0, fCount = 0, cCount = 0;
-  order.forEach(k => {
-    filterTasks(cols[k]?.tasks || []).forEach(t => {
-      total++;
-      if (t.priority === 'critical') critCount++;
-      if (t.assignee === 'francisco') fCount++;
-      if (t.assignee === 'clawd') cCount++;
-    });
-  });
-
-  document.getElementById('statsBar').innerHTML = `
-    <div class="stat"><span class="stat-value">${total}</span> <span class="stat-label">Total</span></div>
-    <div class="stat"><div class="stat-dot" style="background:var(--critical)"></div><span class="stat-value">${critCount}</span> <span class="stat-label">Critical</span></div>
-    <div class="stat"><div class="stat-dot" style="background:var(--accent)"></div><span class="stat-value">${cCount}</span> <span class="stat-label">Clawd</span></div>
-    <div class="stat"><div class="stat-dot" style="background:var(--medium)"></div><span class="stat-value">${fCount}</span> <span class="stat-label">Francisco</span></div>
-    <div class="stat"><div class="stat-dot" style="background:var(--done)"></div><span class="stat-value">${(cols.done?.tasks||[]).length}</span> <span class="stat-label">Done</span></div>
-    <div class="updated">Updated: ${new Date(data.lastUpdated).toLocaleString()}</div>
-  `;
-
-  let kanbanHTML = '';
-  order.forEach(k => {
-    const col = cols[k];
-    if (!col) return;
-    const tasks = filterTasks(col.tasks || []);
-    kanbanHTML += `
-      <div class="column">
-        <div class="column-header" style="border-left: 3px solid ${colors[k]}">
-          ${icons[k]} ${esc(col.label)} <span class="count">${tasks.length}</span>
+  
+  // Load team
+  try {
+    const teamResp = await fetch('./team.json?' + Date.now());
+    const teamData = await teamResp.json();
+    const all = [...(teamData.persistent || []), ...(teamData.onDemand || [])];
+    
+    document.getElementById('teamList').innerHTML = all.map(m => `
+      <div class="team-member">
+        <span class="emoji">${m.emoji || '🤖'}</span>
+        <div class="info">
+          <div class="name">${m.name}</div>
+          <div class="role">${m.role || ''}</div>
         </div>
-        <div class="column-body">
-          ${tasks.map(t => renderCard(t)).join('')}
-        </div>
-      </div>`;
-  });
-  document.getElementById('kanbanView').innerHTML = kanbanHTML;
-
-  // Second Brain
-  const sb = data.secondBrain || {};
-  let brainHTML = '';
-  ['ideas','research','insights'].forEach(type => {
-    const items = sb[type];
-    if (!items?.length) return;
-    const icons = { ideas: '💡', research: '🔬', insights: '✨' };
-    const labels = { ideas: 'Ideas', research: 'Research', insights: 'Insights' };
-    brainHTML += `<div class="brain-section"><h2>${icons[type]} ${labels[type]}</h2><div class="brain-grid">`;
-    items.forEach(item => {
-      brainHTML += `<div class="brain-card"><h3>${esc(item.title)}</h3><p>${esc(item.description)}</p>
-        <div class="brain-tags">${(item.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>
-        <div class="brain-date">${esc(item.created)}</div></div>`;
-    });
-    brainHTML += '</div></div>';
-  });
-  document.getElementById('brainView').innerHTML = brainHTML;
-
-  // Summary
-  const todoTasks = filterTasks(cols.todo?.tasks || []);
-  const blockedTasks = filterTasks(cols.blocked?.tasks || []);
-  const progressTasks = filterTasks(cols.inProgress?.tasks || []);
-  const doneTasks = filterTasks(cols.done?.tasks || []);
-  const franciscoTasks = [...todoTasks, ...progressTasks, ...blockedTasks].filter(t => t.assignee === 'francisco' || t.assignee === 'both');
-  const clawdTasks = [...todoTasks, ...progressTasks, ...blockedTasks].filter(t => t.assignee === 'clawd' || t.assignee === 'both');
-
-  document.getElementById('summaryView').innerHTML = `
-    <div class="summary-block"><h3>🔥 Critical & In Progress (${progressTasks.length + blockedTasks.length})</h3><ul>
-      ${[...progressTasks, ...blockedTasks].map(t => `<li><span class="priority-badge priority-${esc(t.priority)}">${esc(t.priority)}</span> ${esc(t.title)}</li>`).join('')}
-    </ul></div>
-    <div class="summary-block"><h3>👤 Francisco's Items (${franciscoTasks.length})</h3><ul>
-      ${franciscoTasks.map(t => `<li><span class="priority-badge priority-${esc(t.priority)}">${esc(t.priority)}</span> ${esc(t.title)}</li>`).join('')}
-    </ul></div>
-    <div class="summary-block"><h3>🤖 Clawd's Queue (${clawdTasks.length})</h3><ul>
-      ${clawdTasks.map(t => `<li><span class="priority-badge priority-${esc(t.priority)}">${esc(t.priority)}</span> ${esc(t.title)}</li>`).join('')}
-    </ul></div>
-    <div class="summary-block"><h3>✅ Completed (${doneTasks.length})</h3><ul>
-      ${doneTasks.slice(0,8).map(t => `<li>✅ ${esc(t.title)} <span style="color:var(--text-dim);font-size:12px">${esc(t.completed||'')}</span></li>`).join('')}
-    </ul></div>
-  `;
+        <span class="status ${m.status || 'idle'}">${m.status || 'idle'}</span>
+      </div>
+    `).join('');
+  } catch(e) {
+    document.getElementById('teamList').innerHTML = '<div>Could not load team</div>';
+  }
+  
+  // Load history
+  try {
+    const histResp = await fetch('./history.json?' + Date.now());
+    const histData = await histResp.json();
+    const done = (histData.completed || []).slice(0, 10);
+    
+    document.getElementById('historyList').innerHTML = done.map(t => `
+      <div class="history-item">
+        <span class="icon">✅</span>
+        <span class="text">${t.title}</span>
+        <span class="time">${t.completed || ''}</span>
+      </div>
+    `).join('') || '<div class="history-item"><span class="text">No completed tasks yet</span></div>';
+  } catch(e) {
+    document.getElementById('historyList').innerHTML = '<div class="history-item"><span class="text">History will appear here</span></div>';
+  }
+  
+  document.getElementById('lastUpdate').textContent = 'Updated: ' + new Date().toLocaleTimeString();
 }
 
 loadData();
-loadTeam().then(() => {
-  // Activity/Team is default view, start polling
-  startActivityPolling();
-});
 
-// === Clawdbot Status ===
-async function checkStatus() {
-  const dot = document.getElementById('statusDot');
-  const text = document.getElementById('statusText');
-  try {
-    const resp = await fetch('/api/status', {signal: AbortSignal.timeout(4000)});
-    const d = await resp.json();
-    if (d.online) {
-      dot.style.background = '#3fb950';
-      const h = Math.floor((d.uptime||0)/3600), m = Math.floor(((d.uptime||0)%3600)/60);
-      const up = h > 24 ? Math.floor(h/24)+'d' : h > 0 ? h+'h '+m+'m' : m+'m';
-      text.style.color = '#3fb950';
-      text.innerHTML = '🤖 <b>Connected</b> · ' + up;
-    } else {
-      dot.style.background = '#f85149';
-      text.style.color = '#f85149';
-      text.textContent = '⚠️ Disconnected';
-    }
-  } catch(e) {
-    dot.style.background = '#f85149';
-    text.style.color = '#f85149';
-    text.textContent = '⚠️ Offline';
-  }
-}
-checkStatus();
-setInterval(checkStatus, 30000);
-
-// === Activity Monitor ===
-let activityInterval = null;
-
-function startActivityPolling() {
-  fetchActivity();
-  if (!activityInterval) activityInterval = setInterval(fetchActivity, 3000);
-}
-
-function stopActivityPolling() {
-  if (activityInterval) { clearInterval(activityInterval); activityInterval = null; }
-}
-
-function formatTime(isoStr) {
-  if (!isoStr) return '';
-  try {
-    const d = new Date(isoStr);
-    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-  } catch { return ''; }
-}
-
-function timeAgo(isoStr) {
-  if (!isoStr) return '';
-  try {
-    const now = Date.now();
-    const then = new Date(isoStr).getTime();
-    const diff = Math.floor((now - then) / 1000);
-    if (diff < 60) return `${diff}s ago`;
-    if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
-    if (diff < 86400) return `${Math.floor(diff/3600)}h ${Math.floor((diff%3600)/60)}m ago`;
-    return `${Math.floor(diff/86400)}d ago`;
-  } catch { return ''; }
-}
-
-function friendlyMessage(msg) {
-  if (!msg) return '';
-  return msg.trim();
-}
-
-async function fetchActivity() {
-  // Refresh team data periodically
-  if (!teamData) {
-    try { await loadTeam(); } catch(e) {}
-  }
-  try {
-    const resp = await fetch('/api/activity?' + Date.now(), { signal: AbortSignal.timeout(5000) });
-    const act = await resp.json();
-    renderActivity(act);
-  } catch (e) {
-    renderActivityOffline();
-  }
-}
-
-function renderActivityOffline() {
-  // Even offline, show the team roster
-  renderTeamView(null);
-}
-
-function toggleCard(el, cardId) {
-  el.classList.toggle('expanded');
-  if (el.classList.contains('expanded')) {
-    expandedCards.add(cardId);
+function toggleSteps() {
+  const grid = document.getElementById('stepsGrid');
+  const toggle = document.getElementById('stepsToggle');
+  if (grid.classList.contains('collapsed')) {
+    grid.classList.remove('collapsed');
+    toggle.textContent = '▲ Hide';
   } else {
-    expandedCards.delete(cardId);
+    grid.classList.add('collapsed');
+    toggle.textContent = '▼ Show';
   }
-}
-
-function toggleOrch(el) {
-  el.classList.toggle('expanded');
-  orchExpanded = el.classList.contains('expanded');
-}
-
-function renderDetailPanel(data, cssClass) {
-  if (!data) return '';
-  const doneCount = data.steps ? data.steps.filter(s => s.done).length : 0;
-  const totalCount = data.steps ? data.steps.length : 0;
-  const pct = data.progress != null ? data.progress : (totalCount > 0 ? Math.round(doneCount / totalCount * 100) : null);
-
-  const desc = data.description
-    ? `<div class="task-detail-section"><div class="task-detail-label what">📋 WHAT IS THIS</div><div class="task-detail-text">${esc(data.description)}</div></div>`
-    : '';
-  const benefit = data.benefit
-    ? `<div class="task-detail-section"><div class="task-detail-label why">💰 WHY IT MATTERS</div><div class="task-detail-text benefit">${esc(data.benefit)}</div></div>`
-    : '';
-  const progress = pct != null
-    ? `<div class="task-detail-section"><div class="task-detail-label progress">📊 PROGRESS</div><div class="task-progress-bar"><div class="task-progress-fill" style="width:${pct}%"></div></div><div class="task-progress-label">${pct}% complete${totalCount ? ' · ' + doneCount + '/' + totalCount + ' steps' : ''}</div></div>`
-    : '';
-  let stepsHtml = '';
-  if (data.steps && data.steps.length) {
-    const items = data.steps.map(s =>
-      `<li class="${s.done ? 'done' : 'pending'}">${s.done ? '✅' : '⬜'} ${esc(s.label)}</li>`
-    ).join('');
-    stepsHtml = `<div class="task-detail-section"><div class="task-detail-label plan">📝 PLAN</div><ul class="task-steps">${items}</ul></div>`;
-  }
-  const strategy = data.strategy
-    ? `<div class="task-detail-section"><div class="task-detail-label strategy">🧠 STRATEGY</div><div class="task-strategy">${esc(data.strategy)}</div></div>`
-    : '';
-  return `<div class="${cssClass}">${desc}${benefit}${progress}${stepsHtml}${strategy}</div>`;
-}
-
-function renderTeamMemberCard(member, liveAgent) {
-  // If there's a matching live sub-agent, merge its status
-  const s = liveAgent ? (liveAgent.status || 'working') : (member.status || 'idle');
-  const currentTask = liveAgent ? liveAgent.task : null;
-  const taskBenefit = liveAgent ? liveAgent.benefit : null;
-  const statusEmoji = { working: '⚡', thinking: '🧠', done: '✅', idle: '💤', error: '⚠️', standby: '🔵' };
-  const caps = (member.capabilities || []).map(c => `<span class="team-cap">${esc(c)}</span>`).join('');
-  const lastAct = member.lastActive ? timeAgo(member.lastActive) : 'Never';
-  const tasksDone = member.tasksCompleted || 0;
-
-  // Task line: show current task, idle status, or standby
-  let taskLine = '';
-  if (currentTask) {
-    taskLine = `<div class="team-card-task">${esc(currentTask)}</div>`;
-  } else if (s === 'standby') {
-    taskLine = `<div class="team-card-task" style="display:block;background:rgba(88,166,255,0.04);border-left-color:rgba(88,166,255,0.3);">🔵 On standby — spins up when needed</div>`;
-  } else if (s === 'idle') {
-    taskLine = `<div class="team-card-task" style="display:block;background:rgba(139,148,158,0.06);border-left-color:var(--text-dim);">💤 Waiting for assignment · Last active: ${lastAct}</div>`;
-  }
-
-  // Rich detail panel (description, benefit, progress, steps, strategy)
-  const detailPanel = liveAgent ? renderDetailPanel(liveAgent, 'task-detail-panel') : '';
-
-  const cardId = member.id || member.name;
-  const isExpanded = expandedCards.has(cardId);
-
-  return `<div class="team-card status-${esc(s)}${isExpanded ? ' expanded' : ''}" data-card-id="${esc(cardId)}" onclick="toggleCard(this, '${esc(cardId)}')">
-    <div class="team-card-header">
-      <div class="team-avatar">${member.emoji || '🤖'}</div>
-      <div class="team-card-identity">
-        <div class="team-card-name">${esc(member.name)}</div>
-        <div class="team-card-role">${esc(member.role)}</div>
-      </div>
-      <div class="team-card-status">${statusEmoji[s] || '•'} ${esc(s)}</div>
-    </div>
-    <div class="team-card-expand-hint"><span class="hint-expand">▸ tap for details</span><span class="hint-collapse" style="display:none">▾ collapse</span></div>
-    ${taskLine}
-    ${detailPanel}
-    <div class="team-card-desc">${esc(member.description || '')}</div>
-    <div class="team-card-caps">${caps}</div>
-    <div class="team-card-footer">
-      <span class="team-model">${esc(member.model || 'unknown')}</span>
-      <span>${tasksDone} tasks · ${s === 'idle' ? 'Last: ' + lastAct : 'Active now'}</span>
-    </div>
-  </div>`;
-}
-
-function renderTeamView(act) {
-  const team = teamData ? teamData.team : [];
-  const hlt = act ? act.highLevelTask : null;
-
-  // Parse orchestrator + sub-agents from current-task.json
-  const orch = hlt && hlt.orchestrator ? hlt.orchestrator : null;
-  const subAgents = hlt && hlt.agents ? hlt.agents : [];
-
-  // Orchestrator info
-  const orchStatus = orch ? orch.status : (act ? act.status : 'idle');
-  const orchTask = orch ? orch.task : (act ? (act.currentTask || 'Waiting for a task...') : 'Offline');
-  const orchModel = orch ? orch.model : 'claude-opus-4.5';
-  const orchName = orch ? orch.name : 'Fsuels Bot';
-  const orchEmoji = orch ? orch.emoji : '🤖';
-  const orchTaskId = orch ? (orch.taskId || '') : '';
-
-  // Build orchestrator bar with full detail panel
-  const orchDetailPanel = orch ? renderDetailPanel(orch, 'orch-detail-panel') : '';
-  const orchBar = `<div class="orchestrator-bar${orchExpanded ? ' expanded' : ''}" onclick="toggleOrch(this)" style="cursor:pointer;flex-wrap:wrap;">
-    <div class="orch-dot ${esc(orchStatus)}"></div>
-    <div class="orch-name">${orchEmoji} ${esc(orchName)}</div>
-    <div class="orch-task">
-      ${orchTaskId ? `<span style="color:var(--accent);font-family:monospace;font-size:11px;">${esc(orchTaskId)}</span> · ` : ''}
-      ${esc(orchTask)}
-      <span style="color:var(--accent);font-size:11px;margin-left:6px;">▸ click for details</span>
-    </div>
-    <div class="orch-model">${esc(orchModel)}</div>
-    ${orchDetailPanel}
-  </div>`;
-
-  // New structure: persistent[] + onDemand[]
-  const persistent = teamData ? (teamData.persistent || []) : [];
-  const onDemand = teamData ? (teamData.onDemand || []) : [];
-  // Fallback: old flat team[] array
-  const flatTeam = teamData ? (teamData.team || []) : [];
-  const allMembers = persistent.length > 0 ? [...persistent, ...onDemand] : flatTeam;
-
-  // Skip orchestrator from card list (shown in bar)
-  const persistentCards = persistent.filter(m => m.id !== 'orchestrator');
-  const activeCount = allMembers.filter(m => m.status === 'working' || m.status === 'thinking').length + subAgents.length;
-
-  // Match live sub-agents to team members
-  function matchAgent(member) {
-    return subAgents.find(a =>
-      (a.skill && (a.skill === member.skill || (member.skills && member.skills.includes(a.skill)))) ||
-      (a.name && a.name === member.name)
-    );
-  }
-
-  const persistentHtml = persistentCards.map(m => renderTeamMemberCard(m, matchAgent(m))).join('');
-  const onDemandHtml = onDemand.map(m => renderTeamMemberCard(m, matchAgent(m))).join('');
-
-  // Team section with two groups
-  const teamSection = persistent.length > 0 ? `
-    <div class="team-section-header">
-      <div class="team-section-title">🟢 Always On</div>
-      <div class="team-counter">
-        <span><span class="dot" style="background:var(--done)"></span> ${activeCount} Active</span>
-      </div>
-    </div>
-    <div class="team-grid">${persistentHtml}</div>
-    <div class="team-section-header" style="margin-top:12px;">
-      <div class="team-section-title">🔵 On Demand</div>
-    </div>
-    <div class="team-grid">${onDemandHtml}</div>
-  ` : `
-    <div class="team-section-header">
-      <div class="team-section-title">👥 Team — ${allMembers.length}</div>
-    </div>
-    <div class="team-grid">${allMembers.filter(m => m.id !== 'orchestrator').map(m => renderTeamMemberCard(m, matchAgent(m))).join('')}</div>
-  `;
-
-  // Feed items
-  const events = act ? (act.recentEvents || []) : [];
-  const meaningful = events.filter(ev => {
-    if (ev.type === 'error') return true;
-    if (ev.type === 'tool_end') return false;
-    return true;
-  });
-  const feedItems = meaningful.slice(0, 20).map(ev => {
-    const isError = ev.type === 'error';
-    const agentLabel = ev.agentName ? `<span style="color:var(--accent);font-weight:600;font-size:14px;margin-right:6px;">[${esc(ev.agentName)}]</span>` : '';
-    return `<div class="feed-item ${isError ? 'error-item' : ''}">
-      <span class="fi-icon">${esc(ev.icon || '•')}</span>
-      <span class="fi-time">${formatTime(ev.time)}</span>
-      <span class="fi-msg">${agentLabel}${esc(friendlyMessage(ev.message))}</span>
-    </div>`;
-  }).join('');
-
-  // Stats
-  const stats = act ? (act.stats || {}) : {};
-  const totalTasks = allMembers.reduce((sum, m) => sum + (m.tasksCompleted || 0), 0);
-  const totalMembers = allMembers.filter(m => m.id !== 'orchestrator').length;
-
-  // Live stats footer bar
-  const footer = `<div class="live-footer">
-    <div class="lf-stat"><span style="font-size:14px;">👥</span> <span class="lf-value">${totalMembers + 1}</span> Team</div>
-    <div class="lf-stat"><span style="font-size:14px;">✅</span> <span class="lf-value">${totalTasks}</span> Tasks Done</div>
-    <div class="lf-stat"><span style="font-size:14px;">🔧</span> <span class="lf-value">${stats.toolCalls || 0}</span> Tool Calls</div>
-    <div class="lf-stat"><span style="font-size:14px;">🏁</span> <span class="lf-value">${stats.runsCompleted || 0}</span> Runs</div>
-    <div class="lf-stat"><span style="font-size:14px;">${(stats.errorsToday || 0) > 0 ? '⚠️' : '✅'}</span> <span class="lf-value" style="color:${(stats.errorsToday || 0) > 0 ? 'var(--critical)' : 'var(--done)'};">${stats.errorsToday || 0}</span> Errors</div>
-    <div style="margin-left:auto;font-size:13px;color:var(--text-dim);">${act ? 'Updated ' + timeAgo(act.lastUpdate) : 'Offline'}</div>
-  </div>`;
-
-  document.getElementById('activityView').innerHTML = `
-    ${orchBar}
-
-    <div class="activity-split">
-      <div class="activity-split-left">
-        ${teamSection}
-      </div>
-      <div class="activity-split-right">
-        <div class="activity-feed" style="flex:1;display:flex;flex-direction:column;">
-          <div class="feed-header">
-            <span class="live-dot"></span>
-            Live Activity Feed
-            <span style="margin-left:auto;font-size:14px;color:var(--text-dim);">${act ? 'Updated ' + timeAgo(act.lastUpdate) : 'Offline'}</span>
-          </div>
-          <div class="feed-body" style="flex:1;max-height:none;">
-            ${feedItems || '<div style="padding:30px;text-align:center;color:var(--text-dim);font-size:16px;">No activity yet. Events appear here as agents work.</div>'}
-          </div>
-        </div>
-      </div>
-    </div>
-
-    ${footer}
-  `;
-}
-
-function renderActivity(act) {
-  renderTeamView(act);
 }
 </script>
 </body>

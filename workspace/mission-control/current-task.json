@@ -4,28 +4,29 @@
     "emoji": "🤖",
     "model": "claude-opus-4.5",
     "status": "working",
-    "task": "Red Heart Sweater — Full Product Optimization on Shopify",
-    "benefit": "First product through the complete 1688 → BuckyDrop → Shopify pipeline. Template for all future listings.",
-    "taskId": "DLM-PRODUCT-001",
+    "task": "Researching Face Swap Solutions",
+    "benefit": "Get realistic model photos without expensive photoshoots",
+    "taskId": "DLM-FACESWAP",
     "project": "Dress Like Mommy",
-    "startTime": "5:00 PM",
-    "description": "Editing product pushed from 1688 via BuckyDrop. Writing description, setting prices, cleaning variant names, adding size charts, preparing for face swap.",
-    "progress": 90,
+    "startTime": "7:47 PM",
+    "description": "Finding the best free tool to swap faces on product images",
+    "progress": 40,
     "steps": [
-      {"label": "Push product from 1688 → BuckyDrop → Shopify", "done": true},
-      {"label": "Write rich HTML product description", "done": true},
-      {"label": "Set product type + category", "done": true},
-      {"label": "Add 7 SEO tags", "done": true},
-      {"label": "Set retail pricing ($19.99-$24.99)", "done": true},
-      {"label": "Clean variant names (Chinese → English)", "done": true},
-      {"label": "Rename option labels (Style + Size)", "done": true},
-      {"label": "Write SEO title + meta description", "done": true},
-      {"label": "Add hidden size chart table (14 sizes)", "done": true},
-      {"label": "Document anti-disconnect protocols", "done": true},
-      {"label": "Face swap 4 model photos (10 faces)", "done": false},
-      {"label": "Francisco reviews + activates", "done": false}
+      {"label": "Research available tools", "done": true},
+      {"label": "Compare free options", "done": true},
+      {"label": "Get face decision from Francisco", "done": false},
+      {"label": "Execute face swap", "done": false},
+      {"label": "Upload to Shopify", "done": false}
     ],
-    "strategy": "All metadata complete. Face swap blocked — need Francisco's face templates or decision on stock faces."
+    "details": [
+      "Searched for free face swap APIs",
+      "Found aifaceswap.io (no signup)",
+      "Found Magic Hour (free tier)",
+      "Found DeepSwapper (multiple faces)",
+      "Waiting for face decision..."
+    ],
+    "strategy": "Ready to execute. Waiting on: stock faces or family photos?",
+    "lastHeartbeat": "2026-01-28T19:52:00-05:00"
   },
   "agents": []
 }

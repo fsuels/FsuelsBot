@@ -1,0 +1,55 @@
+{
+  "id": "find-new-products",
+  "name": "Find New Products",
+  "description": "Research and identify new products to add to Dress Like Mommy",
+  "trigger": "find new products, search for products, what should we sell",
+  "steps": [
+    {
+      "step": 1,
+      "label": "Identify trend or season",
+      "description": "What's coming up? Valentine's, Easter, Summer, Back to School, etc.",
+      "output": "Target theme/season"
+    },
+    {
+      "step": 2,
+      "label": "Research trending styles",
+      "description": "Check Pinterest, Instagram, TikTok for mommy-and-me trends",
+      "output": "List of trending styles"
+    },
+    {
+      "step": 3,
+      "label": "Analyze competitor bestsellers",
+      "description": "Check PatPat, Popreal, Amazon for what's selling",
+      "output": "Top selling items list"
+    },
+    {
+      "step": 4,
+      "label": "Search suppliers (1688/AliExpress)",
+      "description": "Find matching products with good margins",
+      "criteria": "Cost < $10, sells for $25+, good reviews, fast shipping",
+      "output": "Product candidates"
+    },
+    {
+      "step": 5,
+      "label": "Calculate margins",
+      "description": "Cost + shipping + fees vs selling price = profit",
+      "criteria": "Minimum 50% margin",
+      "output": "Profit analysis"
+    },
+    {
+      "step": 6,
+      "label": "Check BuckyDrop availability",
+      "description": "Verify product can be pushed through BuckyDrop",
+      "output": "Confirmed availability"
+    },
+    {
+      "step": 7,
+      "label": "Present top picks to Francisco",
+      "description": "Show top 3-5 options with photos, prices, margins",
+      "output": "Decision from Francisco"
+    }
+  ],
+  "estimatedTime": "30-60 minutes",
+  "lastRun": null,
+  "timesRun": 0
+}
