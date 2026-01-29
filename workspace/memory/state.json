@@ -1,12 +1,12 @@
 {
-  "lastUpdated": "2026-01-29T09:50:00-05:00",
-  "version": 31,
+  "lastUpdated": "2026-01-29T09:55:00-05:00",
+  "version": 32,
   "currentTask": {
     "id": "T001",
-    "description": "Task tracking system COMPLETE",
+    "description": "Task tracking system v3 COMPLETE",
     "status": "completed",
-    "context": "Council ran 2 rounds on Mission Control upgrade. Consensus: keep tasks.json, add plan fields (done), upgrade dashboard (this week). Bot reads tasks.json at every session start.",
-    "nextStep": "Continue T002 (SEO fixes) OR start dashboard upgrade"
+    "context": "Council ran on Chat→Queue protocol. Verdict: protocol is right but needs hardening. Implemented: expanded trigger phrases, verified writes, deduplication checks. System now catches all commitment phrases and verifies writes before confirming.",
+    "nextStep": "Continue T002 (SEO fixes) OR test the new protocol"
   },
   "deadline": {
     "date": "2026-02-10",
@@ -14,13 +14,10 @@
     "daysRemaining": 12
   },
   "taskBoard": "memory/tasks.json",
-  "councilResults": {
-    "session": "council-sessions/2026-01-29-mission-control-upgrade.md",
-    "verdict": "Local-first approach. Keep tasks.json, upgrade dashboard incrementally.",
-    "p0": "Bot reads tasks.json at session start - DONE",
-    "p1": "Plan field on all tasks - DONE",
-    "p2": "Dashboard split lanes - This week",
-    "p3": "Drag-drop reordering - Next week"
+  "protocolUpgrades": {
+    "chatToQueue": "v2 - expanded triggers, verified writes, deduplication",
+    "triggerPhrases": ["I'll", "I will", "Let me", "Sure", "Got it", "Leave it with me", "I can do that"],
+    "verification": "Must READ tasks.json back to confirm write before saying 'Added to queue'"
   },
   "completedToday": [
     "SEO procedure development",
@@ -30,12 +27,15 @@
     "9 AM Research Brief (Moltbot rebrand)",
     "P1 Branding update (8 files)",
     "Task tracking system v3 with plans",
-    "Council: Mission Control upgrade"
+    "Council: Mission Control upgrade",
+    "Council: Chat→Queue protocol hardening"
   ],
   "standingRules": [
     "READ tasks.json at EVERY session start",
-    "READ the plan before starting any task",
+    "READ the plan BEFORE starting any task",
     "UPDATE tasks.json BEFORE reporting work",
+    "VERIFY writes before confirming 'Added to queue'",
+    "CHECK for duplicates before adding tasks",
     "SUGGESTION = FAILURE STATE",
     "NORTH STAR: Increase sales and make money"
   ]
