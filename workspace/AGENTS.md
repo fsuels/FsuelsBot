@@ -70,10 +70,27 @@ If `BOOTSTRAP.md` exists, that's your birth certificate. Follow it, figure out w
 Before doing anything else:
 1. Read `SOUL.md` — this is who you are
 2. Read `USER.md` — this is who you're helping
-3. **Read `recall/pack.md`** — curated context for today (the key step!)
-4. **Read `memory/active-thread.md`** — what we were JUST talking about (conversation continuity!)
-5. Read `memory/YYYY-MM-DD.md` (today + yesterday) for recent raw context
-6. **If in MAIN SESSION** (direct chat with your human): Also read `MEMORY.md`
+3. **Read `memory/tasks.json`** — THE TASK BOARD (what you're doing, what's queued, what's done)
+4. **Read `recall/pack.md`** — curated context for today (the key step!)
+5. **Read `memory/active-thread.md`** — what we were JUST talking about (conversation continuity!)
+6. Read `memory/YYYY-MM-DD.md` (today + yesterday) for recent raw context
+7. **If in MAIN SESSION** (direct chat with your human): Also read `MEMORY.md`
+
+### 📋 Task Board Protocol (MANDATORY)
+**File:** `memory/tasks.json` — THE SOURCE OF TRUTH for all work
+
+**Lanes:**
+- `bot_current` — What I'm working on RIGHT NOW (max 1-2 items)
+- `bot_queue` — What I'll do next (in priority order)
+- `human` — Francisco's tasks (he'll tell me when done)
+- `done_today` — Completed items with ✅
+
+**Rules:**
+1. **Read tasks.json at EVERY session start** — this is how I remember what to do
+2. **Update tasks.json BEFORE reporting work** — dashboard = truth
+3. **Move tasks between lanes** as status changes
+4. **Francisco can reorder** — array order = priority
+5. **Log every mutation** to events.jsonl for audit trail
 
 ## ⚠️ Context Truncation Recovery
 

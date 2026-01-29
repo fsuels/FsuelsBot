@@ -1,44 +1,48 @@
 {
-  "lastUpdated": "2026-01-29T09:16:00-05:00",
-  "version": 28,
+  "lastUpdated": "2026-01-29T09:25:00-05:00",
+  "version": 29,
   "currentTask": {
-    "id": "TASK-20260129-013",
-    "description": "P1 Branding update complete — ready for next task",
-    "status": "completed",
-    "context": "Updated 8 key workspace files from Clawdbot→Moltbot. Council approved P2 (docs audit) for this week.",
-    "nextStep": "Continue SEO product title fixes OR await Francisco's quick wins"
+    "id": "TASK-20260129-014",
+    "description": "SEO product title batch fixes",
+    "status": "in_progress",
+    "context": "Continuing SEO cleanup. 50+ products still have bloated titles.",
+    "nextStep": "Open Shopify products, fix titles in batches of 10"
   },
   "deadline": {
     "date": "2026-02-10",
     "description": "Valentine's Day order cutoff",
     "daysRemaining": 12
   },
-  "completedToday": [
-    "SEO procedure development (research + council + synthesis)",
-    "PageSpeed audit on DLM (LCP 2.4s — Good)",
-    "Deleted 9 duplicate/empty collections",
-    "Fixed 5 bloated collection names",
-    "Fixed 2 corrupted product SEO titles",
-    "EXECUTION-FIRST UPGRADE: SOUL.md + work-ledger + heartbeat",
-    "9 AM Research Brief: Clawdbot→Moltbot rebrand news",
-    "P1 BRANDING UPDATE: 8 files updated Clawdbot→Moltbot"
+  "myPendingWork": [
+    "SEO product title batch fixes (50+ products)",
+    "P2 Docs audit (this week, 2hr cap)",
+    "Valentine listing optimization",
+    "Competitor analysis"
   ],
-  "waitingOnFrancisco": [
-    "Announcement bar urgency text (1 min)",
-    "Hero banner copy (2 min)",
-    "Hide Christmas nav link (1 min)",
-    "Add Valentine collection to homepage (2 min)",
-    "Import 2 products via BuckyDrop (5 min)"
-  ],
-  "approvedImprovements": {
-    "P1": "DONE - Branding update",
-    "P2": "Docs audit (this week, 2hr max)",
-    "Rejected": "ElevenLabs TTS (costs money)"
+  "humanTasks": {
+    "description": "Francisco's list - inform me when done",
+    "items": [
+      {"task": "Announcement bar urgency text", "est": "1 min"},
+      {"task": "Hero banner copy", "est": "2 min"},
+      {"task": "Hide Christmas nav link", "est": "1 min"},
+      {"task": "Add Valentine collection to homepage", "est": "2 min"},
+      {"task": "Import 2 products via BuckyDrop", "est": "5 min"}
+    ],
+    "totalTime": "11 min"
   },
+  "completedToday": [
+    "SEO procedure development",
+    "PageSpeed audit (LCP 2.4s — Good)",
+    "Deleted 9 duplicate/empty collections",
+    "Fixed 5 collection names + 2 product titles",
+    "Execution-first upgrade (SOUL.md + work-ledger)",
+    "9 AM Research Brief",
+    "P1 Branding update (8 files)"
+  ],
   "standingRules": [
-    "UPDATE state.json BEFORE telling Francisco about work",
-    "SUGGESTION = FAILURE STATE — execute, don't advise",
-    "Tier 0/1/2 permissions — know your bounds",
+    "UPDATE state.json BEFORE reporting work",
+    "SUGGESTION = FAILURE STATE",
+    "Tier 0/1/2 permissions",
     "Output Contract: Actions Taken / Queued / Blockers",
     "NORTH STAR: Increase sales and make money"
   ]

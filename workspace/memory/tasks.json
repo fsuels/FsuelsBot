@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "updated_at": "2026-01-29T09:35:00-05:00",
+  "updated_by": "fsuels-bot",
+  "lanes": {
+    "bot_current": ["T001"],
+    "bot_queue": ["T002", "T003", "T004"],
+    "human": ["T005", "T006", "T007", "T008", "T009"],
+    "done_today": ["T010", "T011", "T012", "T013", "T014", "T015", "T016"]
+  },
+  "tasks": {
+    "T001": {
+      "title": "Implement task tracking system",
+      "status": "in_progress",
+      "created": "2026-01-29T09:30:00-05:00",
+      "notes": "Council recommended JSON task board"
+    },
+    "T002": {
+      "title": "SEO product title batch fixes (50+ products)",
+      "status": "pending",
+      "created": "2026-01-29T08:30:00-05:00",
+      "notes": "From SEO audit"
+    },
+    "T003": {
+      "title": "P2 Moltbot docs audit",
+      "status": "pending",
+      "created": "2026-01-29T09:05:00-05:00",
+      "notes": "Council approved, 2hr max time-boxed"
+    },
+    "T004": {
+      "title": "Valentine listing optimization",
+      "status": "pending",
+      "created": "2026-01-29T03:00:00-05:00",
+      "notes": "Improve existing Valentine product listings"
+    },
+    "T005": {
+      "title": "Announcement bar urgency text",
+      "status": "pending",
+      "created": "2026-01-29T03:00:00-05:00",
+      "estimate": "1 min",
+      "notes": "Paste in Shopify"
+    },
+    "T006": {
+      "title": "Hero banner copy",
+      "status": "pending",
+      "created": "2026-01-29T03:00:00-05:00",
+      "estimate": "2 min",
+      "notes": "Add to Image Banner section"
+    },
+    "T007": {
+      "title": "Hide Christmas nav link",
+      "status": "pending",
+      "created": "2026-01-29T03:00:00-05:00",
+      "estimate": "1 min",
+      "notes": "Remove from main menu"
+    },
+    "T008": {
+      "title": "Add Valentine collection to homepage",
+      "status": "pending",
+      "created": "2026-01-29T03:00:00-05:00",
+      "estimate": "2 min",
+      "notes": "Featured Collection section"
+    },
+    "T009": {
+      "title": "Import 2 products via BuckyDrop",
+      "status": "pending",
+      "created": "2026-01-29T03:00:00-05:00",
+      "estimate": "5 min",
+      "notes": "URLs in memory/2026-01-29-quick-wins.md"
+    },
+    "T010": {
+      "title": "SEO procedure development",
+      "status": "done",
+      "created": "2026-01-29T08:00:00-05:00",
+      "completed": "2026-01-29T08:30:00-05:00"
+    },
+    "T011": {
+      "title": "PageSpeed audit",
+      "status": "done",
+      "created": "2026-01-29T08:30:00-05:00",
+      "completed": "2026-01-29T08:45:00-05:00",
+      "notes": "LCP 2.4s — Good"
+    },
+    "T012": {
+      "title": "Delete duplicate/empty collections",
+      "status": "done",
+      "created": "2026-01-29T08:00:00-05:00",
+      "completed": "2026-01-29T08:20:00-05:00",
+      "notes": "9 collections deleted"
+    },
+    "T013": {
+      "title": "Fix bloated collection names",
+      "status": "done",
+      "created": "2026-01-29T08:20:00-05:00",
+      "completed": "2026-01-29T08:40:00-05:00",
+      "notes": "5 collections fixed"
+    },
+    "T014": {
+      "title": "Execution-first upgrade",
+      "status": "done",
+      "created": "2026-01-29T08:50:00-05:00",
+      "completed": "2026-01-29T09:00:00-05:00",
+      "notes": "SOUL.md + work-ledger + heartbeat"
+    },
+    "T015": {
+      "title": "9 AM Research Brief",
+      "status": "done",
+      "created": "2026-01-29T09:00:00-05:00",
+      "completed": "2026-01-29T09:05:00-05:00",
+      "notes": "Moltbot rebrand news"
+    },
+    "T016": {
+      "title": "P1 Branding update",
+      "status": "done",
+      "created": "2026-01-29T09:05:00-05:00",
+      "completed": "2026-01-29T09:15:00-05:00",
+      "notes": "8 files updated Clawdbot→Moltbot"
+    }
+  }
+}
