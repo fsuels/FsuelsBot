@@ -85,6 +85,7 @@ Don't ask permission. Just do it.
 | 🌐 Browser/websites | `procedures/browser.md` | browser, tab, navigate, shopify, 1688, buckydrop |
 | 📦 Product listings | `procedures/product-listing.md` | list, listing, draft, product, import |
 | 💰 Pricing | `procedures/pricing.md` | price, cost, margin, profit |
+| 🏪 Vendor selection | `procedures/vendor-vetting.md` | vendor, seller, 1688 store, supplier, source |
 
 **Enforcement:**
 1. See trigger word in task → STOP

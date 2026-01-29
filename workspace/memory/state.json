@@ -63,5 +63,35 @@
     "councilComplete": true,
     "procedureComplianceSystemVersion": "1.0",
     "valentineListingsProgress": "2/12"
-  }
+  },
+  "activeSubagents": [
+    {
+      "label": "valentine-listings",
+      "sessionKey": "agent:main:subagent:7ed60692-adf5-4523-b559-c8bac912ec92",
+      "started": "2026-01-29T01:09:00-05:00",
+      "goal": "Create Valentine drafts 3-12",
+      "status": "running"
+    },
+    {
+      "label": "seo-improvements",
+      "sessionKey": "agent:main:subagent:8da50526-c32d-4d93-97fd-b3c44f6440d2",
+      "started": "2026-01-29T01:09:00-05:00",
+      "goal": "Audit and improve SEO for dresslikemommy.com (ALL pages)",
+      "status": "running"
+    },
+    {
+      "label": "council-seo-procedures",
+      "sessionKey": "agent:main:subagent:c366c8a2-ad07-4e10-bae3-fe3d40c50e83",
+      "started": "2026-01-29T01:09:00-05:00",
+      "goal": "Council: Create comprehensive SEO procedures",
+      "status": "running"
+    },
+    {
+      "label": "council-growth-playbook",
+      "sessionKey": "agent:main:subagent:ba221a19-a408-476f-9311-3f5bbe376cea",
+      "started": "2026-01-29T01:10:00-05:00",
+      "goal": "Council: Complete e-commerce growth playbook - ALL procedures",
+      "status": "running"
+    }
+  ]
 }
