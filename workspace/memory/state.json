@@ -1,21 +1,20 @@
 {
-  "version": 13,
-  "lastUpdated": "2026-01-29T01:05:00-05:00",
+  "version": 14,
+  "lastUpdated": "2026-01-29T01:25:00-05:00",
   "currentTask": {
-    "id": "TASK-20260129-002",
-    "description": "Council session: Design bulletproof procedure compliance system",
-    "status": "completed",
-    "startedAt": "2026-01-29T00:20:00-05:00",
-    "completedAt": "2026-01-29T01:05:00-05:00",
-    "context": "Multi-AI Council completed. Solution designed and implemented.",
-    "outcome": "Hybrid enforcement system: deterministic routing + verification gates + evidence ledger + self-enforcement in SOUL.md"
+    "id": "TASK-20260128-004",
+    "description": "Valentine product draft listings (night shift)",
+    "status": "blocked",
+    "startedAt": "2026-01-29T01:09:00-05:00",
+    "context": "Subagent working on Valentine drafts. Browser automation hitting dynamic ref issues.",
+    "nextStep": "Manual intervention needed OR retry with different browser strategy"
   },
   "nextTask": {
     "id": "TASK-20260128-004",
     "description": "Resume Valentine product draft listings",
-    "status": "ready",
-    "context": "2 of 12 drafts complete. Ready to resume with new procedure compliance system in place.",
-    "nextStep": "Start draft #3 following the product-listing procedure"
+    "status": "blocked",
+    "context": "2 of 12 drafts complete. Product #3 sourced and vetted, but Shopify draft creation blocked.",
+    "nextStep": "Francisco to review - browser automation reliability issue"
   },
   "backlog": [
     {
@@ -51,7 +50,13 @@
       "outcome": "11 components built"
     }
   ],
-  "waitingOn": [],
+  "waitingOn": [
+    {
+      "item": "Browser automation reliability fix for BuckyDrop/Shopify",
+      "since": "2026-01-29T01:25:00-05:00",
+      "reason": "Dynamic refs expire between snapshot and action, blocking form filling"
+    }
+  ],
   "standingRules": [
     "UPDATE state.json BEFORE telling Francisco about work",
     "Mission Control must always be running",
@@ -62,7 +67,17 @@
     "missionControlUrl": "http://192.168.4.25:8765?key=a6132abf77194fd10a77317a094771f1",
     "councilComplete": true,
     "procedureComplianceSystemVersion": "1.0",
-    "valentineListingsProgress": "2/12"
+    "valentineListingsProgress": "2/12",
+    "pendingProduct": {
+      "title": "Valentine Heart Mommy and Me Sweatshirt",
+      "source": "https://detail.1688.com/offer/979681219094.html",
+      "vendor": "Huzhou Tomato Garment Factory",
+      "vendorScore": "5/5 (87.2% repurchase, 4.0 service, 2900+ sales)",
+      "cost": 15.21,
+      "suggestedPrice": 34.99,
+      "status": "Added to BuckyDrop, not yet pushed to Shopify",
+      "needsFaceSwap": "TBD - has Chinese model images"
+    }
   },
   "activeSubagents": [
     {
@@ -70,7 +85,7 @@
       "sessionKey": "agent:main:subagent:7ed60692-adf5-4523-b559-c8bac912ec92",
       "started": "2026-01-29T01:09:00-05:00",
       "goal": "Create Valentine drafts 3-12",
-      "status": "running"
+      "status": "blocked"
     },
     {
       "label": "seo-improvements",

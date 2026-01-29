@@ -86,6 +86,7 @@ Don't ask permission. Just do it.
 | 📦 Product listings | `procedures/product-listing.md` | list, listing, draft, product, import |
 | 💰 Pricing | `procedures/pricing.md` | price, cost, margin, profit |
 | 🏪 Vendor selection | `procedures/vendor-vetting.md` | vendor, seller, 1688 store, supplier, source |
+| 🔍 SEO tasks | `procedures/seo/README.md` | seo, meta tags, keywords, sitemap, schema, rankings |
 
 **Enforcement:**
 1. See trigger word in task → STOP
