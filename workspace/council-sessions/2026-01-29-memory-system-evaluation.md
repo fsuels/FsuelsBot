@@ -36,3 +36,79 @@ Evaluating our current memory system against production-grade standards based on
 
 ### Round 1A — Initial Positions
 
+#### 🤖 GROK says:
+**Key gaps identified:**
+1. **Time-decay to retrieval** — YES, high priority. Use exponential decay: `score = relevance * e^(-λ * age)`. Easy with FAISS/ChromaDB.
+2. **Weekly summarization crons** — Absolutely yes. Use hierarchical summarization: raw → daily → weekly/monthly abstracts.
+3. **Graph-based memory** — Only if tasks involve relationships. Start lightweight with NetworkX. Skip if use case is linear.
+4. **Other gaps:**
+   - Hybrid Short/Long-Term Memory (in-memory cache for sessions)
+   - Forgetting/Pruning based on access frequency
+   - Evaluation/Monitoring (LangSmith)
+   - Scalability Tech (Vector DB like Milvus)
+   - Security/Compliance
+
+**Highest-impact improvement:** Time-decay to retrieval (low effort, high ROI, 30%+ faster/more accurate responses, prototype in <1 hour)
+
+---
+
+#### 🟢 CHATGPT says:
+**Key gaps identified:**
+1. **Memory lifecycle management** (garbage collection layer):
+   - Promotion/demotion pipeline: ephemeral → working set → durable KB
+   - Forgetting policies: explicit TTL + "superseded-by" semantics
+   - Conflict resolution: store contradictory claims with provenance + recency
+2. **Provenance + trust scoring:**
+   - Source, timestamp, confidence, scope on every fact
+   - Trust tiers: "user said," "model inferred," "system measured"
+3. **Retrieval guardrails:**
+   - Query-to-memory routing (decide which store to hit based on intent)
+   - Diversity + de-dup
+   - Negative retrieval / exclusion rules
+4. **Evaluation + observability:**
+   - Memory hit-rate & regret tracking
+   - Regression suite (~30-100 canary test prompts)
+   - Cost/latency budgets per turn
+5. **Human-in-the-loop controls:**
+   - User-visible memory actions ("remember this / forget this / correct this")
+   - Safe redaction from derived artifacts
+
+**On specific questions:**
+- **Time-decay:** Yes, but use recency as ONE feature in ranking (not naive exponential). Strong recency for volatile categories, weak for stable. Add supersession rules.
+- **Weekly summarization:** Multi-resolution summaries (daily delta, weekly snapshot, monthly milestone). Design as stability + compression.
+- **Graph-based memory:** Second-wave optimization after retrieval + governance are solid.
+
+**Highest-impact improvement:** Evaluation/observability harness + retrieval routing
+- Memory router (rules + light classifier)
+- Ranker with recency + trust + scope: `score = semantic_similarity + α·recency + β·trust + γ·scope_match − δ·redundancy`
+- Canary tests + logging (30-100 test prompts with expected memories)
+
+---
+
+#### 💎 GEMINI: *Unavailable* (CLI timeout/unresponsive)
+
+---
+
+### Round 1A Summary — Key Agreements & Disagreements
+
+**✅ AGREEMENTS:**
+- Time-decay is important and should be added
+- Weekly summarization is useful for compression/stability
+- Graph-based memory is secondary, not first priority
+- Current system has good storage primitives but weak on optimization/governance
+
+**⚔️ DISAGREEMENTS:**
+| Topic | Grok | ChatGPT |
+|-------|------|---------|
+| **Highest impact** | Time-decay to retrieval | Evaluation/observability + routing |
+| **Implementation complexity** | Simple (few lines Python) | More complex (router, ranker, canary tests) |
+| **Graph priority** | Medium (if relational) | Low (second-wave) |
+
+**🔑 UNIQUE INSIGHTS:**
+- **Grok:** Specific formula with tunable λ decay rate, concrete benchmarks (30%+ improvement)
+- **ChatGPT:** Trust tiers, supersession semantics, canary test suites, multi-feature scoring formula
+
+---
+
+## Round 1B — Cross-Examination
+
