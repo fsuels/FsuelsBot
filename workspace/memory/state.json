@@ -1,12 +1,12 @@
 {
-  "lastUpdated": "2026-01-29T12:45:00-05:00",
-  "version": 34,
+  "lastUpdated": "2026-01-29T12:55:00-05:00",
+  "version": 35,
   "currentTask": {
-    "id": "STEP-TRACKING-APPROVAL",
-    "description": "Step-tracking implementation for context truncation fix",
-    "status": "awaiting_approval",
-    "context": "Council (Grok + ChatGPT) unanimously agreed: step-tracking in tasks.json is the correct 'control-plane' fix for context truncation loops. Add steps[] array with status per step, current_step index, retry_count. Execute ONE step at a time, persist BEFORE responding. Grade: A.",
-    "nextStep": "Francisco approves → implement steps[] schema in tasks.json → update AGENTS.md with behavior rules"
+    "id": "T002",
+    "description": "SEO product title batch fixes (220 products)",
+    "status": "in_progress",
+    "context": "Step-tracking implemented. T002 at step 2 of 5 (waiting for Francisco approval on CSV import).",
+    "nextStep": "Francisco approves SEO import → execute step 3 (Import CSV via Shopify)"
   },
   "deadline": {
     "date": "2026-02-10",
@@ -15,16 +15,17 @@
   },
   "taskBoard": "memory/tasks.json",
   "pendingDecisions": [
-    "Approve step-tracking implementation (Council A grade) - solves context loop problem",
-    "SEO import: 220 title fixes ready, some have truncation issues"
+    "SEO import: 220 title fixes ready, awaiting approval (T002 step 2)"
   ],
-  "councilResult": {
-    "topic": "Step-Tracking Implementation",
+  "recentImplementation": {
+    "task": "Step-tracking implementation",
     "grade": "A",
-    "recommendation": "Add steps[] array to tasks.json. Each step: {step, status, completed_at}. current_step index. retry_count. Execute ONE step per turn. Persist BEFORE responding.",
-    "savedTo": "council-sessions/2026-01-29-step-tracking-implementation.md",
-    "participants": ["Grok", "ChatGPT"],
-    "consensus": "Both AIs unanimously agree step-tracking externalizes state outside volatile context, prevents restart loops"
+    "changes": [
+      "tasks.json upgraded to v6 with steps[] schema",
+      "T002, T003, T004 now have steps defined",
+      "AGENTS.md updated with Step-Tracking Protocol",
+      "Council session saved to council-sessions/2026-01-29-step-tracking-implementation.md"
+    ]
   },
   "completedToday": [
     "SEO procedure development",
@@ -37,14 +38,14 @@
     "Council: Mission Control upgrade",
     "Council: Chat→Queue protocol hardening",
     "Council: Task context isolation (A-)",
-    "Council: Step-tracking implementation (A)"
+    "Council: Step-tracking implementation (A)",
+    "Step-tracking schema implemented"
   ],
   "standingRules": [
     "READ tasks.json at EVERY session start",
-    "READ the plan BEFORE starting any task",
-    "UPDATE tasks.json BEFORE reporting work",
-    "VERIFY writes before confirming 'Added to queue'",
-    "CHECK for duplicates before adding tasks",
+    "CHECK current_step on session start — resume from there",
+    "EXECUTE ONE STEP per turn",
+    "UPDATE tasks.json BEFORE responding",
     "SUGGESTION = FAILURE STATE",
     "NORTH STAR: Increase sales and make money"
   ]

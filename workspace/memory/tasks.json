@@ -1,24 +1,51 @@
 {
-  "version": 5,
-  "updated_at": "2026-01-29T11:16:00-05:00",
+  "version": 6,
+  "updated_at": "2026-01-29T12:50:00-05:00",
   "updated_by": "fsuels-bot",
-  "notes": "Each task has 'plan' + 'context' fields. Context contains summary of WHY task was created. Bot reads context.summary before working on any task.",
+  "notes": "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
   "schema": {
     "context": {
       "summary": "One-paragraph summary of why this task exists and key decisions",
       "created_from": "EVT-YYYYMMDD-NNN (optional link to originating event)",
       "decisions": "Array of key decisions made during task creation",
       "constraints": "Array of constraints or requirements"
-    }
+    },
+    "steps": {
+      "description": "Array of step objects for multi-step tasks",
+      "step_schema": {
+        "step": "Description of this step",
+        "status": "pending | in_progress | done | waiting | blocked",
+        "completed_at": "ISO timestamp when step completed (optional)",
+        "waiting_for": "What we're waiting for if status=waiting (optional)",
+        "artifacts": "Array of file paths or IDs produced by this step (optional)"
+      }
+    },
+    "current_step": "0-indexed pointer to current step in steps[] array",
+    "retry_count": "Number of times current step has been attempted (reset on advance)"
   },
   "lanes": {
     "bot_current": ["T002"],
     "bot_queue": ["T003", "T004"],
     "human": ["T005", "T006", "T007", "T008", "T009"],
     "scheduled": ["CRON-research", "CRON-curiosity", "CRON-learn", "CRON-ship", "CRON-backup", "CRON-consolidation"],
-    "done_today": ["T017", "T001", "T010", "T011", "T012", "T013", "T014", "T015", "T016", "T018"]
+    "done_today": ["T017", "T001", "T010", "T011", "T012", "T013", "T014", "T015", "T016", "T018", "T019"]
   },
   "tasks": {
+    "T019": {
+      "title": "Step-tracking implementation",
+      "status": "done",
+      "created": "2026-01-29T12:45:00-05:00",
+      "completed": "2026-01-29T12:50:00-05:00",
+      "context": {
+        "summary": "Context truncation caused infinite loops - bot restarted from step 1 instead of resuming. Council (Grok + ChatGPT) unanimously agreed: add steps[] array to tasks.json. Execute ONE step at a time, persist BEFORE responding. Grade: A.",
+        "created_from": "EVT-20260129-033",
+        "decisions": ["Add steps[] array", "current_step index", "retry_count for loop prevention", "Persist before responding"],
+        "constraints": ["Keep it simple", "File-based, no DB needed"]
+      },
+      "plan": "council-sessions/2026-01-29-step-tracking-implementation.md",
+      "approach": "1. Update tasks.json schema. 2. Add steps to T002 as example. 3. Update AGENTS.md with behavior rules.",
+      "notes": "Council grade: A (unanimous)"
+    },
     "T018": {
       "title": "Task context isolation implementation",
       "status": "done",
@@ -55,7 +82,15 @@
       },
       "plan": "procedures/seo/README.md",
       "planSection": "Product Title Optimization",
-      "approach": "1. Generated seo-title-import.csv (220 products). 2. Francisco reviews. 3. Import via Shopify. 4. Fix truncated titles manually.",
+      "steps": [
+        {"step": "Generate CSV with optimized titles", "status": "done", "completed_at": "2026-01-29T08:45:00-05:00", "artifacts": ["mission-control/seo-title-import.csv"]},
+        {"step": "Review truncated titles for issues", "status": "done", "completed_at": "2026-01-29T09:00:00-05:00"},
+        {"step": "Francisco reviews and approves import", "status": "waiting", "waiting_for": "Francisco approval"},
+        {"step": "Import CSV via Shopify bulk editor", "status": "pending"},
+        {"step": "Verify import succeeded", "status": "pending"}
+      ],
+      "current_step": 2,
+      "retry_count": 0,
       "notes": "CSV ready at mission-control/seo-title-import.csv"
     },
     "T003": {
@@ -70,7 +105,15 @@
       },
       "plan": "mission-control/approved-improvements.md",
       "planSection": "Audit Against New Moltbot Documentation",
-      "approach": "1. Open docs.molt.bot. 2. Checklist mindset. 3. Compare our setup. 4. List recommendations.",
+      "steps": [
+        {"step": "Open docs.molt.bot and scan sections", "status": "pending"},
+        {"step": "Compare our AGENTS.md against recommendations", "status": "pending"},
+        {"step": "Compare our SOUL.md against recommendations", "status": "pending"},
+        {"step": "List improvements: Adopt now / Ignore / Revisit", "status": "pending"},
+        {"step": "Implement 'Adopt now' changes", "status": "pending"}
+      ],
+      "current_step": 0,
+      "retry_count": 0,
       "notes": "Council approved, time-boxed"
     },
     "T004": {
@@ -84,7 +127,14 @@
         "constraints": ["Feb 10 deadline", "Must have BuckyDrop source to fulfill"]
       },
       "plan": "procedures/product-listing.md",
-      "approach": "1. Review current Valentine products. 2. Optimize per SEO procedure. 3. Add urgency copy. 4. Verify pricing.",
+      "steps": [
+        {"step": "List current Valentine products", "status": "pending"},
+        {"step": "Optimize titles per SEO procedure", "status": "pending"},
+        {"step": "Add urgency copy to descriptions", "status": "pending"},
+        {"step": "Verify pricing and BuckyDrop source", "status": "pending"}
+      ],
+      "current_step": 0,
+      "retry_count": 0,
       "notes": "Improve existing Valentine product listings"
     },
     "T005": {

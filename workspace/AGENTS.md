@@ -110,6 +110,37 @@ Before doing anything else:
 8. **Log every mutation** to events.jsonl for audit trail
 9. **When creating tasks, ALWAYS populate context.summary** — capture WHY in the moment
 
+### 🔄 Step-Tracking Protocol (MANDATORY — Council A Grade)
+**Problem solved:** Context truncation was causing infinite loops — bot restarted from step 1 instead of resuming from step 4.
+
+**Solution:** Each task can have a `steps[]` array with `current_step` index. Bot executes ONE step at a time, persists BEFORE responding.
+
+**Step Schema:**
+```json
+"steps": [
+  {"step": "Generate CSV", "status": "done", "completed_at": "..."},
+  {"step": "Francisco approves", "status": "waiting", "waiting_for": "..."},
+  {"step": "Import via Shopify", "status": "pending"}
+],
+"current_step": 1,
+"retry_count": 0
+```
+
+**Step-Tracking Rules:**
+1. **Check `current_step` on session start** — resume from there, not step 0
+2. **If step status is "done", advance** — find first non-done step
+3. **Execute ONE step per turn** — don't try to complete entire task at once
+4. **Update tasks.json BEFORE responding** — never lose progress
+5. **If `retry_count > 3` on same step** — mark task "blocked", alert Francisco
+6. **Reset `retry_count` to 0** when advancing to next step
+
+**Step Statuses:**
+- `pending` — Not started yet
+- `in_progress` — Currently working on it
+- `done` — Completed (include `completed_at` timestamp)
+- `waiting` — Blocked on external input (include `waiting_for`)
+- `blocked` — Failed repeatedly, needs human intervention
+
 ### 🚨 CHAT → QUEUE PROTOCOL (MANDATORY)
 **If I say "I'll do X" or we identify something I need to do in chat:**
 1. **IMMEDIATELY** add it to `memory/tasks.json` before doing anything else
