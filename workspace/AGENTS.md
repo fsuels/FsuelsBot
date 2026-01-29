@@ -8,21 +8,24 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-01-29 09:40 EST | **Version:** 30
+**Last updated:** 2026-01-29 09:50 EST | **Version:** 31
 
-**Current task:** Task tracking system COMPLETE [T001]
+**Current task:** Task tracking system v3 COMPLETE [T001]
 **Status:** completed
-**Context:** Council recommended JSON task board. Created memory/tasks.json with 4 lanes. AGENTS.md updated to read tasks.json at session start.
-**Next step:** Move to T002 (SEO product title batch fixes)
+**Context:** Council ran 2 rounds on Mission Control upgrade. Consensus: local-first approach. Keep tasks.json, upgrade dashboard incrementally.
+**Next step:** Continue T002 (SEO fixes) OR start dashboard upgrade
 
 **⏰ DEADLINE:** 12 days until Feb 10 order cutoff
 
 **📋 TASK BOARD:** `memory/tasks.json` — THE SOURCE OF TRUTH
+- Each task has `plan` field linking to procedure
+- Bot reads plan BEFORE executing any task
+- Francisco can reorder via chat or editing file
 
 **🤖 MY QUEUE (in order):**
-- T002: SEO product title batch fixes (50+ products)
-- T003: P2 Moltbot docs audit
-- T004: Valentine listing optimization
+- T002: SEO product title batch fixes (50+ products) | Plan: `procedures/seo/README.md`
+- T003: P2 Moltbot docs audit | Plan: `mission-control/approved-improvements.md`
+- T004: Valentine listing optimization | Plan: `procedures/product-listing.md`
 
 **👤 FRANCISCO'S TASKS (tell me when done):**
 - T005: Announcement bar (1 min)
@@ -31,10 +34,11 @@ This folder is home. Treat it that way.
 - T008: Valentine on homepage (2 min)
 - T009: BuckyDrop import (5 min)
 
-**✅ DONE TODAY:** 8 items (SEO, PageSpeed, collections, branding, task system)
+**✅ DONE TODAY:** 9 items (SEO, PageSpeed, collections, branding, task system v3, Council)
 
 **Standing rules:**
 - READ tasks.json at EVERY session start
+- READ the plan BEFORE starting any task
 - UPDATE tasks.json BEFORE reporting work
 - **SUGGESTION = FAILURE STATE** — execute, don't advise
 - **NORTH STAR: Increase sales and make money**

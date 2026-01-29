@@ -1,12 +1,12 @@
 {
-  "lastUpdated": "2026-01-29T09:40:00-05:00",
-  "version": 30,
+  "lastUpdated": "2026-01-29T09:50:00-05:00",
+  "version": 31,
   "currentTask": {
     "id": "T001",
-    "description": "Task tracking system implemented",
+    "description": "Task tracking system COMPLETE",
     "status": "completed",
-    "context": "Council recommended JSON task board with lanes. Created memory/tasks.json with bot_current, bot_queue, human, done_today lanes. Updated AGENTS.md to read tasks.json at session start.",
-    "nextStep": "Move to T002 (SEO product title batch fixes)"
+    "context": "Council ran 2 rounds on Mission Control upgrade. Consensus: keep tasks.json, add plan fields (done), upgrade dashboard (this week). Bot reads tasks.json at every session start.",
+    "nextStep": "Continue T002 (SEO fixes) OR start dashboard upgrade"
   },
   "deadline": {
     "date": "2026-02-10",
@@ -14,18 +14,27 @@
     "daysRemaining": 12
   },
   "taskBoard": "memory/tasks.json",
+  "councilResults": {
+    "session": "council-sessions/2026-01-29-mission-control-upgrade.md",
+    "verdict": "Local-first approach. Keep tasks.json, upgrade dashboard incrementally.",
+    "p0": "Bot reads tasks.json at session start - DONE",
+    "p1": "Plan field on all tasks - DONE",
+    "p2": "Dashboard split lanes - This week",
+    "p3": "Drag-drop reordering - Next week"
+  },
   "completedToday": [
     "SEO procedure development",
-    "PageSpeed audit (LCP 2.4s)",
-    "Deleted 9 duplicate/empty collections",
-    "Fixed 5 collection names + 2 product titles",
+    "PageSpeed audit",
+    "Deleted 9 collections + fixed 5 names",
     "Execution-first upgrade (SOUL.md)",
-    "9 AM Research Brief",
+    "9 AM Research Brief (Moltbot rebrand)",
     "P1 Branding update (8 files)",
-    "Task tracking system (tasks.json)"
+    "Task tracking system v3 with plans",
+    "Council: Mission Control upgrade"
   ],
   "standingRules": [
     "READ tasks.json at EVERY session start",
+    "READ the plan before starting any task",
     "UPDATE tasks.json BEFORE reporting work",
     "SUGGESTION = FAILURE STATE",
     "NORTH STAR: Increase sales and make money"
