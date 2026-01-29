@@ -8,40 +8,32 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-01-29 02:00 EST | **Version:** 16
+**Last updated:** 2026-01-29 01:55 EST | **Version:** 17
 
-**Current task:** Night shift complete - awaiting Francisco's review [TASK-20260129-004]
-**Status:** waiting
-**Context:** All sub-agents completed. Audits, procedures, and turnaround plan ready.
-**Next step:** Francisco reviews deliverables and prioritizes execution
+**Current task:** Fix homepage opacity bug + Valentine's campaign execution [TASK-20260129-005]
+**Status:** in_progress
+**Context:** CONFIRMED homepage images invisible on live site. Theme editor slow. Copy & products ready.
+**Next step:** Francisco to try Animations fix manually OR wait for editor
 
-**🚨 TOP PRIORITY:** Valentine's Day campaign - WE ARE IN THE WINDOW NOW
+**🚨 CRITICAL BUG CONFIRMED:** Homepage images nearly invisible on dresslikemommy.com
+**Likely fix:** Theme Settings → Animations → disable "Reveal on scroll"
 
-**Night Shift Deliverables:**
-- ✅ Council: DLM Turnaround Plan (10 prioritized actions)
-- ✅ SEO Audit (score: 5/10) + 12 procedure files
-- ✅ Speed Audit (mobile: 54/100, LCP 12.2s)
-- ✅ Design Audit (score: 5/10, homepage opacity bug found)
-- ✅ Marketing Procedures (6 files)
-- ✅ Growth Playbook
-
-**Critical Findings:**
-- Homepage images nearly invisible (CSS opacity bug)
-- Mobile load time 12.2s (should be <2.5s)
-- Not ranking for "mommy and me outfits"
-- Valentine's window is NOW - urgency campaign needed
+**Ready to Deploy:**
+- ✅ Valentine copy drafts: `knowledge/valentine-copy-drafts.md`
+- ✅ 1688 products (10 items): `knowledge/valentine-products-1688.md`
+- ✅ Master backlog: `memory/backlog.md`
 
 **Backlog (prioritized):**
-1. 🔴 Fix homepage image opacity bug
-2. 🔴 Optimize mobile LCP
-3. 🟡 Connect 1688 sources for Valentine products
+1. 🔴 Fix homepage opacity bug ← BLOCKING
+2. 🔴 Deploy Valentine campaign (hero, countdown, urgency)
+3. 🟡 Optimize mobile LCP (12.2s → <2.5s)
+4. 🟡 Import Valentine products via BuckyDrop
 
 **Standing rules:**
 - UPDATE state.json BEFORE telling Francisco about work
 - Mission Control must always be running
 - Dashboard = source of truth for current work
 - **READ PROCEDURE FILES before browser/listing/pricing tasks**
-- **NORTH STAR: Increase sales and make money**
 - **NORTH STAR: Increase sales and make money**
 
 ---

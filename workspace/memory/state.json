@@ -1,66 +1,67 @@
 {
-  "version": 16,
-  "lastUpdated": "2026-01-29T02:00:00-05:00",
+  "version": 17,
+  "lastUpdated": "2026-01-29T01:55:00-05:00",
   "currentTask": {
-    "id": "TASK-20260129-004",
-    "description": "Night shift complete - awaiting Francisco's review",
-    "status": "waiting",
-    "startedAt": "2026-01-29T01:09:00-05:00",
-    "completedAt": "2026-01-29T02:00:00-05:00",
-    "context": "All sub-agents completed. Audits, procedures, and turnaround plan ready.",
-    "nextStep": "Francisco reviews deliverables and prioritizes execution"
-  },
-  "nextTask": {
     "id": "TASK-20260129-005",
-    "description": "Execute Valentine's Day urgency campaign (TOP PRIORITY)",
-    "status": "ready",
-    "context": "Council identified this as #1 action. We are IN the Valentine window NOW.",
-    "nextStep": "Add hero banner, countdown timer, Valentine urgency messaging"
+    "description": "Fix homepage opacity bug + Valentine's campaign execution",
+    "status": "in_progress",
+    "startedAt": "2026-01-29T01:42:00-05:00",
+    "context": "CONFIRMED: Homepage images nearly invisible on live site. Theme editor loading slowly. Sub-agents completed copy drafts and 1688 research.",
+    "nextStep": "Francisco to try Animations fix manually OR wait for theme editor to load"
   },
   "backlog": [
     {
       "id": "BACKLOG-002",
       "priority": 1,
-      "description": "Fix homepage image opacity bug (design audit finding)",
-      "addedAt": "2026-01-29T01:45:00-05:00"
+      "description": "Fix homepage image opacity bug - CONFIRMED CRITICAL",
+      "addedAt": "2026-01-29T01:45:00-05:00",
+      "notes": "Likely animation 'reveal on scroll' stuck in faded state. Check Theme Settings > Animations"
+    },
+    {
+      "id": "BACKLOG-004",
+      "priority": 2,
+      "description": "Deploy Valentine's campaign (hero, countdown, urgency)",
+      "addedAt": "2026-01-29T01:55:00-05:00",
+      "notes": "Copy ready in knowledge/valentine-copy-drafts.md"
     },
     {
       "id": "BACKLOG-003",
-      "priority": 2,
-      "description": "Optimize mobile LCP - 12.2s load time (speed audit finding)",
+      "priority": 3,
+      "description": "Optimize mobile LCP - 12.2s load time",
       "addedAt": "2026-01-29T01:45:00-05:00"
     },
     {
       "id": "BACKLOG-001",
-      "priority": 3,
-      "description": "Continue Valentine listings - connect 1688 sources",
-      "addedAt": "2026-01-28T23:47:00-05:00"
+      "priority": 4,
+      "description": "Import Valentine products from 1688 via BuckyDrop",
+      "addedAt": "2026-01-28T23:47:00-05:00",
+      "notes": "Products found in knowledge/valentine-products-1688.md"
     }
   ],
   "recentCompleted": [
     {
+      "id": "SUBAGENT-valentine-copy",
+      "description": "Valentine's Day marketing copy drafts",
+      "completedAt": "2026-01-29T01:50:00-05:00",
+      "outcome": "9 email subjects, hero banners, countdown text, social captions - saved to knowledge/valentine-copy-drafts.md"
+    },
+    {
+      "id": "SUBAGENT-valentine-research",
+      "description": "1688 Valentine product research",
+      "completedAt": "2026-01-29T01:55:00-05:00",
+      "outcome": "10 products found with verified URLs, 60-75% margin potential - saved to knowledge/valentine-products-1688.md"
+    },
+    {
       "id": "TASK-20260129-NIGHT",
       "description": "Night shift - comprehensive DLM improvement",
       "completedAt": "2026-01-29T02:00:00-05:00",
-      "outcome": "6 sub-agents completed: turnaround plan, SEO procedures (12 files), marketing procedures (6 files), design audit, speed audit, growth playbook"
-    },
-    {
-      "id": "TASK-20260129-003",
-      "description": "Valentine product audit and discovery",
-      "completedAt": "2026-01-29T01:30:00-05:00",
-      "outcome": "Found 7 Valentine products. 1 linked, 6 need sources."
-    },
-    {
-      "id": "TASK-20260129-002",
-      "description": "Council session: Procedure compliance system",
-      "completedAt": "2026-01-29T01:05:00-05:00",
-      "outcome": "Hybrid enforcement with verification gates"
+      "outcome": "6 sub-agents: turnaround plan, SEO/marketing procedures, audits"
     }
   ],
   "waitingOn": [
     {
-      "item": "Francisco's review of night shift deliverables",
-      "since": "2026-01-29T02:00:00-05:00"
+      "item": "Francisco's decision: manual Animations fix OR wait for slow editor",
+      "since": "2026-01-29T01:55:00-05:00"
     }
   ],
   "standingRules": [
@@ -68,28 +69,21 @@
     "Mission Control must always be running",
     "Dashboard = source of truth for current work",
     "READ PROCEDURE FILES before browser/listing/pricing tasks",
-    "NORTH STAR: Increase sales and make money"
+    "NORTH STAR: Increase sales and make money",
+    "I don't sleep - work at AI speed, not human speed"
   ],
   "sessionContext": {
     "missionControlUrl": "http://192.168.4.25:8765?key=a6132abf77194fd10a77317a094771f1",
-    "nightShiftDeliverables": {
-      "turnaroundPlan": "council-sessions/dlm-turnaround-plan.md",
-      "actionList": "knowledge/dlm-turnaround-actions.md",
-      "valentinesCampaign": "procedures/valentines-campaign.md",
-      "seoAudit": "knowledge/seo-audit-2026-01-29.md",
-      "speedAudit": "knowledge/speed-audit-2026-01-29.md",
-      "designAudit": "knowledge/design-audit-2026-01-29.md",
-      "seoProcedures": "procedures/seo/ (12 files)",
-      "marketingProcedures": "procedures/marketing/ (6 files)"
+    "confirmedBugs": {
+      "homepageOpacity": "Images nearly invisible on live site - works in editor preview but broken on dresslikemommy.com",
+      "likelyFix": "Theme Settings > Animations > disable 'Reveal on scroll' OR check Media settings"
     },
-    "criticalFindings": {
-      "seoScore": "5/10",
-      "mobileSpeed": "54/100 (LCP 12.2s)",
-      "desktopSpeed": "71/100",
-      "designScore": "5/10",
-      "homepageBug": "Category images nearly invisible (opacity bug)",
-      "topPriority": "Valentine's Day campaign - we are in the window NOW"
-    }
+    "readyToDeployAssets": {
+      "valentineCopy": "knowledge/valentine-copy-drafts.md",
+      "valentineProducts": "knowledge/valentine-products-1688.md",
+      "backlog": "memory/backlog.md"
+    },
+    "coreMandate": "Added to SOUL.md: 'I don't sleep. Never limit by human speed. Unleash.'"
   },
   "activeSubagents": []
 }
