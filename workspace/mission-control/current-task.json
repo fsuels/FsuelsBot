@@ -4,29 +4,18 @@
     "emoji": "🤖",
     "model": "claude-opus-4.5",
     "status": "working",
-    "task": "Researching Face Swap Solutions",
-    "benefit": "Get realistic model photos without expensive photoshoots",
-    "taskId": "DLM-FACESWAP",
+    "task": "Finding 20 NEW Valentine Products (No Duplicates)",
     "project": "Dress Like Mommy",
-    "startTime": "7:47 PM",
-    "description": "Finding the best free tool to swap faces on product images",
-    "progress": 40,
+    "progress": 15,
     "steps": [
-      {"label": "Research available tools", "done": true},
-      {"label": "Compare free options", "done": true},
-      {"label": "Get face decision from Francisco", "done": false},
-      {"label": "Execute face swap", "done": false},
-      {"label": "Upload to Shopify", "done": false}
+      {"label": "Checked existing products (31 V-Day items)", "done": true},
+      {"label": "Identified gaps: tutu, leggings, rompers, accessories", "done": true},
+      {"label": "Find products to fill gaps", "done": false},
+      {"label": "Push 20 new drafts to Shopify", "done": false}
     ],
-    "details": [
-      "Searched for free face swap APIs",
-      "Found aifaceswap.io (no signup)",
-      "Found Magic Hour (free tier)",
-      "Found DeepSwapper (multiple faces)",
-      "Waiting for face decision..."
-    ],
-    "strategy": "Ready to execute. Waiting on: stock faces or family photos?",
-    "lastHeartbeat": "2026-01-28T19:52:00-05:00"
-  },
-  "agents": []
+    "existing": 31,
+    "target": 20,
+    "completed": 0,
+    "lastHeartbeat": "2026-01-28T20:06:00-05:00"
+  }
 }

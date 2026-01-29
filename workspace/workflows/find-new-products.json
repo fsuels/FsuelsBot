@@ -7,49 +7,44 @@
     {
       "step": 1,
       "label": "Identify trend or season",
-      "description": "What's coming up? Valentine's, Easter, Summer, Back to School, etc.",
-      "output": "Target theme/season"
+      "description": "What's coming up? Valentine's, Easter, Summer, Back to School, etc."
     },
     {
       "step": 2,
       "label": "Research trending styles",
-      "description": "Check Pinterest, Instagram, TikTok for mommy-and-me trends",
-      "output": "List of trending styles"
+      "description": "Check Pinterest, Instagram, TikTok for mommy-and-me trends"
     },
     {
       "step": 3,
       "label": "Analyze competitor bestsellers",
-      "description": "Check PatPat, Popreal, Amazon for what's selling",
-      "output": "Top selling items list"
+      "description": "Check PatPat, Popreal, Amazon for what's selling"
     },
     {
       "step": 4,
       "label": "Search suppliers (1688/AliExpress)",
-      "description": "Find matching products with good margins",
-      "criteria": "Cost < $10, sells for $25+, good reviews, fast shipping",
-      "output": "Product candidates"
+      "description": "Find products with good margins (<$10 cost, $25+ sell)"
     },
     {
       "step": 5,
-      "label": "Calculate margins",
-      "description": "Cost + shipping + fees vs selling price = profit",
-      "criteria": "Minimum 50% margin",
-      "output": "Profit analysis"
+      "label": "CHECK FOR DUPLICATES",
+      "description": "Check against ALL existing products - DRAFTS and LISTED. If it exists in any status, skip it.",
+      "required": true
     },
     {
       "step": 6,
-      "label": "Check BuckyDrop availability",
-      "description": "Verify product can be pushed through BuckyDrop",
-      "output": "Confirmed availability"
+      "label": "Calculate margins",
+      "description": "Cost + shipping + fees vs selling price (min 50% margin)"
     },
     {
       "step": 7,
+      "label": "Check BuckyDrop availability",
+      "description": "Verify product can be pushed through BuckyDrop"
+    },
+    {
+      "step": 8,
       "label": "Present top picks to Francisco",
-      "description": "Show top 3-5 options with photos, prices, margins",
-      "output": "Decision from Francisco"
+      "description": "Show options with photos, prices, margins for approval"
     }
   ],
-  "estimatedTime": "30-60 minutes",
-  "lastRun": null,
-  "timesRun": 0
+  "estimatedTime": "30-60 minutes"
 }

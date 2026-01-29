@@ -191,6 +191,15 @@ Reactions are lightweight social signals. Humans use them constantly — they sa
 
 Skills provide your tools. When you need one, check its `SKILL.md`. Keep local notes (camera names, SSH details, voice preferences) in `TOOLS.md`.
 
+### 🌐 Browser Protocol (MANDATORY)
+Before ANY browser action, follow `workflows/browser-use.json`:
+1. **`browser tabs`** — check what's open
+2. **Check for duplicate domain** — if tab exists for that site, USE IT
+3. **Navigate within existing tab** — don't open new
+4. **Close when done** — never leave mess
+
+**RULE: ONE TAB PER DOMAIN. ALWAYS.**
+
 **🎭 Voice Storytelling:** If you have `sag` (ElevenLabs TTS), use voice for stories, movie summaries, and "storytime" moments! Way more engaging than walls of text. Surprise people with funny voices.
 
 **📝 Platform Formatting:**

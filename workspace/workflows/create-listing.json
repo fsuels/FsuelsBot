@@ -6,6 +6,14 @@
   "steps": [
     {
       "step": 1,
+      "label": "CHECK FOR DUPLICATES FIRST",
+      "description": "Search existing products for similar items before proceeding",
+      "criteria": "No similar product exists in store",
+      "output": "Confirmed new product",
+      "required": true
+    },
+    {
+      "step": 2,
       "label": "Push product to Shopify",
       "description": "Use BuckyDrop to push from 1688 → Shopify",
       "output": "Draft product in Shopify"

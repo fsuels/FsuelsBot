@@ -57,9 +57,12 @@
 - ALWAYS put the message in Telegram for copy/paste — never ask Francisco to type it himself
 
 ## Browser Best Practices
-- **NEVER leave a mess in tabs** — close tabs from the same platform when done. Keep it clean at all times.
-- **ALWAYS check open tabs first** with `browser tabs` before opening new ones
-- **Close duplicates immediately** — only keep tabs actively needed for current work
+⚠️ **CRITICAL RULE - NEVER FORGET:**
+- **ONE TAB PER DOMAIN** — 1 Shopify, 1 BuckyDrop, 1 1688. NEVER 2+ tabs of same site.
+- **NAVIGATE within the tab** — don't open new tab, use the existing one
+- **ALWAYS `browser tabs` FIRST** — check what's open before ANY new tab
+- **CLOSE immediately when done** — never leave mess
+- **MAX 3-4 tabs total** — keep it minimal
 - Shopify store handle is `dresslikemommy-com` (NOT `dresslikemommy`)
 - Shopify app iframes (Google & YouTube, etc.) use cross-origin frames — standard refs don't work; use aria refs with `f` prefix or screenshots + keyboard navigation
 - Google Merchant Center branding page: `https://merchants.google.com/mc/branding?a=124884876`
