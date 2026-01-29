@@ -28,9 +28,24 @@
     "bot_queue": ["T021"],
     "human": ["T006", "T007", "T008", "T009"],
     "scheduled": ["CRON-research", "CRON-curiosity", "CRON-learn", "CRON-ship", "CRON-backup", "CRON-consolidation"],
-    "done_today": ["T017", "T001", "T010", "T011", "T012", "T013", "T014", "T015", "T016", "T018", "T019", "T020", "T003", "T002", "T005", "T022", "T023", "T024"]
+    "done_today": ["T017", "T001", "T010", "T011", "T012", "T013", "T014", "T015", "T016", "T018", "T019", "T020", "T003", "T002", "T005", "T022", "T023", "T024", "T025"]
   },
   "tasks": {
+    "T025": {
+      "title": "SQLite learnings.db for knowledge management",
+      "status": "done",
+      "completed": "2026-01-29T15:15:00-05:00",
+      "created": "2026-01-29T15:10:00-05:00",
+      "context": {
+        "summary": "Council 6-round identified SQLite learnings.db as must-have for A+ grade. Stores learnings with 6 kinds (fact, decision, preference, constraint, procedure, insight), canonical_hash for deduplication, confidence scoring, is_pinned for P0 protection, expires_at for auto-cleanup.",
+        "created_from": "council-sessions/2026-01-29-learnings-db-design.md",
+        "decisions": ["Single table MVP", "6 kinds", "SHA256 canonical hash", "Python scripts for management", "Views for active/review"],
+        "constraints": ["2hr estimate, done in 30min", "Uses Python sqlite3 (no CLI needed)"]
+      },
+      "plan": "council-sessions/2026-01-29-learnings-db-design.md",
+      "approach": "1. Create init-learnings-db.py. 2. Create learnings.py management script. 3. Add, list, search, prune, export, stats commands.",
+      "notes": "Council A+ requirement #4. Already seeded with 3 learnings from today."
+    },
     "T024": {
       "title": "Overnight eligibility YAML for safe autonomous work",
       "status": "done",

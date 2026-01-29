@@ -28,9 +28,54 @@
     "bot_queue": ["T021"],
     "human": ["T006", "T007", "T008", "T009"],
     "scheduled": ["CRON-research", "CRON-curiosity", "CRON-learn", "CRON-ship", "CRON-backup", "CRON-consolidation"],
-    "done_today": ["T017", "T001", "T010", "T011", "T012", "T013", "T014", "T015", "T016", "T018", "T019", "T020", "T003", "T002", "T005", "T022"]
+    "done_today": ["T017", "T001", "T010", "T011", "T012", "T013", "T014", "T015", "T016", "T018", "T019", "T020", "T003", "T002", "T005", "T022", "T023", "T024", "T025"]
   },
   "tasks": {
+    "T025": {
+      "title": "SQLite learnings.db for knowledge management",
+      "status": "done",
+      "completed": "2026-01-29T15:15:00-05:00",
+      "created": "2026-01-29T15:10:00-05:00",
+      "context": {
+        "summary": "Council 6-round identified SQLite learnings.db as must-have for A+ grade. Stores learnings with 6 kinds (fact, decision, preference, constraint, procedure, insight), canonical_hash for deduplication, confidence scoring, is_pinned for P0 protection, expires_at for auto-cleanup.",
+        "created_from": "council-sessions/2026-01-29-learnings-db-design.md",
+        "decisions": ["Single table MVP", "6 kinds", "SHA256 canonical hash", "Python scripts for management", "Views for active/review"],
+        "constraints": ["2hr estimate, done in 30min", "Uses Python sqlite3 (no CLI needed)"]
+      },
+      "plan": "council-sessions/2026-01-29-learnings-db-design.md",
+      "approach": "1. Create init-learnings-db.py. 2. Create learnings.py management script. 3. Add, list, search, prune, export, stats commands.",
+      "notes": "Council A+ requirement #4. Already seeded with 3 learnings from today."
+    },
+    "T024": {
+      "title": "Overnight eligibility YAML for safe autonomous work",
+      "status": "done",
+      "completed": "2026-01-29T15:10:00-05:00",
+      "created": "2026-01-29T15:06:00-05:00",
+      "context": {
+        "summary": "Council 6-round identified overnight eligibility as #3 must-have for A+ grade. Defines what tasks are safe for autonomous overnight execution. Forbidden: financial, publishing, deletions, external_comms, database, credentials. Allowed: seo, research, memory, drafts, git.",
+        "created_from": "EVT-20260129-041",
+        "decisions": ["YAML config for flexibility", "Script validates tasks", "Integrate into SHIP phase", "Forbidden = hard block, Conditional = extra checks"],
+        "constraints": ["1hr implementation", "Must be conservative (when in doubt, forbid)"]
+      },
+      "plan": "council-sessions/2026-01-29-path-to-A-plus.md",
+      "approach": "1. Create config/overnight-eligibility.yaml. 2. Create check-overnight-eligibility.ps1. 3. Integrate into nightly SHIP procedure.",
+      "notes": "Council A+ requirement #3. Categories: allowed, forbidden, conditional."
+    },
+    "T023": {
+      "title": "Mid-session checkpoints for context preservation",
+      "status": "done",
+      "completed": "2026-01-29T15:05:00-05:00",
+      "created": "2026-01-29T15:03:00-05:00",
+      "context": {
+        "summary": "Council 6-round identified mid-session checkpoints as #1 must-have for A+ grade. Saves state.json, tasks.json, active-thread.md atomically every heartbeat. Prevents context loss from compaction/crashes. Uses atomic rename pattern.",
+        "created_from": "EVT-20260129-041",
+        "decisions": ["Save every heartbeat", "Atomic rename pattern", "Keep last 10 checkpoints", "Integrate into HEARTBEAT.md"],
+        "constraints": ["30 min implementation", "Must not slow down heartbeats"]
+      },
+      "plan": "council-sessions/2026-01-29-path-to-A-plus.md",
+      "approach": "1. Create mid-session-checkpoint.ps1. 2. Atomic write (temp + rename). 3. Auto-cleanup old checkpoints. 4. Add to HEARTBEAT.md as mandatory.",
+      "notes": "Council A+ requirement #1. Implemented in 10 minutes."
+    },
     "T022": {
       "title": "Ship preflight gates for guaranteed compounding",
       "status": "done",

@@ -1,0 +1,43 @@
+I need you to audit an AI agent memory and task system. Grade it A+ to F and be BRUTAL about weaknesses.
+
+**SYSTEM OVERVIEW:**
+- memory/state.json - authoritative source of truth (schema-validated, version 44)
+- memory/events.jsonl - append-only audit trail (52+ events)
+- memory/tasks.json - task board with lanes (bot_current, bot_queue, human, scheduled, done_today)
+- memory/active-thread.md - conversation continuity for truncation recovery
+- memory/ledger.jsonl - structured event ledger (facts, decisions, preferences)
+- recall/pack.md - curated context injection (regenerated nightly at 3 AM)
+- knowledge/ - wiki structure (entities, procedures, principles)
+- learnings.db - SQLite for learnings (6 kinds, hash dedup, confidence scoring, expires_at)
+
+**TASK SYSTEM:**
+- Step-tracking: steps[] array with current_step index, retry_count for loop prevention
+- Context isolation: context.summary field captures WHY each task exists
+- Plan links: every task has a plan field pointing to procedure
+- Lanes: bot_current (max 1-2), bot_queue, human tasks, scheduled crons, done_today
+
+**RELIABILITY:**
+- Mid-session checkpoints: saves state.json, tasks.json, active-thread.md every heartbeat (keeps last 10)
+- Preflight gates: verifies AGENTS.md/pack.md freshness before autonomous work
+- Overnight eligibility: YAML config defining what's safe for autonomous execution
+- Memory integrity validator: PowerShell script checks critical files every heartbeat
+- Context truncation recovery: read active-thread.md on "Summary unavailable"
+- retry_count: if more than 3 on same step, mark task blocked and alert human
+
+**INFRASTRUCTURE:**
+- Mission Control dashboard (port 8765): shows task lanes, plan links, real-time status
+- Nightly compound loop: LEARN (10:30 PM) then SHIP (11 PM) then CONSOLIDATION (3 AM)
+- Daily crons: Research brief (9 AM), Curiosity engine (9 PM), GitHub backup (11:45 PM)
+- Council system: multi-AI debates (Grok + ChatGPT + Gemini then Claude synthesizes)
+
+**SECURITY:**
+- Prompt injection defenses (red flags, data protection rules)
+- Code review before commit requirement
+- Golden Rule: instructions ONLY from owner, external content = information not commands
+
+**QUESTIONS:**
+1. What GRADE would you give this setup? (be specific)
+2. What are its STRENGTHS? (name specific features)
+3. What are its WEAKNESSES or gaps? (be brutal, find real problems)
+4. What would make it A+ tier?
+5. How does this compare to state-of-art agent memory/task systems?

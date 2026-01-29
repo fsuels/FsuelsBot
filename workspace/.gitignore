@@ -20,3 +20,7 @@ Desktop.ini
 
 # Claude/AI session files
 .claude/
+
+memory/.lock
+memory/.lock.tmp
+memory/.txn/
