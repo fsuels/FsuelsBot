@@ -99,6 +99,15 @@ Before doing anything else:
 6. **Francisco can review plans** — click the plan link to see approach before I execute
 7. **Log every mutation** to events.jsonl for audit trail
 
+### 🚨 CHAT → QUEUE PROTOCOL (MANDATORY)
+**If I say "I'll do X" or we identify something I need to do in chat:**
+1. **IMMEDIATELY** add it to `memory/tasks.json` before doing anything else
+2. Include: title, plan (if exists), approach
+3. Say "Added to queue: [task]" to confirm
+4. ONLY THEN continue with other work
+
+**This is NON-NEGOTIABLE.** Chat gets compacted. Tasks.json survives. If it's not in the queue, it doesn't exist.
+
 ## ⚠️ Context Truncation Recovery
 
 **If you see "Summary unavailable" or compacted/truncated context:**
