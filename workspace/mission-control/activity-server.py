@@ -142,11 +142,50 @@ def check_memory_health():
     }
 
 def load_current_task():
-    """Load the high-level task file written by Clawd"""
+    """Load current task from state.json (authoritative) with fallback to current-task.json"""
+    # Try state.json first (authoritative source)
+    state_file = os.path.join(WORKSPACE_DIR, "memory", "state.json")
+    try:
+        if os.path.exists(state_file):
+            with open(state_file, 'r', encoding='utf-8') as f:
+                state = json.load(f)
+            if state.get("currentTask"):
+                task = state["currentTask"]
+                progress = task.get("progress", {})
+                completed = progress.get("completed", [])
+                remaining = progress.get("remaining", [])
+                total = len(completed) + len(remaining)
+                pct = round(len(completed) / total * 100) if total else 0
+                
+                # Build steps list
+                steps = []
+                for item in completed:
+                    steps.append({"label": item, "done": True})
+                for item in remaining:
+                    steps.append({"label": item, "done": False})
+                
+                return {
+                    "orchestrator": {
+                        "name": "Fsuels Bot",
+                        "emoji": "🤖",
+                        "model": "claude-opus-4.5",
+                        "status": "complete" if task.get("status") == "✅ COMPLETE" else "working",
+                        "task": task.get("description", "Working..."),
+                        "project": task.get("id", ""),
+                        "description": task.get("context", ""),
+                        "progress": pct,
+                        "steps": steps,
+                        "benefit": task.get("nextStep", ""),
+                        "lastHeartbeat": state.get("lastUpdated", "")
+                    }
+                }
+    except Exception as e:
+        print(f"Error loading state.json: {e}")
+    
+    # Fallback to current-task.json
     try:
         if os.path.exists(CURRENT_TASK_FILE):
             mtime = os.path.getmtime(CURRENT_TASK_FILE)
-            # Only show if updated in last 30 minutes
             if time.time() - mtime < 1800:
                 with open(CURRENT_TASK_FILE, 'r', encoding='utf-8') as f:
                     return json.load(f)
