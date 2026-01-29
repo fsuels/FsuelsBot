@@ -1,0 +1,170 @@
+# overnight-eligibility.yaml
+# Defines what's safe for autonomous overnight work
+# Council A+ requirement #3
+# Created: 2026-01-29
+
+# Global settings
+global:
+  max_runtime_minutes: 30        # Hard cap per task
+  retry_limit: 3                  # Max retries before marking blocked
+  quiet_hours:
+    start: "23:00"               # Don't start new tasks after this
+    end: "06:00"                 # Can resume after this
+  alert_on_failure: true         # Send Telegram alert if task fails
+  require_preflight: true        # Must pass preflight-check.ps1 first
+
+# Task categories and their eligibility
+task_eligibility:
+  
+  # ALLOWED - Safe for autonomous execution
+  allowed:
+    - category: "seo"
+      description: "SEO fixes, meta tags, titles"
+      conditions:
+        - "No pricing changes"
+        - "No product deletions"
+        - "Draft only, never publish"
+      examples:
+        - "Update product titles"
+        - "Fix meta descriptions"
+        - "Add alt text to images"
+    
+    - category: "research"
+      description: "Information gathering, competitor analysis"
+      conditions:
+        - "Read-only operations"
+        - "No external communications"
+      examples:
+        - "Competitor price check"
+        - "Trend research"
+        - "Product sourcing research"
+    
+    - category: "memory"
+      description: "Memory consolidation, learning extraction"
+      conditions:
+        - "Internal files only"
+        - "No deletions"
+      examples:
+        - "Consolidate daily notes"
+        - "Extract learnings"
+        - "Update recall pack"
+    
+    - category: "drafts"
+      description: "Create draft content for review"
+      conditions:
+        - "Never publish"
+        - "Francisco reviews in morning"
+      examples:
+        - "Draft product descriptions"
+        - "Draft blog posts"
+        - "Draft email templates"
+    
+    - category: "git"
+      description: "Version control operations"
+      conditions:
+        - "Commit to main only"
+        - "No force push"
+        - "No branch deletions"
+      examples:
+        - "Daily backup commit"
+        - "Push workspace changes"
+
+  # FORBIDDEN - Never do autonomously
+  forbidden:
+    - category: "financial"
+      description: "Anything involving money"
+      paths:
+        - "pricing"
+        - "discounts"
+        - "refunds"
+        - "billing"
+      reason: "Requires human judgment on business impact"
+    
+    - category: "publishing"
+      description: "Making content live"
+      actions:
+        - "Publish product"
+        - "Activate listing"
+        - "Send email campaign"
+        - "Post to social media"
+      reason: "Public-facing content needs review"
+    
+    - category: "deletions"
+      description: "Removing data"
+      actions:
+        - "Delete product"
+        - "Delete collection"
+        - "Delete customer data"
+        - "Remove files permanently"
+      reason: "Irreversible actions need approval"
+    
+    - category: "external_comms"
+      description: "Communication outside the system"
+      actions:
+        - "Send customer email"
+        - "Contact supplier"
+        - "Post on X/Twitter"
+        - "Reply to reviews"
+      reason: "Represents Francisco publicly"
+    
+    - category: "database"
+      description: "Direct database operations"
+      paths:
+        - "migrations/"
+        - "auth/"
+        - "*.sql"
+      reason: "High risk of data corruption"
+    
+    - category: "credentials"
+      description: "Authentication and secrets"
+      paths:
+        - ".env*"
+        - "**/secrets/"
+        - "**/keys/"
+        - "config/api-keys*"
+      reason: "Security sensitive"
+
+  # CONDITIONAL - Allowed with extra checks
+  conditional:
+    - category: "shopify_edits"
+      description: "Editing existing products"
+      conditions:
+        - "Only update descriptions, not prices"
+        - "Must be existing active product"
+        - "Log all changes to events.jsonl"
+      approval_after: 5  # After 5 similar edits, pause for review
+    
+    - category: "bulk_operations"
+      description: "Operations affecting multiple items"
+      conditions:
+        - "Max 10 items per batch"
+        - "Must log each item changed"
+        - "Rollback plan documented"
+      max_items: 10
+
+# Verification before overnight work
+preflight_checklist:
+  - "Run preflight-check.ps1 - must pass"
+  - "Check task is in allowed category"
+  - "Verify no forbidden paths touched"
+  - "Log start time and expected duration"
+  - "Set hard timeout alarm"
+
+# Morning report requirements
+morning_report:
+  include:
+    - "Tasks attempted"
+    - "Tasks completed"
+    - "Tasks failed (with reasons)"
+    - "Changes made (with file list)"
+    - "Items needing review"
+    - "Anomalies detected"
+  send_to: "telegram"
+  send_at: "07:00"
+
+# Circuit breakers
+circuit_breakers:
+  consecutive_failures: 3        # Stop after 3 failures in a row
+  total_failures: 5              # Stop after 5 total failures tonight
+  unknown_error: true            # Stop on any unhandled exception
+  resource_limit: true           # Stop if memory/CPU too high

@@ -1,0 +1,51 @@
+{
+  "lastUpdated": "2026-01-29T15:02:00-05:00",
+  "version": 43,
+  "currentTask": {
+    "id": "T004",
+    "description": "Valentine listing optimization",
+    "status": "in_progress",
+    "owner": "bot",
+    "currentStep": "Resuming after T023 mid-session checkpoints implemented",
+    "context": "T023 DONE: Mid-session checkpoints now save state every heartbeat. T022 preflight gates also done. 2 of 5 A+ requirements complete. Ready to continue Valentine listings.",
+    "nextStep": "Continue T004: Activate 4 Valentine draft products"
+  },
+  "deadline": {
+    "date": "2026-02-10",
+    "description": "Valentine's Day order cutoff",
+    "daysRemaining": 12
+  },
+  "taskBoard": "memory/tasks.json",
+  "pendingDecisions": ["Mid-session checkpoints vs T004 Valentine listings"],
+  "blockedOn": "Francisco's choice",
+  "councilPathToAPlus": {
+    "grade": "A- (current)",
+    "mustHaves": [
+      "Mid-session checkpoints (30 min) - saves state every 5-10 min",
+      "Overnight eligibility YAML (1 hr) - define safe autonomous work",
+      "SQLite learnings.db (2 hrs) - dedupe + expire learnings",
+      "Recall pack budget (future) - 3000 word limit",
+      "Metrics dashboard (Month 2) - prove it works"
+    ],
+    "toReachAPlus": "30 days metrics + zero overnight incidents + crash recovery tests"
+  },
+  "recentActions": [
+    "T022 DONE: Preflight gates implemented",
+    "Council 6-round: Path to A+ identified",
+    "Pushed to GitHub (9fc66e6fe)"
+  ],
+  "completedToday": [
+    "T022: Preflight gates",
+    "T002: SEO 220 products",
+    "T005: Announcement bar",
+    "T003: Moltbot docs audit",
+    "Council: Compound engineering A-/B+",
+    "Council: Path to A+ (6 rounds)"
+  ],
+  "standingRules": [
+    "UPDATE state.json BEFORE responding",
+    "Dashboard must ALWAYS match what I report in chat",
+    "SUGGESTION = FAILURE STATE",
+    "NORTH STAR: Increase sales and make money"
+  ]
+}

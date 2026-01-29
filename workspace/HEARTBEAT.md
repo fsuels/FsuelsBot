@@ -6,6 +6,13 @@
   **📱 Dashboard:** http://192.168.4.25:8765?key=a6132abf77194fd10a77317a094771f1
 - **URLs:** localhost:8765 (PC) | 192.168.4.25:8765 (mobile on WiFi)
 
+## Mid-Session Checkpoint (MANDATORY — Council A+ requirement)
+Run EVERY heartbeat: `powershell -ExecutionPolicy Bypass -File "C:\dev\FsuelsBot\workspace\scripts\mid-session-checkpoint.ps1" -Quiet`
+- Saves state.json, tasks.json, active-thread.md atomically
+- Keeps last 10 checkpoints per file (auto-cleanup)
+- Prevents context loss from compaction/crashes
+- This is NON-NEGOTIABLE — we lost context earlier today because of this gap
+
 ## Memory Integrity (check every heartbeat)
 Run validator: `powershell -ExecutionPolicy Bypass -File "C:\dev\FsuelsBot\workspace\tests\validators\memory-integrity.ps1"`
 - If any ERRORS: alert Francisco immediately

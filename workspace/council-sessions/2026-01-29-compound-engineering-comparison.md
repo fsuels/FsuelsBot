@@ -233,6 +233,118 @@ Our edge: **Everything else** (ledger, step-tracking, Council, Mission Control, 
 
 ---
 
+## 🆕 ROUND 3: MID-SESSION MEMORY WRITES
+
+### The Problem Statement
+
+**Current system writes to memory at:**
+- End of session (memory/YYYY-MM-DD.md)
+- Memory flush before compaction
+- State changes (state.json, events.jsonl)
+
+**The Fatal Flaw:** If a session gets truncated/compacted before we save learnings, context is LOST FOREVER. This is the equivalent of RAM without swap — volatile memory with no persistence guarantee.
+
+### Comparison to Carson's Approach
+
+| Aspect | Carson (Batch) | Our Current | Proposed (Streaming) |
+|--------|---------------|-------------|---------------------|
+| **When** | Once at 10:30 PM | End of session | As insights happen |
+| **Context Loss Risk** | Entire day on crash | Session on truncation | Minimal |
+| **Write Overhead** | LOW | LOW | MEDIUM |
+| **Review Quality** | HIGH (sees patterns) | HIGH | MEDIUM (fragments) |
+
+**Carson's Weakness:** If his system crashes at 9 PM, the entire day's context is lost.
+**Our Weakness:** If context truncates mid-session, everything since last write is gone.
+
+### Opus 4.5 Verdict: **Implement Milestone-Based Streaming Writes**
+
+**The Pattern:** Not time-interval (noisy), not every-event (overhead), but **milestone-based + priority-weighted**.
+
+**Write IMMEDIATELY when:**
+| Trigger | Priority | Why |
+|---------|----------|-----|
+| P0 constraint discovered | CRITICAL | Cannot afford to lose |
+| Decision made | HIGH | Captures WHY in the moment |
+| Task status change | HIGH | State must be consistent |
+| Error/failure | HIGH | Lessons before they're lost |
+| Human says "remember this" | HIGH | Explicit importance signal |
+
+**Write at BOUNDARIES when:**
+- Normal session end
+- Before expected compaction
+- Every ~20 messages (configurable)
+
+### The Database Analogy
+
+This is the **Write-Ahead Log (WAL)** pattern:
+
+1. **WAL** = Mid-session writes to daily.md (durability)
+2. **Compaction** = 3 AM consolidation (efficiency)
+3. **Checkpoint** = End-of-session summary (coherence)
+
+Carson's approach = database that checkpoints once/day.
+Ours should = database with continuous WAL + periodic checkpoints.
+
+### Avoiding Write Fatigue
+
+**Problem:** 50 tiny notes fragment memory and are hard to review.
+
+**Solutions:**
+1. **Append-only to daily file** — Timestamped sections, consolidated at 3 AM
+2. **Priority filtering** — Only P0/P1 get immediate write; P2/P3 buffer until session end
+3. **Structured format:**
+```markdown
+## 14:32 — [DECISION] Valentine pricing
+- Context: T004 Valentine listings
+- Decision: 50% margin minimum
+- Rationale: Premium seasonal, limited window
+```
+4. **Consolidation merges fragments** — 3 AM reads daily, extracts patterns, archives raw
+
+### Implementation (Add to P0)
+
+| # | Action | Effort | Impact |
+|---|--------|--------|--------|
+| 10 | **Add `capture_insight()` function** | 30min | HIGH |
+| 11 | **Call on P0/P1 events** | 15min | HIGH |
+| 12 | **"Remember this" trigger** | 15min | MEDIUM |
+| 13 | **Pre-compaction flush** | 30min | HIGH |
+
+### Key Insight
+
+**This closes the #1 vulnerability in our compound loop.** We were aspirational about compounding but had a single point of failure: context truncation. Mid-session writes make the system actually durable, not just architecturally sound.
+
+---
+
+## 📊 UPDATED GRADE AFTER ROUND 3
+
+| Dimension | Before | After (if implemented) |
+|-----------|--------|------------------------|
+| Architecture | A | A |
+| Implementation | B | A- |
+| Durability | C+ | A |
+| Compounding | C+ | B+ |
+| **Overall** | **B+** | **A-** |
+
+**The mid-session write pattern is the missing piece that makes our system truly robust.**
+
+---
+
+## 🎯 REVISED P0 ACTION ITEMS (Combined)
+
+| # | Action | Effort | Impact | Source |
+|---|--------|--------|--------|--------|
+| 1 | **Ship preflight gate** | 1hr | CRITICAL | ChatGPT |
+| 2 | **Instruction digest log** | 30min | HIGH | ChatGPT |
+| 3 | **Overnight eligibility filter** | 30min | HIGH | ChatGPT |
+| 4 | **Mid-session capture_insight()** | 30min | HIGH | Francisco |
+| 5 | **Pre-compaction flush** | 30min | HIGH | Francisco |
+
+**Total P0 effort:** ~3.5 hours
+**Expected grade after:** A-
+
+---
+
 *Session complete: 2026-01-29*  
-*Mode: Feedback Loop (2 rounds)*  
+*Mode: Feedback Loop (3 rounds)*  
 *Arbiter: Opus 4.5*

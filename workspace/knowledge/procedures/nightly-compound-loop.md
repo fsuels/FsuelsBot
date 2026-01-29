@@ -31,9 +31,10 @@
 **Duration:** ~30 min
 **Steps:**
 0. **PREFLIGHT GATE (MANDATORY):** Run `scripts/preflight-check.ps1` — verifies AGENTS.md and pack.md are fresh. If preflight fails, HALT and alert. This ensures agent reads fresh instructions before any autonomous work. (Added 2026-01-29 per Council A-/B+ recommendation)
+0b. **ELIGIBILITY CHECK (MANDATORY):** Run `scripts/check-overnight-eligibility.ps1 -TaskCategory [category]` — verifies task is safe for autonomous execution. See `config/overnight-eligibility.yaml` for rules. FORBIDDEN categories: financial, publishing, deletions, external_comms, database, credentials. (Added 2026-01-29 per Council A+ recommendation)
 1. Read `backlog.md` — all pending tasks
 2. Score each using TPS formula
-3. Pick highest TPS task that passes ALL safety gates (see execution-boundaries.md)
+3. Pick highest TPS task that passes ALL safety gates (eligibility + see execution-boundaries.md)
 4. Identify correct persona for the task
 5. Execute task using persona's prompt + output schema
 6. Score output using 4-layer cascade:
