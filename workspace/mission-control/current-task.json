@@ -4,43 +4,28 @@
     "emoji": "🤖",
     "model": "claude-opus-4.5",
     "status": "working",
-    "task": "Fixing GMC blockers + V-Day setup — 2 sub-agents + direct Shopify work",
-    "benefit": "Fix 6 GMC blocking issues (35% → 82% reinstatement) + launch Valentine's collection. Both are revenue-critical.",
-    "taskId": "DLM-FIX",
+    "task": "Red Heart Sweater — Full Product Optimization on Shopify",
+    "benefit": "First product through the complete 1688 → BuckyDrop → Shopify pipeline. Template for all future listings.",
+    "taskId": "DLM-PRODUCT-001",
     "project": "Dress Like Mommy",
-    "startTime": "2:44 PM",
-    "description": "Parallel execution: (1) Writing proper policy pages, (2) Auditing boilerplate product descriptions, (3) Removing fake urgency elements from Shopify theme. Then Valentine's Day collection launch.",
-    "progress": 25,
+    "startTime": "5:00 PM",
+    "description": "Editing product pushed from 1688 via BuckyDrop. Writing description, setting prices, cleaning variant names, adding size charts, preparing for face swap.",
+    "progress": 90,
     "steps": [
-      {"label": "GMC reinstatement research", "done": true},
-      {"label": "V-Day competitor research", "done": true},
-      {"label": "GMC store audit — 6 blockers found", "done": true},
-      {"label": "V-Day collection plan", "done": true},
-      {"label": "Write policy pages (Privacy, Terms, Shipping)", "done": false},
-      {"label": "Audit boilerplate product descriptions", "done": false},
-      {"label": "Remove fake urgency elements", "done": false},
-      {"label": "Add business info to footer", "done": false},
-      {"label": "Create Valentine's Day collection on Shopify", "done": false},
-      {"label": "Swap Christmas → Valentine's in nav", "done": false}
+      {"label": "Push product from 1688 → BuckyDrop → Shopify", "done": true},
+      {"label": "Write rich HTML product description", "done": true},
+      {"label": "Set product type + category", "done": true},
+      {"label": "Add 7 SEO tags", "done": true},
+      {"label": "Set retail pricing ($19.99-$24.99)", "done": true},
+      {"label": "Clean variant names (Chinese → English)", "done": true},
+      {"label": "Rename option labels (Style + Size)", "done": true},
+      {"label": "Write SEO title + meta description", "done": true},
+      {"label": "Add hidden size chart table (14 sizes)", "done": true},
+      {"label": "Document anti-disconnect protocols", "done": true},
+      {"label": "Face swap 4 model photos (10 faces)", "done": false},
+      {"label": "Francisco reviews + activates", "done": false}
     ],
-    "strategy": "Fix GMC blockers first (policies, urgency, footer), then V-Day collection. Parallel: content team writes policies while we audit products."
+    "strategy": "All metadata complete. Face swap blocked — need Francisco's face templates or decision on stock faces."
   },
-  "agents": [
-    {
-      "name": "Policy Pages",
-      "skill": "Content()",
-      "status": "done",
-      "task": "Privacy Policy, Terms of Service, and Shipping Info page — all written, GDPR/CCPA compliant, FKG Trading LLC",
-      "benefit": "Fixes 3 of 6 GMC blocking issues. Ready to upload to Shopify.",
-      "progress": 100
-    },
-    {
-      "name": "Boilerplate Audit",
-      "skill": "Catalog Engineer",
-      "status": "done",
-      "task": "Full catalog audit complete — 160 of 340 products (47%) flagged, 57 HIGH priority, 1 CRITICAL (supplier URL exposed)",
-      "benefit": "Now we know exactly which products to fix. Worst: exposed 1688.com supplier URL + 49 alicdn image URLs.",
-      "progress": 100
-    }
-  ]
+  "agents": []
 }

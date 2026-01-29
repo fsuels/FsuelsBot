@@ -1,0 +1,24 @@
+{
+  "task": "Red Heart Sweater — Shopify Product Optimization",
+  "status": "in-progress",
+  "startedAt": "2026-01-28T22:00:00Z",
+  "updatedAt": "2026-01-29T00:30:00Z",
+  "description": "Full product listing optimization — all metadata done, face swap is the remaining blocker",
+  "benefit": "First fully optimized product in the new pipeline",
+  "progress": 90,
+  "steps": [
+    {"name": "Product description (rich HTML)", "status": "done"},
+    {"name": "Product type + category", "status": "done"},
+    {"name": "Tags (7 SEO tags)", "status": "done"},
+    {"name": "Retail pricing ($19.99-$24.99)", "status": "done"},
+    {"name": "Variant names (Chinese → English)", "status": "done"},
+    {"name": "Option labels (Style + Size)", "status": "done"},
+    {"name": "SEO title + meta description", "status": "done"},
+    {"name": "Hidden size chart table (14 sizes)", "status": "done"},
+    {"name": "Anti-disconnect protocols documented", "status": "done"},
+    {"name": "Face swap (4 model photos, 10 faces)", "status": "blocked", "note": "Need Francisco's face templates — 3 person types across 4 images"},
+    {"name": "Image alt text", "status": "pending"},
+    {"name": "Final review + activate", "status": "pending"}
+  ],
+  "strategy": "All listing metadata complete. Face swap blocked on template files. Francisco reviews and activates."
+}

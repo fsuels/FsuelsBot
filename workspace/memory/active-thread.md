@@ -1,28 +1,46 @@
-# Active Thread — Last Updated 2026-01-28 3:45 PM EST
+# Active Thread — Last Updated 2026-01-28 7:15 PM EST
 
 ## What We're Doing RIGHT NOW
-- **Live product sourcing session on 1688.com** — Francisco is logged in, I can see the browser
-- Was about to search 1688 for mommy-and-me products (母女装/亲子装) to find a good product to add
-- Francisco wants to walk through the full pipeline: find on 1688 → BuckyDrop → cost calc → price → list on Shopify
+- **Red Heart Sweater product is FULLY EDITED on Shopify** — ready for review
+- Product: "Matching Family Red Heart Sweatshirt - Mommy and Me Valentine's Day Outfit"
+- Shopify URL: https://admin.shopify.com/store/dresslikemommy-com/products/7466786685025
+- 1688 source: offer/983725460021 — ¥43 kids, ¥59 adults, 95% cotton, 400g
+- Status: DRAFT (needs Francisco's OK to go Active)
 
-## Open Tabs
-1. 1688.com (logged in as fsuels)
-2. BuckyDrop (Shopify integration, store connected Normal)
-3. Shopify Admin (Products page)
+## EVERYTHING DONE ✅
+1. ✅ **Product Title**: "Matching Family Red Heart Sweatshirt - Mommy and Me Valentine's Day Outfit"
+2. ✅ **Description**: Full rich HTML — size guide table, variant descriptions, details, tips
+3. ✅ **Product Type**: "Sweatshirt"
+4. ✅ **Category**: Sweatshirts → Clothing Tops
+5. ✅ **Tags**: valentines day, matching family, mommy and me, heart sweatshirt, family outfit, mother daughter, red heart
+6. ✅ **Retail Pricing**:
+   - Heart Sweatshirt (Single): $24.99
+   - Heart Sweatshirt (Multi): $24.99
+   - Fleece Jogger Pants: $22.99
+   - Cotton Skirt: $19.99
+7. ✅ **Variant Names** (cleaned from Chinese):
+   - "Heart Sweatshirt - Single Heart" (was "Black love sweatshirt single-hearted")
+   - "Heart Sweatshirt - Multi Heart" (was "The black love sweatshirt is hearty")
+   - "Fleece Jogger Pants" (was "Pocketed fleece trousers are black")
+   - "Cotton Skirt" (was "Black cotton skirt")
+8. ✅ **Option Names**: "Style" (was "Color"), "Size" (was "appropriate height")
+9. ✅ **SEO Title**: "Matching Family Heart Sweatshirt | Mommy & Me Valentine's Day"
+10. ✅ **SEO Description**: "Match with your mini! Red heart sweatshirts, jogger pants & skirts..."
+11. ✅ **Collections**: Already in 5 collections (auto-sorted by Shopify rules)
+12. ✅ **Vendor**: Dress Like Mommy
 
-## Context
-- Francisco documented his full product workflow via voice message — saved to knowledge/procedures/dlm-product-workflow.md
-- BuckyDrop ↔ Shopify connection is live and working
-- 22 products already researched (dlm-tasks/1688-product-sourcing-jan28.md) but Francisco wants to search live together
-- Alicdn images decision: re-host to Shopify CDN, don't delete
-- Valentine's collection content ready (dlm-tasks/valentines-collection-ready.md)
+## NEXT STEPS
+- Francisco reviews the product
+- Set status to Active when ready to go live
+- Source more Valentine's Day products?
+- Close extra browser tabs
 
-## Questions Still Unanswered
-1. Where are Francisco's face templates saved? (for model face swapping)
-2. Size conversion JS — where is it in the theme? (needs audit, currently broken)
-3. BuckyDrop fee structure — flat per order, percentage, or subscription?
+## Technical Win — React Input Hack
+- Discovered that Shopify's React-controlled inputs need `Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set` + dispatching events to properly register changes
+- Group price + variant option renames both worked with this approach
+- Documenting for future product edits
 
-## Francisco's Mood
-- Energized, wants to make money improving the website
-- Frustrated about stale catalog
-- Wants me to be hands-on, not just plan
+## Context Loss Prevention (P0)
+- Config: softThresholdTokens bumped 50K → 80K
+- Behavior: Writing to active-thread.md after every major exchange
+- Browser: Using compact snapshots + element selectors to reduce token burn

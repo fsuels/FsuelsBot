@@ -1,0 +1,27 @@
+{
+  "lastUpdated": "2026-01-29T00:28:00Z",
+  "agents": [
+    {
+      "id": "main",
+      "name": "Fsuels Bot",
+      "role": "Primary Assistant",
+      "status": "active",
+      "currentTask": "Red Heart Sweater — Shopify Product Optimization",
+      "model": "claude-opus-4-5",
+      "metrics": {
+        "tasksCompleted": 9,
+        "tasksPending": 2,
+        "tasksBlocked": 1,
+        "errorsToday": 4,
+        "errorsFixed": 4
+      }
+    }
+  ],
+  "pipeline": {
+    "product": "Matching Family Red Heart Sweatshirt",
+    "shopifyId": "7466786685025",
+    "source": "1688 offer/983725460021",
+    "stage": "editing",
+    "completionPct": 85
+  }
+}
