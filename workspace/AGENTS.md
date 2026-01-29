@@ -8,15 +8,19 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-01-29 01:55 EST | **Version:** 17
+**Last updated:** 2026-01-29 02:25 EST | **Version:** 18
 
-**Current task:** Fix homepage opacity bug + Valentine's campaign execution [TASK-20260129-005]
+**Current task:** Valentine's campaign deployment - hero banner + urgency [TASK-20260129-005]
 **Status:** in_progress
-**Context:** CONFIRMED homepage images invisible on live site. Theme editor slow. Copy & products ready.
-**Next step:** Francisco to try Animations fix manually OR wait for editor
+**Context:** Homepage opacity bug FIXED! Theme editor unstable at 2AM - gave manual instructions for hero banner.
+**Next step:** Francisco adding Valentine hero banner manually via Shopify theme editor
 
-**🚨 CRITICAL BUG CONFIRMED:** Homepage images nearly invisible on dresslikemommy.com
-**Likely fix:** Theme Settings → Animations → disable "Reveal on scroll"
+**✅ BUG FIXED:** Homepage images now fully visible (Francisco disabled "Reveal on scroll" animation)
+
+**Hero Banner Instructions (ready for Francisco):**
+- Heading: `💕 Valentine's Twinning – Order by Feb 10!`
+- Subheading: `Match her love, match her look. Free shipping on all orders.`
+- Button: `Shop Valentine's` → `/collections/valentines-day-matching-outfits`
 
 **Ready to Deploy:**
 - ✅ Valentine copy drafts: `knowledge/valentine-copy-drafts.md`
@@ -24,8 +28,8 @@ This folder is home. Treat it that way.
 - ✅ Master backlog: `memory/backlog.md`
 
 **Backlog (prioritized):**
-1. 🔴 Fix homepage opacity bug ← BLOCKING
-2. 🔴 Deploy Valentine campaign (hero, countdown, urgency)
+1. 🔴 Deploy Valentine hero banner ← IN PROGRESS (manual)
+2. 🔴 Update announcement bar with urgency deadline
 3. 🟡 Optimize mobile LCP (12.2s → <2.5s)
 4. 🟡 Import Valentine products via BuckyDrop
 

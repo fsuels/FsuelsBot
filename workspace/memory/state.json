@@ -1,28 +1,29 @@
 {
-  "version": 17,
-  "lastUpdated": "2026-01-29T01:55:00-05:00",
+  "version": 19,
+  "lastUpdated": "2026-01-29T02:46:00-05:00",
   "currentTask": {
-    "id": "TASK-20260129-005",
-    "description": "Fix homepage opacity bug + Valentine's campaign execution",
+    "id": "TASK-20260129-006",
+    "description": "Night shift work while Francisco sleeps",
     "status": "in_progress",
-    "startedAt": "2026-01-29T01:42:00-05:00",
-    "context": "CONFIRMED: Homepage images nearly invisible on live site. Theme editor loading slowly. Sub-agents completed copy drafts and 1688 research.",
-    "nextStep": "Francisco to try Animations fix manually OR wait for theme editor to load"
+    "startedAt": "2026-01-29T02:46:00-05:00",
+    "context": "Francisco went to sleep. Hero banner section ADDED but copy needs manual entry tomorrow. Working on other tasks.",
+    "nextStep": "BuckyDrop product import prep / other backlog items"
   },
   "backlog": [
     {
-      "id": "BACKLOG-002",
+      "id": "BACKLOG-004",
       "priority": 1,
-      "description": "Fix homepage image opacity bug - CONFIRMED CRITICAL",
-      "addedAt": "2026-01-29T01:45:00-05:00",
-      "notes": "Likely animation 'reveal on scroll' stuck in faded state. Check Theme Settings > Animations"
+      "description": "Finish Valentine's hero banner copy (needs manual entry)",
+      "addedAt": "2026-01-29T01:55:00-05:00",
+      "status": "blocked",
+      "notes": "Image banner section ADDED to homepage. Copy needs manual entry when Francisco wakes. Heading: 💕 Valentine's Twinning – Order by Feb 10!"
     },
     {
-      "id": "BACKLOG-004",
+      "id": "BACKLOG-005",
       "priority": 2,
-      "description": "Deploy Valentine's campaign (hero, countdown, urgency)",
-      "addedAt": "2026-01-29T01:55:00-05:00",
-      "notes": "Copy ready in knowledge/valentine-copy-drafts.md"
+      "description": "Update announcement bar with Valentine urgency",
+      "addedAt": "2026-01-29T02:25:00-05:00",
+      "notes": "Add order deadline messaging"
     },
     {
       "id": "BACKLOG-003",
@@ -40,6 +41,18 @@
   ],
   "recentCompleted": [
     {
+      "id": "TASK-20260129-005",
+      "description": "Added Image banner section to homepage",
+      "completedAt": "2026-01-29T02:45:00-05:00",
+      "outcome": "Section structure in place. Copy blocked by Shopify iframe issues - needs manual entry."
+    },
+    {
+      "id": "BACKLOG-002",
+      "description": "Fix homepage image opacity bug",
+      "completedAt": "2026-01-29T02:21:00-05:00",
+      "outcome": "FIXED! Francisco disabled 'Reveal on scroll' animation. Images now fully visible on live site."
+    },
+    {
       "id": "SUBAGENT-valentine-copy",
       "description": "Valentine's Day marketing copy drafts",
       "completedAt": "2026-01-29T01:50:00-05:00",
@@ -50,18 +63,13 @@
       "description": "1688 Valentine product research",
       "completedAt": "2026-01-29T01:55:00-05:00",
       "outcome": "10 products found with verified URLs, 60-75% margin potential - saved to knowledge/valentine-products-1688.md"
-    },
-    {
-      "id": "TASK-20260129-NIGHT",
-      "description": "Night shift - comprehensive DLM improvement",
-      "completedAt": "2026-01-29T02:00:00-05:00",
-      "outcome": "6 sub-agents: turnaround plan, SEO/marketing procedures, audits"
     }
   ],
   "waitingOn": [
     {
-      "item": "Francisco's decision: manual Animations fix OR wait for slow editor",
-      "since": "2026-01-29T01:55:00-05:00"
+      "item": "Francisco to manually add Valentine hero banner copy (Image banner section is in place)",
+      "since": "2026-01-29T02:45:00-05:00",
+      "instructions": "In Shopify theme editor: Heading, Text, Buttons blocks need copy added"
     }
   ],
   "standingRules": [
@@ -74,16 +82,23 @@
   ],
   "sessionContext": {
     "missionControlUrl": "http://192.168.4.25:8765?key=a6132abf77194fd10a77317a094771f1",
-    "confirmedBugs": {
-      "homepageOpacity": "Images nearly invisible on live site - works in editor preview but broken on dresslikemommy.com",
-      "likelyFix": "Theme Settings > Animations > disable 'Reveal on scroll' OR check Media settings"
+    "franciscoStatus": "sleeping (went to bed 2:45 AM)",
+    "completedFixes": {
+      "homepageOpacity": "FIXED 2026-01-29 02:21 - Francisco disabled reveal on scroll animation",
+      "heroBannerSection": "ADDED 2026-01-29 02:45 - Section in place, copy needs manual entry"
     },
     "readyToDeployAssets": {
       "valentineCopy": "knowledge/valentine-copy-drafts.md",
       "valentineProducts": "knowledge/valentine-products-1688.md",
       "backlog": "memory/backlog.md"
     },
-    "coreMandate": "Added to SOUL.md: 'I don't sleep. Never limit by human speed. Unleash.'"
+    "heroBannerInstructions": {
+      "heading": "💕 Valentine's Twinning – Order by Feb 10!",
+      "subheading": "Match her love, match her look. Free shipping on all orders.",
+      "buttonText": "Shop Valentine's",
+      "buttonLink": "/collections/valentines-day-matching-outfits",
+      "status": "Image banner section added, copy needs manual entry"
+    }
   },
   "activeSubagents": []
 }
