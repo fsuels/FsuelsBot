@@ -1,112 +1,95 @@
 {
-  "version": 14,
-  "lastUpdated": "2026-01-29T01:25:00-05:00",
+  "version": 16,
+  "lastUpdated": "2026-01-29T02:00:00-05:00",
   "currentTask": {
-    "id": "TASK-20260128-004",
-    "description": "Valentine product draft listings (night shift)",
-    "status": "blocked",
+    "id": "TASK-20260129-004",
+    "description": "Night shift complete - awaiting Francisco's review",
+    "status": "waiting",
     "startedAt": "2026-01-29T01:09:00-05:00",
-    "context": "Subagent working on Valentine drafts. Browser automation hitting dynamic ref issues.",
-    "nextStep": "Manual intervention needed OR retry with different browser strategy"
+    "completedAt": "2026-01-29T02:00:00-05:00",
+    "context": "All sub-agents completed. Audits, procedures, and turnaround plan ready.",
+    "nextStep": "Francisco reviews deliverables and prioritizes execution"
   },
   "nextTask": {
-    "id": "TASK-20260128-004",
-    "description": "Resume Valentine product draft listings",
-    "status": "blocked",
-    "context": "2 of 12 drafts complete. Product #3 sourced and vetted, but Shopify draft creation blocked.",
-    "nextStep": "Francisco to review - browser automation reliability issue"
+    "id": "TASK-20260129-005",
+    "description": "Execute Valentine's Day urgency campaign (TOP PRIORITY)",
+    "status": "ready",
+    "context": "Council identified this as #1 action. We are IN the Valentine window NOW.",
+    "nextStep": "Add hero banner, countdown timer, Valentine urgency messaging"
   },
   "backlog": [
     {
-      "id": "BACKLOG-001",
+      "id": "BACKLOG-002",
       "priority": 1,
-      "description": "Continue Valentine listings (10 more drafts)",
+      "description": "Fix homepage image opacity bug (design audit finding)",
+      "addedAt": "2026-01-29T01:45:00-05:00"
+    },
+    {
+      "id": "BACKLOG-003",
+      "priority": 2,
+      "description": "Optimize mobile LCP - 12.2s load time (speed audit finding)",
+      "addedAt": "2026-01-29T01:45:00-05:00"
+    },
+    {
+      "id": "BACKLOG-001",
+      "priority": 3,
+      "description": "Continue Valentine listings - connect 1688 sources",
       "addedAt": "2026-01-28T23:47:00-05:00"
     }
   ],
   "recentCompleted": [
     {
+      "id": "TASK-20260129-NIGHT",
+      "description": "Night shift - comprehensive DLM improvement",
+      "completedAt": "2026-01-29T02:00:00-05:00",
+      "outcome": "6 sub-agents completed: turnaround plan, SEO procedures (12 files), marketing procedures (6 files), design audit, speed audit, growth playbook"
+    },
+    {
+      "id": "TASK-20260129-003",
+      "description": "Valentine product audit and discovery",
+      "completedAt": "2026-01-29T01:30:00-05:00",
+      "outcome": "Found 7 Valentine products. 1 linked, 6 need sources."
+    },
+    {
       "id": "TASK-20260129-002",
-      "description": "Council session: Bulletproof procedure compliance system",
+      "description": "Council session: Procedure compliance system",
       "completedAt": "2026-01-29T01:05:00-05:00",
-      "outcome": "Hybrid enforcement: deterministic routing + verification gates + evidence ledger"
-    },
-    {
-      "id": "TASK-20260129-001",
-      "description": "Add backlog column to Mission Control dashboard",
-      "completedAt": "2026-01-29T00:12:00-05:00",
-      "outcome": "3-column layout with priority color-coding, NEXT badge, auto-refresh"
-    },
-    {
-      "id": "TASK-20260128-003",
-      "description": "Fix Mission Control real-time sync",
-      "completedAt": "2026-01-28T23:39:00-05:00",
-      "outcome": "Dashboard now syncs reliably"
-    },
-    {
-      "id": "TASK-20260128-002",
-      "description": "100% Memory reliability system",
-      "completedAt": "2026-01-28T23:24:00-05:00",
-      "outcome": "11 components built"
+      "outcome": "Hybrid enforcement with verification gates"
     }
   ],
   "waitingOn": [
     {
-      "item": "Browser automation reliability fix for BuckyDrop/Shopify",
-      "since": "2026-01-29T01:25:00-05:00",
-      "reason": "Dynamic refs expire between snapshot and action, blocking form filling"
+      "item": "Francisco's review of night shift deliverables",
+      "since": "2026-01-29T02:00:00-05:00"
     }
   ],
   "standingRules": [
     "UPDATE state.json BEFORE telling Francisco about work",
     "Mission Control must always be running",
     "Dashboard = source of truth for current work",
-    "READ PROCEDURE FILES before browser/listing/pricing tasks"
+    "READ PROCEDURE FILES before browser/listing/pricing tasks",
+    "NORTH STAR: Increase sales and make money"
   ],
   "sessionContext": {
     "missionControlUrl": "http://192.168.4.25:8765?key=a6132abf77194fd10a77317a094771f1",
-    "councilComplete": true,
-    "procedureComplianceSystemVersion": "1.0",
-    "valentineListingsProgress": "2/12",
-    "pendingProduct": {
-      "title": "Valentine Heart Mommy and Me Sweatshirt",
-      "source": "https://detail.1688.com/offer/979681219094.html",
-      "vendor": "Huzhou Tomato Garment Factory",
-      "vendorScore": "5/5 (87.2% repurchase, 4.0 service, 2900+ sales)",
-      "cost": 15.21,
-      "suggestedPrice": 34.99,
-      "status": "Added to BuckyDrop, not yet pushed to Shopify",
-      "needsFaceSwap": "TBD - has Chinese model images"
+    "nightShiftDeliverables": {
+      "turnaroundPlan": "council-sessions/dlm-turnaround-plan.md",
+      "actionList": "knowledge/dlm-turnaround-actions.md",
+      "valentinesCampaign": "procedures/valentines-campaign.md",
+      "seoAudit": "knowledge/seo-audit-2026-01-29.md",
+      "speedAudit": "knowledge/speed-audit-2026-01-29.md",
+      "designAudit": "knowledge/design-audit-2026-01-29.md",
+      "seoProcedures": "procedures/seo/ (12 files)",
+      "marketingProcedures": "procedures/marketing/ (6 files)"
+    },
+    "criticalFindings": {
+      "seoScore": "5/10",
+      "mobileSpeed": "54/100 (LCP 12.2s)",
+      "desktopSpeed": "71/100",
+      "designScore": "5/10",
+      "homepageBug": "Category images nearly invisible (opacity bug)",
+      "topPriority": "Valentine's Day campaign - we are in the window NOW"
     }
   },
-  "activeSubagents": [
-    {
-      "label": "valentine-listings",
-      "sessionKey": "agent:main:subagent:7ed60692-adf5-4523-b559-c8bac912ec92",
-      "started": "2026-01-29T01:09:00-05:00",
-      "goal": "Create Valentine drafts 3-12",
-      "status": "blocked"
-    },
-    {
-      "label": "seo-improvements",
-      "sessionKey": "agent:main:subagent:8da50526-c32d-4d93-97fd-b3c44f6440d2",
-      "started": "2026-01-29T01:09:00-05:00",
-      "goal": "Audit and improve SEO for dresslikemommy.com (ALL pages)",
-      "status": "running"
-    },
-    {
-      "label": "council-seo-procedures",
-      "sessionKey": "agent:main:subagent:c366c8a2-ad07-4e10-bae3-fe3d40c50e83",
-      "started": "2026-01-29T01:09:00-05:00",
-      "goal": "Council: Create comprehensive SEO procedures",
-      "status": "running"
-    },
-    {
-      "label": "council-growth-playbook",
-      "sessionKey": "agent:main:subagent:ba221a19-a408-476f-9311-3f5bbe376cea",
-      "started": "2026-01-29T01:10:00-05:00",
-      "goal": "Council: Complete e-commerce growth playbook - ALL procedures",
-      "status": "running"
-    }
-  ]
+  "activeSubagents": []
 }
