@@ -8,18 +8,17 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-01-29 12:45 EST | **Version:** 34
+**Last updated:** 2026-01-29 13:00 EST | **Version:** 36
 
-**Current task:** Step-tracking implementation for context truncation fix
-**Status:** awaiting_approval
-**Context:** Council (Grok + ChatGPT) unanimously agreed: step-tracking in tasks.json is the correct "control-plane" fix for context truncation loops. Add steps[] array with status per step, current_step index, retry_count. Execute ONE step at a time, persist BEFORE responding. Grade: A.
-**Next step:** Francisco approves → implement steps[] schema in tasks.json → update AGENTS.md with behavior rules
+**Current task:** T002 SEO import (at step 2 of 5 — waiting for approval)
+**Status:** in_progress
+**Context:** Step-tracking IMPLEMENTED ✅. Council protocol updated with mandatory Context Injection ✅. Now back to SEO import — 220 titles ready, awaiting Francisco's go-ahead.
+**Next step:** Francisco approves SEO import → execute step 3 (bulk import via Shopify)
 
 **⏰ DEADLINE:** 12 days until Feb 10 order cutoff
 
 **📋 PENDING DECISIONS:**
-- Approve step-tracking implementation (Council A grade) - solves context loop problem
-- SEO import: 220 title fixes ready, some have truncation issues
+- SEO import: 220 title fixes ready in CSV — approve to import?
 
 **📋 TASK BOARD:** `memory/tasks.json` — THE SOURCE OF TRUTH
 - Each task has `plan` field linking to procedure

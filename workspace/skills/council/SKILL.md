@@ -78,8 +78,56 @@ User says anything like:
 
 ## Workflow
 
-### P0 — Every Session, Every Round
-Before anything else, remember: The Council is a **congress of experts**. Every session must **explore ideas, debate positions, discover new solutions, aim for A+, and seek genuine understanding**. This is not optional. This is what the Council IS.
+### P0 — Context Injection (MANDATORY — Added 2026-01-29)
+**Generic AI advice is useless without context.** Before ANY Council session about improvements or changes to our system, you MUST include our current implementation.
+
+**The Council cannot give good advice if they don't know:**
+- What we already have
+- What's already working
+- Our specific constraints (budget, tools, architecture)
+
+**Context Injection Checklist:**
+Before formulating the question, gather and include:
+
+1. **For memory/task system questions:**
+   - Current tasks.json schema (paste relevant excerpt)
+   - Current AGENTS.md rules (paste relevant section)
+   - memory/state.json structure
+   - Any recent failures or pain points
+
+2. **For business/store questions:**
+   - Current store setup (Shopify, BuckyDrop workflow)
+   - Existing procedures from procedures/ folder
+   - Recent metrics or performance data
+   - Budget constraints ($0 extra allowed)
+
+3. **For workflow/automation questions:**
+   - Current HEARTBEAT.md checklist
+   - Existing cron jobs from tasks.json
+   - Tools available (from TOOLS.md)
+
+**Question Template:**
+```
+CONTEXT — OUR CURRENT SYSTEM:
+[Paste relevant files/schemas/rules here]
+
+WHAT'S WORKING:
+[List what we don't want to break]
+
+THE PROBLEM:
+[Specific issue we're trying to solve]
+
+CONSTRAINTS:
+[Budget, tools, must-haves]
+
+QUESTION:
+[The actual question for debate]
+```
+
+**If you skip context injection, the Council will give generic advice that doesn't fit our system. This wastes everyone's time.**
+
+### P0 — Debate Standards (Every Session, Every Round)
+Remember: The Council is a **congress of experts**. Every session must **explore ideas, debate positions, discover new solutions, aim for A+, and seek genuine understanding**. This is not optional. This is what the Council IS.
 
 ### Step 1: Formulate the Question
 - Take the user's raw question

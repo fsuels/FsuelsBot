@@ -1,12 +1,14 @@
 {
-  "lastUpdated": "2026-01-29T12:55:00-05:00",
-  "version": 35,
+  "lastUpdated": "2026-01-29T13:05:00-05:00",
+  "version": 36,
   "currentTask": {
     "id": "T002",
     "description": "SEO product title batch fixes (220 products)",
     "status": "in_progress",
-    "context": "Step-tracking implemented. T002 at step 2 of 5 (waiting for Francisco approval on CSV import).",
-    "nextStep": "Francisco approves SEO import → execute step 3 (Import CSV via Shopify)"
+    "currentStep": 2,
+    "stepDescription": "Francisco reviews and approves import",
+    "context": "Step-tracking and Council Context Injection both implemented. Now back to SEO import — at step 2 of 5, waiting for Francisco's approval.",
+    "nextStep": "Francisco approves → execute step 3 (Import CSV via Shopify)"
   },
   "deadline": {
     "date": "2026-02-10",
@@ -15,18 +17,20 @@
   },
   "taskBoard": "memory/tasks.json",
   "pendingDecisions": [
-    "SEO import: 220 title fixes ready, awaiting approval (T002 step 2)"
+    "SEO import: 220 title fixes ready in CSV — approve to import?"
   ],
-  "recentImplementation": {
-    "task": "Step-tracking implementation",
-    "grade": "A",
-    "changes": [
-      "tasks.json upgraded to v6 with steps[] schema",
-      "T002, T003, T004 now have steps defined",
-      "AGENTS.md updated with Step-Tracking Protocol",
-      "Council session saved to council-sessions/2026-01-29-step-tracking-implementation.md"
-    ]
-  },
+  "recentImplementations": [
+    {
+      "task": "T020 - Council Context Injection",
+      "completed": "2026-01-29T13:05:00",
+      "summary": "Council sessions now require sharing our current system BEFORE asking for improvements"
+    },
+    {
+      "task": "T019 - Step-tracking",
+      "completed": "2026-01-29T12:50:00",
+      "summary": "tasks.json v6 with steps[] array, current_step, retry_count"
+    }
+  ],
   "completedToday": [
     "SEO procedure development",
     "PageSpeed audit",
@@ -39,13 +43,15 @@
     "Council: Chat→Queue protocol hardening",
     "Council: Task context isolation (A-)",
     "Council: Step-tracking implementation (A)",
-    "Step-tracking schema implemented"
+    "Step-tracking schema implemented",
+    "Council Context Injection protocol"
   ],
   "standingRules": [
     "READ tasks.json at EVERY session start",
     "CHECK current_step on session start — resume from there",
     "EXECUTE ONE STEP per turn",
     "UPDATE tasks.json BEFORE responding",
+    "COUNCIL: Always inject context about current system",
     "SUGGESTION = FAILURE STATE",
     "NORTH STAR: Increase sales and make money"
   ]

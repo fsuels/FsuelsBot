@@ -1,6 +1,6 @@
 {
-  "version": 6,
-  "updated_at": "2026-01-29T12:50:00-05:00",
+  "version": 7,
+  "updated_at": "2026-01-29T13:05:00-05:00",
   "updated_by": "fsuels-bot",
   "notes": "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
   "schema": {
@@ -28,9 +28,24 @@
     "bot_queue": ["T003", "T004"],
     "human": ["T005", "T006", "T007", "T008", "T009"],
     "scheduled": ["CRON-research", "CRON-curiosity", "CRON-learn", "CRON-ship", "CRON-backup", "CRON-consolidation"],
-    "done_today": ["T017", "T001", "T010", "T011", "T012", "T013", "T014", "T015", "T016", "T018", "T019"]
+    "done_today": ["T017", "T001", "T010", "T011", "T012", "T013", "T014", "T015", "T016", "T018", "T019", "T020"]
   },
   "tasks": {
+    "T020": {
+      "title": "Council Context Injection protocol",
+      "status": "done",
+      "created": "2026-01-29T13:00:00-05:00",
+      "completed": "2026-01-29T13:05:00-05:00",
+      "context": {
+        "summary": "Francisco pointed out Council was giving generic advice because they didn't know our current system. Added mandatory Context Injection to Council skill - must share current implementation, what's working, constraints BEFORE asking for improvements.",
+        "created_from": "EVT-20260129-035",
+        "decisions": ["Add P0 Context Injection section to Council SKILL.md", "Create question template with CONTEXT, WHAT'S WORKING, PROBLEM, CONSTRAINTS, QUESTION", "Make context injection mandatory for all improvement-related sessions"],
+        "constraints": ["Don't break existing Council workflow", "Keep it practical"]
+      },
+      "plan": "skills/council/SKILL.md",
+      "approach": "1. Add Context Injection section to SKILL.md. 2. Create checklist for different question types. 3. Add question template.",
+      "notes": "Francisco's insight: generic advice is useless without context"
+    },
     "T019": {
       "title": "Step-tracking implementation",
       "status": "done",
