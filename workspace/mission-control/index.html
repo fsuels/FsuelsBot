@@ -133,13 +133,16 @@ body {
 .detail-item { padding: 4px 0; border-bottom: 1px solid #21262d; }
 .detail-item:last-child { border-bottom: none; }
 
-/* Two Column Layout */
+/* Three Column Layout */
 .columns {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 20px;
 }
-@media (max-width: 800px) {
+@media (max-width: 1000px) {
+  .columns { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 700px) {
   .columns { grid-template-columns: 1fr; }
 }
 
@@ -196,6 +199,42 @@ body {
 .history-item .text { flex: 1; color: #8b949e; }
 .history-item .time { font-size: 11px; color: #484f58; }
 
+/* Backlog Section */
+.backlog-list { display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; }
+.backlog-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  background: #0d1117;
+  border-radius: 8px;
+  font-size: 13px;
+  border-left: 3px solid transparent;
+}
+.backlog-item.p1 { border-left-color: #f85149; }
+.backlog-item.p2 { border-left-color: #d29922; }
+.backlog-item.p3 { border-left-color: #3fb950; }
+.backlog-item .priority {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  min-width: 24px;
+  text-align: center;
+}
+.backlog-item.p1 .priority { background: rgba(248,81,73,0.2); color: #f85149; }
+.backlog-item.p2 .priority { background: rgba(210,153,34,0.2); color: #d29922; }
+.backlog-item.p3 .priority { background: rgba(63,185,80,0.2); color: #3fb950; }
+.backlog-item .text { flex: 1; color: #c9d1d9; }
+.backlog-item .next-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(88,166,255,0.2);
+  color: #58a6ff;
+  font-weight: 600;
+}
+
 /* Footer */
 .footer {
   margin-top: 20px;
@@ -233,7 +272,12 @@ body {
     </div>
     
     <div class="section">
-      <div class="section-title">📋 Task History</div>
+      <div class="section-title">📋 Backlog / Up Next</div>
+      <div class="backlog-list" id="backlogList">Loading backlog...</div>
+    </div>
+    
+    <div class="section">
+      <div class="section-title">✅ Completed</div>
       <div class="history-list" id="historyList">Loading history...</div>
     </div>
   </div>
@@ -316,6 +360,31 @@ async function loadData() {
     `).join('');
   } catch(e) {
     document.getElementById('teamList').innerHTML = '<div>Could not load team</div>';
+  }
+  
+  // Load backlog
+  try {
+    const backlogResp = await fetch('./api/backlog?' + Date.now());
+    const backlogData = await backlogResp.json();
+    const items = (backlogData.backlog || []).sort((a, b) => (a.priority || 99) - (b.priority || 99));
+    
+    if (items.length > 0) {
+      document.getElementById('backlogList').innerHTML = items.map((item, idx) => {
+        const pClass = item.priority <= 1 ? 'p1' : (item.priority === 2 ? 'p2' : 'p3');
+        const isNext = idx === 0;
+        return `
+          <div class="backlog-item ${pClass}">
+            <span class="priority">P${item.priority || '?'}</span>
+            <span class="text">${item.description || 'Unnamed task'}</span>
+            ${isNext ? '<span class="next-badge">NEXT</span>' : ''}
+          </div>
+        `;
+      }).join('');
+    } else {
+      document.getElementById('backlogList').innerHTML = '<div class="backlog-item"><span class="text" style="color:#8b949e">No queued tasks — all caught up! 🎉</span></div>';
+    }
+  } catch(e) {
+    document.getElementById('backlogList').innerHTML = '<div class="backlog-item"><span class="text" style="color:#8b949e">Could not load backlog</span></div>';
   }
   
   // Load history

@@ -1,25 +1,39 @@
 {
-  "version": 9,
-  "lastUpdated": "2026-01-28T23:45:00-05:00",
+  "version": 10,
+  "lastUpdated": "2026-01-28T23:47:00-05:00",
   "currentTask": {
     "id": "TASK-20260128-004",
-    "description": "Add Valentine products to Shopify",
+    "description": "Create Valentine product draft listings",
     "status": "in_progress",
     "startedAt": "2026-01-28T23:40:00-05:00",
-    "context": "Adding 12 validated Valentine products as drafts to DLM",
-    "nextStep": "Add remaining products (2-12)",
+    "context": "Creating perfect draft listings for 12 Valentine products - checking 1688 publish dates (2025+)",
+    "nextStep": "Create draft #2 - verify 1688 source is recent",
     "progress": {
       "completed": [
-        "Product #1: Valentine Heart Mommy and Me Matching Pajamas - SAVED (ID: 7467609522273)"
+        "Draft #1: Valentine Heart Mommy and Me Matching Pajamas",
+        "Draft #2: Red Heart Family Sweatshirt (content ready, waiting BuckyDrop login)"
       ],
       "remaining": [
-        "Product #2: Holiday Pattern Family Pajamas",
-        "Product #3: Baby Tutu Romper Set (Petelulu)",
-        "Product #4: Tribal Matching Dress",
-        "Products #5-12..."
+        "Draft #3: Baby Tutu Romper Set",
+        "Draft #4: Tribal Matching Dress",
+        "Drafts #5-12..."
       ]
     }
   },
+  "backlog": [
+    {
+      "id": "BACKLOG-001",
+      "priority": 1,
+      "description": "Continue Valentine listings (10 more drafts)",
+      "addedAt": "2026-01-28T23:47:00-05:00"
+    },
+    {
+      "id": "BACKLOG-002",
+      "priority": 2,
+      "description": "Add backlog column to Mission Control dashboard",
+      "addedAt": "2026-01-28T23:47:00-05:00"
+    }
+  ],
   "recentCompleted": [
     {
       "id": "TASK-20260128-003",

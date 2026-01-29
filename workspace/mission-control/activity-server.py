@@ -558,6 +558,24 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps(memory_health, indent=2, ensure_ascii=False).encode('utf-8'))
             return
         
+        if path == '/api/backlog':
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Cache-Control', 'no-cache')
+            self.end_headers()
+            backlog = []
+            state_file = os.path.join(WORKSPACE_DIR, "memory", "state.json")
+            try:
+                if os.path.exists(state_file):
+                    with open(state_file, 'r', encoding='utf-8') as f:
+                        state = json.load(f)
+                    backlog = state.get("backlog", [])
+            except Exception as e:
+                print(f"Error loading backlog: {e}")
+            self.wfile.write(json.dumps({"backlog": backlog}, indent=2, ensure_ascii=False).encode('utf-8'))
+            return
+        
         if path == '/api/status':
             # Return status based on log activity (no gateway proxy - it returns HTML)
             up_since = activity_state.get("stats", {}).get("upSince", "")
