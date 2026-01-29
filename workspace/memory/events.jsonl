@@ -8,3 +8,4 @@
 {"summary":"Mission Control fixed and running. Mobile needs key URL. Council working on 100% memory. Tier 2 complete.","trigger":"pre_compaction_flush","version":2,"event":"state_checkpoint","ts":"2026-01-28T23:06:00-05:00"}
 {"summary":"Created CONSTITUTION.md with P0 inviolable rules per Council recommendation for 100% memory","version":1,"event":"constitution_created","ts":"2026-01-28T23:16:04-05:00"}
 {"priority":"P0","from":"Francisco","content":"Never stop","event":"directive_received","ts":"2026-01-28T23:16:59-05:00"}
+{"summary":"Complete memory architecture documented in knowledge/procedures/memory-system.md","version":"1.0","event":"memory_system_documented","ts":"2026-01-28T23:20:15-05:00"}
