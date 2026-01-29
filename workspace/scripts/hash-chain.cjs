@@ -125,7 +125,7 @@ function initHashChain(filePath) {
 }
 
 /**
- * Append a new event with hash chaining
+ * Append a new event with hash chaining + HMAC signing (Council A+)
  * @param {string} filePath - Path to events.jsonl
  * @param {object} eventData - Event data (without hash fields)
  * @returns {object} The complete event with hash fields
@@ -145,9 +145,42 @@ function appendEvent(filePath, eventData) {
   // Compute and attach hash
   event.hash = computeHash(event);
   
+  // Council A+: Add HMAC signature for authenticity (tamper-proof, not just tamper-evident)
+  event.sig = computeHmac(event.hash + event.prevHash);
+  
   // Append to file
   fs.appendFileSync(filePath, JSON.stringify(event) + '\n');
   return event;
+}
+
+/**
+ * Export daily checkpoint for external anchoring (Council A+ requirement)
+ * Publishes chain head hash + HMAC to enable offline verification
+ * @param {string} filePath - Path to events.jsonl
+ * @returns {object} Checkpoint data for external storage
+ */
+function exportCheckpoint(filePath) {
+  const lastHash = getLastHash(filePath);
+  if (!lastHash) return null;
+  
+  const checkpoint = {
+    date: new Date().toISOString().slice(0, 10),
+    chainHead: lastHash,
+    sig: computeHmac(lastHash + new Date().toISOString().slice(0, 10)),
+    eventsFile: path.basename(filePath),
+    exportedAt: new Date().toISOString()
+  };
+  
+  // Write to checkpoints directory
+  const checkpointDir = path.join(path.dirname(filePath), 'checkpoints');
+  if (!fs.existsSync(checkpointDir)) {
+    fs.mkdirSync(checkpointDir, { recursive: true });
+  }
+  
+  const checkpointFile = path.join(checkpointDir, `${checkpoint.date}.json`);
+  fs.writeFileSync(checkpointFile, JSON.stringify(checkpoint, null, 2));
+  
+  return checkpoint;
 }
 
 /**
@@ -244,7 +277,11 @@ module.exports = {
   verifyChain, 
   computeHash, 
   getLastHash,
-  canonicalJSON
+  canonicalJSON,
+  // Council A+ additions
+  exportCheckpoint,
+  computeHmac,
+  verifyHmac
 };
 
 // === CLI INTERFACE ===

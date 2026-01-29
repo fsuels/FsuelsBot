@@ -194,6 +194,47 @@ def get_status() -> dict:
         'generatedAt': datetime.now().isoformat()
     }
 
+def get_prometheus_metrics() -> str:
+    """
+    Council A+ requirement: Export metrics in Prometheus text format.
+    Enables external scraping and centralized monitoring.
+    """
+    lines = []
+    summary = get_today_summary()
+    
+    # Export each metric in Prometheus format
+    for metric_name, data in summary.items():
+        # Sanitize metric name for Prometheus (alphanumeric + underscore only)
+        safe_name = metric_name.replace('-', '_').replace('.', '_')
+        
+        # Total count
+        lines.append(f"# HELP clawdbot_{safe_name}_total Total count of {metric_name}")
+        lines.append(f"# TYPE clawdbot_{safe_name}_total counter")
+        lines.append(f"clawdbot_{safe_name}_total {data.get('total_count', 0)}")
+        
+        # Success count (if applicable)
+        lines.append(f"# HELP clawdbot_{safe_name}_success Success count of {metric_name}")
+        lines.append(f"# TYPE clawdbot_{safe_name}_success counter")
+        lines.append(f"clawdbot_{safe_name}_success {data.get('success_count', 0)}")
+        
+        # Success rate as gauge
+        lines.append(f"# HELP clawdbot_{safe_name}_success_rate Success rate percentage")
+        lines.append(f"# TYPE clawdbot_{safe_name}_success_rate gauge")
+        lines.append(f"clawdbot_{safe_name}_success_rate {data.get('success_rate', 100)}")
+    
+    # Add system health metrics
+    alerts = check_alerts()
+    lines.append("# HELP clawdbot_alerts_active Number of active alerts")
+    lines.append("# TYPE clawdbot_alerts_active gauge")
+    lines.append(f"clawdbot_alerts_active {len(alerts)}")
+    
+    # Add uptime info
+    lines.append("# HELP clawdbot_metrics_generated_timestamp Unix timestamp of last generation")
+    lines.append("# TYPE clawdbot_metrics_generated_timestamp gauge")
+    lines.append(f"clawdbot_metrics_generated_timestamp {datetime.now().timestamp()}")
+    
+    return '\n'.join(lines) + '\n'
+
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python metrics.py [today|trends|alerts|record <name> <value>]")
@@ -226,7 +267,10 @@ if __name__ == "__main__":
     
     elif cmd == "record" and len(sys.argv) >= 4:
         record_metric(sys.argv[2], float(sys.argv[3]))
-        print(f"Recorded: {sys.argv[2]} = {sys.argv[3]}")
+    
+    elif cmd == "prometheus":
+        # Council A+: Export in Prometheus text format
+        print(get_prometheus_metrics())
     
     elif cmd == "status":
         print(json.dumps(get_status(), indent=2))

@@ -184,4 +184,39 @@ All security events logged to:
 
 ---
 
+## Council A+ Controls Mapping
+
+### Threat → Control → Owner → Verification
+
+| Threat | Control | Owner | Verification Method |
+|--------|---------|-------|---------------------|
+| Prompt Injection | Instruction firewall in SOUL.md | Claude/System | Manual review of responses |
+| Credential Leak | Protected data list + Tier 2 gate | Claude | Regex scan of outputs |
+| Supply Chain | No auto-merge lockfiles | Francisco | PR review required |
+| Context Poisoning | Hash-chain audit log | System | Daily chain verification |
+| Unauthorized Action | Capability tiers (0/1/2) | Claude | Tier 2 requires confirmation |
+| Data Exfiltration | External action gate | Francisco | Approval before send |
+| Session Hijacking | Token auth + loopback only | Gateway | icacls permissions |
+| Memory Tampering | HMAC-signed events | System | Signature verification |
+
+### Security Tests (Run in CI/Cron)
+
+| Test | Location | Frequency |
+|------|----------|-----------|
+| Hash chain verify | `node scripts/hash-chain.cjs verify` | Daily |
+| Frontmatter schema | `python scripts/validate-frontmatter.py` | Daily |
+| Reconciliation check | `powershell scripts/check-reconciliation.ps1` | Hourly |
+| Circuit breaker status | `powershell scripts/circuit-breaker.ps1 status` | Hourly |
+
+### Incident Metrics (SLIs)
+
+| Metric | Target | Alert Threshold |
+|--------|--------|-----------------|
+| Prompt injection attempts | 0/day | Any detection |
+| Hash chain breaks | 0 | Any |
+| Auto-fix invocations | <3/day | ≥3/day |
+| Circuit breaker opens | <2/day | ≥3/day |
+
+---
+
 *This threat model is living documentation. Update when new threats identified.*

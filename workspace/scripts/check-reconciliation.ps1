@@ -9,10 +9,84 @@ param(
 
 $ErrorActionPreference = "Stop"
 $script:WORKSPACE = "C:\dev\FsuelsBot\workspace"
+$script:LOCK_FILE = "$script:WORKSPACE\memory\.reconciliation.lock"
+$script:MAX_AUTO_FIXES = 3  # Council A+: Safety rail - max auto-fixes before manual intervention
 
 function Write-Status {
     param([string]$Message, [string]$Color = "White")
     if (-not $Quiet) { Write-Host $Message -ForegroundColor $Color }
+}
+
+# Council A+: Concurrency control via file lock
+function Get-ReconciliationLock {
+    $timeout = 30  # seconds
+    $start = Get-Date
+    
+    while ((Get-Date) - $start -lt (New-TimeSpan -Seconds $timeout)) {
+        if (-not (Test-Path $script:LOCK_FILE)) {
+            # Create lock file with PID
+            @{ pid = $PID; started = (Get-Date).ToString("o") } | ConvertTo-Json | Set-Content $script:LOCK_FILE
+            return $true
+        }
+        
+        # Check if lock is stale (>60s old)
+        try {
+            $lock = Get-Content $script:LOCK_FILE -Raw | ConvertFrom-Json
+            $lockAge = (Get-Date) - [DateTime]::Parse($lock.started)
+            if ($lockAge.TotalSeconds -gt 60) {
+                Remove-Item $script:LOCK_FILE -Force
+                continue
+            }
+        } catch {
+            Remove-Item $script:LOCK_FILE -Force -ErrorAction SilentlyContinue
+            continue
+        }
+        
+        Start-Sleep -Milliseconds 100
+    }
+    
+    return $false
+}
+
+function Release-ReconciliationLock {
+    if (Test-Path $script:LOCK_FILE) {
+        Remove-Item $script:LOCK_FILE -Force -ErrorAction SilentlyContinue
+    }
+}
+
+# Council A+: Schema validation for tasks.json
+function Test-TasksSchema {
+    param($Tasks)
+    
+    $errors = @()
+    
+    # Required top-level fields
+    if (-not $Tasks.lanes) { $errors += "Missing 'lanes' field" }
+    if (-not $Tasks.tasks) { $errors += "Missing 'tasks' field" }
+    if (-not $Tasks.version) { $errors += "Missing 'version' field" }
+    
+    # Validate lanes structure
+    if ($Tasks.lanes) {
+        $validLanes = @("bot_current", "bot_queue", "human", "scheduled", "done_today")
+        foreach ($lane in $Tasks.lanes.PSObject.Properties.Name) {
+            if ($lane -notin $validLanes) {
+                $errors += "Unknown lane: $lane"
+            }
+        }
+    }
+    
+    # Validate task references exist
+    if ($Tasks.lanes -and $Tasks.tasks) {
+        foreach ($lane in $Tasks.lanes.PSObject.Properties.Name) {
+            foreach ($taskId in $Tasks.lanes.$lane) {
+                if (-not $Tasks.tasks.$taskId) {
+                    $errors += "Lane '$lane' references non-existent task: $taskId"
+                }
+            }
+        }
+    }
+    
+    return @{ valid = $errors.Count -eq 0; errors = $errors }
 }
 
 function Get-CanonicalState {
@@ -193,35 +267,82 @@ function Invoke-Reconciliation {
 }
 
 # Main execution
-Write-Status "=== Reconciliation Check ===" "Cyan"
+Write-Status "=== Reconciliation Check (Council A+ Enhanced) ===" "Cyan"
 Write-Status "Canonical: tasks.json" "Gray"
 Write-Status "Derived: state.json" "Gray"
 Write-Status ""
 
-$result = Test-Reconciliation
-
-if (-not $result.hasDrift) {
-    Write-Status "[OK] No drift detected" "Green"
-    exit 0
+# Council A+: Acquire lock for concurrency safety
+if (-not (Get-ReconciliationLock)) {
+    Write-Status "[!!] Could not acquire reconciliation lock (another process running?)" "Red"
+    exit 2
 }
 
-Write-Status "[!!] DRIFT DETECTED:" "Red"
-foreach ($d in $result.drift) {
-    Write-Status "  - $($d.field): tasks.json='$($d.canonical)' vs state.json='$($d.derived)' [$($d.severity)]" "Yellow"
-}
+try {
+    # Council A+: Validate schema before any operations
+    $tasksPath = Join-Path $script:WORKSPACE "memory/tasks.json"
+    if (Test-Path $tasksPath) {
+        $tasks = Get-Content $tasksPath -Raw | ConvertFrom-Json
+        $schemaResult = Test-TasksSchema -Tasks $tasks
+        if (-not $schemaResult.valid) {
+            Write-Status "[!!] SCHEMA VALIDATION FAILED - REFUSING TO AUTO-FIX" "Red"
+            foreach ($err in $schemaResult.errors) {
+                Write-Status "  - $err" "Yellow"
+            }
+            Write-Status "Fix tasks.json manually before reconciliation can proceed" "Gray"
+            exit 3
+        }
+        Write-Status "[OK] Schema validation passed" "Green"
+    }
+    
+    $result = Test-Reconciliation
 
-if ($AutoFix) {
-    Write-Status ""
-    $fixed = Invoke-Reconciliation -Result $result
-    if ($fixed) {
-        Write-Status "[OK] Reconciliation complete" "Green"
+    if (-not $result.hasDrift) {
+        Write-Status "[OK] No drift detected" "Green"
         exit 0
+    }
+
+    Write-Status "[!!] DRIFT DETECTED:" "Red"
+    foreach ($d in $result.drift) {
+        Write-Status "  - $($d.field): tasks.json='$($d.canonical)' vs state.json='$($d.derived)' [$($d.severity)]" "Yellow"
+    }
+
+    if ($AutoFix) {
+        # Council A+: Check auto-fix count (safety rail)
+        $fixCountFile = Join-Path $script:WORKSPACE "memory/.reconciliation-fix-count"
+        $today = (Get-Date).ToString("yyyy-MM-dd")
+        $fixCount = 0
+        
+        if (Test-Path $fixCountFile) {
+            $fixData = Get-Content $fixCountFile -Raw | ConvertFrom-Json
+            if ($fixData.date -eq $today) {
+                $fixCount = $fixData.count
+            }
+        }
+        
+        if ($fixCount -ge $script:MAX_AUTO_FIXES) {
+            Write-Status "[!!] MAX AUTO-FIXES REACHED ($script:MAX_AUTO_FIXES/day) - Manual intervention required" "Red"
+            Write-Status "Delete $fixCountFile to reset, or fix the root cause" "Gray"
+            exit 4
+        }
+        
+        Write-Status ""
+        $fixed = Invoke-Reconciliation -Result $result
+        if ($fixed) {
+            # Update fix count
+            @{ date = $today; count = $fixCount + 1 } | ConvertTo-Json | Set-Content $fixCountFile
+            Write-Status "[OK] Reconciliation complete (fix $($fixCount + 1)/$script:MAX_AUTO_FIXES today)" "Green"
+            exit 0
+        } else {
+            Write-Status "[!!] Reconciliation failed" "Red"
+            exit 1
+        }
     } else {
-        Write-Status "[!!] Reconciliation failed" "Red"
+        Write-Status ""
+        Write-Status "Run with -AutoFix to regenerate derived files" "Gray"
         exit 1
     }
-} else {
-    Write-Status ""
-    Write-Status "Run with -AutoFix to regenerate derived files" "Gray"
-    exit 1
+} finally {
+    # Council A+: Always release lock
+    Release-ReconciliationLock
 }
