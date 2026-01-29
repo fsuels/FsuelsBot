@@ -1,12 +1,12 @@
 {
-  "lastUpdated": "2026-01-29T09:03:00-05:00",
-  "version": 27,
+  "lastUpdated": "2026-01-29T09:16:00-05:00",
+  "version": 28,
   "currentTask": {
-    "id": "TASK-20260129-012",
-    "description": "9 AM Research Pipeline — COMPLETE",
+    "id": "TASK-20260129-013",
+    "description": "P1 Branding update complete — ready for next task",
     "status": "completed",
-    "context": "Research gathered: Clawdbot→Moltbot rebrand is the big news. Top 3 improvements identified. Council reviewing priorities.",
-    "nextStep": "Await Council results, then implement approved items"
+    "context": "Updated 8 key workspace files from Clawdbot→Moltbot. Council approved P2 (docs audit) for this week.",
+    "nextStep": "Continue SEO product title fixes OR await Francisco's quick wins"
   },
   "deadline": {
     "date": "2026-02-10",
@@ -20,7 +20,8 @@
     "Fixed 5 bloated collection names",
     "Fixed 2 corrupted product SEO titles",
     "EXECUTION-FIRST UPGRADE: SOUL.md + work-ledger + heartbeat",
-    "9 AM Research Brief: Clawdbot→Moltbot rebrand news"
+    "9 AM Research Brief: Clawdbot→Moltbot rebrand news",
+    "P1 BRANDING UPDATE: 8 files updated Clawdbot→Moltbot"
   ],
   "waitingOnFrancisco": [
     "Announcement bar urgency text (1 min)",
@@ -29,6 +30,11 @@
     "Add Valentine collection to homepage (2 min)",
     "Import 2 products via BuckyDrop (5 min)"
   ],
+  "approvedImprovements": {
+    "P1": "DONE - Branding update",
+    "P2": "Docs audit (this week, 2hr max)",
+    "Rejected": "ElevenLabs TTS (costs money)"
+  },
   "standingRules": [
     "UPDATE state.json BEFORE telling Francisco about work",
     "SUGGESTION = FAILURE STATE — execute, don't advise",

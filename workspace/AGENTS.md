@@ -8,28 +8,28 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-01-29 08:30 EST | **Version:** 23
+**Last updated:** 2026-01-29 09:20 EST | **Version:** 28
 
-**Current task:** SEO procedure COMPLETE — ready to execute [TASK-20260129-010]
+**Current task:** P1 Branding update complete — ready for next task [TASK-20260129-013]
 **Status:** completed
-**Context:** Research (1,336 lines) + Council (Grok/ChatGPT/Gemini) merged into standardized procedure. 80/20 checklist, batch sizes, golden rule documented.
-**Next step:** Run first SEO audit on DLM when Francisco ready
+**Context:** Updated 8 key workspace files from Clawdbot→Moltbot. Council approved P2 (docs audit) for this week.
+**Next step:** Continue SEO product title fixes OR await Francisco's quick wins
 
 **⏰ DEADLINE:** 12 days until Feb 10 order cutoff
 
-**✅ SEO PROJECT — COMPLETE:**
-- ✅ **Research:** `knowledge/seo-strategy-2026.md` (1,336 lines)
-- ✅ **Council:** `council-sessions/2026-01-29-seo-procedure-design.md` (17KB)
-- ✅ **Procedure:** `procedures/seo/README.md` (v2 with Council input)
-- 🎯 **80/20 Checklist:** 7 items that cover ~80% of SEO value
-- 📊 **PageSpeed Audit:** Performance 65, LCP 13.3s (critical), SEO 100
-
-**✅ COMPLETED THIS SESSION:**
+**✅ COMPLETED TODAY (Jan 29):**
 - SEO procedure development (research + council + synthesis)
-- PageSpeed audit on DLM (identified LCP issue)
-- Night shift protocol created (never idle)
-- SOUL.md updated (work at AI speed, never stop improving)
-- Explained page speed concepts (increase understanding)
+- PageSpeed audit on DLM (LCP 2.4s — Good)
+- Deleted 9 duplicate/empty collections
+- Fixed 5 bloated collection names + 2 product SEO titles
+- **EXECUTION-FIRST UPGRADE:** SOUL.md + work-ledger + heartbeat
+- **9 AM Research Brief:** Clawdbot→Moltbot rebrand news
+- **P1 BRANDING UPDATE:** 8 files updated Clawdbot→Moltbot
+
+**🔄 APPROVED IMPROVEMENTS:**
+- ✅ P1: Branding update — **DONE**
+- 📋 P2: Docs audit — This week (2hr max)
+- ❌ Rejected: ElevenLabs TTS (costs money)
 
 **📋 STILL WAITING ON FRANCISCO (11 min):**
 1. Announcement bar: paste urgency text (1 min)
@@ -38,16 +38,11 @@ This folder is home. Treat it that way.
 4. Add Valentine collection to homepage (2 min)
 5. Import 2 products via BuckyDrop (5 min)
 
-**Ready to Deploy:**
-- ✅ SEO procedure: `procedures/seo/README.md`
-- ✅ Quick wins: `memory/2026-01-29-quick-wins.md`
-- ✅ SEO strategy: `knowledge/seo-strategy-2026.md`
-
 **Standing rules:**
 - UPDATE state.json BEFORE telling Francisco about work
-- Mission Control must always be running
-- **NEVER BE IDLE** — always fixing and improving
-- **Increase understanding** — explain WHY, not just WHAT
+- **SUGGESTION = FAILURE STATE** — execute, don't advise
+- Tier 0/1/2 permissions — know your bounds
+- Output Contract: Actions Taken / Queued / Blockers
 - **NORTH STAR: Increase sales and make money**
 
 ---
