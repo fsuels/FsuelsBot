@@ -1,25 +1,27 @@
 {
-  "version": 1,
-  "updated_at": "2026-01-29T09:35:00-05:00",
+  "version": 2,
+  "updated_at": "2026-01-29T09:45:00-05:00",
   "updated_by": "fsuels-bot",
+  "notes": "Francisco can reorder by moving items in arrays OR telling me in chat. I read this at every session start.",
   "lanes": {
-    "bot_current": ["T001"],
-    "bot_queue": ["T002", "T003", "T004"],
+    "bot_current": ["T002"],
+    "bot_queue": ["T003", "T004"],
     "human": ["T005", "T006", "T007", "T008", "T009"],
-    "done_today": ["T010", "T011", "T012", "T013", "T014", "T015", "T016"]
+    "scheduled": ["CRON-research", "CRON-curiosity", "CRON-learn", "CRON-ship", "CRON-backup", "CRON-consolidation"],
+    "done_today": ["T001", "T010", "T011", "T012", "T013", "T014", "T015", "T016"]
   },
   "tasks": {
     "T001": {
-      "title": "Implement task tracking system",
-      "status": "in_progress",
+      "title": "Task tracking system",
+      "status": "done",
       "created": "2026-01-29T09:30:00-05:00",
-      "notes": "Council recommended JSON task board"
+      "completed": "2026-01-29T09:40:00-05:00"
     },
     "T002": {
       "title": "SEO product title batch fixes (50+ products)",
-      "status": "pending",
+      "status": "in_progress",
       "created": "2026-01-29T08:30:00-05:00",
-      "notes": "From SEO audit"
+      "notes": "From SEO audit — long titles hurting rankings"
     },
     "T003": {
       "title": "P2 Moltbot docs audit",
@@ -36,85 +38,84 @@
     "T005": {
       "title": "Announcement bar urgency text",
       "status": "pending",
-      "created": "2026-01-29T03:00:00-05:00",
+      "owner": "francisco",
       "estimate": "1 min",
       "notes": "Paste in Shopify"
     },
     "T006": {
       "title": "Hero banner copy",
       "status": "pending",
-      "created": "2026-01-29T03:00:00-05:00",
+      "owner": "francisco",
       "estimate": "2 min",
       "notes": "Add to Image Banner section"
     },
     "T007": {
       "title": "Hide Christmas nav link",
       "status": "pending",
-      "created": "2026-01-29T03:00:00-05:00",
-      "estimate": "1 min",
-      "notes": "Remove from main menu"
+      "owner": "francisco",
+      "estimate": "1 min"
     },
     "T008": {
       "title": "Add Valentine collection to homepage",
       "status": "pending",
-      "created": "2026-01-29T03:00:00-05:00",
-      "estimate": "2 min",
-      "notes": "Featured Collection section"
+      "owner": "francisco",
+      "estimate": "2 min"
     },
     "T009": {
       "title": "Import 2 products via BuckyDrop",
       "status": "pending",
-      "created": "2026-01-29T03:00:00-05:00",
-      "estimate": "5 min",
-      "notes": "URLs in memory/2026-01-29-quick-wins.md"
+      "owner": "francisco",
+      "estimate": "5 min"
     },
-    "T010": {
-      "title": "SEO procedure development",
-      "status": "done",
-      "created": "2026-01-29T08:00:00-05:00",
-      "completed": "2026-01-29T08:30:00-05:00"
+    "T010": {"title": "SEO procedure development", "status": "done"},
+    "T011": {"title": "PageSpeed audit (LCP 2.4s)", "status": "done"},
+    "T012": {"title": "Delete 9 duplicate collections", "status": "done"},
+    "T013": {"title": "Fix 5 collection names", "status": "done"},
+    "T014": {"title": "Execution-first upgrade", "status": "done"},
+    "T015": {"title": "9 AM Research Brief", "status": "done"},
+    "T016": {"title": "P1 Branding update", "status": "done"},
+    "CRON-research": {
+      "title": "Daily AI Research Brief",
+      "status": "scheduled",
+      "schedule": "9 AM daily",
+      "lastRun": "2026-01-29T09:00:00-05:00",
+      "nextRun": "2026-01-30T09:00:00-05:00",
+      "notes": "Scan news, find improvements, Council review"
     },
-    "T011": {
-      "title": "PageSpeed audit",
-      "status": "done",
-      "created": "2026-01-29T08:30:00-05:00",
-      "completed": "2026-01-29T08:45:00-05:00",
-      "notes": "LCP 2.4s — Good"
+    "CRON-curiosity": {
+      "title": "Curiosity Engine",
+      "status": "scheduled",
+      "schedule": "9 PM daily",
+      "nextRun": "2026-01-29T21:00:00-05:00",
+      "notes": "Discover anomalies & opportunities, feed backlog"
     },
-    "T012": {
-      "title": "Delete duplicate/empty collections",
-      "status": "done",
-      "created": "2026-01-29T08:00:00-05:00",
-      "completed": "2026-01-29T08:20:00-05:00",
-      "notes": "9 collections deleted"
+    "CRON-learn": {
+      "title": "Compound Loop: LEARN",
+      "status": "scheduled",
+      "schedule": "10:30 PM daily",
+      "nextRun": "2026-01-29T22:30:00-05:00",
+      "notes": "Extract lessons, update knowledge"
     },
-    "T013": {
-      "title": "Fix bloated collection names",
-      "status": "done",
-      "created": "2026-01-29T08:20:00-05:00",
-      "completed": "2026-01-29T08:40:00-05:00",
-      "notes": "5 collections fixed"
+    "CRON-ship": {
+      "title": "Compound Loop: SHIP",
+      "status": "scheduled",
+      "schedule": "11 PM daily",
+      "nextRun": "2026-01-29T23:00:00-05:00",
+      "notes": "Pick top task from backlog, execute overnight"
     },
-    "T014": {
-      "title": "Execution-first upgrade",
-      "status": "done",
-      "created": "2026-01-29T08:50:00-05:00",
-      "completed": "2026-01-29T09:00:00-05:00",
-      "notes": "SOUL.md + work-ledger + heartbeat"
+    "CRON-backup": {
+      "title": "Daily GitHub Backup",
+      "status": "scheduled",
+      "schedule": "11:45 PM daily",
+      "nextRun": "2026-01-29T23:45:00-05:00",
+      "notes": "Commit and push all changes"
     },
-    "T015": {
-      "title": "9 AM Research Brief",
-      "status": "done",
-      "created": "2026-01-29T09:00:00-05:00",
-      "completed": "2026-01-29T09:05:00-05:00",
-      "notes": "Moltbot rebrand news"
-    },
-    "T016": {
-      "title": "P1 Branding update",
-      "status": "done",
-      "created": "2026-01-29T09:05:00-05:00",
-      "completed": "2026-01-29T09:15:00-05:00",
-      "notes": "8 files updated Clawdbot→Moltbot"
+    "CRON-consolidation": {
+      "title": "Memory Consolidation",
+      "status": "scheduled",
+      "schedule": "3 AM daily",
+      "nextRun": "2026-01-30T03:00:00-05:00",
+      "notes": "Extract events, update knowledge, rebuild recall pack"
     }
   }
 }
