@@ -42,28 +42,37 @@ If you cannot state this, you haven't prepared properly. STOP and do the pre-fli
 
 **State:** "Step 2 complete: BuckyDrop import done. Cost: $[X]."
 
-### Step 3: Calculate Pricing
-- Apply formula: Cost × 2 = Minimum Price
-- Round to clean number if needed
-- Consider compare-at price for perceived value
+### Step 3: Competitor Research
+- Search Amazon, Etsy, Google for similar products
+- Note competitor price range (low / high)
+- Check if our minimum price is competitive
 
-**State:** "Step 3 complete: Cost $[X] → Price $[Y] (50%+ margin)."
+**State:** "Step 3 complete: Competitors charge $[X]-$[Y]. Our cost is $[Z]."
 
-### Step 4: Shopify Draft
+### Step 4: Calculate Final Price
+- Apply formula: Cost × 1.5 = Minimum Price (50% margin)
+- Compare to competitor prices
+- If room → price closer to competitors for more margin
+- If competitors cheaper → FLAG to Francisco
+- Round to clean number (.99 or .95)
+
+**State:** "Step 4 complete: Cost $[X] → Price $[Y] ([M]% margin). Competitors at $[A]-$[B]."
+
+### Step 5: Shopify Draft
 - Open Shopify admin (or navigate existing Shopify tab)
 - Create draft product
 - Add: title, description, images, price, variants
 - Tag appropriately
 - Save as DRAFT (not active)
 
-**State:** "Step 4 complete: Draft created in Shopify."
+**State:** "Step 5 complete: Draft created in Shopify."
 
-### Step 5: Cleanup
+### Step 6: Cleanup
 - Close any tabs no longer needed
 - Verify ≤ 4 tabs remain
 - Update task status
 
-**State:** "Step 5 complete: Cleanup done."
+**State:** "Step 6 complete: Cleanup done."
 
 ---
 
@@ -88,8 +97,10 @@ Examples:
 
 Before marking ANY listing task complete:
 
-- [ ] Followed all 5 steps in order
-- [ ] Price is ≥ 2× cost (50% margin)
+- [ ] Followed all 6 steps in order
+- [ ] Competitor prices checked
+- [ ] Price is ≥ 1.5× cost (50% margin)
+- [ ] Price is competitive (not way above market)
 - [ ] Draft is saved in Shopify
 - [ ] No extra browser tabs left open
 - [ ] Status updated (state.json / dashboard)

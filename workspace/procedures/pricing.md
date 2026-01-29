@@ -54,6 +54,42 @@ Minimum Price = Total Cost × 1.5  (adds 50% profit)
 
 ---
 
+## 🔍 Competitor Research (REQUIRED)
+
+**Before setting final price, check what competitors charge:**
+
+### Where to Check:
+1. **Amazon** — search same product type
+2. **Etsy** — mommy and me / matching outfits
+3. **Other Shopify stores** — Google "[product] mommy and me"
+4. **DressLikeMommy competitors** — PatPat, SHEIN, etc.
+
+### What to Capture:
+- Competitor price range (low / high)
+- Shipping costs they charge
+- Any bundles or upsells
+
+### Pricing Decision Matrix:
+
+| Competitor Price | vs Our Min (2× cost) | Action |
+|------------------|----------------------|--------|
+| **Higher** | They charge $40, our min is $25 | ✅ Price at $34.99 — room for more margin! |
+| **Same** | They charge $25, our min is $25 | ✅ Price at $24.99 — competitive |
+| **Lower** | They charge $18, our min is $25 | ⚠️ STOP — either find cheaper supplier or skip product |
+
+### The Sweet Spot:
+```
+IDEAL PRICE = Competitor average - $1 to $5 (undercut slightly)
+BUT NEVER below our 50% margin minimum
+```
+
+### Verification Gate (Competitor Check):
+> "Competitor check: [Product] sells for $[X]-$[Y] on [Amazon/Etsy]. Our cost is $[Z]. Setting price at $[P] (margin: [M]%)."
+
+If competitors are ALL below our minimum → **flag to Francisco before listing**.
+
+---
+
 ## Real Example (from BuckyDrop)
 
 Product: Red Heart Sweatshirt (150g, shipped to USA)
@@ -88,11 +124,15 @@ Product: Red Heart Sweatshirt (150g, shipped to USA)
 
 ## Verification Gate
 
-**Before setting ANY price, state:**
+**Before setting ANY price, state BOTH:**
 
-> "Pricing check: Cost is $[X]. Minimum price (2×) is $[Y]. Setting price to $[Z]."
+> "Pricing check: Cost is $[X]. Minimum price (×1.5) is $[Y]."
+> "Competitor check: Similar items sell for $[A]-$[B] on [platform]. Setting price to $[Z] ([M]% margin)."
 
-If Z < Y, STOP. You're pricing too low.
+**Red flags:**
+- If Z < Y → STOP. You're pricing too low.
+- If Z > B (highest competitor) → STOP. You may not sell.
+- If Y > A (competitors cheaper than our minimum) → FLAG to Francisco.
 
 ---
 
