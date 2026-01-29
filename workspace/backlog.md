@@ -28,6 +28,31 @@
 | Product description template | Catalog | 6 | 0.9 | 3 | 1 | 1.80 | pending |
 | Conversion audit of top 5 PDPs | Conversion | 6 | 0.7 | 5 | 1 | 0.84 | pending |
 
+---
+
+## Curiosity Engine Proposals (2026-01-28 9:00 PM)
+
+### Proposal 1: Resume Locale Redirect Batch
+- **Discovery:** Redirect batch interrupted at ~2,047 of 5,226 (Jan 27). ~3,179 redirects still missing.
+- **Why it matters:** Maps to **Level 2: Unblock distribution** — 404 errors hurt SEO and contributed to previous GMC/Pinterest rejections. Each missing redirect = lost link equity.
+- **Suggested task:** Resume redirect batch via Shopify Admin API. Fully automated, 0 human minutes.
+- **TPS estimate:** Revenue Impact 7 × Confidence 0.9 ÷ Human Min 1 ÷ Risk 1 = **6.3**
+- **Persona:** Traffic
+
+### Proposal 2: Create Valentine's Day Collection Page
+- **Discovery:** 12 validated Valentine products researched (Jan 28), 10 blog posts published — but NO dedicated collection page exists. Feb 14 = 17 days.
+- **Why it matters:** Maps to **Priority 2: Valentine's Day** — seasonal revenue window closing. Collection page enables: internal linking from blog posts, GMC product grouping, landing page for any future ads.
+- **Suggested task:** Create "Valentine's Day" collection in Shopify, add relevant products, optimize title/description for SEO.
+- **TPS estimate:** Revenue Impact 8 × Confidence 0.85 ÷ Human Min 3 ÷ Risk 1 = **2.27**
+- **Persona:** Catalog
+
+### Proposal 3: Check Pinterest Merchant Approval Status
+- **Discovery:** Pinterest merchant review submitted Jan 27 at 2:05 PM. 48-hour window has passed. Status unknown.
+- **Why it matters:** Maps to **Level 2: Unblock distribution** — Pinterest is a free organic channel. Previous rejection was due to broken links (now mostly fixed with redirects). If approved, products can appear in Pinterest Shopping.
+- **Suggested task:** Log into Pinterest Business Hub, check merchant status, document result. If rejected, extract new rejection reasons.
+- **TPS estimate:** Revenue Impact 6 × Confidence 0.7 ÷ Human Min 2 ÷ Risk 1 = **2.1**
+- **Persona:** Traffic
+
 ## Completed Tasks
 *(moved here after execution with score)*
 

@@ -56,6 +56,10 @@
 - **BuckyDrop support:** Scott Buckydrop (+86 158 2758 0519)
 - ALWAYS put the message in Telegram for copy/paste — never ask Francisco to type it himself
 
+## Face Swaps
+- **Faces folder:** C:\Users\Fsuels\Downloads\faces
+- **Website:** https://aifaceswap.io/#face-swap-playground
+
 ## Browser Best Practices
 ⚠️ **CRITICAL RULE - NEVER FORGET:**
 - **ONE TAB PER DOMAIN** — 1 Shopify, 1 BuckyDrop, 1 1688. NEVER 2+ tabs of same site.
