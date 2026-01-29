@@ -84,14 +84,75 @@
       "plan": "memory/2026-01-29-quick-wins.md",
       "approach": "Open BuckyDrop > Import > Paste 1688 URLs from quick-wins file > Map variants > Save"
     },
-    "T001": {"title": "Task tracking system", "status": "done", "completed": "2026-01-29T09:40:00-05:00"},
-    "T010": {"title": "SEO procedure development", "status": "done", "plan": "procedures/seo/README.md"},
-    "T011": {"title": "PageSpeed audit", "status": "done", "plan": "knowledge/mobile-speed-optimization.md"},
-    "T012": {"title": "Delete 9 duplicate collections", "status": "done"},
-    "T013": {"title": "Fix 5 collection names", "status": "done"},
-    "T014": {"title": "Execution-first upgrade", "status": "done", "plan": "council-sessions/2026-01-29-proactive-execution-design.md"},
-    "T015": {"title": "9 AM Research Brief", "status": "done", "plan": "memory/research-briefs/2026-01-29.md"},
-    "T016": {"title": "P1 Branding update", "status": "done", "plan": "mission-control/approved-improvements.md"},
+    "T001": {
+      "title": "Task tracking system v3",
+      "status": "done",
+      "created": "2026-01-29T08:00:00-05:00",
+      "completed": "2026-01-29T09:40:00-05:00",
+      "approach": "Build tasks.json with lanes structure, integrate with Mission Control dashboard, add plan links for each task",
+      "notes": "Foundation for all task management - lets Francisco see queue and approve plans"
+    },
+    "T010": {
+      "title": "SEO procedure development",
+      "status": "done",
+      "created": "2026-01-29T03:00:00-05:00",
+      "completed": "2026-01-29T07:30:00-05:00",
+      "plan": "procedures/seo/README.md",
+      "approach": "Research SEO best practices, document title/meta/schema procedures, create checklist for product optimization",
+      "notes": "Creates repeatable process for all future SEO work"
+    },
+    "T011": {
+      "title": "PageSpeed audit",
+      "status": "done",
+      "created": "2026-01-29T02:00:00-05:00",
+      "completed": "2026-01-29T03:00:00-05:00",
+      "plan": "knowledge/mobile-speed-optimization.md",
+      "approach": "Run Google PageSpeed Insights, document scores, identify top issues, prioritize fixes",
+      "notes": "Mobile speed directly impacts Google rankings and conversion"
+    },
+    "T012": {
+      "title": "Delete 9 duplicate collections",
+      "status": "done",
+      "created": "2026-01-29T06:00:00-05:00",
+      "completed": "2026-01-29T06:15:00-05:00",
+      "approach": "Identified duplicate/empty collections in Shopify, deleted 9 that had no products or were redundant",
+      "notes": "Cleaner navigation, less confusion for customers"
+    },
+    "T013": {
+      "title": "Fix 5 collection names",
+      "status": "done",
+      "created": "2026-01-29T06:15:00-05:00",
+      "completed": "2026-01-29T06:30:00-05:00",
+      "approach": "Renamed collections for SEO: added 'Mommy and Me' prefix, made names descriptive",
+      "notes": "Better SEO, clearer for customers what each collection contains"
+    },
+    "T014": {
+      "title": "Execution-first upgrade",
+      "status": "done",
+      "created": "2026-01-29T08:30:00-05:00",
+      "completed": "2026-01-29T09:30:00-05:00",
+      "plan": "council-sessions/2026-01-29-proactive-execution-design.md",
+      "approach": "Council session to redesign SOUL.md for operator mindset - execute don't suggest",
+      "notes": "Core behavior change: I now DO things instead of asking permission for everything"
+    },
+    "T015": {
+      "title": "9 AM Research Brief",
+      "status": "done",
+      "created": "2026-01-29T09:00:00-05:00",
+      "completed": "2026-01-29T09:15:00-05:00",
+      "plan": "memory/research-briefs/2026-01-29.md",
+      "approach": "Scan X feed for AI news, compile brief on Claude/Moltbot updates, tips and discoveries",
+      "notes": "Daily intelligence briefing - keeps us informed on AI developments"
+    },
+    "T016": {
+      "title": "P1 Branding update",
+      "status": "done",
+      "created": "2026-01-29T09:30:00-05:00",
+      "completed": "2026-01-29T09:45:00-05:00",
+      "plan": "mission-control/approved-improvements.md",
+      "approach": "Updated Google Merchant Center branding - store name, logo, colors to match DLM brand",
+      "notes": "Better brand consistency across Google Shopping"
+    },
     "CRON-research": {
       "title": "Daily AI Research Brief",
       "status": "scheduled",

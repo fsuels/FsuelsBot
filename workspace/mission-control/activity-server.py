@@ -576,6 +576,24 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps({"backlog": backlog}, indent=2, ensure_ascii=False).encode('utf-8'))
             return
         
+        if path == '/api/tasks':
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Cache-Control', 'no-cache')
+            self.end_headers()
+            tasks_file = os.path.join(WORKSPACE_DIR, "memory", "tasks.json")
+            try:
+                if os.path.exists(tasks_file):
+                    with open(tasks_file, 'r', encoding='utf-8') as f:
+                        tasks_data = json.load(f)
+                    self.wfile.write(json.dumps(tasks_data, indent=2, ensure_ascii=False).encode('utf-8'))
+                else:
+                    self.wfile.write(json.dumps({"error": "tasks.json not found"}).encode('utf-8'))
+            except Exception as e:
+                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+            return
+        
         if path == '/api/status':
             # Return status based on log activity (no gateway proxy - it returns HTML)
             up_since = activity_state.get("stats", {}).get("upSince", "")
