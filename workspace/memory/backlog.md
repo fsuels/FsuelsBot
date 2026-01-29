@@ -7,19 +7,16 @@
 
 ## 🔴 CRITICAL (Do First)
 
-### 1. Fix Homepage Image Opacity Bug
-- **Issue:** Hero images nearly invisible due to CSS opacity
-- **Impact:** Customers can't see products → no sales
-- **Time:** 30 minutes
-- **Status:** NOT STARTED
+### 1. ~~Fix Homepage Image Opacity Bug~~ ✅ DONE
+- **Fixed:** 2026-01-29 02:30 — Francisco disabled "Reveal on scroll" animation
 
 ### 2. Valentine's Day Campaign (WE ARE IN THE WINDOW)
-- [ ] Update homepage hero with Valentine's theme
+- [x] Update homepage hero with Valentine's theme (section added, copy needs paste)
 - [ ] Add countdown banner: "Order by Feb 10 for Valentine's delivery"
 - [ ] Create/feature "Valentine's Collection" as primary focus
 - [ ] Update all CTAs to reference Valentine's Day
-- **Time:** 2 hours
-- **Status:** NOT STARTED
+- **Time:** ~11 min remaining (see quick-wins.md)
+- **Status:** IN PROGRESS — waiting for Francisco's morning tasks
 
 ### 3. Mobile Speed - Fix LCP (12.2s → <2.5s)
 - [ ] Compress hero images for mobile

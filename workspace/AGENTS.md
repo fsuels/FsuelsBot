@@ -8,30 +8,35 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-01-29 02:25 EST | **Version:** 18
+**Last updated:** 2026-01-29 03:05 EST | **Version:** 20
 
-**Current task:** Valentine's campaign deployment - hero banner + urgency [TASK-20260129-005]
-**Status:** in_progress
-**Context:** Homepage opacity bug FIXED! Theme editor unstable at 2AM - gave manual instructions for hero banner.
-**Next step:** Francisco adding Valentine hero banner manually via Shopify theme editor
+**Current task:** Night shift complete - ready for morning [TASK-20260129-007]
+**Status:** completed
+**Context:** Francisco sleeping (since 2:48 AM). All prep work done. SEO fixes complete.
+**Next step:** Morning: Francisco completes 5 quick-wins (11 min) → Valentine campaign LIVE
 
-**✅ BUG FIXED:** Homepage images now fully visible (Francisco disabled "Reveal on scroll" animation)
+**⏰ DEADLINE:** 12 days until Feb 10 order cutoff
 
-**Hero Banner Instructions (ready for Francisco):**
-- Heading: `💕 Valentine's Twinning – Order by Feb 10!`
-- Subheading: `Match her love, match her look. Free shipping on all orders.`
-- Button: `Shop Valentine's` → `/collections/valentines-day-matching-outfits`
+**✅ COMPLETED TONIGHT:**
+- Homepage opacity bug FIXED
+- Hero banner section added (copy needs manual entry)
+- Site audit complete
+- Quick-wins checklist created
+- SEO fixes for 2 Valentine products (4 already optimized)
+- Git backup pushed
+
+**📋 MORNING ACTION LIST (11 min total):**
+1. Announcement bar: paste urgency text (1 min)
+2. Hero banner: add copy to existing section (2 min)
+3. Hide Christmas nav link (1 min)
+4. Add Valentine collection to homepage (2 min)
+5. Import 2 products via BuckyDrop (5 min)
 
 **Ready to Deploy:**
+- ✅ Quick wins checklist: `memory/2026-01-29-quick-wins.md`
 - ✅ Valentine copy drafts: `knowledge/valentine-copy-drafts.md`
-- ✅ 1688 products (10 items): `knowledge/valentine-products-1688.md`
-- ✅ Master backlog: `memory/backlog.md`
-
-**Backlog (prioritized):**
-1. 🔴 Deploy Valentine hero banner ← IN PROGRESS (manual)
-2. 🔴 Update announcement bar with urgency deadline
-3. 🟡 Optimize mobile LCP (12.2s → <2.5s)
-4. 🟡 Import Valentine products via BuckyDrop
+- ✅ 1688 products: `knowledge/valentine-products-1688.md`
+- ✅ SEO fixes log: `memory/seo-fixes-2026-01-29.md`
 
 **Standing rules:**
 - UPDATE state.json BEFORE telling Francisco about work
