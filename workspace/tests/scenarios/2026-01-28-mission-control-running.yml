@@ -1,0 +1,31 @@
+id: TEST-20260128-001
+incident: INC-20260128-001
+name: Mission Control Server Running
+description: Verify Mission Control dashboard is accessible
+
+trigger:
+  type: heartbeat
+
+preconditions:
+  - Clawdbot is running
+  - Windows is running
+  - Network is available
+
+steps:
+  - action: Check if port 8765 is listening
+    command: Get-NetTCPConnection -LocalPort 8765 -State Listen
+    expect: At least one result
+
+  - action: Test HTTP response
+    command: curl.exe -s http://localhost:8765/api/health
+    expect: JSON with status "ok"
+
+success_criteria:
+  - Port 8765 is listening
+  - HTTP endpoint responds
+  
+failure_action:
+  - Run: Start-ScheduledTask -TaskName "MissionControlServer"
+  - Wait 3 seconds
+  - Send Francisco mobile URL via Telegram
+  - Log incident if still failing

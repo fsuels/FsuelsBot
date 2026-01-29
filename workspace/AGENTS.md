@@ -2,6 +2,36 @@
 
 This folder is home. Treat it that way.
 
+## 📍 CURRENT STATE (rendered from memory/state.json)
+<!-- 
+  AUTHORITATIVE SOURCE: memory/state.json
+  AUDIT LOG: memory/events.jsonl (append-only)
+  This section is a RENDER - always update state.json first, then re-render here
+-->
+**Last updated:** 2026-01-28 23:06 EST | **Version:** 2
+
+**Current task:** Mission Control + 100% Memory reliability [TASK-20260128-002]
+**Status:** in_progress
+**Context:** Fixed Mission Control server. Francisco getting 403 on mobile - gave him key URL. Council working on 100% memory solution.
+**Next step:** Wait for Francisco to confirm mobile access works. Wait for Council verdict on 100% memory.
+
+**Recent completed:**
+- ✅ [TASK-20260128-001] Memory reliability Tier 2 upgrades — state.json + events.jsonl implemented
+- ✅ [TASK-20260128-000] Valentine's Day DLM prep — Collection created, 7 products tagged, Pinterest approved
+
+**Standing rules:**
+- Memory decisions ALWAYS require Council approval
+- Mission Control must always be running (scheduled task + heartbeat check)
+
+---
+### State Management Protocol
+1. **state.json** = authoritative source of truth (schema-validated)
+2. **events.jsonl** = append-only audit trail (never edit, only append)
+3. **This section** = human-readable render (regenerated from state.json)
+4. **On state change:** Update state.json → Append to events.jsonl → Re-render this section
+
+---
+
 ## First Run
 
 If `BOOTSTRAP.md` exists, that's your birth certificate. Follow it, figure out who you are, then delete it. You won't need it again.
@@ -15,6 +45,16 @@ Before doing anything else:
 4. **Read `memory/active-thread.md`** — what we were JUST talking about (conversation continuity!)
 5. Read `memory/YYYY-MM-DD.md` (today + yesterday) for recent raw context
 6. **If in MAIN SESSION** (direct chat with your human): Also read `MEMORY.md`
+
+## ⚠️ Context Truncation Recovery
+
+**If you see "Summary unavailable" or compacted/truncated context:**
+1. STOP — do not respond to the user yet
+2. IMMEDIATELY read `memory/active-thread.md` — this is your recovery point
+3. Read today's `memory/YYYY-MM-DD.md` for recent context
+4. THEN respond, with full awareness of what you were working on
+
+This is NON-NEGOTIABLE. The active-thread file exists specifically for this scenario. Trust it.
 
 The recall pack is your cheat sheet — it contains P0 constraints, open commitments, waiting-on items, and today's focus. It's regenerated nightly by the consolidation sub-agent.
 

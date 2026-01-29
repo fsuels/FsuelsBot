@@ -1,5 +1,11 @@
 # HEARTBEAT.md
 
+## Infrastructure (check every heartbeat)
+- **Mission Control server** — Is port 8765 listening? If not, restart: `Start-ScheduledTask -TaskName "MissionControlServer"`
+- If you had to restart it, send Francisco the mobile URL via Telegram:
+  **📱 Dashboard:** http://192.168.4.25:8765?key=a6132abf77194fd10a77317a094771f1
+- **URLs:** localhost:8765 (PC) | 192.168.4.25:8765 (mobile on WiFi)
+
 ## Core Loops (check every heartbeat)
 
 ### Pressure Loop Check

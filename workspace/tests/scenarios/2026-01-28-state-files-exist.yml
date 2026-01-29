@@ -1,0 +1,43 @@
+id: TEST-20260128-002
+incident: INC-20260128-002
+name: State Files Exist and Valid
+description: Verify memory state files exist and are valid JSON/content
+
+trigger:
+  type: heartbeat
+
+preconditions:
+  - Workspace is accessible
+  - Memory directory exists
+
+steps:
+  - action: Check state.json exists
+    command: Test-Path memory/state.json
+    expect: True
+
+  - action: Validate state.json is valid JSON
+    command: Get-Content memory/state.json | ConvertFrom-Json
+    expect: No errors, object with 'version' and 'currentTask' keys
+
+  - action: Check events.jsonl exists
+    command: Test-Path memory/events.jsonl
+    expect: True
+
+  - action: Check AGENTS.md has CURRENT STATE section
+    command: Select-String -Path AGENTS.md -Pattern "CURRENT STATE"
+    expect: At least one match
+
+  - action: Check CONSTITUTION.md exists
+    command: Test-Path CONSTITUTION.md
+    expect: True
+
+success_criteria:
+  - All state files exist
+  - state.json is valid JSON
+  - AGENTS.md has state section
+  - CONSTITUTION.md exists
+  
+failure_action:
+  - Alert Francisco immediately
+  - Attempt to reconstruct from events.jsonl
+  - Log critical incident
