@@ -26,17 +26,45 @@ When Francisco says **"fix all SEO"** or similar:
 
 ---
 
+## 🏆 The 80/20 Checklist (Council Consensus)
+
+**7 items that cover ~80% of SEO value:**
+
+1. ✅ GSC verified + sitemap submitted
+2. ✅ No noindex/password blocking key pages  
+3. ✅ Clean titles/H1s/metas on templates (fix once, applies everywhere)
+4. ✅ 150+ words unique copy on top collections
+5. ✅ Image compression + descriptive ALT text
+6. ✅ 404s fixed + redirects working
+7. ✅ Valid Product schema (no critical errors)
+
+**If you only have 30 minutes, focus on these 7.**
+
+---
+
+## 🔒 Golden Rule
+
+> **Never skip verification. If you need speed, reduce batch size — not QA.**
+
+*Source: Council consensus (Grok + ChatGPT + Gemini all agreed)*
+
+---
+
 ## Batch Structure
 
-| Batch | Name | Scope | Typical Time |
-|-------|------|-------|--------------|
-| 0 | Audit | Scan everything, create fix list | 5-10 min |
-| 1 | Critical | Core Web Vitals, crawl errors | 15-30 min |
-| 2 | Technical | Schema, sitemap, robots, redirects | 20-30 min |
-| 3 | On-Page | Titles, descriptions, H1s, URLs | 30-60 min |
-| 4 | Content | Product descriptions, alt text | 45-90 min |
-| 5 | Collections | Collection pages SEO | 20-30 min |
-| 6 | Advanced | Internal links, content gaps, speed | 30-60 min |
+| Batch | Name | Scope | Batch Size | Typical Time |
+|-------|------|-------|------------|--------------|
+| 0 | Audit | Scan everything, create fix list | Full site | 5-10 min |
+| 1 | Critical | Core Web Vitals, crawl errors | All blockers | 15-30 min |
+| 2 | Technical | Schema, sitemap, robots, redirects | All technical | 20-30 min |
+| 3 | Templates | Fix title/meta/H1 at template level | 5-10 templates | 20-30 min |
+| 4 | Products | Individual product optimization | **20-25 products** | 30-60 min |
+| 5 | Collections | Collection pages SEO | **10 collections** | 20-30 min |
+| 6 | Images | Compression + ALT text | **100 images** | 30-45 min |
+| 7 | Content | Blog posts, guides, FAQs | 2-4 pieces | 60-90 min |
+
+**Priority Order:** Technical → Templates → Products → Collections → Images → Content
+*(Fix system-wide issues before individual pages)*
 
 ---
 
