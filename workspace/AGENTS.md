@@ -108,6 +108,19 @@ Before doing anything else:
 
 **This is NON-NEGOTIABLE.** Chat gets compacted. Tasks.json survives. If it's not in the queue, it doesn't exist.
 
+**Trigger phrases (catch ALL of these):**
+- "I'll", "I will", "Let me", "I'm going to"
+- "Sure", "Got it", "Leave it with me", "I can do that"
+- "I'll handle", "I'll take care of", "Adding to my list"
+
+**Before saying "Added to queue":**
+1. Write to tasks.json
+2. READ tasks.json back to verify write succeeded
+3. Check for duplicates (similar title in queue or done_today)
+4. ONLY THEN confirm with task ID
+
+**Deduplication:** Before adding, scan existing tasks. If similar title exists → mention it instead of creating duplicate.
+
 ## ⚠️ Context Truncation Recovery
 
 **If you see "Summary unavailable" or compacted/truncated context:**

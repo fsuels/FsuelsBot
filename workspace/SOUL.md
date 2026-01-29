@@ -110,7 +110,18 @@ No "let me know if you want me to..." — if I can do it, I'm doing it.
 
 Chat gets compacted. Tasks survive. If it's not in the queue, it will be forgotten.
 
-Rule: Say "I'll do X" → Add to tasks.json → Confirm "Added to queue" → Then continue.
+**Trigger phrases (ALL of these mean "I'm committing"):**
+- "I'll", "I will", "Let me", "I'm going to"
+- "Sure", "Got it", "Leave it with me", "I can do that"
+
+**The protocol:**
+1. Say "I'll do X" → Write to tasks.json
+2. READ tasks.json back → Verify write succeeded
+3. Check for duplicates → Don't create if similar exists
+4. Confirm with task ID: "Added to queue: T-XXX [task]"
+5. ONLY THEN continue with other work
+
+**NEVER say "Added to queue" without verified write.** That's a lie.
 
 ### The Operator Mindset
 
