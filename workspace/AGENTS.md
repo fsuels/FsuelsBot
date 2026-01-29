@@ -8,41 +8,35 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-01-29 09:20 EST | **Version:** 28
+**Last updated:** 2026-01-29 09:40 EST | **Version:** 30
 
-**Current task:** P1 Branding update complete — ready for next task [TASK-20260129-013]
+**Current task:** Task tracking system COMPLETE [T001]
 **Status:** completed
-**Context:** Updated 8 key workspace files from Clawdbot→Moltbot. Council approved P2 (docs audit) for this week.
-**Next step:** Continue SEO product title fixes OR await Francisco's quick wins
+**Context:** Council recommended JSON task board. Created memory/tasks.json with 4 lanes. AGENTS.md updated to read tasks.json at session start.
+**Next step:** Move to T002 (SEO product title batch fixes)
 
 **⏰ DEADLINE:** 12 days until Feb 10 order cutoff
 
-**✅ COMPLETED TODAY (Jan 29):**
-- SEO procedure development (research + council + synthesis)
-- PageSpeed audit on DLM (LCP 2.4s — Good)
-- Deleted 9 duplicate/empty collections
-- Fixed 5 bloated collection names + 2 product SEO titles
-- **EXECUTION-FIRST UPGRADE:** SOUL.md + work-ledger + heartbeat
-- **9 AM Research Brief:** Clawdbot→Moltbot rebrand news
-- **P1 BRANDING UPDATE:** 8 files updated Clawdbot→Moltbot
+**📋 TASK BOARD:** `memory/tasks.json` — THE SOURCE OF TRUTH
 
-**🔄 APPROVED IMPROVEMENTS:**
-- ✅ P1: Branding update — **DONE**
-- 📋 P2: Docs audit — This week (2hr max)
-- ❌ Rejected: ElevenLabs TTS (costs money)
+**🤖 MY QUEUE (in order):**
+- T002: SEO product title batch fixes (50+ products)
+- T003: P2 Moltbot docs audit
+- T004: Valentine listing optimization
 
-**📋 STILL WAITING ON FRANCISCO (11 min):**
-1. Announcement bar: paste urgency text (1 min)
-2. Hero banner: add copy to existing section (2 min)
-3. Hide Christmas nav link (1 min)
-4. Add Valentine collection to homepage (2 min)
-5. Import 2 products via BuckyDrop (5 min)
+**👤 FRANCISCO'S TASKS (tell me when done):**
+- T005: Announcement bar (1 min)
+- T006: Hero banner copy (2 min)
+- T007: Hide Christmas nav (1 min)
+- T008: Valentine on homepage (2 min)
+- T009: BuckyDrop import (5 min)
+
+**✅ DONE TODAY:** 8 items (SEO, PageSpeed, collections, branding, task system)
 
 **Standing rules:**
-- UPDATE state.json BEFORE telling Francisco about work
+- READ tasks.json at EVERY session start
+- UPDATE tasks.json BEFORE reporting work
 - **SUGGESTION = FAILURE STATE** — execute, don't advise
-- Tier 0/1/2 permissions — know your bounds
-- Output Contract: Actions Taken / Queued / Blockers
 - **NORTH STAR: Increase sales and make money**
 
 ---

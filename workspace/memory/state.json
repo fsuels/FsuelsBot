@@ -1,49 +1,33 @@
 {
-  "lastUpdated": "2026-01-29T09:25:00-05:00",
-  "version": 29,
+  "lastUpdated": "2026-01-29T09:40:00-05:00",
+  "version": 30,
   "currentTask": {
-    "id": "TASK-20260129-014",
-    "description": "SEO product title batch fixes",
-    "status": "in_progress",
-    "context": "Continuing SEO cleanup. 50+ products still have bloated titles.",
-    "nextStep": "Open Shopify products, fix titles in batches of 10"
+    "id": "T001",
+    "description": "Task tracking system implemented",
+    "status": "completed",
+    "context": "Council recommended JSON task board with lanes. Created memory/tasks.json with bot_current, bot_queue, human, done_today lanes. Updated AGENTS.md to read tasks.json at session start.",
+    "nextStep": "Move to T002 (SEO product title batch fixes)"
   },
   "deadline": {
     "date": "2026-02-10",
     "description": "Valentine's Day order cutoff",
     "daysRemaining": 12
   },
-  "myPendingWork": [
-    "SEO product title batch fixes (50+ products)",
-    "P2 Docs audit (this week, 2hr cap)",
-    "Valentine listing optimization",
-    "Competitor analysis"
-  ],
-  "humanTasks": {
-    "description": "Francisco's list - inform me when done",
-    "items": [
-      {"task": "Announcement bar urgency text", "est": "1 min"},
-      {"task": "Hero banner copy", "est": "2 min"},
-      {"task": "Hide Christmas nav link", "est": "1 min"},
-      {"task": "Add Valentine collection to homepage", "est": "2 min"},
-      {"task": "Import 2 products via BuckyDrop", "est": "5 min"}
-    ],
-    "totalTime": "11 min"
-  },
+  "taskBoard": "memory/tasks.json",
   "completedToday": [
     "SEO procedure development",
-    "PageSpeed audit (LCP 2.4s — Good)",
+    "PageSpeed audit (LCP 2.4s)",
     "Deleted 9 duplicate/empty collections",
     "Fixed 5 collection names + 2 product titles",
-    "Execution-first upgrade (SOUL.md + work-ledger)",
+    "Execution-first upgrade (SOUL.md)",
     "9 AM Research Brief",
-    "P1 Branding update (8 files)"
+    "P1 Branding update (8 files)",
+    "Task tracking system (tasks.json)"
   ],
   "standingRules": [
-    "UPDATE state.json BEFORE reporting work",
+    "READ tasks.json at EVERY session start",
+    "UPDATE tasks.json BEFORE reporting work",
     "SUGGESTION = FAILURE STATE",
-    "Tier 0/1/2 permissions",
-    "Output Contract: Actions Taken / Queued / Blockers",
     "NORTH STAR: Increase sales and make money"
   ]
 }
