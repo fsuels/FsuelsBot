@@ -1,12 +1,12 @@
 {
-  "lastUpdated": "2026-01-29T09:00:00-05:00",
-  "version": 26,
+  "lastUpdated": "2026-01-29T09:03:00-05:00",
+  "version": 27,
   "currentTask": {
-    "id": "TASK-20260129-011",
-    "description": "Execution-first operator upgrade — COMPLETE",
+    "id": "TASK-20260129-012",
+    "description": "9 AM Research Pipeline — COMPLETE",
     "status": "completed",
-    "context": "Council session complete. SOUL.md updated with Suggestion=Failure rule, Tier 0/1/2 permissions, Output Contract. Work-ledger created. Heartbeat upgraded to Obligation Scan.",
-    "nextStep": "Resume Valentine campaign execution"
+    "context": "Research gathered: Clawdbot→Moltbot rebrand is the big news. Top 3 improvements identified. Council reviewing priorities.",
+    "nextStep": "Await Council results, then implement approved items"
   },
   "deadline": {
     "date": "2026-02-10",
@@ -19,7 +19,8 @@
     "Deleted 9 duplicate/empty collections",
     "Fixed 5 bloated collection names",
     "Fixed 2 corrupted product SEO titles",
-    "EXECUTION-FIRST UPGRADE: SOUL.md + work-ledger + heartbeat"
+    "EXECUTION-FIRST UPGRADE: SOUL.md + work-ledger + heartbeat",
+    "9 AM Research Brief: Clawdbot→Moltbot rebrand news"
   ],
   "waitingOnFrancisco": [
     "Announcement bar urgency text (1 min)",
