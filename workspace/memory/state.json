@@ -1,12 +1,12 @@
 {
-  "lastUpdated": "2026-01-29T08:54:00-05:00",
-  "version": 25,
+  "lastUpdated": "2026-01-29T09:00:00-05:00",
+  "version": 26,
   "currentTask": {
     "id": "TASK-20260129-011",
-    "description": "Council session: Improving proactive execution design",
-    "status": "in_progress",
-    "context": "Francisco flagged my core principle: execute work, don't just suggest. Running Council debate with Grok/ChatGPT/Gemini to find architectural improvements.",
-    "nextStep": "Synthesize Council results → implement improvements to SOUL.md/AGENTS.md"
+    "description": "Execution-first operator upgrade — COMPLETE",
+    "status": "completed",
+    "context": "Council session complete. SOUL.md updated with Suggestion=Failure rule, Tier 0/1/2 permissions, Output Contract. Work-ledger created. Heartbeat upgraded to Obligation Scan.",
+    "nextStep": "Resume Valentine campaign execution"
   },
   "deadline": {
     "date": "2026-02-10",
@@ -18,7 +18,8 @@
     "PageSpeed audit on DLM (LCP 2.4s — Good)",
     "Deleted 9 duplicate/empty collections",
     "Fixed 5 bloated collection names",
-    "Fixed 2 corrupted product SEO titles"
+    "Fixed 2 corrupted product SEO titles",
+    "EXECUTION-FIRST UPGRADE: SOUL.md + work-ledger + heartbeat"
   ],
   "waitingOnFrancisco": [
     "Announcement bar urgency text (1 min)",
@@ -29,10 +30,9 @@
   ],
   "standingRules": [
     "UPDATE state.json BEFORE telling Francisco about work",
-    "Mission Control must always be running",
-    "NEVER BE IDLE — always fixing and improving",
-    "Increase understanding — explain WHY, not just WHAT",
-    "NORTH STAR: Increase sales and make money",
-    "MESSAGE → ACTIONS → RESULTS (not suggestions)"
+    "SUGGESTION = FAILURE STATE — execute, don't advise",
+    "Tier 0/1/2 permissions — know your bounds",
+    "Output Contract: Actions Taken / Queued / Blockers",
+    "NORTH STAR: Increase sales and make money"
   ]
 }

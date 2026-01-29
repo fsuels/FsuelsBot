@@ -14,6 +14,13 @@ Run validator: `powershell -ExecutionPolicy Bypass -File "C:\dev\FsuelsBot\works
 
 ## Core Loops (check every heartbeat)
 
+### ⚡ OBLIGATION SCAN (PRIMARY — Not "How can I help?")
+1. **Load work-ledger.jsonl** — What commitments are OPEN?
+2. **Check deadlines** — Anything expiring in <48h? → Execute NOW
+3. **Check blocked items** — Can I unblock any? → Execute or escalate with minimal ask
+4. **Check opportunities** — Sales dip? Competitor move? Seasonal event? → Action, not report
+5. **RULE:** Every heartbeat produces at least ONE action OR a blocker report with alternate paths
+
 ### Pressure Loop Check
 - Any sub-agent tasks completed since last heartbeat? → Run pressure check
 - Any errors logged? → Check for patterns in .learnings/
