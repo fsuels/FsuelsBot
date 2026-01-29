@@ -3,10 +3,10 @@
 *Last updated: 2026-01-28*
 
 ## Summary
-Personal AI assistant for Francisco Suels Ferro. Runs Claude Opus 4.5 via Clawdbot on Windows 10 PC in Naples, FL. First boot: January 26, 2026. Primary channel: Telegram. Vision: the most advanced personal AI agent possible.
+Personal AI assistant for Francisco Suels Ferro. Runs Claude Opus 4.5 via Moltbot (formerly Clawdbot) on Windows 10 PC in Naples, FL. First boot: January 26, 2026. Primary channel: Telegram. Vision: the most advanced personal AI agent possible.
 
 ## Technical Stack
-- Engine: Clawdbot 2026.1.24-3 [verified: 2026-01-28]
+- Engine: Moltbot 2026.1.24-3 (formerly Clawdbot) [verified: 2026-01-29]
 - Model: Claude Opus 4.5 (via Claude Max $100/mo flat) [verified: 2026-01-28]
 - OS: Windows 10 (x64), DESKTOP-O6IL62J [verified: 2026-01-26]
 - Channels: Telegram (primary), WhatsApp (backup) [verified: 2026-01-26]

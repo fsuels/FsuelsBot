@@ -1,14 +1,14 @@
 ---
 name: clawd-docs-v2
-description: Smart ClawdBot documentation access with local search index, cached snippets, and on-demand fetch. Token-efficient and freshness-aware.
-homepage: https://docs.clawd.bot/
+description: Smart Moltbot documentation access with local search index, cached snippets, and on-demand fetch. Token-efficient and freshness-aware.
+homepage: https://docs.molt.bot/
 metadata: {"clawdbot":{"emoji":"📚"}}
 version: 2.2.0
 ---
 
 # Clawd-Docs v2.0 - Smart Documentation Access
 
-This skill provides **intelligent access** to ClawdBot documentation with:
+This skill provides **intelligent access** to Moltbot documentation with:
 - **Local search index** - instant keyword lookup (0 tokens)
 - **Cached snippets** - pre-fetched common answers (~300-500 tokens)
 - **On-demand fetch** - full page when needed (~8-12k tokens)

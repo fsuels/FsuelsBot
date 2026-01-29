@@ -1,45 +1,108 @@
-# Approved Improvements Queue
-*Proactive improvement pipeline — research → evaluate → implement*
-*Updated: 2026-01-28 11:46 AM*
-
-## How This Works
-1. Daily research identifies opportunities
-2. **I research them myself first** — form my own opinion with pros/cons
-3. Only use Council when genuinely unsure or want another angle
-4. Implement confident decisions immediately
-5. Overnight cron implements queued items one at a time
-
-## Ready to Implement
-
-| # | Improvement | Source | Priority | Effort | Notes |
-|---|-------------|--------|----------|--------|-------|
-| 4 | Run `clawdbot security audit --deep` | [2026-01-28 security research] | P1 | 15 min | Doctor suggested this. Deep security scan beyond basic checks. |
-| 5 | Fix gateway service entrypoint mismatch | [2026-01-28 doctor output] | P2 | 10 min | Doctor flagged: service entrypoint doesn't match current install path. |
-| 6 | Review & harden AGENTS.md prompt injection rules | [2026-01-28 security articles] | P2 | 20 min | SOUL.md is hardened, but AGENTS.md also has security rules that should align. |
-
-## In Progress
-
-*None currently*
-
-## Completed
-
-| # | Improvement | Implemented | Source | Notes |
-|---|-------------|-------------|--------|-------|
-| 1 | Enable Edge TTS | 2026-01-28 | [2026-01-28 research] | Free voice via Microsoft Edge neural TTS. Config: `messages.tts.auto: "tagged"`. |
-| 2 | Run doctor check | 2026-01-28 | [2026-01-28 research] | No critical issues. Minor: gateway auth, Codex expired. |
-| 3 | Confirm on latest version | 2026-01-28 | [2026-01-28 research] | Already on 2026.1.24-3 — latest. |
-| 4 | Gateway token auth | 2026-01-28 | [2026-01-28 security articles] | Token auth enabled per doctor recommendation. |
-| 5 | SOUL.md security hardening | 2026-01-28 | [2026-01-28 security articles] | Added hidden injection techniques, Golden Rule, code review rules. |
-| 6 | Skill audit | 2026-01-28 | [2026-01-28 security articles] | All 10 workspace skills clean. No suspicious code. |
-
-## Rejected (My Decision)
-
-| Improvement | Source | Reason | Date |
-|-------------|--------|--------|------|
-| Crabwalk visual monitoring | [2026-01-28 research] | Nice-to-have, not need-to-have. Revisit if debugging challenges arise. | 2026-01-28 |
+# Approved Improvements from Research Review
+**Date:** 2026-01-29  
+**Source:** Council Review of Research Findings  
+**Budget Constraint:** $0 extra costs allowed
 
 ---
 
-## Notes
+## 🧠 THE COUNCIL — Research Improvement Evaluation
 
-**2026-01-28:** First full day of the pipeline. Implemented 6 improvements. Queue replenished from security research. Tonight's 2 AM build will pick from the Ready queue.
+### 📋 QUESTION
+Evaluate 3 proposed improvements from today's research for DLM's AI assistant workspace. Budget is tight — NO extra costs allowed without approval.
+
+### 🤖 PANEL RESPONSES
+
+**🟢 CHATGPT 5.2 says:**
+- Branding update: YES, P1 — cheap, fast, removes confusion
+- ElevenLabs TTS: NO — speculative ROI, violates budget constraint  
+- Docs audit: YES, P2 — potential direct efficiency gains, but time-box it
+
+**🤖 GROK says:**
+- *(Query truncated — received generic AI improvement suggestions instead of evaluating our specific proposals. Discarded from synthesis.)*
+
+**💎 GEMINI says:**
+- *(Rate limited — 429 error: "No capacity available for model gemini-2.5-pro")*
+
+### ✅ CONSENSUS (ChatGPT + Claude analysis)
+1. **Branding update is low-hanging fruit** — 30 min, zero cost, removes friction
+2. **TTS skill violates budget constraint** — requires paid API, no clear business ROI
+3. **Docs audit has potential** — but needs ruthless ROI filtering to avoid rabbit holes
+
+### ⚔️ KEY INSIGHT
+The ElevenLabs TTS skill is a **luxury feature** with no proven revenue connection. Voice/TTS only makes sense if you're auto-generating voiceovers for ads at scale — DLM isn't there yet.
+
+---
+
+## 🏆 FINAL VERDICTS
+
+### 1. Update Branding: Clawdbot → Moltbot
+| Attribute | Value |
+|-----------|-------|
+| **Status** | ✅ APPROVED |
+| **Priority** | **P1 — Do tonight** |
+| **Effort** | 30 min |
+| **Cost** | $0 |
+
+**Reasoning:** Hygiene work that removes real confusion. Clear, consistent naming improves internal velocity. The rebrand already happened — workspace should reflect reality.
+
+**Modification:** Use global search (Ctrl+Shift+F in VS Code) + checklist to ensure no missed references.
+
+[source: 2026-01-29 research, CNET/Forbes rebrand news]
+
+---
+
+### 2. Install ElevenLabs TTS Skill
+| Attribute | Value |
+|-----------|-------|
+| **Status** | ❌ REJECTED |
+| **Priority** | **P3 — Parked indefinitely** |
+| **Effort** | 30 min (but ongoing API costs) |
+| **Cost** | Requires paid API key |
+
+**Reasoning:** Violates the zero-extra-cost constraint. TTS has speculative ROI for dropshipping — the workflow is text-native (product research, copy, supplier comms). No proven uplift from voice features.
+
+**Revisit Condition:** Only if Francisco explicitly approves AND there's a clear revenue-linked use case (e.g., "TTS reduces X hours/week of paid work" or "voiceover ads have proven CTR uplift").
+
+[source: 2026-01-29 research, ClawdHub skill search]
+
+---
+
+### 3. Audit Against New Moltbot Documentation
+| Attribute | Value |
+|-----------|-------|
+| **Status** | ✅ APPROVED (with modification) |
+| **Priority** | **P2 — This week** |
+| **Effort** | 2 hours MAX (time-boxed) |
+| **Cost** | $0 |
+
+**Reasoning:** This is the only item with potential direct efficiency gains — discovering missed automations, better prompting patterns, or new features that reduce manual ops.
+
+**CRITICAL MODIFICATION:** Audit with **checklist mindset**, not exploratory reading:
+- Filter: "Does this reduce time, errors, or cost in current DLM workflows?"
+- Skip anything requiring paid add-ons or major refactors
+- Produce a short list of: "Adopt now" / "Ignore" / "Revisit if scale increases"
+- Hard cap at 2 hours — rabbit hole risk is real
+
+[source: 2026-01-29 research, Moltbot rebrand announcement]
+
+---
+
+## 📊 Summary Table
+
+| Improvement | Decision | Priority | Cost | Action |
+|-------------|----------|----------|------|--------|
+| Branding update | ✅ APPROVED | P1 (tonight) | $0 | Global find/replace |
+| ElevenLabs TTS | ❌ REJECTED | P3 (parked) | Paid API | Do not install |
+| Docs audit | ✅ APPROVED | P2 (this week) | $0 | Time-boxed 2hr session |
+
+---
+
+## 🧾 Council Notes
+- **Session type:** Single-round (Gemini unavailable, Grok received truncated query)
+- **Primary input:** ChatGPT 5.2 (comprehensive analysis)
+- **Final synthesis by:** Claude Opus 4.5 (with full DLM context)
+- **Confidence:** High — ChatGPT's reasoning aligns with Francisco's known budget constraints and business priorities
+
+---
+
+*Generated by The Council system on 2026-01-29*

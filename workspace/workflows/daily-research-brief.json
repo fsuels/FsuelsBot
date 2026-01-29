@@ -5,7 +5,7 @@
   "trigger": "morning brief, daily research, what's new",
   "steps": [
     {"step": 1, "label": "Scan AI/tech news", "done": false},
-    {"step": 2, "label": "Check Clawdbot updates", "done": false},
+    {"step": 2, "label": "Check Moltbot updates", "done": false},
     {"step": 3, "label": "Review DLM competitors", "done": false},
     {"step": 4, "label": "Check trending products", "done": false},
     {"step": 5, "label": "Compile brief for Francisco", "done": false}

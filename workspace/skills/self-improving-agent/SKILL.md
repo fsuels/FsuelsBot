@@ -19,9 +19,9 @@ Log learnings and errors to markdown files for continuous improvement. Coding ag
 | Found better approach | Log to `.learnings/LEARNINGS.md` with category `best_practice` |
 | Similar to existing entry | Link with `**See Also**`, consider priority bump |
 | Broadly applicable learning | Promote to `CLAUDE.md`, `AGENTS.md`, and/or `.github/copilot-instructions.md` |
-| Workflow improvements | Promote to `AGENTS.md` (clawdbot workspace) |
-| Tool gotchas | Promote to `TOOLS.md` (clawdbot workspace) |
-| Behavioral patterns | Promote to `SOUL.md` (clawdbot workspace) |
+| Workflow improvements | Promote to `AGENTS.md` (moltbot workspace) |
+| Tool gotchas | Promote to `TOOLS.md` (moltbot workspace) |
+| Behavioral patterns | Promote to `SOUL.md` (moltbot workspace) |
 
 ## Setup
 

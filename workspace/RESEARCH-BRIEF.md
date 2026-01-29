@@ -5,7 +5,7 @@ Stay on the cutting edge of AI agents, memory systems, skills, and tooling.
 Daily research → actionable insights → improvement opportunities for FsuelsBot.
 
 ## Key Topics to Track
-- **Clawdbot / Moltbot** — updates, new features, community discoveries
+- **Moltbot** — updates, new features, community discoveries (formerly Clawdbot)
 - **Claude / Anthropic** — new models, capabilities, agent frameworks
 - **AI Agents** — autonomous agents, coding agents, personal assistants
 - **Memory Systems** — RAG, long-term memory, context management

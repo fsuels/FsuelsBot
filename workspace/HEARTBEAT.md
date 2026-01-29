@@ -41,7 +41,7 @@ Run validator: `powershell -ExecutionPolicy Bypass -File "C:\dev\FsuelsBot\works
 ## Periodic Checks (rotate through, 2-4x daily)
 
 ### Self-Improvement (weekly)
-- Check for Clawdbot updates: `clawdbot --version` vs `npm view clawdbot version`
+- Check for Moltbot updates: `clawdbot --version` vs `npm view clawdbot version`
 - Check for skill updates: `clawdhub update --all`
 - Review `.learnings/` files for patterns and promote insights
 - Review recent `memory/` files and update MEMORY.md with key takeaways
