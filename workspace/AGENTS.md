@@ -8,12 +8,12 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-01-28 23:22 EST | **Version:** 3
+**Last updated:** 2026-01-28 23:22 EST | **Version:** 4
 
 **Current task:** 100% Memory reliability system [TASK-20260128-002]
 **Status:** in_progress
 **Context:** Building bulletproof memory per Francisco's directive "Never stop". Council-approved architecture.
-**Next step:** Continue building - documentation complete, monitoring next
+**Next step:** Long-term monitoring integration with heartbeat
 
 **Progress:**
 - ✅ State Injection (AGENTS.md CURRENT STATE)
@@ -22,8 +22,9 @@ This folder is home. Treat it that way.
 - ✅ Incident tracking + learnings systems
 - ✅ Regression test framework
 - ✅ State machine workflows
-- ✅ Full documentation
-- 🔄 Long-term monitoring
+- ✅ Full documentation (memory-system.md, context-recovery.md)
+- ✅ Integrity validator (memory-integrity.ps1)
+- 🔄 Long-term monitoring (heartbeat integration)
 
 **Recent completed:**
 - ✅ [TASK-20260128-001] Memory reliability Tier 2 upgrades — state.json + events.jsonl implemented

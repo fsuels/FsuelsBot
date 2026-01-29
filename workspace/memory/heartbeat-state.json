@@ -5,11 +5,13 @@
     "skillUpdates": null,
     "memoryReview": 1769589000,
     "clawdhubNewSkills": null,
-    "memorySystem": 1769589000
+    "memorySystem": 1769589000,
+    "memoryIntegrity": 1738116120
   },
   "notes": {
     "clawdbotVersion": "2026.1.24-3 — up to date",
     "weather": "Naples FL: check at next daytime heartbeat",
-    "memorySystem": "4-layer architecture LIVE as of 2026-01-28 03:30 AM"
+    "memorySystem": "5-layer architecture with integrity validator as of 2026-01-28 23:22 EST",
+    "memoryIntegrity": "All checks passed 2026-01-28 23:22 EST"
   }
 }

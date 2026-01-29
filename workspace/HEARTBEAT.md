@@ -6,6 +6,12 @@
   **📱 Dashboard:** http://192.168.4.25:8765?key=a6132abf77194fd10a77317a094771f1
 - **URLs:** localhost:8765 (PC) | 192.168.4.25:8765 (mobile on WiFi)
 
+## Memory Integrity (check every heartbeat)
+Run validator: `powershell -ExecutionPolicy Bypass -File "C:\dev\FsuelsBot\workspace\tests\validators\memory-integrity.ps1"`
+- If any ERRORS: alert Francisco immediately
+- If warnings only: note them, continue
+- Log results in memory/heartbeat-state.json under "memoryCheck"
+
 ## Core Loops (check every heartbeat)
 
 ### Pressure Loop Check
