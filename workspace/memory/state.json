@@ -1,12 +1,12 @@
 {
-  "lastUpdated": "2026-01-29T11:15:00-05:00",
-  "version": 33,
+  "lastUpdated": "2026-01-29T12:45:00-05:00",
+  "version": 34,
   "currentTask": {
-    "id": "COUNCIL-COMPLETE",
-    "description": "Task context isolation design - Council verdict delivered",
+    "id": "STEP-TRACKING-APPROVAL",
+    "description": "Step-tracking implementation for context truncation fix",
     "status": "awaiting_approval",
-    "context": "Council ran 3 rounds on task context isolation. Verdict: Don't save full conversation context (C-). Instead save ONE-PARAGRAPH SUMMARY per task in tasks.json context block (A-). Simpler than original proposal.",
-    "nextStep": "Implement context block in tasks.json schema if Francisco approves, then continue SEO import"
+    "context": "Council (Grok + ChatGPT) unanimously agreed: step-tracking in tasks.json is the correct 'control-plane' fix for context truncation loops. Add steps[] array with status per step, current_step index, retry_count. Execute ONE step at a time, persist BEFORE responding. Grade: A.",
+    "nextStep": "Francisco approves → implement steps[] schema in tasks.json → update AGENTS.md with behavior rules"
   },
   "deadline": {
     "date": "2026-02-10",
@@ -15,14 +15,16 @@
   },
   "taskBoard": "memory/tasks.json",
   "pendingDecisions": [
-    "Approve task context isolation design (Council A- grade)",
+    "Approve step-tracking implementation (Council A grade) - solves context loop problem",
     "SEO import: 220 title fixes ready, some have truncation issues"
   ],
   "councilResult": {
-    "topic": "Task Context Isolation",
-    "grade": "A-",
-    "recommendation": "Add context block to tasks.json with summary field, not separate context files",
-    "savedTo": "council-sessions/2026-01-29-task-context-isolation.md"
+    "topic": "Step-Tracking Implementation",
+    "grade": "A",
+    "recommendation": "Add steps[] array to tasks.json. Each step: {step, status, completed_at}. current_step index. retry_count. Execute ONE step per turn. Persist BEFORE responding.",
+    "savedTo": "council-sessions/2026-01-29-step-tracking-implementation.md",
+    "participants": ["Grok", "ChatGPT"],
+    "consensus": "Both AIs unanimously agree step-tracking externalizes state outside volatile context, prevents restart loops"
   },
   "completedToday": [
     "SEO procedure development",
@@ -34,7 +36,8 @@
     "Task tracking system v3 with plans",
     "Council: Mission Control upgrade",
     "Council: Chat→Queue protocol hardening",
-    "Council: Task context isolation (A-)"
+    "Council: Task context isolation (A-)",
+    "Council: Step-tracking implementation (A)"
   ],
   "standingRules": [
     "READ tasks.json at EVERY session start",

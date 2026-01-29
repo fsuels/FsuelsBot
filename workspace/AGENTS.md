@@ -8,17 +8,17 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-01-29 11:15 EST | **Version:** 33
+**Last updated:** 2026-01-29 12:45 EST | **Version:** 34
 
-**Current task:** Council on Task Context Isolation COMPLETE
+**Current task:** Step-tracking implementation for context truncation fix
 **Status:** awaiting_approval
-**Context:** Council ran 3 rounds. Verdict: Don't save full conversation context (C-). Use ONE-PARAGRAPH SUMMARY per task in tasks.json context block (A-). Simpler than original proposal.
-**Next step:** Implement context block in tasks.json if Francisco approves, then continue SEO import
+**Context:** Council (Grok + ChatGPT) unanimously agreed: step-tracking in tasks.json is the correct "control-plane" fix for context truncation loops. Add steps[] array with status per step, current_step index, retry_count. Execute ONE step at a time, persist BEFORE responding. Grade: A.
+**Next step:** Francisco approves → implement steps[] schema in tasks.json → update AGENTS.md with behavior rules
 
 **⏰ DEADLINE:** 12 days until Feb 10 order cutoff
 
 **📋 PENDING DECISIONS:**
-- Approve task context isolation design (Council A- grade)
+- Approve step-tracking implementation (Council A grade) - solves context loop problem
 - SEO import: 220 title fixes ready, some have truncation issues
 
 **📋 TASK BOARD:** `memory/tasks.json` — THE SOURCE OF TRUTH
@@ -38,7 +38,7 @@ This folder is home. Treat it that way.
 - T008: Valentine on homepage (2 min)
 - T009: BuckyDrop import (5 min)
 
-**✅ DONE TODAY:** 10 items (SEO, PageSpeed, collections, branding, task system v3, Council x3)
+**✅ DONE TODAY:** 11 items (SEO, PageSpeed, collections, branding, task system v3, Council x4)
 
 **Standing rules:**
 - READ tasks.json at EVERY session start

@@ -1,43 +1,52 @@
 # Active Thread
 
-*Last updated: 2026-01-29 11:17 EST*
+*Last updated: 2026-01-29 12:45 EST*
 
-## Current State: TASK CONTEXT ISOLATION IMPLEMENTED ✅
+## Current State: STEP-TRACKING COUNCIL COMPLETE ✅
 
-**Just completed:** Council-approved task context isolation system
+**Just completed:** Council session on step-tracking implementation (Grade: A)
 
-## What Was Implemented
+## What Was Decided
 
-**The Problem:** Task context got mixed/lost when Telegram session compacted. No way to remember WHY a task was created.
+**The Problem:** When context hits 200K limit and truncates, bot loses track of where it was in multi-step tasks. Restarts from step 1 instead of continuing from step 4. Creates infinite loops.
 
-**The Solution (Council grade: A-):**
-- Added `context` block to tasks.json schema
-- Each task now has `context.summary` — one-paragraph explanation of WHY it exists
-- Also: `decisions[]`, `constraints[]`, `created_from` (ledger link)
-- Bot MUST read context.summary before working on any task
+**The Solution (Council grade: A — unanimous):**
+- Add `steps[]` array to each task in tasks.json
+- Each step has: `{step, status, completed_at}`
+- `current_step` index tracks position
+- `retry_count` prevents infinite loops
+- Execute ONE step at a time
+- Persist BEFORE responding
 
-**Files changed:**
-- `memory/tasks.json` — Version 5, added context to all active tasks
-- `AGENTS.md` — Added context to Task Structure, new rule #2 (read context first)
-- `council-sessions/2026-01-29-task-context-isolation.md` — Full Council report
+**Both Grok and ChatGPT agreed:** This is the correct "control-plane" fix. Externalizes execution state outside volatile LLM context. Makes resumption deterministic (data read, not guess).
 
-**What we did NOT build (per Council):**
-- Separate context files per task (overkill)
-- 4-layer memory hierarchy (enterprise bloat)
-- Vector embeddings (premature optimization)
+**Example schema:**
+```json
+"steps": [
+  {"step": "Generate CSV", "status": "done"},
+  {"step": "Review titles", "status": "done"},
+  {"step": "Francisco approves", "status": "waiting"},
+  {"step": "Import via Shopify", "status": "pending"}
+],
+"current_step": 2,
+"retry_count": 0
+```
 
-## Pending: SEO Import
+## Pending Approvals
 
-**Status:** 220 product title fixes ready in `mission-control/seo-title-import.csv`
-**Issue:** Some titles have "..." truncation
-**Francisco said:** "With precautions" — wants review before import
-
-**Next step:** Francisco decides: import now and fix outliers, or regenerate truncated ones first
+1. **Step-tracking implementation** — Council A grade, ready to implement
+2. **SEO import** — 220 title fixes in CSV, ready to import
 
 ## Quick Recovery
 
 If context truncated:
-1. Task context isolation → IMPLEMENTED ✅
-2. SEO import → Ready, awaiting Francisco review
-3. 5 quick wins → Still pending (T005-T009)
-4. Feb 10 deadline → 12 days
+1. Step-tracking Council → COMPLETE ✅, awaiting approval
+2. Task context isolation → IMPLEMENTED ✅ (prior session)
+3. SEO import → Ready, awaiting Francisco review
+4. 5 quick wins → Still pending Francisco (T005-T009)
+5. Feb 10 deadline → 12 days
+
+## Files Changed This Session
+- `council-sessions/2026-01-29-step-tracking-implementation.md` — Full Council report
+- `memory/state.json` — Updated to version 34
+- `AGENTS.md` — Re-rendered CURRENT STATE section
