@@ -42,6 +42,7 @@ This folder is home. Treat it that way.
 - Dashboard = source of truth for current work
 - **READ PROCEDURE FILES before browser/listing/pricing tasks**
 - **NORTH STAR: Increase sales and make money**
+- **NORTH STAR: Increase sales and make money**
 
 ---
 ### State Management Protocol
