@@ -1,78 +1,164 @@
-# Bulletproof Procedure Memory System
+# E-Commerce Procedures Master Index
 
-## The Problem This Solves
+**Goal: Maximize Sales. Make Money.**
 
-Francisco spent hours teaching procedures that were forgotten within hours:
-- Browser tab management (one tab per domain)
-- Product listing workflow (1688 → BuckyDrop → Shopify)  
-- Pricing calculations (50% profit margin)
-
-Despite being written down, the AI didn't reliably consult them.
-
-## The Solution: 3-Layer Defense
-
-### Layer 1: INJECTION (Can't Miss)
-- Critical procedures are summarized directly in **AGENTS.md**
-- AGENTS.md is read EVERY session, unconditionally
-- Quick reference rules are impossible to miss
-
-### Layer 2: TRIGGER-BASED LOADING  
-- When a task involves trigger keywords → READ the procedure file
-- Procedure files are in `procedures/`
-- `manifest.json` maps triggers → procedure files
-
-### Layer 3: VERIFICATION CHECKPOINTS
-- Each procedure has a "verification gate" statement
-- AI must STATE the verification in its response
-- This forces conscious acknowledgment before acting
-
-## How It Works
-
-1. **Session starts** → AI reads AGENTS.md → Sees procedure checkpoint section
-2. **Task arrives with trigger word** → AI reads relevant procedure file
-3. **AI states verification gate** → Confirms procedure was read
-4. **AI executes task** → Following documented steps
-5. **AI completes exit checklist** → Verifies compliance
-
-## Files in This Directory
-
-| File | Purpose |
-|------|---------|
-| `browser.md` | Browser/tab management rules |
-| `product-listing.md` | Full listing workflow |
-| `pricing.md` | Pricing formula and rules |
-| `manifest.json` | Trigger-to-procedure mapping |
-| `README.md` | This file |
-
-## Adding New Procedures
-
-1. Create `procedures/[name].md` with:
-   - Pre-flight checklist
-   - Verification gate statement
-   - The rules/steps
-   - Exit checklist
-   - Common mistakes to avoid
-
-2. Add entry to `manifest.json` with:
-   - File name
-   - Trigger keywords
-   - Priority level
-   - Blocking flag
-
-3. Add quick reference to AGENTS.md procedure checkpoint table
-
-## Why This Works
-
-| Old Approach | New Approach |
-|--------------|--------------|
-| Procedures in separate files | Critical rules in AGENTS.md (always read) |
-| Hope AI remembers to check | Explicit trigger → read mandate |
-| No verification | Must state verification gate |
-| Silent failures | Exit checklists catch mistakes |
-
-The key insight: **Passive documentation fails. Active enforcement succeeds.**
+Every procedure in this playbook ties directly to revenue.
 
 ---
 
-*Created: 2026-01-29*
-*Purpose: Guarantee procedure compliance across context resets*
+## Quick Reference: Highest-Impact Procedures
+
+### 🔥 Start Here (Biggest Revenue Impact)
+1. `product-listing.md` - Get products listed correctly
+2. `marketing/email-marketing.md` - 25-40% of revenue from email
+3. `conversion/checkout.md` - Stop losing sales at checkout
+4. `retention/email-flows.md` - Automated money while you sleep
+
+### 💰 Daily Revenue Drivers
+5. `marketing/paid-ads.md` - Paid traffic that converts
+6. `conversion/product-pages.md` - Turn visitors into buyers
+7. `conversion/upsells.md` - Increase every order value
+
+---
+
+## Full Procedure Index
+
+### 📦 Core Operations
+| File | Purpose | Impact |
+|------|---------|--------|
+| `product-listing.md` | How to list products | Foundation |
+| `pricing.md` | Pricing strategy | Margin |
+| `vendor-vetting.md` | Choose good suppliers | Quality |
+| `browser.md` | Browser automation rules | Efficiency |
+
+### 📣 Marketing
+| File | Purpose | Impact |
+|------|---------|--------|
+| `marketing/social-media.md` | Social strategy | Awareness |
+| `marketing/email-marketing.md` | Email campaigns | 25-40% revenue |
+| `marketing/paid-ads.md` | Facebook, Google, Pinterest | Paid traffic |
+| `marketing/influencer.md` | Influencer partnerships | UGC + reach |
+| `marketing/pinterest.md` | Pinterest deep dive | Discovery |
+| `marketing/content-marketing.md` | Blog, SEO content | Organic traffic |
+
+### 🎯 Conversion
+| File | Purpose | Impact |
+|------|---------|--------|
+| `conversion/product-pages.md` | High-converting PDPs | Conversion rate |
+| `conversion/checkout.md` | Reduce abandonment | Recover sales |
+| `conversion/trust-signals.md` | Build buyer confidence | Conversion rate |
+| `conversion/upsells.md` | Increase AOV | Revenue per order |
+| `conversion/urgency.md` | Ethical urgency tactics | Faster decisions |
+| `conversion/mobile.md` | Mobile optimization | 60%+ of traffic |
+
+### 🔄 Retention
+| File | Purpose | Impact |
+|------|---------|--------|
+| `retention/email-flows.md` | Automated email sequences | Recurring revenue |
+| `retention/loyalty.md` | Repeat customer program | LTV increase |
+| `retention/reviews.md` | Get and display reviews | Social proof |
+| `retention/customer-service.md` | Support that sells | Retention |
+
+### 📊 Analytics
+| File | Purpose | Impact |
+|------|---------|--------|
+| `analytics/tracking.md` | Setup tracking | Measure what matters |
+| `analytics/reporting.md` | Weekly/monthly metrics | Data-driven decisions |
+| `analytics/ab-testing.md` | Test and improve | Continuous improvement |
+
+### 🔧 Operations
+| File | Purpose | Impact |
+|------|---------|--------|
+| `operations/inventory.md` | Stock management | Never run out |
+| `operations/shipping.md` | Shipping strategy | Customer satisfaction |
+| `operations/returns.md` | Return process | Reduce friction |
+
+### 🛍️ Product
+| File | Purpose | Impact |
+|------|---------|--------|
+| `product/selection.md` | Choose winning products | Right products = sales |
+| `product/trends.md` | Spot trends early | First-mover advantage |
+| `product/competitive-analysis.md` | Know your competition | Find gaps |
+
+### 🔍 SEO (see `seo/README.md`)
+| File | Purpose | Impact |
+|------|---------|--------|
+| `seo/README.md` | SEO master index | Organic traffic |
+
+---
+
+## How to Use This Playbook
+
+### Before Any Task
+1. **Check if procedure exists** for that task type
+2. **Read the procedure** before starting
+3. **Follow the verification gate**
+4. **Complete the steps**
+
+### Weekly Priorities
+- Monday: Check `analytics/reporting.md` metrics
+- Tuesday: Execute `marketing/email-marketing.md` campaign
+- Wednesday: Review `marketing/paid-ads.md` performance
+- Thursday: Add products per `product-listing.md`
+- Friday: Check `retention/reviews.md`, respond to reviews
+
+### Monthly Review
+- Run through `analytics/reporting.md` monthly section
+- Check `product/competitive-analysis.md`
+- Plan ahead using `product/trends.md`
+- Review and update procedures that aren't working
+
+---
+
+## Revenue Impact Legend
+
+| Symbol | Meaning |
+|--------|---------|
+| 🔥 | Highest impact - do first |
+| 💰 | Direct revenue driver |
+| 📈 | Improves over time |
+| ⚡ | Quick win available |
+
+---
+
+## Procedure Template
+
+Every procedure follows this structure:
+
+```markdown
+# [Procedure Name]
+
+## Revenue Impact
+[Why this matters for sales]
+
+## Verification Gate
+- [ ] Checklist before starting
+
+## Step-by-Step Process
+[Numbered steps]
+
+## Tools
+[What to use]
+
+## KPIs
+[What to measure]
+
+## Common Mistakes
+[What to avoid]
+
+## Quick Wins
+[Start here]
+```
+
+---
+
+## Updating Procedures
+
+When a procedure doesn't work or needs improvement:
+1. Note what failed
+2. Research better approach
+3. Update the procedure
+4. Test new approach
+5. Document results
+
+**Procedures are living documents. Improve them constantly.**
