@@ -1,18 +1,46 @@
 # Active Thread
 
-*Last updated: 2026-01-29 02:00 EST*
+*Last updated: 2026-01-29 01:55 EST*
 
-## Current State: Night Shift Complete
+## Current State: EXECUTING
 
-**Status:** Waiting for Francisco's review
+**Status:** Fixing issues one by one. Theme editor slow but working.
 
-Francisco went to sleep around 1:15 AM. He gave a clear mandate:
-- Turn things around
-- Improve EVERYTHING (speed, design, SEO, sales)
-- Be proactive - don't limit to his ideas
-- Constant search for improvement
-- 1 sale yesterday is NOT acceptable
-- **NORTH STAR: Increase sales and make money**
+## 🚨 MASTER FIX LIST (DO NOT FORGET)
+
+### CRITICAL (Blocking Sales)
+| # | Issue | Status | Fix |
+|---|-------|--------|-----|
+| 1 | **Homepage images INVISIBLE** | 🔴 IN PROGRESS | Theme Settings → Animations → disable "Reveal on scroll" |
+| 2 | **No Valentine's hero/urgency** | ⏳ READY | Copy drafted in `knowledge/valentine-copy-drafts.md` |
+| 3 | **Mobile LCP 12.2s** | ⏳ QUEUED | Compress images, remove render-blocking |
+
+### HIGH PRIORITY (Days 1-3)
+| # | Issue | Status | Fix |
+|---|-------|--------|-----|
+| 4 | No trust strip below hero | ⏳ QUEUED | Add shipping/returns/secure icons |
+| 5 | Too many products (dilutes quality) | ⏳ QUEUED | Hide bottom 50% by conversion |
+| 6 | No reviews/social proof | ⏳ QUEUED | Install Judge.me (free) |
+| 7 | Christmas still prominent | ⏳ QUEUED | Move Valentine's to top nav priority |
+
+### MEDIUM PRIORITY (Days 4-7)
+| # | Issue | Status | Fix |
+|---|-------|--------|-----|
+| 8 | Collection SEO text buries products | ⏳ QUEUED | Move text below products |
+| 9 | No product recommendations | ⏳ QUEUED | Enable "You may also like" |
+| 10 | Pricing too low | ⏳ QUEUED | Increase best sellers 10-15% |
+
+### ASSETS READY TO DEPLOY
+- ✅ Valentine copy: `knowledge/valentine-copy-drafts.md`
+- ✅ Valentine products (10): `knowledge/valentine-products-1688.md`
+- ✅ Full backlog: `memory/backlog.md`
+- ✅ Turnaround plan: `knowledge/dlm-turnaround-actions.md`
+
+## Core Mandate (SOUL.md Updated)
+- I don't sleep. I don't stop.
+- Never limit by human speed.
+- NORTH STAR: Increase sales and make money.
+- 1 sale/day is NOT acceptable.
 
 ## Night Shift Results (6 Sub-Agents Completed)
 
