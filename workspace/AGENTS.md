@@ -77,14 +77,23 @@ Before doing anything else:
 - `bot_current` — What I'm working on RIGHT NOW (max 1-2 items)
 - `bot_queue` — What I'll do next (in priority order)
 - `human` — Francisco's tasks (he'll tell me when done)
+- `scheduled` — Automatic cron jobs (visible pipeline)
 - `done_today` — Completed items with ✅
+
+**Task Structure:**
+- `title` — What the task is
+- `plan` — Link to procedure/plan file (REQUIRED for bot tasks)
+- `approach` — Brief summary of how to tackle it
+- `status` — pending / in_progress / done
 
 **Rules:**
 1. **Read tasks.json at EVERY session start** — this is how I remember what to do
-2. **Update tasks.json BEFORE reporting work** — dashboard = truth
-3. **Move tasks between lanes** as status changes
-4. **Francisco can reorder** — array order = priority
-5. **Log every mutation** to events.jsonl for audit trail
+2. **READ THE PLAN before starting any task** — never work without reading the linked procedure
+3. **Update tasks.json BEFORE reporting work** — dashboard = truth
+4. **Move tasks between lanes** as status changes
+5. **Francisco can reorder** — array order = priority (drag or tell me in chat)
+6. **Francisco can review plans** — click the plan link to see approach before I execute
+7. **Log every mutation** to events.jsonl for audit trail
 
 ## ⚠️ Context Truncation Recovery
 

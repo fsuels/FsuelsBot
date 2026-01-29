@@ -1,8 +1,8 @@
 {
-  "version": 2,
-  "updated_at": "2026-01-29T09:45:00-05:00",
+  "version": 3,
+  "updated_at": "2026-01-29T09:48:00-05:00",
   "updated_by": "fsuels-bot",
-  "notes": "Francisco can reorder by moving items in arrays OR telling me in chat. I read this at every session start.",
+  "notes": "Each task has a 'plan' field linking to procedure/plan file. Bot reads plan before executing. Francisco can review plan before approving.",
   "lanes": {
     "bot_current": ["T002"],
     "bot_queue": ["T003", "T004"],
@@ -11,28 +11,30 @@
     "done_today": ["T001", "T010", "T011", "T012", "T013", "T014", "T015", "T016"]
   },
   "tasks": {
-    "T001": {
-      "title": "Task tracking system",
-      "status": "done",
-      "created": "2026-01-29T09:30:00-05:00",
-      "completed": "2026-01-29T09:40:00-05:00"
-    },
     "T002": {
       "title": "SEO product title batch fixes (50+ products)",
       "status": "in_progress",
       "created": "2026-01-29T08:30:00-05:00",
+      "plan": "procedures/seo/README.md",
+      "planSection": "Product Title Optimization",
+      "approach": "1. Open Shopify products list. 2. Sort by title length. 3. Fix titles >60 chars to format: [Product] - Mommy and Me Matching | DLM. 4. Batch of 10 at a time. 5. Verify each fix in Google preview.",
       "notes": "From SEO audit — long titles hurting rankings"
     },
     "T003": {
       "title": "P2 Moltbot docs audit",
       "status": "pending",
       "created": "2026-01-29T09:05:00-05:00",
-      "notes": "Council approved, 2hr max time-boxed"
+      "plan": "mission-control/approved-improvements.md",
+      "planSection": "Audit Against New Moltbot Documentation",
+      "approach": "1. Open docs.molt.bot. 2. Checklist mindset: 'Does this reduce time/errors/cost?' 3. Compare our AGENTS.md, SOUL.md against official recommendations. 4. List: Adopt now / Ignore / Revisit later. 5. Hard 2hr cap.",
+      "notes": "Council approved, time-boxed"
     },
     "T004": {
       "title": "Valentine listing optimization",
       "status": "pending",
       "created": "2026-01-29T03:00:00-05:00",
+      "plan": "procedures/product-listing.md",
+      "approach": "1. Review current Valentine products in Shopify. 2. Check titles, descriptions, images per SEO procedure. 3. Add urgency copy (Order by Feb 10). 4. Verify pricing per pricing procedure.",
       "notes": "Improve existing Valentine product listings"
     },
     "T005": {
@@ -40,82 +42,87 @@
       "status": "pending",
       "owner": "francisco",
       "estimate": "1 min",
-      "notes": "Paste in Shopify"
+      "plan": "memory/2026-01-29-quick-wins.md",
+      "approach": "Copy text from quick-wins file, paste in Shopify Theme > Announcement bar"
     },
     "T006": {
       "title": "Hero banner copy",
       "status": "pending",
       "owner": "francisco",
       "estimate": "2 min",
-      "notes": "Add to Image Banner section"
+      "plan": "knowledge/valentine-copy-drafts.md",
+      "approach": "Open Theme Editor > Image Banner section > Add heading, subtext, button from copy file"
     },
     "T007": {
       "title": "Hide Christmas nav link",
       "status": "pending",
       "owner": "francisco",
-      "estimate": "1 min"
+      "estimate": "1 min",
+      "approach": "Shopify Admin > Online Store > Navigation > Main menu > Remove Christmas link"
     },
     "T008": {
       "title": "Add Valentine collection to homepage",
       "status": "pending",
       "owner": "francisco",
-      "estimate": "2 min"
+      "estimate": "2 min",
+      "approach": "Theme Editor > Add section > Featured Collection > Select Valentine's Day"
     },
     "T009": {
       "title": "Import 2 products via BuckyDrop",
       "status": "pending",
       "owner": "francisco",
-      "estimate": "5 min"
+      "estimate": "5 min",
+      "plan": "memory/2026-01-29-quick-wins.md",
+      "approach": "Open BuckyDrop > Import > Paste 1688 URLs from quick-wins file > Map variants > Save"
     },
-    "T010": {"title": "SEO procedure development", "status": "done"},
-    "T011": {"title": "PageSpeed audit (LCP 2.4s)", "status": "done"},
+    "T001": {"title": "Task tracking system", "status": "done", "completed": "2026-01-29T09:40:00-05:00"},
+    "T010": {"title": "SEO procedure development", "status": "done", "plan": "procedures/seo/README.md"},
+    "T011": {"title": "PageSpeed audit", "status": "done", "plan": "knowledge/mobile-speed-optimization.md"},
     "T012": {"title": "Delete 9 duplicate collections", "status": "done"},
     "T013": {"title": "Fix 5 collection names", "status": "done"},
-    "T014": {"title": "Execution-first upgrade", "status": "done"},
-    "T015": {"title": "9 AM Research Brief", "status": "done"},
-    "T016": {"title": "P1 Branding update", "status": "done"},
+    "T014": {"title": "Execution-first upgrade", "status": "done", "plan": "council-sessions/2026-01-29-proactive-execution-design.md"},
+    "T015": {"title": "9 AM Research Brief", "status": "done", "plan": "memory/research-briefs/2026-01-29.md"},
+    "T016": {"title": "P1 Branding update", "status": "done", "plan": "mission-control/approved-improvements.md"},
     "CRON-research": {
       "title": "Daily AI Research Brief",
       "status": "scheduled",
       "schedule": "9 AM daily",
-      "lastRun": "2026-01-29T09:00:00-05:00",
-      "nextRun": "2026-01-30T09:00:00-05:00",
-      "notes": "Scan news, find improvements, Council review"
+      "plan": "RESEARCH-BRIEF.md",
+      "nextRun": "2026-01-30T09:00:00-05:00"
     },
     "CRON-curiosity": {
       "title": "Curiosity Engine",
       "status": "scheduled",
       "schedule": "9 PM daily",
-      "nextRun": "2026-01-29T21:00:00-05:00",
-      "notes": "Discover anomalies & opportunities, feed backlog"
+      "plan": "knowledge/procedures/nightly-compound-loop.md",
+      "nextRun": "2026-01-29T21:00:00-05:00"
     },
     "CRON-learn": {
       "title": "Compound Loop: LEARN",
       "status": "scheduled",
       "schedule": "10:30 PM daily",
-      "nextRun": "2026-01-29T22:30:00-05:00",
-      "notes": "Extract lessons, update knowledge"
+      "plan": "knowledge/procedures/nightly-compound-loop.md",
+      "nextRun": "2026-01-29T22:30:00-05:00"
     },
     "CRON-ship": {
       "title": "Compound Loop: SHIP",
       "status": "scheduled",
       "schedule": "11 PM daily",
-      "nextRun": "2026-01-29T23:00:00-05:00",
-      "notes": "Pick top task from backlog, execute overnight"
+      "plan": "knowledge/procedures/nightly-compound-loop.md",
+      "nextRun": "2026-01-29T23:00:00-05:00"
     },
     "CRON-backup": {
       "title": "Daily GitHub Backup",
       "status": "scheduled",
       "schedule": "11:45 PM daily",
-      "nextRun": "2026-01-29T23:45:00-05:00",
-      "notes": "Commit and push all changes"
+      "nextRun": "2026-01-29T23:45:00-05:00"
     },
     "CRON-consolidation": {
       "title": "Memory Consolidation",
       "status": "scheduled",
       "schedule": "3 AM daily",
-      "nextRun": "2026-01-30T03:00:00-05:00",
-      "notes": "Extract events, update knowledge, rebuild recall pack"
+      "plan": "knowledge/procedures/memory-consolidation.md",
+      "nextRun": "2026-01-30T03:00:00-05:00"
     }
   }
 }
