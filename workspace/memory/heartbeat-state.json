@@ -1,17 +1,26 @@
 {
+  "lastHeartbeat": "2026-01-29T00:00:00-05:00",
   "lastChecks": {
-    "clawdbotVersion": 1738008900,
-    "weather": 1738008900,
-    "skillUpdates": null,
-    "memoryReview": 1769589000,
-    "clawdhubNewSkills": null,
-    "memorySystem": 1769589000,
-    "memoryIntegrity": 1738116120
+    "missionControl": "2026-01-29T00:00:00-05:00",
+    "memoryIntegrity": "2026-01-29T00:00:00-05:00",
+    "gitBackup": "2026-01-29T00:00:00-05:00"
   },
-  "notes": {
-    "clawdbotVersion": "2026.1.24-3 — up to date",
-    "weather": "Naples FL: check at next daytime heartbeat",
-    "memorySystem": "5-layer architecture with integrity validator as of 2026-01-28 23:22 EST",
-    "memoryIntegrity": "All checks passed 2026-01-28 23:22 EST"
+  "memoryCheck": {
+    "status": "passed",
+    "details": "All critical checks passed",
+    "timestamp": "2026-01-29T00:00:00-05:00"
+  },
+  "subAgents": {
+    "mission-control-backlog": {
+      "status": "in_progress",
+      "task": "Adding backlog column to Mission Control dashboard",
+      "startedAt": "2026-01-28T23:50:00-05:00"
+    }
+  },
+  "activeWork": {
+    "currentTask": "Valentine product listings",
+    "blockedBy": "BuckyDrop login required",
+    "draftsReady": 2,
+    "draftsRemaining": 10
   }
 }

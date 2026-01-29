@@ -61,12 +61,16 @@
 - **Website:** https://aifaceswap.io/#face-swap-playground
 
 ## Browser Best Practices
-⚠️ **CRITICAL RULE - NEVER FORGET:**
+⚠️ **MANDATORY: Read `procedures/browser.md` before ANY browser action!**
+
+Quick rules (full details in procedure file):
 - **ONE TAB PER DOMAIN** — 1 Shopify, 1 BuckyDrop, 1 1688. NEVER 2+ tabs of same site.
+- **ALWAYS `browser tabs` FIRST** — check what's open before ANY action
 - **NAVIGATE within the tab** — don't open new tab, use the existing one
-- **ALWAYS `browser tabs` FIRST** — check what's open before ANY new tab
 - **CLOSE immediately when done** — never leave mess
 - **MAX 3-4 tabs total** — keep it minimal
+
+Site-specific notes:
 - Shopify store handle is `dresslikemommy-com` (NOT `dresslikemommy`)
 - Shopify app iframes (Google & YouTube, etc.) use cross-origin frames — standard refs don't work; use aria refs with `f` prefix or screenshots + keyboard navigation
 - Google Merchant Center branding page: `https://merchants.google.com/mc/branding?a=124884876`

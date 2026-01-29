@@ -1,0 +1,58 @@
+{
+  "version": "1.0",
+  "description": "Maps task triggers to mandatory procedure files",
+  "enforcement": "blocking",
+  "procedures": {
+    "browser": {
+      "file": "browser.md",
+      "triggers": [
+        "browser",
+        "tab",
+        "tabs",
+        "navigate",
+        "open",
+        "shopify",
+        "1688",
+        "buckydrop",
+        "website",
+        "page"
+      ],
+      "priority": "P0",
+      "blocking": true,
+      "description": "Must read before ANY browser action"
+    },
+    "product-listing": {
+      "file": "product-listing.md",
+      "triggers": [
+        "list",
+        "listing",
+        "product",
+        "draft",
+        "shopify product",
+        "create product",
+        "add product",
+        "import product"
+      ],
+      "priority": "P0",
+      "blocking": true,
+      "description": "Must read before any product listing task"
+    },
+    "pricing": {
+      "file": "pricing.md",
+      "triggers": [
+        "price",
+        "pricing",
+        "cost",
+        "margin",
+        "profit",
+        "how much",
+        "set price",
+        "calculate price"
+      ],
+      "priority": "P0",
+      "blocking": true,
+      "description": "Must read before any pricing decision"
+    }
+  },
+  "enforcement_rule": "Before executing any task matching trigger keywords, STOP and read the corresponding procedure file. State verification gate in response. No exceptions."
+}

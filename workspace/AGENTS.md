@@ -8,27 +8,29 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-01-28 23:35 EST | **Version:** 6
+**Last updated:** 2026-01-29 01:05 EST | **Version:** 13
 
-**Current task:** Fix Mission Control real-time sync [TASK-20260128-003]
-**Status:** in_progress
-**Context:** Dashboard must show what I'm ACTUALLY doing, not stale data
-**Next step:** Make dashboard update automatically as I work
+**Current task:** Resume Valentine product draft listings [TASK-20260128-004]
+**Status:** ready
+**Context:** Council session complete. Procedure compliance system implemented. Ready to resume listings.
+**Next step:** Start draft #3 following the product-listing procedure
 
-**Progress:**
-- ✅ Identified problem: dashboard not syncing with actual work
-- 🔄 Fix server to read state.json reliably
-- ⬜ Add auto-update mechanism
-- ⬜ Test real-time updates
+**Valentine Progress:** 2/12 drafts complete
+- ✅ Draft #1: Valentine Heart Mommy and Me Matching Pajamas
+- ✅ Draft #2: Red Heart Family Sweatshirt
+- ⬜ Drafts #3-12 remaining
 
 **Recent completed:**
-- ✅ [TASK-20260128-002] 100% Memory reliability system — 11 components built
-- ✅ [TASK-20260128-000] Valentine's Day DLM prep — Collection created, 7 products tagged, Pinterest approved
+- ✅ [TASK-20260129-002] Council: Procedure compliance system — Hybrid enforcement implemented
+- ✅ [TASK-20260129-001] Backlog column added to Mission Control
+- ✅ [TASK-20260128-003] Fix Mission Control real-time sync
+- ✅ [TASK-20260128-002] 100% Memory reliability system
 
 **Standing rules:**
 - UPDATE state.json BEFORE telling Francisco about work
-- Mission Control must always be running (scheduled task + heartbeat check)
+- Mission Control must always be running
 - Dashboard = source of truth for current work
+- **READ PROCEDURE FILES before browser/listing/pricing tasks**
 
 ---
 ### State Management Protocol
@@ -73,6 +75,29 @@ This is NON-NEGOTIABLE. The active-thread file exists specifically for this scen
 The recall pack is your cheat sheet — it contains P0 constraints, open commitments, waiting-on items, and today's focus. It's regenerated nightly by the consolidation sub-agent.
 
 Don't ask permission. Just do it.
+
+## 🚨 PROCEDURE CHECKPOINT (MANDATORY)
+
+**Before starting ANY task in these domains, STOP and read the procedure file:**
+
+| If task involves... | READ FIRST | Trigger words |
+|---------------------|------------|---------------|
+| 🌐 Browser/websites | `procedures/browser.md` | browser, tab, navigate, shopify, 1688, buckydrop |
+| 📦 Product listings | `procedures/product-listing.md` | list, listing, draft, product, import |
+| 💰 Pricing | `procedures/pricing.md` | price, cost, margin, profit |
+
+**Enforcement:**
+1. See trigger word in task → STOP
+2. Read the procedure file completely
+3. State the verification gate in your response
+4. THEN proceed with the task
+
+**If you catch yourself acting without reading the procedure → STOP IMMEDIATELY and read it.**
+
+Quick reference (memorize these):
+- **Browser:** ONE TAB PER DOMAIN. Always `browser tabs` first. Navigate existing tabs.
+- **Listings:** 1688 → BuckyDrop → Shopify. Never skip steps.
+- **Pricing:** Cost × 2 = Minimum Price. 50% margin minimum.
 
 ## Memory System (4 Layers)
 
