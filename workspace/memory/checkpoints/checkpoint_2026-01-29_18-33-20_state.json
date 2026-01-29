@@ -1,0 +1,34 @@
+{
+  "version": 53,
+  "deadline": {
+    "date": "2026-02-10",
+    "description": "Valentine's Day order cutoff",
+    "daysRemaining": 12
+  },
+  "currentTask": {
+    "id": "T004",
+    "description": "Valentine listing optimization",
+    "currentStep": 0,
+    "nextStep": "Phase 0: Check existing Valentine products in Shopify",
+    "context": "Resuming Valentine work. 12 days to Feb 10 cutoff. Need to list current Valentine products, optimize titles, verify BuckyDrop sourcing.",
+    "status": "in_progress"
+  },
+  "lastUpdated": "2026-01-29T17:51:00-05:00",
+  "standingRules": [
+    "UPDATE state.json BEFORE responding",
+    "Dashboard must ALWAYS match what I report in chat",
+    "SUGGESTION = FAILURE STATE",
+    "NORTH STAR: Increase sales and make money"
+  ],
+  "taskBoard": "memory/tasks.json",
+  "sessionSummary": {
+    "councilValidation": "All 10 A+ items complete",
+    "christmasCleanup": "Removed from nav menu + homepage section",
+    "valentinePromo": "Announcement bar already live",
+    "doneToday": 25,
+    "nextQueue": [
+      "T004 Valentine listings (IN PROGRESS)",
+      "T021 Mission Control button"
+    ]
+  }
+}

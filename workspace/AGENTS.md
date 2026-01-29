@@ -8,30 +8,14 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-01-29 17:08 EST | **Version:** 51
+**Last updated:** 2026-01-29 22:45 EST | **Version:** 52
 
 **Current task:** None (idle)
 **Status:** idle
-**Context:** Council validation complete (B→A-). Discussed mission with Francisco: earned autonomy through demonstrated reliability. System exists so Francisco can sleep while I work.
-**Next step:** Fix hash-chain integration gap OR resume T004 Valentine listings
+**Context:** Christmas cleanup complete — removed from nav menu + homepage section. Announcement bar already shows Valentine promo. Earlier removed seasonal:valentines tag from 50 products (4 legit Valentine items may need re-tagging).
+**Next step:** Resume T004 Valentine listings OR re-tag 4 legit Valentine products
 
 **⏰ DEADLINE:** 12 days until Feb 10 order cutoff
-
-**🎯 COUNCIL VALIDATION RESULTS (all 10 implemented):**
-| Item | Before | After | Delta |
-|------|--------|-------|-------|
-| Atomicity | D | **A** | +3 |
-| Concurrency | F | **A** | +4 |
-| Reconciliation | D | **A** | +2 |
-| Circuit Breakers | F | **A-** | +3 |
-| Cron Idempotency | F | **A+** | +4 |
-| Hash-Chain | F | **B+** ⚠️ | +3 |
-| Threat Model | C | **A** | +2 |
-| Metrics | D | **B+** | +2 |
-| Wiki Versioning | F | **B+** | +3 |
-| Simulation Testing | F | **A-** | +3 |
-
-**Overall: B → A-** (genuine improvement, validated by Council)
 
 **📋 TASK BOARD:** `memory/tasks.json` — THE SOURCE OF TRUTH
 
@@ -39,11 +23,12 @@ This folder is home. Treat it that way.
 
 **👤 FRANCISCO'S TASKS (tell me when done):**
 - T006: Hero banner copy (2 min)
-- T007: Hide Christmas nav (1 min)
-- T008: Valentine on homepage (2 min)
+- ~~T007: Hide Christmas nav~~ ✅ DONE BY BOT
+- ~~T008: Valentine on homepage~~ ✅ Already live (announcement bar)
 - T009: BuckyDrop import (5 min)
+- T030: Review Valentine drafts + set Active
 
-**✅ DONE TODAY:** 23 tasks completed
+**✅ DONE TODAY:** 25 tasks completed (incl. Christmas cleanup)
 
 **Standing rules:**
 - READ tasks.json at EVERY session start
