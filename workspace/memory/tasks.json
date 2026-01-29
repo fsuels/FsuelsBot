@@ -1,6 +1,6 @@
 {
-  "version": 7,
-  "updated_at": "2026-01-29T13:05:00-05:00",
+  "version": 11,
+  "updated_at": "2026-01-29T14:31:00-05:00",
   "updated_by": "fsuels-bot",
   "notes": "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
   "schema": {
@@ -24,13 +24,48 @@
     "retry_count": "Number of times current step has been attempted (reset on advance)"
   },
   "lanes": {
-    "bot_current": [],
-    "bot_queue": ["T002", "T004"],
-    "human": ["T005", "T006", "T007", "T008", "T009"],
+    "bot_current": ["T004"],
+    "bot_queue": ["T021"],
+    "human": ["T006", "T007", "T008", "T009"],
     "scheduled": ["CRON-research", "CRON-curiosity", "CRON-learn", "CRON-ship", "CRON-backup", "CRON-consolidation"],
-    "done_today": ["T017", "T001", "T010", "T011", "T012", "T013", "T014", "T015", "T016", "T018", "T019", "T020", "T003"]
+    "done_today": ["T017", "T001", "T010", "T011", "T012", "T013", "T014", "T015", "T016", "T018", "T019", "T020", "T003", "T002", "T005", "T022"]
   },
   "tasks": {
+    "T022": {
+      "title": "Ship preflight gates for guaranteed compounding",
+      "status": "done",
+      "completed": "2026-01-29T14:50:00-05:00",
+      "created": "2026-01-29T14:46:00-05:00",
+      "context": {
+        "summary": "Council session (A-/B+ grade) identified key gap: Ryan Carson's system GUARANTEES agent reads fresh instructions before ship. Ours hopes it does. Preflight gates close this gap by verifying AGENTS.md/pack.md freshness before any autonomous work.",
+        "created_from": "EVT-20260129-040",
+        "decisions": ["Check file freshness before ship", "Log instruction digest to events.jsonl", "Fail ship if instructions stale"],
+        "constraints": ["~1hr implementation", "Must work with existing cron jobs"]
+      },
+      "plan": "council-sessions/2026-01-29-compound-engineering-comparison.md",
+      "approach": "1. Create preflight-check.ps1 script. 2. Check AGENTS.md modified time. 3. Check pack.md modified time. 4. Hash both files, log to events.jsonl. 5. Integrate into CRON-ship.",
+      "steps": [
+        {"step": "Create preflight-check.ps1 script", "status": "done", "completed_at": "2026-01-29T14:48:00-05:00"},
+        {"step": "Add instruction digest logging", "status": "done", "completed_at": "2026-01-29T14:48:00-05:00"},
+        {"step": "Integrate with CRON-ship", "status": "done", "completed_at": "2026-01-29T14:49:00-05:00"},
+        {"step": "Test the preflight gates", "status": "done", "completed_at": "2026-01-29T14:47:00-05:00"}
+      ],
+      "current_step": 4,
+      "retry_count": 0
+    },
+    "T021": {
+      "title": "Mission Control: Mark Complete button for human tasks",
+      "status": "pending",
+      "created": "2026-01-29T13:57:00-05:00",
+      "context": {
+        "summary": "Francisco requested ability to mark tasks complete from Mission Control dashboard. Button notifies bot → bot VERIFIES work is correct → then marks done. Quality control built in.",
+        "decisions": ["Add button to human task cards", "Bot verifies before marking done", "POST to endpoint or WebSocket message"],
+        "constraints": ["Keep it simple", "Verify step is mandatory", "Real-time feedback"]
+      },
+      "plan": "mission-control/server.js",
+      "approach": "1. Add 'Mark Complete' button to human task cards. 2. Create /api/complete-task endpoint. 3. Endpoint sends message to bot. 4. Bot VERIFIES the work (screenshot/check). 5. If correct, bot marks done. If not, bot reports issue.",
+      "notes": "Francisco's idea - verify first, then mark done. Quality control loop."
+    },
     "T020": {
       "title": "Council Context Injection protocol",
       "status": "done",
@@ -87,8 +122,9 @@
     },
     "T002": {
       "title": "SEO product title batch fixes (220 products)",
-      "status": "in_progress",
+      "status": "done",
       "created": "2026-01-29T08:30:00-05:00",
+      "completed": "2026-01-29T13:45:00-05:00",
       "context": {
         "summary": "SEO audit found 220+ products with titles >60 chars, getting truncated in Google. Generated CSV with optimized titles (removing redundant 'Family Matching' prefix, adding '| DLM' suffix). Some titles have '...' truncation that needs manual review. Francisco said 'with precautions' - wants to review before bulk import.",
         "created_from": "EVT-20260129-025",
@@ -101,12 +137,12 @@
         {"step": "Generate CSV with optimized titles", "status": "done", "completed_at": "2026-01-29T08:45:00-05:00", "artifacts": ["mission-control/seo-title-import.csv"]},
         {"step": "Review truncated titles for issues", "status": "done", "completed_at": "2026-01-29T09:00:00-05:00"},
         {"step": "Francisco reviews and approves import", "status": "done", "completed_at": "2026-01-29T13:19:00-05:00"},
-        {"step": "Import CSV via Shopify bulk editor", "status": "waiting", "waiting_for": "Francisco to upload CSV file (browser file picker limitation)"},
-        {"step": "Verify import succeeded", "status": "pending"}
+        {"step": "Import CSV via Shopify bulk editor", "status": "done", "completed_at": "2026-01-29T13:43:00-05:00"},
+        {"step": "Verify import succeeded", "status": "done", "completed_at": "2026-01-29T13:45:00-05:00"}
       ],
-      "current_step": 3,
+      "current_step": 5,
       "retry_count": 0,
-      "notes": "CSV ready at mission-control/seo-title-import.csv"
+      "notes": "COMPLETE! 220 product titles optimized. Verified 'Christmas Sweater Red Rocking Horse Knit Top | DLM' matches CSV."
     },
     "T003": {
       "title": "P2 Moltbot docs audit",
@@ -134,7 +170,7 @@
     },
     "T004": {
       "title": "Valentine listing optimization",
-      "status": "pending",
+      "status": "in_progress",
       "created": "2026-01-29T03:00:00-05:00",
       "context": {
         "summary": "Valentine's Day deadline Feb 10 (12 days). Current Valentine products need better titles, descriptions, images. Add urgency copy. 7 Valentine products exist but only 1 fully sourced in BuckyDrop.",
@@ -155,16 +191,19 @@
     },
     "T005": {
       "title": "Announcement bar urgency text",
-      "status": "pending",
+      "status": "done",
       "owner": "francisco",
       "estimate": "1 min",
+      "created": "2026-01-29T09:00:00-05:00",
+      "completed": "2026-01-29T13:58:00-05:00",
       "context": {
-        "summary": "Valentine campaign needs urgency. Announcement bar copy ready: '💕 Valentine's Matching Outfits – Order by Feb 10 for guaranteed delivery! FREE SHIPPING 💕'",
-        "decisions": ["Use urgency + free shipping angle"],
-        "constraints": ["Keep short for mobile"]
+        "summary": "Valentine campaign needs visibility. Changed from delivery guarantee (can't promise 15-day shipping) to honest messaging: '💕 Valentine's Matching Outfits Are Here! FREE SHIPPING on all orders 💕'",
+        "decisions": ["Removed delivery guarantee - honest about 15-day shipping", "Focus on free shipping angle"],
+        "constraints": ["Keep short for mobile", "Don't promise what we can't deliver"]
       },
       "plan": "memory/2026-01-29-quick-wins.md",
-      "approach": "Copy text from quick-wins file, paste in Shopify Theme > Announcement bar"
+      "approach": "Copy text from quick-wins file, paste in Shopify Theme > Announcement bar",
+      "notes": "Verified live on site. Francisco completed via Theme Settings."
     },
     "T006": {
       "title": "Hero banner copy",

@@ -30,6 +30,7 @@
 **Model:** Sonnet (Opus fallback for complex tasks)
 **Duration:** ~30 min
 **Steps:**
+0. **PREFLIGHT GATE (MANDATORY):** Run `scripts/preflight-check.ps1` — verifies AGENTS.md and pack.md are fresh. If preflight fails, HALT and alert. This ensures agent reads fresh instructions before any autonomous work. (Added 2026-01-29 per Council A-/B+ recommendation)
 1. Read `backlog.md` — all pending tasks
 2. Score each using TPS formula
 3. Pick highest TPS task that passes ALL safety gates (see execution-boundaries.md)

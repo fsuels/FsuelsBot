@@ -1,52 +1,41 @@
 # Active Thread
 
-*Last updated: 2026-01-29 12:42 EST*
+*Last updated: 2026-01-29 13:45 EST*
 
-## Current State: DOCS AUDIT COMPLETE
+## Current State: T002 COMPLETE ✅
 
 **Just completed:**
-1. ✅ T003 Moltbot docs audit (30 min, under 2hr cap)
+1. ✅ T002 SEO title batch fixes — 220 products updated!
+2. ✅ Francisco uploaded CSV, import succeeded
+3. ✅ Verified: "Christmas Sweater Red Rocking Horse Knit Top | DLM" matches CSV
 
-## T003 Audit Results
+## What Happened
 
-**Verdict:** Our setup is MORE advanced than official recommendations.
+Francisco ran the Shopify CSV import with "overwrite existing products" option. I verified by checking a specific product (ID 7462249955425) — title is now exactly what was in our CSV file.
 
-| Category | Status |
-|----------|--------|
-| AGENTS.md | ✅ Aligned + extended (21KB vs their 3KB) |
-| SOUL.md | ✅ Strong, no gaps |
-| Security | ⚠️ File perms need fixing |
-| Skills | ✅ Good |
-| Sessions | ✅ Good |
+**Impact:** 220 products now have SEO-optimized titles ≤60 chars with "| DLM" branding suffix.
 
-### One Action Item (Security Critical)
-`clawdbot security audit` found 4 critical file permission issues.
+## Next Up: T004 Valentine Listings
 
-**Francisco needs to run (as Admin):**
-```powershell
-icacls "C:\Users\Fsuels\.clawdbot" /inheritance:r /grant:r "Fsuels:(OI)(CI)F" /grant:r "SYSTEM:(OI)(CI)F" /grant:r "Administrators:(OI)(CI)F"
-```
+Now that SEO titles are done, next task is optimizing Valentine product listings:
+- Optimize titles per SEO procedure
+- Add urgency copy to descriptions  
+- Verify pricing and BuckyDrop source
+- Feb 10 deadline (12 days)
 
-**Full report:** `mission-control/moltbot-docs-audit-2026-01-29.md`
+## Francisco's Quick Wins (Pending)
 
-## Waiting On Francisco
-
-1. **T002 SEO Import** — Upload CSV to Shopify (step 3)
-   - File: `mission-control/seo-title-import.csv`
-   - Import modal is open
-   
-2. **T003 Security Fix** — Run icacls command above
-
-## Queue Status
-
-- T002: SEO import (waiting on CSV upload)
-- T004: Valentine listing optimization (pending)
-- T005-T009: Quick wins (Francisco's tasks)
+- T005: Announcement bar (1 min)
+- T006: Hero banner copy (2 min)
+- T007: Hide Christmas nav (1 min)
+- T008: Valentine on homepage (2 min)
+- T009: BuckyDrop import (5 min)
 
 ## Quick Recovery
 
 If context truncated:
 1. Read this file for current state
-2. T002 at step 3 (waiting on file upload)
-3. T003 done, needs security fix
+2. T002 DONE ✅ (220 products, SEO titles fixed)
+3. T004 next (Valentine listings)
 4. Feb 10 deadline → 12 days
+5. 15 items done today

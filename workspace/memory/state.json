@@ -1,14 +1,14 @@
 {
-  "lastUpdated": "2026-01-29T13:05:00-05:00",
-  "version": 36,
+  "lastUpdated": "2026-01-29T14:45:00-05:00",
+  "version": 42,
   "currentTask": {
-    "id": "T002",
-    "description": "SEO product title batch fixes (220 products)",
+    "id": "T004",
+    "description": "Valentine listing optimization",
     "status": "in_progress",
-    "currentStep": 2,
-    "stepDescription": "Francisco reviews and approves import",
-    "context": "Step-tracking and Council Context Injection both implemented. Now back to SEO import — at step 2 of 5, waiting for Francisco's approval.",
-    "nextStep": "Francisco approves → execute step 3 (Import CSV via Shopify)"
+    "owner": "bot",
+    "currentStep": "Resuming after T022 preflight gates implemented",
+    "context": "T022 DONE: Preflight gates implemented. Ship process now verifies AGENTS.md/pack.md freshness before autonomous work. Council gap closed.",
+    "nextStep": "Continue T004: Activate 4 Valentine draft products with optimized content"
   },
   "deadline": {
     "date": "2026-02-10",
@@ -16,42 +16,30 @@
     "daysRemaining": 12
   },
   "taskBoard": "memory/tasks.json",
-  "pendingDecisions": [
-    "SEO import: 220 title fixes ready in CSV — approve to import?"
+  "pendingDecisions": ["Implement preflight gates now vs continue T004"],
+  "blockedOn": "Francisco's choice",
+  "recentActions": [
+    "Council session completed (compound engineering comparison)",
+    "Grade: A-/B+ - need preflight gates for A+",
+    "Fixed AGENTS.md size (15.7K chars)",
+    "Mission Control running on 8765"
   ],
-  "recentImplementations": [
-    {
-      "task": "T020 - Council Context Injection",
-      "completed": "2026-01-29T13:05:00",
-      "summary": "Council sessions now require sharing our current system BEFORE asking for improvements"
-    },
-    {
-      "task": "T019 - Step-tracking",
-      "completed": "2026-01-29T12:50:00",
-      "summary": "tasks.json v6 with steps[] array, current_step, retry_count"
-    }
-  ],
+  "councilFindings": {
+    "grade": "A-/B+",
+    "keyGap": "Guaranteed compounding - verify fresh instructions before ship",
+    "adopt": ["Ship preflight gates", "Instruction digest logging", "Overnight eligibility filter"],
+    "ourAdvantages": ["events.jsonl ledger", "Step-tracking", "Council", "Mission Control"]
+  },
   "completedToday": [
-    "SEO procedure development",
-    "PageSpeed audit",
-    "Deleted 9 collections + fixed 5 names",
-    "Execution-first upgrade (SOUL.md)",
-    "9 AM Research Brief (Moltbot rebrand)",
-    "P1 Branding update (8 files)",
-    "Task tracking system v3 with plans",
-    "Council: Mission Control upgrade",
-    "Council: Chat→Queue protocol hardening",
-    "Council: Task context isolation (A-)",
-    "Council: Step-tracking implementation (A)",
-    "Step-tracking schema implemented",
-    "Council Context Injection protocol"
+    "T002: SEO product title batch fixes (220 products)",
+    "T005: Announcement bar",
+    "T003: Moltbot docs audit",
+    "Council: Compound engineering comparison (A-/B+)",
+    "Plus 12 more items"
   ],
   "standingRules": [
-    "READ tasks.json at EVERY session start",
-    "CHECK current_step on session start — resume from there",
-    "EXECUTE ONE STEP per turn",
-    "UPDATE tasks.json BEFORE responding",
-    "COUNCIL: Always inject context about current system",
+    "UPDATE state.json BEFORE responding",
+    "Dashboard must ALWAYS match what I report in chat",
     "SUGGESTION = FAILURE STATE",
     "NORTH STAR: Increase sales and make money"
   ]
