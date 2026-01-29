@@ -1,16 +1,39 @@
 {
-  "version": 4,
-  "updated_at": "2026-01-29T09:55:00-05:00",
+  "version": 5,
+  "updated_at": "2026-01-29T11:16:00-05:00",
   "updated_by": "fsuels-bot",
-  "notes": "Each task has a 'plan' field linking to procedure/plan file. Bot reads plan before executing. Francisco can review plan before approving.",
+  "notes": "Each task has 'plan' + 'context' fields. Context contains summary of WHY task was created. Bot reads context.summary before working on any task.",
+  "schema": {
+    "context": {
+      "summary": "One-paragraph summary of why this task exists and key decisions",
+      "created_from": "EVT-YYYYMMDD-NNN (optional link to originating event)",
+      "decisions": "Array of key decisions made during task creation",
+      "constraints": "Array of constraints or requirements"
+    }
+  },
   "lanes": {
     "bot_current": ["T002"],
     "bot_queue": ["T003", "T004"],
     "human": ["T005", "T006", "T007", "T008", "T009"],
     "scheduled": ["CRON-research", "CRON-curiosity", "CRON-learn", "CRON-ship", "CRON-backup", "CRON-consolidation"],
-    "done_today": ["T017", "T001", "T010", "T011", "T012", "T013", "T014", "T015", "T016"]
+    "done_today": ["T017", "T001", "T010", "T011", "T012", "T013", "T014", "T015", "T016", "T018"]
   },
   "tasks": {
+    "T018": {
+      "title": "Task context isolation implementation",
+      "status": "done",
+      "created": "2026-01-29T11:15:00-05:00",
+      "completed": "2026-01-29T11:16:00-05:00",
+      "context": {
+        "summary": "Francisco wanted each task to have its own conversation history so context doesn't mix between tasks. Council debated 3 rounds: full context files (C-) vs one-paragraph summaries (A-). Verdict: Add context.summary field to tasks.json, read before working. Simpler than separate files.",
+        "created_from": "EVT-20260129-030",
+        "decisions": ["Use summary not full context", "Store in tasks.json not separate files", "Link to ledger events for full history"],
+        "constraints": ["Must be simple", "No complex memory hierarchies", "No vector embeddings"]
+      },
+      "plan": "council-sessions/2026-01-29-task-context-isolation.md",
+      "approach": "1. Add context schema to tasks.json. 2. Update AGENTS.md protocol. 3. Backfill context for active tasks.",
+      "notes": "Council grade: A-"
+    },
     "T017": {
       "title": "Mission Control dashboard upgrade - split lanes view",
       "status": "done",
@@ -21,29 +44,47 @@
       "notes": "Francisco prioritized this over SEO fixes"
     },
     "T002": {
-      "title": "SEO product title batch fixes (50+ products)",
+      "title": "SEO product title batch fixes (220 products)",
       "status": "in_progress",
       "created": "2026-01-29T08:30:00-05:00",
+      "context": {
+        "summary": "SEO audit found 220+ products with titles >60 chars, getting truncated in Google. Generated CSV with optimized titles (removing redundant 'Family Matching' prefix, adding '| DLM' suffix). Some titles have '...' truncation that needs manual review. Francisco said 'with precautions' - wants to review before bulk import.",
+        "created_from": "EVT-20260129-025",
+        "decisions": ["Batch fix via CSV import", "Review truncated titles separately", "Format: [Product] | DLM"],
+        "constraints": ["Max 60 chars", "Keep product descriptive", "Francisco reviews before import"]
+      },
       "plan": "procedures/seo/README.md",
       "planSection": "Product Title Optimization",
-      "approach": "1. Open Shopify products list. 2. Sort by title length. 3. Fix titles >60 chars to format: [Product] - Mommy and Me Matching | DLM. 4. Batch of 10 at a time. 5. Verify each fix in Google preview.",
-      "notes": "From SEO audit — long titles hurting rankings"
+      "approach": "1. Generated seo-title-import.csv (220 products). 2. Francisco reviews. 3. Import via Shopify. 4. Fix truncated titles manually.",
+      "notes": "CSV ready at mission-control/seo-title-import.csv"
     },
     "T003": {
       "title": "P2 Moltbot docs audit",
       "status": "pending",
       "created": "2026-01-29T09:05:00-05:00",
+      "context": {
+        "summary": "Clawdbot rebranded to Moltbot. Council approved auditing new docs to find improvements for our setup. Time-boxed to 2 hours. Focus: Does this reduce time/errors/cost? Compare AGENTS.md and SOUL.md against official recommendations.",
+        "created_from": "EVT-20260129-026",
+        "decisions": ["2hr time cap", "Checklist approach", "Categorize: Adopt now / Ignore / Revisit"],
+        "constraints": ["Don't gold-plate", "Focus on practical improvements"]
+      },
       "plan": "mission-control/approved-improvements.md",
       "planSection": "Audit Against New Moltbot Documentation",
-      "approach": "1. Open docs.molt.bot. 2. Checklist mindset: 'Does this reduce time/errors/cost?' 3. Compare our AGENTS.md, SOUL.md against official recommendations. 4. List: Adopt now / Ignore / Revisit later. 5. Hard 2hr cap.",
+      "approach": "1. Open docs.molt.bot. 2. Checklist mindset. 3. Compare our setup. 4. List recommendations.",
       "notes": "Council approved, time-boxed"
     },
     "T004": {
       "title": "Valentine listing optimization",
       "status": "pending",
       "created": "2026-01-29T03:00:00-05:00",
+      "context": {
+        "summary": "Valentine's Day deadline Feb 10 (12 days). Current Valentine products need better titles, descriptions, images. Add urgency copy. 7 Valentine products exist but only 1 fully sourced in BuckyDrop.",
+        "created_from": "EVT-20260129-019",
+        "decisions": ["Focus on existing products first", "Add urgency messaging", "Follow SEO procedure"],
+        "constraints": ["Feb 10 deadline", "Must have BuckyDrop source to fulfill"]
+      },
       "plan": "procedures/product-listing.md",
-      "approach": "1. Review current Valentine products in Shopify. 2. Check titles, descriptions, images per SEO procedure. 3. Add urgency copy (Order by Feb 10). 4. Verify pricing per pricing procedure.",
+      "approach": "1. Review current Valentine products. 2. Optimize per SEO procedure. 3. Add urgency copy. 4. Verify pricing.",
       "notes": "Improve existing Valentine product listings"
     },
     "T005": {
@@ -51,6 +92,11 @@
       "status": "pending",
       "owner": "francisco",
       "estimate": "1 min",
+      "context": {
+        "summary": "Valentine campaign needs urgency. Announcement bar copy ready: '💕 Valentine's Matching Outfits – Order by Feb 10 for guaranteed delivery! FREE SHIPPING 💕'",
+        "decisions": ["Use urgency + free shipping angle"],
+        "constraints": ["Keep short for mobile"]
+      },
       "plan": "memory/2026-01-29-quick-wins.md",
       "approach": "Copy text from quick-wins file, paste in Shopify Theme > Announcement bar"
     },
@@ -59,6 +105,11 @@
       "status": "pending",
       "owner": "francisco",
       "estimate": "2 min",
+      "context": {
+        "summary": "Homepage needs Valentine hero banner. Copy ready: Heading '💕 Valentine's Twinning – Order by Feb 10!', Subtext 'Match her love, match her look. Free shipping on all orders.', Button 'Shop Valentine's'",
+        "decisions": ["Twinning angle", "Feb 10 deadline prominent"],
+        "constraints": ["Theme editor can be glitchy - may need manual entry"]
+      },
       "plan": "knowledge/valentine-copy-drafts.md",
       "approach": "Open Theme Editor > Image Banner section > Add heading, subtext, button from copy file"
     },
@@ -67,6 +118,11 @@
       "status": "pending",
       "owner": "francisco",
       "estimate": "1 min",
+      "context": {
+        "summary": "Christmas is over but nav still shows 'CHRISTMAS MATCHING OUTFITS'. Remove to make room for Valentine and avoid confusion.",
+        "decisions": ["Remove don't just hide"],
+        "constraints": []
+      },
       "approach": "Shopify Admin > Online Store > Navigation > Main menu > Remove Christmas link"
     },
     "T008": {
@@ -74,6 +130,11 @@
       "status": "pending",
       "owner": "francisco",
       "estimate": "2 min",
+      "context": {
+        "summary": "Valentine collection exists but not featured on homepage. Add as Featured Collection section for visibility.",
+        "decisions": ["Use Featured Collection section type"],
+        "constraints": []
+      },
       "approach": "Theme Editor > Add section > Featured Collection > Select Valentine's Day"
     },
     "T009": {
@@ -81,6 +142,11 @@
       "status": "pending",
       "owner": "francisco",
       "estimate": "5 min",
+      "context": {
+        "summary": "Found 2 good Valentine 1688 products ready to import. URLs in quick-wins file. Will expand Valentine collection from 7 to 9 products.",
+        "decisions": ["Start with 2 as test", "Use existing BuckyDrop workflow"],
+        "constraints": ["1688 captcha may require human interaction"]
+      },
       "plan": "memory/2026-01-29-quick-wins.md",
       "approach": "Open BuckyDrop > Import > Paste 1688 URLs from quick-wins file > Map variants > Save"
     },

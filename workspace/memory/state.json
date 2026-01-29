@@ -1,12 +1,12 @@
 {
-  "lastUpdated": "2026-01-29T09:55:00-05:00",
-  "version": 32,
+  "lastUpdated": "2026-01-29T11:15:00-05:00",
+  "version": 33,
   "currentTask": {
-    "id": "T001",
-    "description": "Task tracking system v3 COMPLETE",
-    "status": "completed",
-    "context": "Council ran on Chat→Queue protocol. Verdict: protocol is right but needs hardening. Implemented: expanded trigger phrases, verified writes, deduplication checks. System now catches all commitment phrases and verifies writes before confirming.",
-    "nextStep": "Continue T002 (SEO fixes) OR test the new protocol"
+    "id": "COUNCIL-COMPLETE",
+    "description": "Task context isolation design - Council verdict delivered",
+    "status": "awaiting_approval",
+    "context": "Council ran 3 rounds on task context isolation. Verdict: Don't save full conversation context (C-). Instead save ONE-PARAGRAPH SUMMARY per task in tasks.json context block (A-). Simpler than original proposal.",
+    "nextStep": "Implement context block in tasks.json schema if Francisco approves, then continue SEO import"
   },
   "deadline": {
     "date": "2026-02-10",
@@ -14,10 +14,15 @@
     "daysRemaining": 12
   },
   "taskBoard": "memory/tasks.json",
-  "protocolUpgrades": {
-    "chatToQueue": "v2 - expanded triggers, verified writes, deduplication",
-    "triggerPhrases": ["I'll", "I will", "Let me", "Sure", "Got it", "Leave it with me", "I can do that"],
-    "verification": "Must READ tasks.json back to confirm write before saying 'Added to queue'"
+  "pendingDecisions": [
+    "Approve task context isolation design (Council A- grade)",
+    "SEO import: 220 title fixes ready, some have truncation issues"
+  ],
+  "councilResult": {
+    "topic": "Task Context Isolation",
+    "grade": "A-",
+    "recommendation": "Add context block to tasks.json with summary field, not separate context files",
+    "savedTo": "council-sessions/2026-01-29-task-context-isolation.md"
   },
   "completedToday": [
     "SEO procedure development",
@@ -28,7 +33,8 @@
     "P1 Branding update (8 files)",
     "Task tracking system v3 with plans",
     "Council: Mission Control upgrade",
-    "Council: Chat→Queue protocol hardening"
+    "Council: Chat→Queue protocol hardening",
+    "Council: Task context isolation (A-)"
   ],
   "standingRules": [
     "READ tasks.json at EVERY session start",

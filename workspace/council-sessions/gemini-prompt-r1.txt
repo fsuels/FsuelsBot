@@ -1,0 +1,1 @@
+I'm building a task management system for an AI assistant that runs via Telegram. Problem: context gets compacted over time, mixing tasks together. Proposed solution: save conversation context per task, re-read before working. What's wrong with this approach? What am I missing? How would you design task-context isolation for a chat-based AI assistant?

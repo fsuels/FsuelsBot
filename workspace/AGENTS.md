@@ -8,14 +8,18 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-01-29 09:55 EST | **Version:** 32
+**Last updated:** 2026-01-29 11:15 EST | **Version:** 33
 
-**Current task:** Task tracking system v3 COMPLETE [T001]
-**Status:** completed
-**Context:** Council ran 2 rounds on Mission Control upgrade. Consensus: local-first approach. Keep tasks.json, upgrade dashboard incrementally.
-**Next step:** Continue T002 (SEO fixes) OR start dashboard upgrade
+**Current task:** Council on Task Context Isolation COMPLETE
+**Status:** awaiting_approval
+**Context:** Council ran 3 rounds. Verdict: Don't save full conversation context (C-). Use ONE-PARAGRAPH SUMMARY per task in tasks.json context block (A-). Simpler than original proposal.
+**Next step:** Implement context block in tasks.json if Francisco approves, then continue SEO import
 
 **⏰ DEADLINE:** 12 days until Feb 10 order cutoff
+
+**📋 PENDING DECISIONS:**
+- Approve task context isolation design (Council A- grade)
+- SEO import: 220 title fixes ready, some have truncation issues
 
 **📋 TASK BOARD:** `memory/tasks.json` — THE SOURCE OF TRUTH
 - Each task has `plan` field linking to procedure
@@ -34,7 +38,7 @@ This folder is home. Treat it that way.
 - T008: Valentine on homepage (2 min)
 - T009: BuckyDrop import (5 min)
 
-**✅ DONE TODAY:** 9 items (SEO, PageSpeed, collections, branding, task system v3, Council)
+**✅ DONE TODAY:** 10 items (SEO, PageSpeed, collections, branding, task system v3, Council x3)
 
 **Standing rules:**
 - READ tasks.json at EVERY session start
@@ -89,15 +93,22 @@ Before doing anything else:
 - `plan` — Link to procedure/plan file (REQUIRED for bot tasks)
 - `approach` — Brief summary of how to tackle it
 - `status` — pending / in_progress / done
+- `context` — **WHY this task exists** (Council-approved, added 2026-01-29)
+  - `summary` — One-paragraph explanation of task origin and key decisions
+  - `created_from` — Link to originating ledger event (optional)
+  - `decisions` — Key decisions made during task creation
+  - `constraints` — Requirements or limitations
 
 **Rules:**
 1. **Read tasks.json at EVERY session start** — this is how I remember what to do
-2. **READ THE PLAN before starting any task** — never work without reading the linked procedure
-3. **Update tasks.json BEFORE reporting work** — dashboard = truth
-4. **Move tasks between lanes** as status changes
-5. **Francisco can reorder** — array order = priority (drag or tell me in chat)
-6. **Francisco can review plans** — click the plan link to see approach before I execute
-7. **Log every mutation** to events.jsonl for audit trail
+2. **READ THE CONTEXT before starting any task** — `context.summary` tells you WHY, not just WHAT
+3. **READ THE PLAN before starting any task** — never work without reading the linked procedure
+4. **Update tasks.json BEFORE reporting work** — dashboard = truth
+5. **Move tasks between lanes** as status changes
+6. **Francisco can reorder** — array order = priority (drag or tell me in chat)
+7. **Francisco can review plans** — click the plan link to see approach before I execute
+8. **Log every mutation** to events.jsonl for audit trail
+9. **When creating tasks, ALWAYS populate context.summary** — capture WHY in the moment
 
 ### 🚨 CHAT → QUEUE PROTOCOL (MANDATORY)
 **If I say "I'll do X" or we identify something I need to do in chat:**
