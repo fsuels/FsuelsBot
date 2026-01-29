@@ -1,19 +1,27 @@
 {
-  "version": 3,
-  "updated_at": "2026-01-29T09:48:00-05:00",
+  "version": 4,
+  "updated_at": "2026-01-29T09:55:00-05:00",
   "updated_by": "fsuels-bot",
   "notes": "Each task has a 'plan' field linking to procedure/plan file. Bot reads plan before executing. Francisco can review plan before approving.",
   "lanes": {
-    "bot_current": ["T002"],
-    "bot_queue": ["T003", "T004"],
+    "bot_current": ["T017"],
+    "bot_queue": ["T002", "T003", "T004"],
     "human": ["T005", "T006", "T007", "T008", "T009"],
     "scheduled": ["CRON-research", "CRON-curiosity", "CRON-learn", "CRON-ship", "CRON-backup", "CRON-consolidation"],
     "done_today": ["T001", "T010", "T011", "T012", "T013", "T014", "T015", "T016"]
   },
   "tasks": {
+    "T017": {
+      "title": "Mission Control dashboard upgrade - split lanes view",
+      "status": "in_progress",
+      "created": "2026-01-29T09:55:00-05:00",
+      "plan": "council-sessions/2026-01-29-mission-control-upgrade.md",
+      "approach": "1. Read current Mission Control code. 2. Add split lanes view (Bot Current, Bot Queue, Human Tasks, Done). 3. Show clickable plan links. 4. Display task board from tasks.json. 5. Test on mobile.",
+      "notes": "Francisco prioritized this over SEO fixes"
+    },
     "T002": {
       "title": "SEO product title batch fixes (50+ products)",
-      "status": "in_progress",
+      "status": "pending",
       "created": "2026-01-29T08:30:00-05:00",
       "plan": "procedures/seo/README.md",
       "planSection": "Product Title Optimization",

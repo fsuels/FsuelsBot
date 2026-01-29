@@ -14,7 +14,7 @@ body {
   min-height: 100vh;
   padding: 20px;
 }
-.container { max-width: 1100px; margin: 0 auto; }
+.container { max-width: 1200px; margin: 0 auto; }
 
 /* Header */
 .header {
@@ -39,7 +39,6 @@ body {
 }
 .status-badge.working { background: rgba(52,211,153,0.15); color: #34d399; }
 .status-badge.idle { background: rgba(139,148,158,0.15); color: #8b949e; }
-.status-badge.offline { background: rgba(248,81,73,0.15); color: #f85149; }
 .live-dot {
   width: 10px;
   height: 10px;
@@ -49,191 +48,181 @@ body {
 }
 @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
 
-/* Current Task Card */
-.current-task {
-  background: linear-gradient(135deg, #161b22 0%, #1c2128 100%);
+/* Deadline Banner */
+.deadline-banner {
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.deadline-text { font-size: 16px; font-weight: 600; }
+.deadline-days { font-size: 28px; font-weight: 700; }
+
+/* Task Board Grid */
+.task-board {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+/* Lane Cards */
+.lane {
+  background: #161b22;
   border: 1px solid #30363d;
   border-radius: 12px;
-  padding: 24px;
-  margin-bottom: 20px;
+  padding: 16px;
+  min-height: 200px;
 }
-.task-header {
+.lane-header {
   display: flex;
-  align-items: flex-start;
-  gap: 16px;
-  margin-bottom: 16px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #21262d;
 }
-.task-avatar { font-size: 40px; }
-.task-info { flex: 1; }
-.task-name { font-size: 14px; color: #8b949e; margin-bottom: 4px; }
-.task-title { font-size: 20px; font-weight: 600; color: #58a6ff; margin-bottom: 8px; }
-.task-desc { color: #8b949e; font-size: 14px; line-height: 1.5; }
-.progress-section { margin-top: 16px; }
-.progress-bar {
-  height: 8px;
+.lane-title {
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.lane-count {
   background: #21262d;
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: 8px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  color: #8b949e;
 }
-.progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #238636, #3fb950);
-  transition: width 0.5s;
-}
-.progress-label { font-size: 13px; color: #8b949e; }
 
-/* Steps */
-.steps-section {
-  margin-top: 16px;
-  border-top: 1px solid #21262d;
-  padding-top: 16px;
+/* Bot Current - Special styling */
+.lane.bot-current {
+  border-color: #238636;
+  background: linear-gradient(135deg, #161b22 0%, #0d1a0f 100%);
 }
-.steps-header {
+.lane.bot-current .lane-title { color: #3fb950; }
+
+/* Human Lane - Special styling */
+.lane.human {
+  border-color: #1f6feb;
+  background: linear-gradient(135deg, #161b22 0%, #0d1117 100%);
+}
+.lane.human .lane-title { color: #58a6ff; }
+
+/* Task Items */
+.task-item {
+  background: #0d1117;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+  border-left: 3px solid #30363d;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.task-item:hover {
+  background: #1c2128;
+  transform: translateX(4px);
+}
+.task-item.in-progress {
+  border-left-color: #3fb950;
+  background: rgba(63,185,80,0.05);
+}
+.task-item.pending { border-left-color: #8b949e; }
+.task-item.human-task { border-left-color: #58a6ff; }
+
+.task-id {
+  font-size: 11px;
+  color: #8b949e;
+  margin-bottom: 4px;
+  font-family: monospace;
+}
+.task-title-text {
+  font-size: 14px;
+  color: #e6edf3;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+.task-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.task-plan {
+  font-size: 11px;
+  color: #58a6ff;
+  text-decoration: none;
+  background: rgba(88,166,255,0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.task-plan:hover { background: rgba(88,166,255,0.2); }
+.task-estimate {
+  font-size: 11px;
+  color: #8b949e;
+  background: #21262d;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Done Section */
+.done-section {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+.done-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
-  padding: 8px 0;
+  padding-bottom: 12px;
 }
-.steps-header:hover { opacity: 0.8; }
-.steps-title { font-size: 14px; color: #8b949e; font-weight: 600; }
-.steps-toggle { font-size: 12px; color: #58a6ff; }
-.steps-grid {
+.done-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 8px;
-  margin-top: 12px;
 }
-.steps-grid.collapsed { display: none; }
-.step {
+.done-grid.collapsed { display: none; }
+.done-item {
+  background: #0d1117;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #8b949e;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
-  background: #0d1117;
-  border-radius: 6px;
-  font-size: 14px;
 }
-.step.done { color: #3fb950; }
-.step.pending { color: #8b949e; }
-.step.current { color: #58a6ff; background: rgba(88,166,255,0.1); }
+.done-item .check { color: #3fb950; }
 
-/* Details (expandable) */
-.details-section {
-  margin-top: 12px;
-  padding: 12px;
-  background: #0d1117;
-  border-radius: 8px;
-  font-size: 12px;
-  color: #6e7681;
-  display: none;
-}
-.details-section.show { display: block; }
-.detail-item { padding: 4px 0; border-bottom: 1px solid #21262d; }
-.detail-item:last-child { border-bottom: none; }
-
-/* Three Column Layout */
-.columns {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 20px;
-}
-@media (max-width: 1000px) {
-  .columns { grid-template-columns: 1fr 1fr; }
-}
-@media (max-width: 700px) {
-  .columns { grid-template-columns: 1fr; }
-}
-
-/* Team Section */
-.section {
+/* Scheduled Section */
+.scheduled-section {
   background: #161b22;
-  border: 1px solid #21262d;
+  border: 1px solid #30363d;
   border-radius: 12px;
   padding: 16px;
 }
-.section-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #8b949e;
-  margin-bottom: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.scheduled-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
 }
-.team-list { display: flex; flex-direction: column; gap: 8px; }
-.team-member {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px;
+.scheduled-item {
   background: #0d1117;
-  border-radius: 8px;
-}
-.team-member .emoji { font-size: 24px; }
-.team-member .info { flex: 1; }
-.team-member .name { font-weight: 600; font-size: 14px; }
-.team-member .role { font-size: 12px; color: #8b949e; }
-.team-member .status {
-  font-size: 11px;
-  padding: 3px 10px;
-  border-radius: 12px;
-}
-.team-member .status.working { background: rgba(52,211,153,0.15); color: #34d399; }
-.team-member .status.idle { background: rgba(139,148,158,0.15); color: #8b949e; }
-.team-member .status.done { background: rgba(88,166,255,0.15); color: #58a6ff; }
-.team-member .status.standby { background: rgba(139,148,158,0.1); color: #6e7681; }
-
-/* History Section */
-.history-list { display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; }
-.history-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
   padding: 10px;
-  background: #0d1117;
-  border-radius: 8px;
-  font-size: 13px;
+  border-radius: 6px;
+  font-size: 12px;
 }
-.history-item .icon { font-size: 16px; }
-.history-item .text { flex: 1; color: #8b949e; }
-.history-item .time { font-size: 11px; color: #484f58; }
-
-/* Backlog Section */
-.backlog-list { display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; }
-.backlog-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px;
-  background: #0d1117;
-  border-radius: 8px;
-  font-size: 13px;
-  border-left: 3px solid transparent;
-}
-.backlog-item.p1 { border-left-color: #f85149; }
-.backlog-item.p2 { border-left-color: #d29922; }
-.backlog-item.p3 { border-left-color: #3fb950; }
-.backlog-item .priority {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 4px;
-  min-width: 24px;
-  text-align: center;
-}
-.backlog-item.p1 .priority { background: rgba(248,81,73,0.2); color: #f85149; }
-.backlog-item.p2 .priority { background: rgba(210,153,34,0.2); color: #d29922; }
-.backlog-item.p3 .priority { background: rgba(63,185,80,0.2); color: #3fb950; }
-.backlog-item .text { flex: 1; color: #c9d1d9; }
-.backlog-item .next-badge {
-  font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: rgba(88,166,255,0.2);
-  color: #58a6ff;
-  font-weight: 600;
-}
+.scheduled-title { color: #e6edf3; margin-bottom: 4px; }
+.scheduled-time { color: #8b949e; font-size: 11px; }
 
 /* Footer */
 .footer {
@@ -245,41 +234,70 @@ body {
   font-size: 13px;
   color: #484f58;
 }
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .task-board { grid-template-columns: 1fr; }
+  .deadline-banner { flex-direction: column; gap: 8px; text-align: center; }
+}
 </style>
 </head>
 <body>
 <div class="container">
   <div class="header">
     <h1><span class="live-dot"></span> Mission Control</h1>
-    <div class="status-badge working" id="globalStatus">Loading...</div>
+    <div class="status-badge working" id="globalStatus">WORKING</div>
   </div>
 
-  <div class="current-task" id="currentTask">
-    <div class="task-header">
-      <span class="task-avatar">🤖</span>
-      <div class="task-info">
-        <div class="task-name">Loading...</div>
-        <div class="task-title">Loading current task...</div>
-        <div class="task-desc"></div>
+  <div class="deadline-banner">
+    <span class="deadline-text">💕 Valentine's Day Order Cutoff</span>
+    <span class="deadline-days" id="deadlineDays">-- days</span>
+  </div>
+
+  <div class="task-board" id="taskBoard">
+    <!-- Bot Current -->
+    <div class="lane bot-current">
+      <div class="lane-header">
+        <span class="lane-title">🤖 Bot — Working Now</span>
+        <span class="lane-count" id="botCurrentCount">0</span>
       </div>
+      <div id="botCurrentTasks">Loading...</div>
+    </div>
+
+    <!-- Bot Queue -->
+    <div class="lane">
+      <div class="lane-header">
+        <span class="lane-title">📋 Bot — Queue</span>
+        <span class="lane-count" id="botQueueCount">0</span>
+      </div>
+      <div id="botQueueTasks">Loading...</div>
+    </div>
+
+    <!-- Human Tasks -->
+    <div class="lane human">
+      <div class="lane-header">
+        <span class="lane-title">👤 Francisco — Your Tasks</span>
+        <span class="lane-count" id="humanCount">0</span>
+      </div>
+      <div id="humanTasks">Loading...</div>
     </div>
   </div>
 
-  <div class="columns">
-    <div class="section">
-      <div class="section-title">👥 Team</div>
-      <div class="team-list" id="teamList">Loading team...</div>
+  <!-- Done Today -->
+  <div class="done-section">
+    <div class="done-header" onclick="toggleDone()">
+      <span class="lane-title">✅ Done Today <span class="lane-count" id="doneCount">0</span></span>
+      <span id="doneToggle">▼ Show</span>
     </div>
-    
-    <div class="section">
-      <div class="section-title">📋 Backlog / Up Next</div>
-      <div class="backlog-list" id="backlogList">Loading backlog...</div>
+    <div class="done-grid collapsed" id="doneTasks"></div>
+  </div>
+
+  <!-- Scheduled -->
+  <div class="scheduled-section">
+    <div class="lane-header">
+      <span class="lane-title">⏰ Scheduled (Cron Jobs)</span>
     </div>
-    
-    <div class="section">
-      <div class="section-title">✅ Completed</div>
-      <div class="history-list" id="historyList">Loading history...</div>
-    </div>
+    <div class="scheduled-grid" id="scheduledTasks">Loading...</div>
   </div>
 
   <div class="footer">
@@ -289,129 +307,98 @@ body {
 </div>
 
 <script>
-async function loadData() {
-  // Load current task
+async function loadTaskBoard() {
   try {
-    const taskResp = await fetch('./current-task.json?' + Date.now());
-    const taskData = await taskResp.json();
-    const orch = taskData.orchestrator || taskData;
+    const resp = await fetch('../memory/tasks.json?' + Date.now());
+    const data = await resp.json();
     
-    // Update global status
-    const statusEl = document.getElementById('globalStatus');
-    statusEl.textContent = (orch.status || 'working').toUpperCase();
-    statusEl.className = 'status-badge ' + (orch.status || 'working');
+    const tasks = data.tasks || {};
+    const lanes = data.lanes || {};
     
-    // Update task card
-    const doneSteps = (orch.steps || []).filter(s => s.done).length;
-    const totalSteps = (orch.steps || []).length;
-    const pct = orch.progress || (totalSteps ? Math.round(doneSteps/totalSteps*100) : 0);
+    // Calculate deadline
+    const deadline = new Date('2026-02-10');
+    const today = new Date();
+    const daysLeft = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24));
+    document.getElementById('deadlineDays').textContent = daysLeft + ' days';
     
-    document.getElementById('currentTask').innerHTML = `
-      <div class="task-header">
-        <span class="task-avatar">${orch.emoji || '🤖'}</span>
-        <div class="task-info">
-          <div class="task-name">${orch.name || 'Fsuels Bot'} — ${orch.project || 'Working'}</div>
-          <div class="task-title">${orch.task || 'No active task'}</div>
-          <div class="task-desc">${orch.description || ''}</div>
+    // Render Bot Current
+    const botCurrentIds = lanes.bot_current || [];
+    document.getElementById('botCurrentCount').textContent = botCurrentIds.length;
+    document.getElementById('botCurrentTasks').innerHTML = botCurrentIds.map(id => {
+      const t = tasks[id];
+      if (!t) return '';
+      return renderTask(id, t, 'in-progress');
+    }).join('') || '<div style="color:#8b949e;font-size:13px;">No active task</div>';
+    
+    // Render Bot Queue
+    const botQueueIds = lanes.bot_queue || [];
+    document.getElementById('botQueueCount').textContent = botQueueIds.length;
+    document.getElementById('botQueueTasks').innerHTML = botQueueIds.map((id, idx) => {
+      const t = tasks[id];
+      if (!t) return '';
+      return renderTask(id, t, 'pending', idx === 0 ? 'NEXT' : null);
+    }).join('') || '<div style="color:#8b949e;font-size:13px;">Queue empty 🎉</div>';
+    
+    // Render Human Tasks
+    const humanIds = lanes.human || [];
+    document.getElementById('humanCount').textContent = humanIds.length;
+    document.getElementById('humanTasks').innerHTML = humanIds.map(id => {
+      const t = tasks[id];
+      if (!t) return '';
+      return renderTask(id, t, 'human-task');
+    }).join('') || '<div style="color:#8b949e;font-size:13px;">All done! 🎉</div>';
+    
+    // Render Done Today
+    const doneIds = lanes.done_today || [];
+    document.getElementById('doneCount').textContent = doneIds.length;
+    document.getElementById('doneTasks').innerHTML = doneIds.map(id => {
+      const t = tasks[id];
+      if (!t) return '';
+      return `<div class="done-item"><span class="check">✓</span>${t.title}</div>`;
+    }).join('') || '<div class="done-item">Nothing yet</div>';
+    
+    // Render Scheduled
+    const schedIds = lanes.scheduled || [];
+    document.getElementById('scheduledTasks').innerHTML = schedIds.map(id => {
+      const t = tasks[id];
+      if (!t) return '';
+      return `
+        <div class="scheduled-item">
+          <div class="scheduled-title">${t.title}</div>
+          <div class="scheduled-time">${t.schedule || ''}</div>
         </div>
-      </div>
-      <div class="progress-section">
-        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
-        <div class="progress-label">${pct}% complete${totalSteps ? ' — ' + doneSteps + ' of ' + totalSteps + ' steps done' : ''}</div>
-      </div>
-      ${orch.steps ? `
-        <div class="steps-section">
-          <div class="steps-header" onclick="toggleSteps()">
-            <span class="steps-title">📋 Steps (${orch.steps.filter(s=>s.done).length}/${orch.steps.length} done)</span>
-            <span class="steps-toggle" id="stepsToggle">▼ Show</span>
-          </div>
-          <div class="steps-grid collapsed" id="stepsGrid">${orch.steps.map((s,i) => {
-            const isCurrent = !s.done && (i === 0 || orch.steps[i-1].done);
-            return `<div class="step ${s.done ? 'done' : (isCurrent ? 'current' : 'pending')}">${s.done ? '✅' : (isCurrent ? '🔄' : '⬜')} ${s.label}</div>`;
-          }).join('')}</div>
-        </div>
-      ` : ''}
-      ${orch.details ? `
-        <div class="details-section" id="detailsSection">
-          <strong>🔍 Recent actions:</strong><br>
-          ${orch.details.map(d => `<div class="detail-item">${d}</div>`).join('')}
-        </div>
-      ` : ''}
-    `;
-  } catch(e) {
-    document.getElementById('currentTask').innerHTML = `<div class="task-desc">Could not load task</div>`;
-  }
-  
-  // Load team
-  try {
-    const teamResp = await fetch('./team.json?' + Date.now());
-    const teamData = await teamResp.json();
-    const all = [...(teamData.persistent || []), ...(teamData.onDemand || [])];
+      `;
+    }).join('') || '<div style="color:#8b949e;">No scheduled tasks</div>';
     
-    document.getElementById('teamList').innerHTML = all.map(m => `
-      <div class="team-member">
-        <span class="emoji">${m.emoji || '🤖'}</span>
-        <div class="info">
-          <div class="name">${m.name}</div>
-          <div class="role">${m.role || ''}</div>
-        </div>
-        <span class="status ${m.status || 'idle'}">${m.status || 'idle'}</span>
-      </div>
-    `).join('');
-  } catch(e) {
-    document.getElementById('teamList').innerHTML = '<div>Could not load team</div>';
-  }
-  
-  // Load backlog
-  try {
-    const backlogResp = await fetch('./api/backlog?' + Date.now());
-    const backlogData = await backlogResp.json();
-    const items = (backlogData.backlog || []).sort((a, b) => (a.priority || 99) - (b.priority || 99));
+    document.getElementById('lastUpdate').textContent = 'Updated: ' + new Date().toLocaleTimeString();
     
-    if (items.length > 0) {
-      document.getElementById('backlogList').innerHTML = items.map((item, idx) => {
-        const pClass = item.priority <= 1 ? 'p1' : (item.priority === 2 ? 'p2' : 'p3');
-        const isNext = idx === 0;
-        return `
-          <div class="backlog-item ${pClass}">
-            <span class="priority">P${item.priority || '?'}</span>
-            <span class="text">${item.description || 'Unnamed task'}</span>
-            ${isNext ? '<span class="next-badge">NEXT</span>' : ''}
-          </div>
-        `;
-      }).join('');
-    } else {
-      document.getElementById('backlogList').innerHTML = '<div class="backlog-item"><span class="text" style="color:#8b949e">No queued tasks — all caught up! 🎉</span></div>';
-    }
   } catch(e) {
-    document.getElementById('backlogList').innerHTML = '<div class="backlog-item"><span class="text" style="color:#8b949e">Could not load backlog</span></div>';
+    console.error('Failed to load tasks:', e);
+    document.getElementById('botCurrentTasks').innerHTML = '<div style="color:#f85149;">Failed to load tasks.json</div>';
   }
-  
-  // Load history
-  try {
-    const histResp = await fetch('./history.json?' + Date.now());
-    const histData = await histResp.json();
-    const done = (histData.completed || []).slice(0, 10);
-    
-    document.getElementById('historyList').innerHTML = done.map(t => `
-      <div class="history-item">
-        <span class="icon">✅</span>
-        <span class="text">${t.title}</span>
-        <span class="time">${t.completed || ''}</span>
-      </div>
-    `).join('') || '<div class="history-item"><span class="text">No completed tasks yet</span></div>';
-  } catch(e) {
-    document.getElementById('historyList').innerHTML = '<div class="history-item"><span class="text">History will appear here</span></div>';
-  }
-  
-  document.getElementById('lastUpdate').textContent = 'Updated: ' + new Date().toLocaleTimeString();
 }
 
-loadData();
+function renderTask(id, task, statusClass, badge) {
+  const planLink = task.plan ? `<a class="task-plan" href="../${task.plan}" target="_blank">📄 ${task.plan.split('/').pop()}</a>` : '';
+  const estimate = task.estimate ? `<span class="task-estimate">⏱ ${task.estimate}</span>` : '';
+  const badgeHtml = badge ? `<span class="task-estimate" style="background:#238636;color:#fff;">${badge}</span>` : '';
+  
+  return `
+    <div class="task-item ${statusClass}">
+      <div class="task-id">${id}</div>
+      <div class="task-title-text">${task.title}</div>
+      <div class="task-meta">
+        ${planLink}
+        ${estimate}
+        ${badgeHtml}
+      </div>
+    </div>
+  `;
+}
 
-function toggleSteps() {
-  const grid = document.getElementById('stepsGrid');
-  const toggle = document.getElementById('stepsToggle');
+function toggleDone() {
+  const grid = document.getElementById('doneTasks');
+  const toggle = document.getElementById('doneToggle');
   if (grid.classList.contains('collapsed')) {
     grid.classList.remove('collapsed');
     toggle.textContent = '▲ Hide';
@@ -420,6 +407,8 @@ function toggleSteps() {
     toggle.textContent = '▼ Show';
   }
 }
+
+loadTaskBoard();
 </script>
 </body>
 </html>
