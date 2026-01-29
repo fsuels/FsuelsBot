@@ -1,14 +1,13 @@
 {
-  "version": 20,
-  "lastUpdated": "2026-01-29T03:05:00-05:00",
+  "version": 22,
+  "lastUpdated": "2026-01-29T08:25:00-05:00",
   "currentTask": {
-    "id": "TASK-20260129-007",
-    "description": "Night shift - SEO optimization and prep for morning",
-    "status": "completed",
-    "startedAt": "2026-01-29T02:52:00-05:00",
-    "completedAt": "2026-01-29T03:05:00-05:00",
-    "context": "Francisco sleeping. Completed site audit, quick-wins checklist, SEO fixes via sub-agent.",
-    "nextStep": "Continue monitoring, prepare morning briefing"
+    "id": "TASK-20260129-009",
+    "description": "SEO procedure development - research complete, council in progress",
+    "status": "in_progress",
+    "startedAt": "2026-01-29T08:02:00-05:00",
+    "context": "Francisco requested comprehensive 2026 SEO strategy + standardized procedure. Research sub-agent COMPLETED (1,336 lines). Council sub-agent still running (Grok/ChatGPT/Gemini debating procedure design).",
+    "nextStep": "Council completes → Synthesize research + council insights → Create procedures/seo/README.md"
   },
   "backlog": [
     {
@@ -56,37 +55,36 @@
   ],
   "recentCompleted": [
     {
+      "id": "SUBAGENT-research-seo-2026",
+      "description": "2026 E-commerce SEO Strategy Research",
+      "completedAt": "2026-01-29T08:20:00-05:00",
+      "outcome": "Comprehensive 1,336-line research doc covering technical SEO, on-page, collections, content, international, images, link building, Shopify apps, AI search, audit checklist. Saved to knowledge/seo-strategy-2026.md"
+    },
+    {
+      "id": "TASK-buckydrop-check",
+      "description": "Checked BuckyDrop support response",
+      "completedAt": "2026-01-29T08:05:00-05:00",
+      "outcome": "Scott Zhou replied Wed 1:58 AM. Store 38cbbd-08 removal in progress. Reauthorization verified as successful. No action needed."
+    },
+    {
       "id": "SUBAGENT-seo-optimizer",
       "description": "SEO optimization for Valentine products",
       "completedAt": "2026-01-29T03:00:00-05:00",
-      "outcome": "Fixed 2 products (Valentine Tutu Romper, Holiday Heart Pajamas). 4 already optimized. Documented in memory/seo-fixes-2026-01-29.md"
+      "outcome": "Fixed 2 products (Valentine Tutu Romper, Holiday Heart Pajamas). 4 already optimized."
     },
     {
       "id": "TASK-20260129-006",
       "description": "Site audit + quick-wins checklist",
       "completedAt": "2026-01-29T02:55:00-05:00",
-      "outcome": "Audited live site. Found Christmas still in nav. Created memory/2026-01-29-quick-wins.md with 5 easy fixes (11 min total)."
-    },
-    {
-      "id": "TASK-git-backup",
-      "description": "Git commit and push",
-      "completedAt": "2026-01-29T02:55:00-05:00",
-      "outcome": "2 commits pushed to GitHub (quick-wins + active-thread)"
-    },
-    {
-      "id": "TASK-20260129-005",
-      "description": "Added Image banner section to homepage",
-      "completedAt": "2026-01-29T02:45:00-05:00",
-      "outcome": "Section structure in place. Copy blocked by Shopify iframe issues - needs manual entry."
-    },
-    {
-      "id": "BACKLOG-002",
-      "description": "Fix homepage image opacity bug",
-      "completedAt": "2026-01-29T02:21:00-05:00",
-      "outcome": "FIXED! Francisco disabled 'Reveal on scroll' animation."
+      "outcome": "Created memory/2026-01-29-quick-wins.md with 5 easy fixes (11 min total)."
     }
   ],
   "waitingOn": [
+    {
+      "item": "Council sub-agent (Grok/ChatGPT/Gemini debating SEO procedure design)",
+      "since": "2026-01-29T08:02:00-05:00",
+      "instructions": "Will wake when complete with session saved to council-sessions/"
+    },
     {
       "item": "Francisco to complete 5 quick-wins in Shopify (11 min total)",
       "since": "2026-01-29T02:55:00-05:00",
@@ -103,23 +101,21 @@
   ],
   "sessionContext": {
     "missionControlUrl": "http://192.168.4.25:8765?key=a6132abf77194fd10a77317a094771f1",
-    "franciscoStatus": "sleeping (went to bed 2:48 AM)",
+    "franciscoStatus": "awake (since 7:54 AM)",
     "valentineDeadline": "Feb 10 order cutoff, Feb 14 Valentine's Day",
     "daysRemaining": 12,
-    "completedTonight": [
-      "Homepage opacity bug FIXED",
-      "Hero banner section added (copy needs manual)",
-      "Site audit complete",
-      "Quick-wins checklist created",
-      "SEO fixes for 2 Valentine products",
-      "Git backup pushed"
-    ],
-    "readyForMorning": {
-      "quickWins": "memory/2026-01-29-quick-wins.md",
-      "valentineCopy": "knowledge/valentine-copy-drafts.md",
-      "valentineProducts": "knowledge/valentine-products-1688.md",
-      "seoFixes": "memory/seo-fixes-2026-01-29.md"
+    "buckyDropStatus": "Store removal in progress (Scott Zhou replied Wed 1:58 AM)",
+    "seoProject": {
+      "research": "COMPLETE - knowledge/seo-strategy-2026.md (1,336 lines)",
+      "council": "IN PROGRESS - debating procedure design",
+      "nextStep": "Create procedures/seo/README.md after council completes"
     }
   },
-  "activeSubagents": []
+  "activeSubagents": [
+    {
+      "label": "council-seo-procedure",
+      "task": "Grok/ChatGPT/Gemini debate on SEO procedure design",
+      "status": "running"
+    }
+  ]
 }

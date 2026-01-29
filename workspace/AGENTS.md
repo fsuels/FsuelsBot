@@ -8,24 +8,26 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-01-29 03:05 EST | **Version:** 20
+**Last updated:** 2026-01-29 08:25 EST | **Version:** 22
 
-**Current task:** Night shift complete - ready for morning [TASK-20260129-007]
-**Status:** completed
-**Context:** Francisco sleeping (since 2:48 AM). All prep work done. SEO fixes complete.
-**Next step:** Morning: Francisco completes 5 quick-wins (11 min) → Valentine campaign LIVE
+**Current task:** SEO procedure development - research complete, council in progress [TASK-20260129-009]
+**Status:** in_progress
+**Context:** Francisco requested comprehensive 2026 SEO strategy + standardized procedure. Research COMPLETE (1,336 lines). Council still debating.
+**Next step:** Council completes → Synthesize into procedures/seo/README.md
 
 **⏰ DEADLINE:** 12 days until Feb 10 order cutoff
 
-**✅ COMPLETED TONIGHT:**
-- Homepage opacity bug FIXED
-- Hero banner section added (copy needs manual entry)
-- Site audit complete
-- Quick-wins checklist created
-- SEO fixes for 2 Valentine products (4 already optimized)
-- Git backup pushed
+**🔬 SEO PROJECT STATUS:**
+- ✅ **Research:** COMPLETE — `knowledge/seo-strategy-2026.md` (1,336 lines)
+- 🔄 **Council:** IN PROGRESS — Grok/ChatGPT/Gemini debating procedure design
+- ⏳ **Next:** Create standardized SEO procedure
 
-**📋 MORNING ACTION LIST (11 min total):**
+**✅ COMPLETED THIS SESSION:**
+- Morning briefing delivered (5 quick-wins)
+- BuckyDrop support: Scott Zhou confirmed store removal in progress
+- SEO research complete (technical SEO, on-page, Shopify apps, AI search, audit checklist)
+
+**📋 STILL WAITING ON FRANCISCO (11 min):**
 1. Announcement bar: paste urgency text (1 min)
 2. Hero banner: add copy to existing section (2 min)
 3. Hide Christmas nav link (1 min)
@@ -33,10 +35,9 @@ This folder is home. Treat it that way.
 5. Import 2 products via BuckyDrop (5 min)
 
 **Ready to Deploy:**
-- ✅ Quick wins checklist: `memory/2026-01-29-quick-wins.md`
-- ✅ Valentine copy drafts: `knowledge/valentine-copy-drafts.md`
-- ✅ 1688 products: `knowledge/valentine-products-1688.md`
-- ✅ SEO fixes log: `memory/seo-fixes-2026-01-29.md`
+- ✅ Quick wins: `memory/2026-01-29-quick-wins.md`
+- ✅ SEO strategy: `knowledge/seo-strategy-2026.md`
+- ✅ Valentine copy: `knowledge/valentine-copy-drafts.md`
 
 **Standing rules:**
 - UPDATE state.json BEFORE telling Francisco about work

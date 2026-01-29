@@ -1,141 +1,346 @@
-# SEO Procedures for Dress Like Mommy
+# SEO Procedure — Standardized Workflow
 
-> **Created:** 2026-01-29  
-> **Store:** dresslikemommy.com (Shopify)  
-> **Niche:** Mommy-and-me matching clothing
+> **Trigger words:** seo, meta tags, keywords, sitemap, schema, rankings, optimization
+> **Source:** `knowledge/seo-strategy-2026.md` (1,336 lines of research)
+> **Last updated:** 2026-01-29
 
-## 🎯 NORTH STAR: INCREASE SALES & MAKE MONEY
+## ⚠️ VERIFICATION GATE
 
-**All SEO work must prioritize revenue-generating pages and quick wins that drive traffic to products.**
+Before ANY SEO work, state this in your response:
+> "SEO Procedure verified. Working in [BATCH NAME] phase. Checklist loaded."
 
-SEO is not about rankings for vanity. It's about:
-1. **Getting BUYERS to product pages** (not just visitors)
-2. **Ranking for PURCHASE-INTENT keywords** (not informational fluff)
-3. **Quick wins that generate traffic THIS MONTH** (not 6 months from now)
+If you cannot state this, STOP and read this file first.
 
 ---
 
-## Master SEO Task Checklist
+## How This Works
 
-### 💰 PRIORITY 1: Money Pages (Do These FIRST)
-These directly drive sales:
-- [ ] `product-listings.md` - **Product page SEO** ← MOST IMPORTANT
-- [ ] `collections.md` - **Collection page SEO** ← HIGH INTENT TRAFFIC  
-- [ ] `meta-tags.md` - Titles/descriptions for products & collections
-- [ ] `images.md` - Product images rank in Google Images → sales
+When Francisco says **"fix all SEO"** or similar:
+1. Run a FULL AUDIT first (Batch 0)
+2. Generate a prioritized fix list
+3. Work through fixes in BATCHES (not all at once)
+4. Verify each fix before moving to next
+5. Report progress after each batch
 
-### ⚡ PRIORITY 2: Quick Wins (15-30 min each, immediate impact)
-- [ ] Submit sitemap to Google Search Console (5 min) — see `technical.md`
-- [ ] Optimize titles on top 10 products (30 min) — see `product-listings.md`
-- [ ] Add alt text to bestseller product images (20 min) — see `images.md`
-- [ ] Write Valentine's collection description (15 min) — see `collections.md`
-- [ ] Fix any homepage meta title/description (10 min) — see `meta-tags.md`
-
-### 🔧 PRIORITY 3: Foundation (After Money Pages)
-- [ ] `keywords.md` - Keyword research (inform product optimization)
-- [ ] `technical.md` - Speed, mobile, sitemap (don't let slow site kill sales)
-- [ ] `schema.md` - Rich results (stars, prices visible in search = higher CTR)
-
-### 📝 PRIORITY 4: Growth (Slow Burn)
-- [ ] `content.md` - Blog to capture informational traffic → funnel to products
-- [ ] `link-building.md` - Authority building (takes months, but compounds)
-
-### ⏸️ PRIORITY 5: Skip Unless Needed
-- [ ] `local-seo.md` - Only if physical store added later
-
-### 🔄 Ongoing
-- [ ] `monitoring.md` - Track what's working, double down on winners
+**NEVER** try to fix everything in one pass. Systematic batches = nothing missed.
 
 ---
 
-## 💵 Revenue-First Keyword Priority
+## Batch Structure
 
-### BUY NOW Keywords (Highest Priority)
-Target these first — people searching these WANT TO BUY:
-- "mommy and me matching [product]" + "buy/shop/order"
-- "mommy and me [occasion] outfits"
-- "[product name] mommy and me set"
-
-### Collection Keywords (High Priority)
-People browsing categories, close to purchase:
-- "mommy and me dresses"
-- "mommy and me pajamas"  
-- "valentine mommy and me outfits"
-- "christmas matching family pajamas"
-
-### Long-tail Purchase Intent (Medium Priority)
-Specific = ready to buy:
-- "affordable mommy and me outfits under $50"
-- "matching mother daughter dresses for wedding"
-- "mommy and me birthday outfits pink"
-
-### Informational Keywords (Lower Priority)
-Only pursue if you can funnel to products:
-- "mommy and me photo outfit ideas" → Blog → Link to products
-- "how to style matching outfits" → Blog → Link to products
+| Batch | Name | Scope | Typical Time |
+|-------|------|-------|--------------|
+| 0 | Audit | Scan everything, create fix list | 5-10 min |
+| 1 | Critical | Core Web Vitals, crawl errors | 15-30 min |
+| 2 | Technical | Schema, sitemap, robots, redirects | 20-30 min |
+| 3 | On-Page | Titles, descriptions, H1s, URLs | 30-60 min |
+| 4 | Content | Product descriptions, alt text | 45-90 min |
+| 5 | Collections | Collection pages SEO | 20-30 min |
+| 6 | Advanced | Internal links, content gaps, speed | 30-60 min |
 
 ---
 
-## ⚡ Quick Win Checklist (Do Today)
+## Batch 0: AUDIT (Always First)
 
-These take <2 hours total and have immediate impact:
+Run this every time before fixing anything.
 
-1. **Google Search Console** (15 min)
-   - [ ] Verify site is connected
-   - [ ] Submit sitemap.xml
-   - [ ] Check for indexing errors
+### Checklist
+```
+□ Check Google Search Console for errors
+□ Run PageSpeed Insights on homepage + 1 product page
+□ Check all products have: title, description, images
+□ Check all collections have: title, description
+□ Count products missing meta descriptions
+□ Count images missing alt text
+□ Check for duplicate titles/descriptions
+□ Note current Core Web Vitals scores
+```
 
-2. **Homepage & Top Collections** (30 min)
-   - [ ] Homepage title: "Mommy and Me Matching Outfits | Dress Like Mommy"
-   - [ ] Valentine's collection title optimized
-   - [ ] New Arrivals collection description written
+### Output
+Create `memory/seo-audit-YYYY-MM-DD.md` with:
+- Current scores (LCP, CLS, INP)
+- Error count by category
+- Priority fix list (ordered)
+- Estimated total work
 
-3. **Top 5 Products** (30 min)
-   - [ ] Each has keyword-rich title
-   - [ ] Each has 200+ word description
-   - [ ] Each has alt text on images
-
-4. **Page Speed Check** (15 min)
-   - [ ] Run PageSpeed Insights on homepage
-   - [ ] Compress any images over 200KB
-   - [ ] Note score for baseline
-
----
-
-## Key Metrics to Track (Revenue Focus)
-
-| Metric | Why It Matters | Target |
-|--------|----------------|--------|
-| **Organic revenue** | Direct $ from SEO | Track in Shopify |
-| **Product page traffic** | Buyers on money pages | Growing MoM |
-| **Collection page traffic** | High-intent browsers | Growing MoM |
-| **Conversion rate (organic)** | Quality of traffic | 2%+ |
-| **Keyword rankings (buy intent)** | Visibility for buyers | Top 10 |
-
-**Less Important (vanity metrics):**
-- Total organic traffic (if it doesn't convert, who cares?)
-- Blog traffic (unless it funnels to products)
-- Number of indexed pages (quality > quantity)
+### Verification
+> "Audit complete. Found [X] critical, [Y] high, [Z] medium issues. Starting Batch 1."
 
 ---
 
-## Procedure Format
+## Batch 1: CRITICAL FIXES
 
-Each procedure follows this structure:
-1. **Verification Gate** - Proof you've read the procedure
-2. **Prerequisites** - What you need before starting
-3. **Step-by-Step Checklist** - Numbered actions
-4. **Tools/Resources** - Specific tools to use
-5. **Quality Criteria** - How to know you did it right
-6. **Common Mistakes** - What to avoid
+Fix these first — they block everything else.
+
+### Checklist
+```
+□ LCP > 2.5s? → Image optimization, lazy loading, preload hero
+□ CLS > 0.1? → Add image dimensions, fix layout shifts
+□ Crawl errors in GSC? → Fix broken links, 404s
+□ Sitemap submitted? → Submit to GSC if not
+□ Robots.txt blocking important pages? → Fix
+□ HTTPS everywhere? → Check for mixed content
+```
+
+### Specifications
+| Metric | Target | Current | Action |
+|--------|--------|---------|--------|
+| LCP | ≤ 2.5s | [measure] | [fix if needed] |
+| INP | ≤ 200ms | [measure] | [fix if needed] |
+| CLS | ≤ 0.1 | [measure] | [fix if needed] |
+
+### Verification
+After each fix, re-run PageSpeed Insights and confirm improvement.
 
 ---
 
-## Store-Specific Notes
+## Batch 2: TECHNICAL SEO
 
-- **Platform:** Shopify
-- **Handle:** dresslikemommy-com
-- **Primary market:** US (English)
-- **Google Merchant Center:** Connected
-- **Current status:** Early stage, needs full SEO implementation
-- **Immediate opportunity:** Valentine's Day (seasonal traffic spike)
+### Checklist
+```
+□ Product schema JSON-LD on all products
+□ Organization schema on homepage
+□ BreadcrumbList schema on product/collection pages
+□ FAQ schema on FAQ page (if exists)
+□ Sitemap includes all products/collections/pages
+□ No duplicate content issues
+□ Canonical tags correct
+□ Hreflang tags (if multi-market)
+□ 301 redirects working (no chains)
+```
+
+### Schema Template (Product)
+```json
+{
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": "[PRODUCT TITLE]",
+  "image": ["[IMAGE_URL]"],
+  "description": "[META DESCRIPTION]",
+  "brand": {"@type": "Brand", "name": "Dress Like Mommy"},
+  "offers": {
+    "@type": "Offer",
+    "price": "[PRICE]",
+    "priceCurrency": "USD",
+    "availability": "https://schema.org/InStock"
+  }
+}
+```
+
+### Verification
+Use Google Rich Results Test on 3 random products.
+
+---
+
+## Batch 3: ON-PAGE SEO
+
+Work through ALL products and pages systematically.
+
+### Title Tag Formula
+```
+[Primary Keyword] - [Secondary Keyword] | Dress Like Mommy
+```
+- **Length:** 50-60 characters (max 580 pixels)
+- **Include:** Primary keyword near start
+- **Avoid:** Keyword stuffing, all caps
+
+### Meta Description Formula
+```
+[Benefit/Hook]. [What it is]. [Call to action]. Shop [keyword] at Dress Like Mommy!
+```
+- **Length:** 150-160 characters (max 920 pixels)
+- **Include:** Primary keyword, call to action
+- **Avoid:** Duplicate descriptions, generic text
+
+### H1 Rules
+- One H1 per page (usually product/collection title)
+- Include primary keyword
+- 20-70 characters
+
+### URL Handle Rules
+- 3-5 words max
+- Primary keyword included
+- Hyphens between words
+- No dates, no filler words
+
+### Checklist (Per Product)
+```
+□ Title tag: 50-60 chars, keyword near start
+□ Meta description: 150-160 chars, has CTA
+□ H1: Matches title intent, keyword included
+□ URL handle: Short, keyword included
+□ No duplicate of another product's meta
+```
+
+### Batch Processing
+Process products in groups of 10:
+1. List 10 products
+2. Check each against checklist
+3. Fix issues
+4. Verify fixes
+5. Move to next 10
+
+### Verification
+> "Batch 3 progress: [X]/[Total] products optimized. [Y] remaining."
+
+---
+
+## Batch 4: CONTENT & IMAGES
+
+### Product Description Rules
+- **Length:** 300-500 words
+- **Structure:** Benefits → Features → Specs → CTA
+- **Keywords:** Primary + 2-3 related, natural placement
+- **Avoid:** Duplicate supplier descriptions, thin content
+
+### Image Alt Text Formula
+```
+[Color] [Product Type] for [Audience] - [Brand or Style Detail]
+```
+Example: "Pink floral matching dress for mom and daughter - summer collection"
+
+- **Length:** Under 125 characters
+- **Include:** What's in the image, keyword if relevant
+- **Avoid:** "Image of...", keyword stuffing, empty alt tags
+
+### Image Optimization
+| Type | Max Size | Format | Dimensions |
+|------|----------|--------|------------|
+| Hero | 150KB | WebP | 1920x1080 max |
+| Product | 100KB | WebP | 1000x1000 |
+| Thumbnail | 30KB | WebP | 400x400 |
+
+### Checklist (Per Product)
+```
+□ Description: 300+ words, unique, keyword-rich
+□ All images have alt text
+□ Images compressed (<100KB)
+□ No missing images
+□ No duplicate descriptions
+```
+
+### Verification
+> "Batch 4 progress: [X]/[Total] products have optimized content."
+
+---
+
+## Batch 5: COLLECTION PAGES
+
+### Collection Description Rules
+- **Length:** 200-400 words
+- **Placement:** Top of collection page
+- **Include:** What's in collection, who it's for, why buy
+- **Keywords:** Collection-level keywords
+
+### Collection Meta
+- Title: "[Collection Name] | [Category] | Dress Like Mommy"
+- Description: Describe collection, include CTA
+
+### Checklist (Per Collection)
+```
+□ Has custom meta title (not auto-generated)
+□ Has custom meta description
+□ Has 200+ word description on page
+□ Products properly categorized
+□ No empty collections
+```
+
+---
+
+## Batch 6: ADVANCED OPTIMIZATION
+
+### Internal Linking
+```
+□ Related products linked on each product page
+□ Blog posts link to relevant products
+□ Collection pages link to subcollections
+□ No orphan pages (0 internal links)
+□ Breadcrumbs implemented
+```
+
+### Content Gaps
+```
+□ Size guide page exists
+□ FAQ page exists
+□ Shipping info page exists
+□ About page optimized
+□ Contact page has schema
+```
+
+### Speed Optimization
+```
+□ Unused apps removed
+□ Custom fonts minimized
+□ Third-party scripts audited
+□ Images use lazy loading
+□ Critical CSS inlined
+```
+
+---
+
+## Reporting Template
+
+After completing any batch, report:
+
+```
+## SEO Progress Report — [DATE]
+
+**Batch completed:** [BATCH NAME]
+**Products touched:** [X]
+**Issues fixed:** [Y]
+**Remaining work:** [Z]
+
+### Before/After
+| Metric | Before | After |
+|--------|--------|-------|
+| Products with meta | X% | Y% |
+| Images with alt | X% | Y% |
+| LCP score | X | Y |
+
+### Next batch:** [BATCH NAME] — estimated [TIME]
+```
+
+---
+
+## Frequency
+
+| Task | Frequency |
+|------|-----------|
+| Full audit (Batch 0) | Monthly |
+| New product SEO | Per product added |
+| Collection SEO | Per collection added |
+| Core Web Vitals check | Weekly |
+| Schema validation | Monthly |
+| Content refresh | Quarterly |
+
+---
+
+## Quick Reference
+
+### Character Limits
+- Title: 50-60 chars
+- Meta description: 150-160 chars
+- Alt text: <125 chars
+- URL handle: 3-5 words
+
+### Core Web Vitals Targets
+- LCP: ≤ 2.5 seconds
+- INP: ≤ 200 milliseconds
+- CLS: ≤ 0.1
+
+### Image Sizes
+- Hero: <150KB
+- Product: <100KB
+- Thumbnail: <30KB
+
+---
+
+## Files Created By This Procedure
+
+- `memory/seo-audit-YYYY-MM-DD.md` — Audit results
+- `memory/seo-fixes-YYYY-MM-DD.md` — Fix log
+- `knowledge/seo-strategy-2026.md` — Full research (reference)
+
+---
+
+*This procedure ensures systematic, repeatable SEO optimization. Nothing gets missed.*
