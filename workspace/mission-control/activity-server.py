@@ -46,6 +46,100 @@ activity_state = {
 }
 
 CURRENT_TASK_FILE = os.path.join(DASHBOARD_DIR, "current-task.json")
+WORKSPACE_DIR = os.path.dirname(DASHBOARD_DIR)  # Parent of mission-control
+
+def check_memory_health():
+    """Check memory system integrity"""
+    checks = {}
+    errors = []
+    warnings = []
+    
+    # Check state.json
+    state_file = os.path.join(WORKSPACE_DIR, "memory", "state.json")
+    if os.path.exists(state_file):
+        try:
+            with open(state_file, 'r', encoding='utf-8') as f:
+                state = json.load(f)
+            checks["state.json"] = {"status": "ok", "version": state.get("version", "?")}
+            # Extract current task info
+            if state.get("currentTask"):
+                checks["currentTask"] = {
+                    "id": state["currentTask"].get("id"),
+                    "description": state["currentTask"].get("description"),
+                    "status": state["currentTask"].get("status"),
+                    "progress": state["currentTask"].get("progress", {})
+                }
+        except Exception as e:
+            checks["state.json"] = {"status": "error", "error": str(e)}
+            errors.append("state.json invalid")
+    else:
+        checks["state.json"] = {"status": "missing"}
+        errors.append("state.json missing")
+    
+    # Check events.jsonl
+    events_file = os.path.join(WORKSPACE_DIR, "memory", "events.jsonl")
+    if os.path.exists(events_file):
+        try:
+            with open(events_file, 'r', encoding='utf-8') as f:
+                lines = f.readlines()
+            checks["events.jsonl"] = {"status": "ok", "count": len(lines)}
+        except Exception as e:
+            checks["events.jsonl"] = {"status": "error", "error": str(e)}
+            errors.append("events.jsonl unreadable")
+    else:
+        checks["events.jsonl"] = {"status": "missing"}
+        warnings.append("events.jsonl not created yet")
+    
+    # Check active-thread.md
+    thread_file = os.path.join(WORKSPACE_DIR, "memory", "active-thread.md")
+    if os.path.exists(thread_file):
+        mtime = os.path.getmtime(thread_file)
+        age_min = (time.time() - mtime) / 60
+        checks["active-thread.md"] = {"status": "ok", "ageMinutes": round(age_min, 1)}
+    else:
+        checks["active-thread.md"] = {"status": "missing"}
+        errors.append("active-thread.md missing")
+    
+    # Check CONSTITUTION.md
+    const_file = os.path.join(WORKSPACE_DIR, "CONSTITUTION.md")
+    checks["CONSTITUTION.md"] = {"status": "ok" if os.path.exists(const_file) else "missing"}
+    if not os.path.exists(const_file):
+        errors.append("CONSTITUTION.md missing")
+    
+    # Check AGENTS.md has CURRENT STATE
+    agents_file = os.path.join(WORKSPACE_DIR, "AGENTS.md")
+    if os.path.exists(agents_file):
+        with open(agents_file, 'r', encoding='utf-8') as f:
+            content = f.read()
+        if "CURRENT STATE" in content:
+            checks["AGENTS.md"] = {"status": "ok", "hasState": True}
+        else:
+            checks["AGENTS.md"] = {"status": "warning", "hasState": False}
+            warnings.append("AGENTS.md missing CURRENT STATE section")
+    else:
+        checks["AGENTS.md"] = {"status": "missing"}
+        errors.append("AGENTS.md missing")
+    
+    # Check today's memory file
+    today = datetime.now().strftime("%Y-%m-%d")
+    today_file = os.path.join(WORKSPACE_DIR, "memory", f"{today}.md")
+    checks["todayLog"] = {"status": "ok" if os.path.exists(today_file) else "pending", "date": today}
+    
+    # Overall health
+    if errors:
+        overall = "error"
+    elif warnings:
+        overall = "warning"
+    else:
+        overall = "healthy"
+    
+    return {
+        "overall": overall,
+        "checks": checks,
+        "errors": errors,
+        "warnings": warnings,
+        "checkedAt": datetime.now(timezone.utc).isoformat()
+    }
 
 def load_current_task():
     """Load the high-level task file written by Clawd"""
@@ -413,6 +507,16 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps({"status": "ok", "time": datetime.now(timezone.utc).isoformat()}).encode())
+            return
+        
+        if path == '/api/memory':
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Cache-Control', 'no-cache')
+            self.end_headers()
+            memory_health = check_memory_health()
+            self.wfile.write(json.dumps(memory_health, indent=2, ensure_ascii=False).encode('utf-8'))
             return
         
         if path == '/api/status':
