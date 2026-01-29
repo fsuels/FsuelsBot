@@ -8,33 +8,27 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-01-28 23:24 EST | **Version:** 5
+**Last updated:** 2026-01-28 23:35 EST | **Version:** 6
 
-**Current task:** 100% Memory reliability system [TASK-20260128-002]
-**Status:** ✅ COMPLETE
-**Context:** Bulletproof memory per Francisco's directive. Never lose track.
-**Next step:** System operational — monitoring active
+**Current task:** Fix Mission Control real-time sync [TASK-20260128-003]
+**Status:** in_progress
+**Context:** Dashboard must show what I'm ACTUALLY doing, not stale data
+**Next step:** Make dashboard update automatically as I work
 
 **Progress:**
-- ✅ State Injection (AGENTS.md CURRENT STATE)
-- ✅ Tier 2 (state.json + events.jsonl)
-- ✅ CONSTITUTION.md with P0 rules
-- ✅ Incident tracking + learnings systems
-- ✅ Regression test framework
-- ✅ State machine workflows
-- ✅ Full documentation (memory-system.md, context-recovery.md)
-- ✅ Integrity validator (memory-integrity.ps1)
-- ✅ BOOT.md startup validation
-- ✅ HEARTBEAT.md continuous monitoring
-- ✅ State recovery script (rebuild-state.ps1)
+- ✅ Identified problem: dashboard not syncing with actual work
+- 🔄 Fix server to read state.json reliably
+- ⬜ Add auto-update mechanism
+- ⬜ Test real-time updates
 
 **Recent completed:**
-- ✅ [TASK-20260128-001] Memory reliability Tier 2 upgrades — state.json + events.jsonl implemented
+- ✅ [TASK-20260128-002] 100% Memory reliability system — 11 components built
 - ✅ [TASK-20260128-000] Valentine's Day DLM prep — Collection created, 7 products tagged, Pinterest approved
 
 **Standing rules:**
-- Memory decisions ALWAYS require Council approval
+- UPDATE state.json BEFORE telling Francisco about work
 - Mission Control must always be running (scheduled task + heartbeat check)
+- Dashboard = source of truth for current work
 
 ---
 ### State Management Protocol
@@ -42,6 +36,13 @@ This folder is home. Treat it that way.
 2. **events.jsonl** = append-only audit trail (never edit, only append)
 3. **This section** = human-readable render (regenerated from state.json)
 4. **On state change:** Update state.json → Append to events.jsonl → Re-render this section
+
+### Dashboard Discipline (MANDATORY)
+**UPDATE state.json BEFORE telling Francisco what you're working on.**
+- Dashboard must ALWAYS match what you report in chat
+- If you start a new task → update state.json FIRST
+- If you make progress → update state.json FIRST
+- Never let dashboard fall behind reality
 
 ---
 

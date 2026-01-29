@@ -1,38 +1,30 @@
 {
-  "version": 5,
-  "lastUpdated": "2026-01-28T23:24:00-05:00",
+  "version": 6,
+  "lastUpdated": "2026-01-28T23:35:00-05:00",
   "currentTask": {
-    "id": "TASK-20260128-002",
-    "description": "100% Memory reliability system",
+    "id": "TASK-20260128-003",
+    "description": "Fix Mission Control real-time sync",
     "status": "in_progress",
-    "startedAt": "2026-01-28T22:14:00-05:00",
-    "context": "Building bulletproof memory per Francisco's directive 'Never stop'. Council-approved architecture.",
-    "nextStep": "Long-term monitoring active — system operational",
+    "startedAt": "2026-01-28T23:35:00-05:00",
+    "context": "Dashboard must show what I'm ACTUALLY doing, not stale data",
+    "nextStep": "Make dashboard update automatically as I work",
     "progress": {
       "completed": [
-        "State Injection (AGENTS.md CURRENT STATE)",
-        "Tier 2 (state.json + events.jsonl)",
-        "CONSTITUTION.md with P0 rules",
-        "Incident tracking system",
-        "Learnings capture system",
-        "Regression test framework",
-        "State machine workflows",
-        "Infrastructure validator",
-        "Full documentation (memory-system.md + context-recovery.md)",
-        "Integrity validator (tests/validators/memory-integrity.ps1)",
-        "BOOT.md startup validation",
-        "HEARTBEAT.md continuous monitoring",
-        "State recovery script (rebuild-state.ps1)"
+        "Identified problem: dashboard not syncing with actual work"
       ],
-      "remaining": []
+      "remaining": [
+        "Fix server to read state.json reliably",
+        "Add auto-update mechanism",
+        "Test real-time updates"
+      ]
     }
   },
   "recentCompleted": [
     {
-      "id": "TASK-20260128-001",
-      "description": "Memory reliability Tier 2 upgrades",
-      "completedAt": "2026-01-28T22:51:00-05:00",
-      "outcome": "state.json + events.jsonl implemented"
+      "id": "TASK-20260128-002",
+      "description": "100% Memory reliability system",
+      "completedAt": "2026-01-28T23:24:00-05:00",
+      "outcome": "11 components: state injection, validators, monitoring, recovery"
     },
     {
       "id": "TASK-20260128-000",
@@ -43,13 +35,12 @@
   ],
   "waitingOn": [],
   "standingRules": [
-    "Memory decisions ALWAYS require Council approval",
+    "UPDATE state.json BEFORE telling Francisco about work",
     "Mission Control must always be running",
-    "Never stop working"
+    "Dashboard = source of truth for current work"
   ],
   "sessionContext": {
-    "directive": "Never stop",
-    "priority": "100% memory reliability",
+    "directive": "Dashboard must match reality",
     "missionControlUrl": "http://192.168.4.25:8765?key=a6132abf77194fd10a77317a094771f1"
   }
 }
