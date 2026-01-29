@@ -1,76 +1,43 @@
 # Active Thread
 
-*Last updated: 2026-01-29 03:40 EST*
+*Last updated: 2026-01-29 11:17 EST*
 
-## Current State: NIGHT SHIFT - FRANCISCO SLEEPING
+## Current State: TASK CONTEXT ISOLATION IMPLEMENTED ✅
 
-**Status:** SEO optimization in progress. Francisco sleeping since 2:48 AM.
+**Just completed:** Council-approved task context isolation system
 
-## ✅ COMPLETED THIS SESSION
+## What Was Implemented
 
-### Bug Fix - Homepage Opacity
-- **Problem:** Homepage images nearly invisible on live site
-- **Solution:** Francisco disabled "Reveal on scroll" animation in Theme Settings
-- **Result:** Images now fully visible ✅
+**The Problem:** Task context got mixed/lost when Telegram session compacted. No way to remember WHY a task was created.
 
-### Valentine Campaign Prep - COMPLETE
-- Created quick wins checklist: `memory/2026-01-29-quick-wins.md`
-- Audited live site: found Christmas still in nav, no Valentine hero
-- Drafted announcement bar urgency copy
-- Drafted hero banner copy
-- Identified 4 products in Valentine collection (need more)
-- Found 7 ready-to-import 1688 URLs
+**The Solution (Council grade: A-):**
+- Added `context` block to tasks.json schema
+- Each task now has `context.summary` — one-paragraph explanation of WHY it exists
+- Also: `decisions[]`, `constraints[]`, `created_from` (ledger link)
+- Bot MUST read context.summary before working on any task
 
-### Git Backup
-- Committed and pushed to GitHub ✅
+**Files changed:**
+- `memory/tasks.json` — Version 5, added context to all active tasks
+- `AGENTS.md` — Added context to Task Structure, new rule #2 (read context first)
+- `council-sessions/2026-01-29-task-context-isolation.md` — Full Council report
 
-### SEO Optimization - NIGHT SHIFT (3:15-3:40 AM)
-- **Valentine Collection page:** Fixed duplicate title (96→60 chars)
-- **Sequin Heart Leggings:** Added title (60 chars) + meta description
-- **Baby Valentine Romper Set:** Added title (58 chars) + meta description
-- **Valentine Heart Pajama Set:** Added title (64 chars) + meta description
-- See `memory/seo-fixes-2026-01-29.md` for details
+**What we did NOT build (per Council):**
+- Separate context files per task (overkill)
+- 4-layer memory hierarchy (enterprise bloat)
+- Vector embeddings (premature optimization)
 
-## 🟡 WAITING FOR FRANCISCO (when he wakes)
+## Pending: SEO Import
 
-**5-Minute High Impact Tasks:**
+**Status:** 220 product title fixes ready in `mission-control/seo-title-import.csv`
+**Issue:** Some titles have "..." truncation
+**Francisco said:** "With precautions" — wants review before import
 
-1. **Announcement bar** (1 min)
-   - Paste: `💕 Valentine's Matching Outfits – Order by Feb 10 for guaranteed delivery! FREE SHIPPING 💕`
+**Next step:** Francisco decides: import now and fix outliers, or regenerate truncated ones first
 
-2. **Hero banner copy** (2 min)
-   - Heading: `💕 Valentine's Twinning – Order by Feb 10!`
-   - Subtext: `Match her love, match her look. Free shipping on all orders.`
-   - Button: `Shop Valentine's` → `/collections/valentines-day-matching-outfits`
+## Quick Recovery
 
-3. **Hide Christmas nav** (1 min)
-   - Remove "CHRISTMAS MATCHING OUTFITS" from main menu
-
-4. **Add Valentine to homepage** (2 min)
-   - Add Featured Collection section → select Valentine's Day
-
-5. **Import 2 products via BuckyDrop** (5 min)
-   - URL 1: `https://detail.1688.com/offer/979681219094.html`
-   - URL 2: `https://detail.1688.com/offer/983725460021.html`
-
-**Total: ~11 min → Valentine campaign LIVE**
-
-## ASSETS READY TO DEPLOY
-- ✅ Valentine copy: `knowledge/valentine-copy-drafts.md`
-- ✅ Valentine products (10): `knowledge/valentine-products-1688.md`
-- ✅ Quick wins checklist: `memory/2026-01-29-quick-wins.md`
-- ✅ Full backlog: `memory/backlog.md`
-
-## Key Dates
-- **Today:** Jan 29 (Wednesday)
-- **Order deadline:** Feb 10 (12 days)
-- **Valentine's Day:** Feb 14 (16 days)
-
-## Quick Recovery Checklist
-
-If context is truncated:
-1. Homepage opacity bug → FIXED ✅
-2. Valentine hero banner → Section added, copy needs manual entry
-3. Francisco → SLEEPING (went to bed 2:48 AM)
-4. Quick wins ready in memory/2026-01-29-quick-wins.md
-5. Git backup → COMPLETE ✅
+If context truncated:
+1. Task context isolation → IMPLEMENTED ✅
+2. SEO import → Ready, awaiting Francisco review
+3. 5 quick wins → Still pending (T005-T009)
+4. Feb 10 deadline → 12 days

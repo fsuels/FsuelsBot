@@ -358,12 +358,16 @@ body {
         <div class="modal-label">Status</div>
         <span class="modal-status" id="modalStatus">pending</span>
       </div>
+      <div class="modal-section" id="modalContextSection">
+        <div class="modal-label">💡 Context / Why This Exists</div>
+        <div class="modal-content" id="modalContext"></div>
+      </div>
       <div class="modal-section" id="modalApproachSection">
         <div class="modal-label">🎯 Approach / How</div>
         <div class="modal-content" id="modalApproach"></div>
       </div>
       <div class="modal-section" id="modalNotesSection">
-        <div class="modal-label">📝 Notes / Why</div>
+        <div class="modal-label">📝 Notes</div>
         <div class="modal-content" id="modalNotes"></div>
       </div>
       <div class="modal-section" id="modalPlanSection">
@@ -548,6 +552,32 @@ function showTaskDetail(id) {
   const status = task.status || 'pending';
   statusEl.textContent = status;
   statusEl.className = 'modal-status ' + (status === 'done' ? 'done' : status === 'in_progress' ? 'in-progress' : 'pending');
+  
+  // Context (the WHY)
+  const contextSection = document.getElementById('modalContextSection');
+  if (task.context && task.context.summary) {
+    let contextHtml = task.context.summary;
+    // Add decisions if present
+    if (task.context.decisions && task.context.decisions.length > 0) {
+      contextHtml += '<div style="margin-top:12px;font-size:12px;"><strong>Key Decisions:</strong><ul style="margin:4px 0 0 16px;">';
+      task.context.decisions.forEach(d => {
+        contextHtml += '<li>' + d + '</li>';
+      });
+      contextHtml += '</ul></div>';
+    }
+    // Add constraints if present
+    if (task.context.constraints && task.context.constraints.length > 0) {
+      contextHtml += '<div style="margin-top:8px;font-size:12px;"><strong>Constraints:</strong><ul style="margin:4px 0 0 16px;">';
+      task.context.constraints.forEach(c => {
+        contextHtml += '<li>' + c + '</li>';
+      });
+      contextHtml += '</ul></div>';
+    }
+    document.getElementById('modalContext').innerHTML = contextHtml;
+    contextSection.style.display = 'block';
+  } else {
+    contextSection.style.display = 'none';
+  }
   
   // Approach
   const approachSection = document.getElementById('modalApproachSection');
