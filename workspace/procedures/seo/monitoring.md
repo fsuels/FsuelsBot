@@ -1,3 +1,12 @@
+---
+version: "1.0"
+created: "2026-01-29"
+updated: "2026-01-29"
+verified: "2026-01-29"
+confidence: "high"
+type: "procedure"
+---
+
 # SEO Monitoring & Maintenance Procedure
 
 > **Verification Gate:** Before proceeding, state: "I have read the monitoring procedure. The three core metrics to track are: organic traffic, keyword rankings, and indexed pages."

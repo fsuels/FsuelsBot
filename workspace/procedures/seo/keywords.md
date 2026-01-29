@@ -1,3 +1,12 @@
+---
+version: "1.0"
+created: "2026-01-29"
+updated: "2026-01-29"
+verified: "2026-01-29"
+confidence: "high"
+type: "procedure"
+---
+
 # Keyword Research Procedure
 
 > **Verification Gate:** Before proceeding, state: "I have read the keyword research procedure. The three types of keywords to research are: primary, secondary/long-tail, and seasonal/trending."

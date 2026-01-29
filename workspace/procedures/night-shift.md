@@ -1,3 +1,12 @@
+---
+version: "1.0"
+created: "2026-01-29"
+updated: "2026-01-29"
+verified: "2026-01-29"
+confidence: "high"
+type: "procedure"
+---
+
 # Night Shift Protocol
 
 > **Trigger:** Francisco goes to sleep or is unavailable for extended period

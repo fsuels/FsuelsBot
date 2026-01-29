@@ -1,3 +1,11 @@
+---
+version: "1.0"
+created: "2026-01-28"
+updated: "2026-01-28"
+verified: "2026-01-28"
+confidence: "medium"
+---
+
 # Procedure: Memory Consolidation (Nightly — Incremental)
 *Last updated: 2026-01-28*
 *Source: Council architecture (Round 1 + Round 2 improvements)*

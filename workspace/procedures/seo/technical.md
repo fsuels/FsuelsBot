@@ -1,3 +1,12 @@
+---
+version: "1.0"
+created: "2026-01-29"
+updated: "2026-01-29"
+verified: "2026-01-29"
+confidence: "high"
+type: "procedure"
+---
+
 # Technical SEO Procedure
 
 > **Verification Gate:** Before proceeding, state: "I have read the technical SEO procedure. The three pillars are: crawlability (sitemap/robots), page speed (under 3s), and mobile optimization (responsive design)."

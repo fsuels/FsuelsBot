@@ -1,3 +1,11 @@
+---
+version: "1.0"
+created: "2026-01-28"
+updated: "2026-01-28"
+verified: "2026-01-28"
+confidence: "medium"
+---
+
 # Team Operations Quick Reference
 *Source: Council Team Architecture Debate (2026-01-28)*
 *This is the master index — all procedures linked below*

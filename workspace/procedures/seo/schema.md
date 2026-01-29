@@ -1,3 +1,12 @@
+---
+version: "1.0"
+created: "2026-01-29"
+updated: "2026-01-29"
+verified: "2026-01-29"
+confidence: "high"
+type: "procedure"
+---
+
 # Schema Markup Procedure
 
 > **Verification Gate:** Before proceeding, state: "I have read the schema procedure. The key schema types for e-commerce are: Product (with price/availability), Organization, BreadcrumbList, and FAQ."

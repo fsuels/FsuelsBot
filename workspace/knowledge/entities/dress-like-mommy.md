@@ -1,3 +1,11 @@
+---
+version: "1.0"
+created: "2026-01-28"
+updated: "2026-01-28"
+verified: "2026-01-28"
+confidence: "medium"
+---
+
 # Dress Like Mommy (DLM)
 *Type: project (active business)*
 *Last updated: 2026-01-28*

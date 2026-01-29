@@ -1,3 +1,11 @@
+---
+version: "1.0"
+created: "2026-01-28"
+updated: "2026-01-28"
+verified: "2026-01-28"
+confidence: "medium"
+---
+
 # Anti-Disconnect Protocol (P0)
 **Source:** Francisco directive, 2026-01-28
 **Status:** PERMANENT — never violate

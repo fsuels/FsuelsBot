@@ -594,6 +594,45 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
             return
         
+        if path == '/api/metrics':
+            # Council A+ upgrade: Metrics dashboard endpoint
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Cache-Control', 'no-cache')
+            self.end_headers()
+            try:
+                import subprocess
+                result = subprocess.run(
+                    ['python', os.path.join(WORKSPACE_DIR, 'scripts', 'metrics.py'), 'status'],
+                    capture_output=True, text=True, timeout=5
+                )
+                if result.returncode == 0:
+                    self.wfile.write(result.stdout.encode('utf-8'))
+                else:
+                    self.wfile.write(json.dumps({"error": result.stderr or "metrics.py failed"}).encode('utf-8'))
+            except Exception as e:
+                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+            return
+        
+        if path == '/api/circuits':
+            # Council A+ upgrade: Circuit breaker status
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Cache-Control', 'no-cache')
+            self.end_headers()
+            circuits_file = os.path.join(WORKSPACE_DIR, "memory", "circuits.json")
+            try:
+                if os.path.exists(circuits_file):
+                    with open(circuits_file, 'r', encoding='utf-8') as f:
+                        self.wfile.write(f.read().encode('utf-8'))
+                else:
+                    self.wfile.write(json.dumps({"error": "circuits.json not found"}).encode('utf-8'))
+            except Exception as e:
+                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+            return
+        
         if path == '/api/status':
             # Return status based on log activity (no gateway proxy - it returns HTML)
             up_since = activity_state.get("stats", {}).get("upSince", "")

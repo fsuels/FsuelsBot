@@ -1,3 +1,11 @@
+---
+version: "1.0"
+created: "2026-01-28"
+updated: "2026-01-28"
+verified: "2026-01-28"
+confidence: "medium"
+---
+
 # Insight: System Stability & Crash Prevention
 *Learned: 2026-01-28*
 *Source: memory/2026-01-28.md — production incidents*

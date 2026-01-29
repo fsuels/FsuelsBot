@@ -1,3 +1,12 @@
+---
+version: "1.0"
+created: "2026-01-29"
+updated: "2026-01-29"
+verified: "2026-01-29"
+confidence: "high"
+type: "procedure"
+---
+
 # Image Optimization Procedure
 
 > **Verification Gate:** Before proceeding, state: "I have read the image optimization procedure. Every image needs: descriptive filename, alt text with keywords, and compressed file size under 200KB."

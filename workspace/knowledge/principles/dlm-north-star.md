@@ -1,3 +1,11 @@
+---
+version: "1.0"
+created: "2026-01-29"
+updated: "2026-01-29"
+verified: "2026-01-29"
+confidence: "medium"
+---
+
 # DLM North Star Principle (P0)
 
 **The #1 goal for dresslikemommy.com is to INCREASE SALES and MAKE MONEY.**

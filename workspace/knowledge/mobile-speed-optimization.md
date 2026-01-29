@@ -1,3 +1,11 @@
+---
+version: "1.0"
+created: "2026-01-29"
+updated: "2026-01-29"
+verified: "2026-01-29"
+confidence: "medium"
+---
+
 # Mobile Speed Optimization Guide - Dress Like Mommy
 
 **Created:** January 29, 2026  

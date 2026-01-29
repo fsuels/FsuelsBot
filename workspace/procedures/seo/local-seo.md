@@ -1,3 +1,12 @@
+---
+version: "1.0"
+created: "2026-01-29"
+updated: "2026-01-29"
+verified: "2026-01-29"
+confidence: "high"
+type: "procedure"
+---
+
 # Local SEO Procedure
 
 > **Verification Gate:** Before proceeding, state: "I have read the local SEO procedure. Local SEO is primarily for businesses with physical locations. For pure e-commerce without a storefront, local SEO is low priority."

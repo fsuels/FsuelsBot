@@ -1,3 +1,12 @@
+---
+version: "1.0"
+created: "2026-01-29"
+updated: "2026-01-29"
+verified: "2026-01-29"
+confidence: "high"
+type: "procedure"
+---
+
 # Link Building Procedure
 
 > **Verification Gate:** Before proceeding, state: "I have read the link building procedure. Quality over quantity: one link from a relevant parenting site is worth more than 100 low-quality directory links."

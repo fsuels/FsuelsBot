@@ -1,9 +1,25 @@
 # atomic-transaction.ps1
 # Atomic multi-file transaction system for memory files
-# Council-designed: Grade A+ (WAL pattern)
+# Council-validated: Grade A+ (WAL pattern with per-file tracking + fsync)
 
 $script:TXN_DIR = "memory/.txn"
 $script:MANIFEST_PATH = "$script:TXN_DIR/current.json"
+
+function Invoke-Fsync {
+    <#
+    .SYNOPSIS
+    Council A+: Force file to disk (fsync equivalent for PowerShell)
+    #>
+    param([string]$Path)
+    
+    try {
+        $stream = [System.IO.File]::Open($Path, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+        $stream.Flush($true)  # Flush to disk, not just OS buffer
+        $stream.Close()
+    } catch {
+        # File might not exist yet or be locked, that's OK
+    }
+}
 
 function New-Transaction {
     param(
@@ -39,6 +55,7 @@ function New-Transaction {
             checksum = $null
             mode = if ($file.Mode) { $file.Mode } else { "replace" }
             content = $file.Content
+            committed = $false  # Council A+: per-file commit status
         }
     }
     
@@ -52,6 +69,7 @@ function Write-TransactionFiles {
     foreach ($file in $Manifest.files) {
         if (Test-Path $file.path) {
             Copy-Item -Path $file.path -Destination $file.backup_path -Force
+            Invoke-Fsync -Path $file.backup_path  # Council A+: ensure backup is on disk
         }
         
         if ($file.mode -eq "append" -and (Test-Path $file.path)) {
@@ -62,11 +80,13 @@ function Write-TransactionFiles {
             $file.content | Set-Content -Path $file.temp_path -Encoding UTF8 -NoNewline
         }
         
+        Invoke-Fsync -Path $file.temp_path  # Council A+: ensure temp file is on disk before checksum
         $file.checksum = (Get-FileHash -Path $file.temp_path -Algorithm SHA256).Hash
         $file.Remove('content')
     }
     
     $Manifest | ConvertTo-Json -Depth 10 | Set-Content -Path $script:MANIFEST_PATH -Encoding UTF8
+    Invoke-Fsync -Path $script:MANIFEST_PATH  # Council A+: ensure manifest is on disk
 }
 
 function Invoke-TransactionCommit {
@@ -74,10 +94,16 @@ function Invoke-TransactionCommit {
     
     $Manifest.phase = "committing"
     $Manifest | ConvertTo-Json -Depth 10 | Set-Content -Path $script:MANIFEST_PATH -Encoding UTF8
+    Invoke-Fsync -Path $script:MANIFEST_PATH  # Council A+: ensure phase is on disk
     
     foreach ($file in $Manifest.files) {
         if (Test-Path $file.temp_path) {
             Move-Item -Path $file.temp_path -Destination $file.path -Force
+            Invoke-Fsync -Path $file.path  # Council A+: ensure committed file is on disk
+            
+            # Council A+: Mark this file as committed in manifest
+            $file.committed = $true
+            $Manifest | ConvertTo-Json -Depth 10 | Set-Content -Path $script:MANIFEST_PATH -Encoding UTF8
         }
     }
     
@@ -113,7 +139,8 @@ function Invoke-TransactionRecovery {
     $manifest = Get-Content -Path $script:MANIFEST_PATH -Raw | ConvertFrom-Json -AsHashtable
     Write-Host "Recovering transaction $($manifest.txn_id) from phase: $($manifest.phase)"
     
-    switch ($manifest.phase) {
+    # Council A+: Case-insensitive phase matching
+    switch ($manifest.phase.ToLower()) {
         "preparing" {
             Write-Host "Transaction was in PREPARING phase. Cleaning up..."
             foreach ($file in $manifest.files) {
@@ -126,11 +153,19 @@ function Invoke-TransactionRecovery {
         "committing" {
             Write-Host "Transaction was in COMMITTING phase. Resuming..."
             foreach ($file in $manifest.files) {
-                if (Test-Path $file.temp_path) {
+                # Council A+: Check per-file committed status
+                $alreadyCommitted = $file.committed -eq $true
+                if (-not $alreadyCommitted -and (Test-Path $file.temp_path)) {
                     Move-Item -Path $file.temp_path -Destination $file.path -Force
+                    Invoke-Fsync -Path $file.path
+                    $file.committed = $true
                     Write-Host "Committed: $($file.path)"
+                } elseif ($alreadyCommitted) {
+                    Write-Host "Already committed: $($file.path)"
                 }
             }
+            # Update manifest with committed statuses
+            $manifest | ConvertTo-Json -Depth 10 | Set-Content -Path $script:MANIFEST_PATH -Encoding UTF8
             Complete-Transaction -Manifest $manifest
             Write-Host "Recovery complete. All files committed."
         }

@@ -1,3 +1,11 @@
+---
+version: "1.0"
+created: "2026-01-28"
+updated: "2026-01-28"
+verified: "2026-01-28"
+confidence: "medium"
+---
+
 # DLM Product Sourcing & Fulfillment Workflow
 **Source:** Francisco's verbal walkthrough, 2026-01-28
 **Status:** Active procedure — this is how the business operates

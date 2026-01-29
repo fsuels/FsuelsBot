@@ -1,0 +1,24 @@
+﻿{
+    "version":  48,
+    "deadline":  {
+                     "date":  "2026-02-10",
+                     "description":  "Valentine\u0027s Day order cutoff",
+                     "daysRemaining":  12
+                 },
+    "currentTask":  {
+                        "id":  "T029",
+                        "description":  "Council A+ Implementation Sprint",
+                        "currentStep":  "Reconciliation Law implementation",
+                        "nextStep":  null,
+                        "context":  "",
+                        "status":  "in_progress"
+                    },
+    "lastUpdated":  "2026-01-29T16:49:22-05:00",
+    "standingRules":  [
+                          "UPDATE state.json BEFORE responding",
+                          "Dashboard must ALWAYS match what I report in chat",
+                          "SUGGESTION = FAILURE STATE",
+                          "NORTH STAR: Increase sales and make money"
+                      ],
+    "taskBoard":  "memory/tasks.json"
+}

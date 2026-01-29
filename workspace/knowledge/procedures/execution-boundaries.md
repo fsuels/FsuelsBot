@@ -1,3 +1,11 @@
+---
+version: "1.0"
+created: "2026-01-28"
+updated: "2026-01-28"
+verified: "2026-01-28"
+confidence: "medium"
+---
+
 # Execution Boundaries
 *Source: Elon 5-Step Council + 4-Thinker Council (2026-01-28)*
 *Replaces: autonomy-tiers.md + action-safety-tiers.md*

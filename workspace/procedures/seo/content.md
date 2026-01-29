@@ -1,3 +1,12 @@
+---
+version: "1.0"
+created: "2026-01-29"
+updated: "2026-01-29"
+verified: "2026-01-29"
+confidence: "high"
+type: "procedure"
+---
+
 # Content SEO Procedure
 
 > **Verification Gate:** Before proceeding, state: "I have read the content SEO procedure. Content strategy focuses on: informational keywords, building authority, and supporting product pages with internal links."

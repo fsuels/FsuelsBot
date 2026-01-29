@@ -1,3 +1,11 @@
+---
+version: "1.0"
+created: "2026-01-28"
+updated: "2026-01-28"
+verified: "2026-01-28"
+confidence: "medium"
+---
+
 # Persona: Operations Automator
 *Domain: Fulfillment, tagging, refunds, inventory, supplier ops*
 *Default model: Scripts first → Sonnet fallback*

@@ -1,3 +1,12 @@
+---
+version: "1.0"
+created: "2026-01-29"
+updated: "2026-01-29"
+verified: "2026-01-29"
+confidence: "high"
+type: "procedure"
+---
+
 # Product Listing SEO Procedure
 
 > **Verification Gate:** Before proceeding, state: "I have read the product listing SEO procedure. Every product needs: optimized title, keyword-rich description, alt-tagged images, and proper categorization."

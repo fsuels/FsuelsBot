@@ -1,3 +1,11 @@
+---
+version: "1.0"
+created: "2026-01-28"
+updated: "2026-01-28"
+verified: "2026-01-28"
+confidence: "medium"
+---
+
 # Insight: Windows Environment Quirks
 *Learned: 2026-01-26*
 *Source: production experience across multiple sessions*

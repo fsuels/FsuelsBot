@@ -1,3 +1,11 @@
+---
+version: "1.0"
+created: "2026-01-28"
+updated: "2026-01-28"
+verified: "2026-01-28"
+confidence: "medium"
+---
+
 # Principle: The 10-Second Rule
 *Priority: P0*
 *Source: Council Three Visionaries Debate, 2026-01-28*

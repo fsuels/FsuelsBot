@@ -1,3 +1,11 @@
+---
+version: "1.0"
+created: "2026-01-28"
+updated: "2026-01-28"
+verified: "2026-01-28"
+confidence: "medium"
+---
+
 # Procedure: Memory CI Test Harness
 *Created: 2026-01-28*
 *Source: Council Round 4 Debate (unanimous consensus)*

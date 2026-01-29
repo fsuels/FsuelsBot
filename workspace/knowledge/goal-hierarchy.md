@@ -1,3 +1,11 @@
+---
+version: "1.0"
+created: "2026-01-28"
+updated: "2026-01-28"
+verified: "2026-01-28"
+confidence: "medium"
+---
+
 # Goal Hierarchy — Dress Like Mommy
 *Source: 4-Thinker Council (2026-01-28)*
 *Rule: If a task doesn't map to this tree → DELETE IT*

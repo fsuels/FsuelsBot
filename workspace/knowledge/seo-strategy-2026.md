@@ -1,3 +1,11 @@
+---
+version: "1.0"
+created: "2026-01-29"
+updated: "2026-01-29"
+verified: "2026-01-29"
+confidence: "medium"
+---
+
 # 2026 E-commerce SEO Strategy for Shopify Dropshipping Stores
 
 > **Target Store:** Niche clothing (mommy & me matching outfits)  

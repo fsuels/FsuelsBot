@@ -1,3 +1,12 @@
+---
+version: "1.0"
+created: "2026-01-29"
+updated: "2026-01-29"
+verified: "2026-01-29"
+confidence: "high"
+type: "procedure"
+---
+
 # Collection Page SEO Procedure
 
 > **Verification Gate:** Before proceeding, state: "I have read the collection SEO procedure. Each collection needs: keyword-optimized title, 100+ word description, and proper meta tags."

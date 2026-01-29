@@ -1,3 +1,11 @@
+---
+version: "1.0"
+created: "2026-01-28"
+updated: "2026-01-28"
+verified: "2026-01-28"
+confidence: "medium"
+---
+
 # Output Contracts
 *Source: Council Team Architecture Debate (EVT-20260128-065)*
 *Established: 2026-01-28*

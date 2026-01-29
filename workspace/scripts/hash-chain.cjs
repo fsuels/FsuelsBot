@@ -12,6 +12,37 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
+// === COUNCIL A+ UPGRADE: HMAC Signing ===
+// Key stored in environment or file (not in code)
+const HMAC_KEY_PATH = process.env.HMAC_KEY_PATH || 'memory/.hmac-key';
+
+function getOrCreateHmacKey() {
+  if (fs.existsSync(HMAC_KEY_PATH)) {
+    return fs.readFileSync(HMAC_KEY_PATH, 'utf8').trim();
+  }
+  // Generate new key on first use
+  const key = crypto.randomBytes(32).toString('hex');
+  fs.writeFileSync(HMAC_KEY_PATH, key, { mode: 0o600 });
+  return key;
+}
+
+/**
+ * Compute HMAC-SHA256 signature for tamper-proofing (Council A+ requirement)
+ * This provides authenticity, not just integrity
+ */
+function computeHmac(data) {
+  const key = getOrCreateHmacKey();
+  return crypto.createHmac('sha256', key).update(data).digest('hex').slice(0, 16);
+}
+
+/**
+ * Verify HMAC signature
+ */
+function verifyHmac(data, expectedHmac) {
+  const computed = computeHmac(data);
+  return crypto.timingSafeEqual(Buffer.from(computed), Buffer.from(expectedHmac));
+}
+
 // === CORE FUNCTIONS ===
 
 /**

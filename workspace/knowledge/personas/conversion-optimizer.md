@@ -1,3 +1,11 @@
+---
+version: "1.0"
+created: "2026-01-28"
+updated: "2026-01-28"
+verified: "2026-01-28"
+confidence: "medium"
+---
+
 # Persona: Conversion Optimizer
 *Domain: PDP copy, pricing psychology, CTA optimization, trust signals*
 *Default model: Sonnet → Opus for complex A/B test design*

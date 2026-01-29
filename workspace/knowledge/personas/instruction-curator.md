@@ -1,3 +1,11 @@
+---
+version: "1.0"
+created: "2026-01-28"
+updated: "2026-01-28"
+verified: "2026-01-28"
+confidence: "medium"
+---
+
 # Persona: Instruction Curator (Meta-Agent)
 *Domain: Edits other agents' rules, manages system architecture*
 *Default model: Opus (needs deep reasoning)*

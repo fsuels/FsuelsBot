@@ -1,0 +1,28 @@
+---
+version: "1.0"
+created: "2026-01-29"
+updated: "2026-01-29"
+verified: "2026-01-29"
+confidence: "medium"
+type: "knowledge"
+---
+
+# Knowledge Review Queue
+Generated: 2026-01-29
+Total items: 48
+
+## 🔴 CRITICAL (must review immediately)
+*None*
+
+## 🟠 STALE (priority review)
+*None*
+
+## ⚠️ WARNING (review this week)
+*None*
+
+## ✅ Recently Verified
+- competitor-valentine-insights.md (2026-01-29)
+- design-audit-2026-01-29.md (2026-01-29)
+- dlm-turnaround-actions.md (2026-01-29)
+- mobile-speed-optimization.md (2026-01-29)
+- seo-audit-2026-01-29.md (2026-01-29)

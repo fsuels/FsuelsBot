@@ -1,47 +1,72 @@
-{
-  "grok": {
-    "state": "closed",
-    "failure_count": 0,
-    "success_count": 0,
-    "last_failure": null,
-    "last_success": null,
-    "opened_at": null,
-    "last_error": null
-  },
-  "chatgpt": {
-    "state": "closed",
-    "failure_count": 0,
-    "success_count": 0,
-    "last_failure": null,
-    "last_success": null,
-    "opened_at": null,
-    "last_error": null
-  },
-  "gemini": {
-    "state": "closed",
-    "failure_count": 0,
-    "success_count": 0,
-    "last_failure": null,
-    "last_success": null,
-    "opened_at": null,
-    "last_error": null
-  },
-  "shopify": {
-    "state": "closed",
-    "failure_count": 0,
-    "success_count": 0,
-    "last_failure": null,
-    "last_success": null,
-    "opened_at": null,
-    "last_error": null
-  },
-  "buckydrop": {
-    "state": "closed",
-    "failure_count": 0,
-    "success_count": 0,
-    "last_failure": null,
-    "last_success": null,
-    "opened_at": null,
-    "last_error": null
-  }
+﻿{
+    "version":  1,
+    "updated_at":  "2026-01-29T16:51:43.1699693-05:00",
+    "circuits":  {
+                     "grok":  {
+                                  "state":  "closed",
+                                  "failure_count":  0,
+                                  "success_count":  0,
+                                  "last_failure":  null,
+                                  "last_success":  null,
+                                  "opened_at":  null,
+                                  "half_open_at":  null,
+                                  "error_types":  {
+
+                                                  }
+                              },
+                     "chatgpt":  {
+                                     "state":  "closed",
+                                     "failure_count":  0,
+                                     "success_count":  0,
+                                     "last_failure":  null,
+                                     "last_success":  null,
+                                     "opened_at":  null,
+                                     "half_open_at":  null,
+                                     "error_types":  {
+
+                                                     }
+                                 },
+                     "gemini":  {
+                                    "failure_count":  0,
+                                    "last_failure":  null,
+                                    "state":  "closed",
+                                    "half_open_at":  null,
+                                    "opened_at":  null,
+                                    "error_types":  {
+
+                                                    },
+                                    "success_count":  0,
+                                    "last_success":  null
+                                },
+                     "shopify":  {
+                                     "state":  "closed",
+                                     "failure_count":  0,
+                                     "success_count":  0,
+                                     "last_failure":  null,
+                                     "last_success":  null,
+                                     "opened_at":  null,
+                                     "half_open_at":  null,
+                                     "error_types":  {
+
+                                                     }
+                                 },
+                     "buckydrop":  {
+                                       "state":  "closed",
+                                       "failure_count":  0,
+                                       "success_count":  0,
+                                       "last_failure":  null,
+                                       "last_success":  null,
+                                       "opened_at":  null,
+                                       "half_open_at":  null,
+                                       "error_types":  {
+
+                                                       }
+                                   }
+                 },
+    "settings":  {
+                     "failure_threshold":  3,
+                     "success_threshold":  2,
+                     "open_duration_ms":  300000,
+                     "half_open_timeout_ms":  30000
+                 }
 }

@@ -1,3 +1,11 @@
+---
+version: "1.0"
+created: "2026-01-29"
+updated: "2026-01-29"
+verified: "2026-01-29"
+confidence: "medium"
+---
+
 # Valentine's Day Mommy & Me Products - 1688.com Research
 
 **Research Date:** January 29, 2026  

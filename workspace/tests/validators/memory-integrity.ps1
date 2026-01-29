@@ -97,6 +97,22 @@ if (Test-Path $todayFile) {
     $warnings += "No memory file for today yet"
 }
 
+# Check 8: Reconciliation (tasks.json vs state.json)
+Write-Host "Checking reconciliation..." -NoNewline
+$reconcileScript = "$workspace\scripts\check-reconciliation.ps1"
+if (Test-Path $reconcileScript) {
+    $result = & powershell -ExecutionPolicy Bypass -File $reconcileScript -Quiet 2>&1
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host " OK" -ForegroundColor Green
+    } else {
+        Write-Host " DRIFT DETECTED" -ForegroundColor Yellow
+        $warnings += "Reconciliation drift detected - run check-reconciliation.ps1 -AutoFix"
+    }
+} else {
+    Write-Host " SCRIPT MISSING" -ForegroundColor Yellow
+    $warnings += "check-reconciliation.ps1 not found"
+}
+
 # Summary
 Write-Host ""
 Write-Host "=== Summary ===" -ForegroundColor Cyan

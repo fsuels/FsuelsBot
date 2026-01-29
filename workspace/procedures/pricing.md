@@ -1,3 +1,12 @@
+---
+version: "1.0"
+created: "2026-01-29"
+updated: "2026-01-29"
+verified: "2026-01-29"
+confidence: "high"
+type: "procedure"
+---
+
 # 💰 Pricing Procedure (MANDATORY)
 
 **Read this COMPLETELY before ANY price calculation.**
