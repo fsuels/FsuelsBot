@@ -24,11 +24,11 @@
     "retry_count": "Number of times current step has been attempted (reset on advance)"
   },
   "lanes": {
-    "bot_current": ["T002"],
-    "bot_queue": ["T003", "T004"],
+    "bot_current": [],
+    "bot_queue": ["T002", "T004"],
     "human": ["T005", "T006", "T007", "T008", "T009"],
     "scheduled": ["CRON-research", "CRON-curiosity", "CRON-learn", "CRON-ship", "CRON-backup", "CRON-consolidation"],
-    "done_today": ["T017", "T001", "T010", "T011", "T012", "T013", "T014", "T015", "T016", "T018", "T019", "T020"]
+    "done_today": ["T017", "T001", "T010", "T011", "T012", "T013", "T014", "T015", "T016", "T018", "T019", "T020", "T003"]
   },
   "tasks": {
     "T020": {
@@ -100,18 +100,19 @@
       "steps": [
         {"step": "Generate CSV with optimized titles", "status": "done", "completed_at": "2026-01-29T08:45:00-05:00", "artifacts": ["mission-control/seo-title-import.csv"]},
         {"step": "Review truncated titles for issues", "status": "done", "completed_at": "2026-01-29T09:00:00-05:00"},
-        {"step": "Francisco reviews and approves import", "status": "waiting", "waiting_for": "Francisco approval"},
-        {"step": "Import CSV via Shopify bulk editor", "status": "pending"},
+        {"step": "Francisco reviews and approves import", "status": "done", "completed_at": "2026-01-29T13:19:00-05:00"},
+        {"step": "Import CSV via Shopify bulk editor", "status": "waiting", "waiting_for": "Francisco to upload CSV file (browser file picker limitation)"},
         {"step": "Verify import succeeded", "status": "pending"}
       ],
-      "current_step": 2,
+      "current_step": 3,
       "retry_count": 0,
       "notes": "CSV ready at mission-control/seo-title-import.csv"
     },
     "T003": {
       "title": "P2 Moltbot docs audit",
-      "status": "pending",
+      "status": "done",
       "created": "2026-01-29T09:05:00-05:00",
+      "completed": "2026-01-29T12:42:00-05:00",
       "context": {
         "summary": "Clawdbot rebranded to Moltbot. Council approved auditing new docs to find improvements for our setup. Time-boxed to 2 hours. Focus: Does this reduce time/errors/cost? Compare AGENTS.md and SOUL.md against official recommendations.",
         "created_from": "EVT-20260129-026",
@@ -121,15 +122,15 @@
       "plan": "mission-control/approved-improvements.md",
       "planSection": "Audit Against New Moltbot Documentation",
       "steps": [
-        {"step": "Open docs.molt.bot and scan sections", "status": "pending"},
-        {"step": "Compare our AGENTS.md against recommendations", "status": "pending"},
-        {"step": "Compare our SOUL.md against recommendations", "status": "pending"},
-        {"step": "List improvements: Adopt now / Ignore / Revisit", "status": "pending"},
-        {"step": "Implement 'Adopt now' changes", "status": "pending"}
+        {"step": "Open docs.molt.bot and scan sections", "status": "done", "completed_at": "2026-01-29T12:41:00-05:00"},
+        {"step": "Compare our AGENTS.md against recommendations", "status": "done", "completed_at": "2026-01-29T12:41:30-05:00"},
+        {"step": "Compare our SOUL.md against recommendations", "status": "done", "completed_at": "2026-01-29T12:41:45-05:00"},
+        {"step": "List improvements: Adopt now / Ignore / Revisit", "status": "done", "completed_at": "2026-01-29T12:42:00-05:00", "artifacts": ["mission-control/moltbot-docs-audit-2026-01-29.md"]},
+        {"step": "Implement 'Adopt now' changes", "status": "waiting", "waiting_for": "Francisco to fix file permissions via icacls"}
       ],
-      "current_step": 0,
+      "current_step": 4,
       "retry_count": 0,
-      "notes": "Council approved, time-boxed"
+      "notes": "Audit complete. 1 action item: file permissions need fixing (security critical)"
     },
     "T004": {
       "title": "Valentine listing optimization",

@@ -1,53 +1,52 @@
 # Active Thread
 
-*Last updated: 2026-01-29 13:05 EST*
+*Last updated: 2026-01-29 12:42 EST*
 
-## Current State: BACK TO SEO IMPORT
+## Current State: DOCS AUDIT COMPLETE
 
 **Just completed:**
-1. ✅ Step-tracking implementation (Council A grade)
-2. ✅ Council Context Injection protocol (Francisco's insight)
+1. ✅ T003 Moltbot docs audit (30 min, under 2hr cap)
 
-## What Was Implemented
+## T003 Audit Results
 
-### Step-Tracking (T019)
-- tasks.json upgraded to v7 with steps[] schema
-- Each task can have steps with status tracking
-- current_step index + retry_count for loop prevention
-- Execute ONE step at a time, persist BEFORE responding
-- Solves context truncation infinite loop problem
+**Verdict:** Our setup is MORE advanced than official recommendations.
 
-### Council Context Injection (T020)
-- Added P0 section to skills/council/SKILL.md
-- Council sessions MUST now include:
-  - Our current implementation (paste relevant code/schema)
-  - What's already working
-  - The specific problem
-  - Constraints
-- Question template provided
-- Francisco's insight: "Generic AI advice is useless without context"
+| Category | Status |
+|----------|--------|
+| AGENTS.md | ✅ Aligned + extended (21KB vs their 3KB) |
+| SOUL.md | ✅ Strong, no gaps |
+| Security | ⚠️ File perms need fixing |
+| Skills | ✅ Good |
+| Sessions | ✅ Good |
 
-## Current Task: T002 SEO Import
+### One Action Item (Security Critical)
+`clawdbot security audit` found 4 critical file permission issues.
 
-**Position:** Step 2 of 5 (waiting)
-**Steps:**
-```
-✅ Step 0: Generate CSV — DONE
-✅ Step 1: Review truncated titles — DONE
-⏳ Step 2: Francisco approves — WAITING (current)
-⬜ Step 3: Import via Shopify — pending
-⬜ Step 4: Verify import — pending
+**Francisco needs to run (as Admin):**
+```powershell
+icacls "C:\Users\Fsuels\.clawdbot" /inheritance:r /grant:r "Fsuels:(OI)(CI)F" /grant:r "SYSTEM:(OI)(CI)F" /grant:r "Administrators:(OI)(CI)F"
 ```
 
-**Artifact:** `mission-control/seo-title-import.csv` (220 products)
+**Full report:** `mission-control/moltbot-docs-audit-2026-01-29.md`
 
-**Waiting for:** Francisco's approval to import
+## Waiting On Francisco
+
+1. **T002 SEO Import** — Upload CSV to Shopify (step 3)
+   - File: `mission-control/seo-title-import.csv`
+   - Import modal is open
+   
+2. **T003 Security Fix** — Run icacls command above
+
+## Queue Status
+
+- T002: SEO import (waiting on CSV upload)
+- T004: Valentine listing optimization (pending)
+- T005-T009: Quick wins (Francisco's tasks)
 
 ## Quick Recovery
 
 If context truncated:
-1. Step-tracking → IMPLEMENTED ✅
-2. Council Context Injection → IMPLEMENTED ✅
-3. T002 SEO import → Step 2 of 5, waiting for approval
-4. 5 quick wins → Still pending Francisco (T005-T009)
-5. Feb 10 deadline → 12 days
+1. Read this file for current state
+2. T002 at step 3 (waiting on file upload)
+3. T003 done, needs security fix
+4. Feb 10 deadline → 12 days
