@@ -362,6 +362,10 @@ body {
         <div class="modal-label">💡 Context / Why This Exists</div>
         <div class="modal-content" id="modalContext"></div>
       </div>
+      <div class="modal-section" id="modalStepsSection">
+        <div class="modal-label">📋 Steps Progress</div>
+        <div class="modal-content" id="modalSteps"></div>
+      </div>
       <div class="modal-section" id="modalApproachSection">
         <div class="modal-label">🎯 Approach / How</div>
         <div class="modal-content" id="modalApproach"></div>
@@ -527,11 +531,37 @@ function renderTask(id, task, statusClass, badge) {
   const estimate = task.estimate ? `<span class="task-estimate">⏱ ${task.estimate}</span>` : '';
   const badgeHtml = badge ? `<span class="task-estimate" style="background:#238636;color:#fff;">${badge}</span>` : '';
   
+  // Step progress indicator
+  let stepProgress = '';
+  if (task.steps && task.steps.length > 0) {
+    const currentStep = task.current_step || 0;
+    const doneSteps = task.steps.filter(s => s.status === 'done').length;
+    const totalSteps = task.steps.length;
+    const currentStepInfo = task.steps[currentStep];
+    const stepStatus = currentStepInfo ? currentStepInfo.status : 'pending';
+    
+    let stepIcon = '📋';
+    let stepColor = '#8b949e';
+    if (stepStatus === 'waiting') {
+      stepIcon = '⏳';
+      stepColor = '#d29922';
+    } else if (stepStatus === 'in_progress') {
+      stepIcon = '⚡';
+      stepColor = '#f0883e';
+    } else if (stepStatus === 'blocked') {
+      stepIcon = '🚫';
+      stepColor = '#f85149';
+    }
+    
+    stepProgress = `<span class="task-estimate" style="background:rgba(88,166,255,0.15);color:${stepColor};">${stepIcon} Step ${currentStep + 1}/${totalSteps}</span>`;
+  }
+  
   return `
     <div class="task-item ${statusClass}" onclick="showTaskDetail('${id}')">
       <div class="task-id">${id}</div>
       <div class="task-title-text">${task.title}</div>
       <div class="task-meta">
+        ${stepProgress}
         ${planLink}
         ${estimate}
         ${badgeHtml}
@@ -577,6 +607,60 @@ function showTaskDetail(id) {
     contextSection.style.display = 'block';
   } else {
     contextSection.style.display = 'none';
+  }
+  
+  // Steps Progress
+  const stepsSection = document.getElementById('modalStepsSection');
+  if (task.steps && task.steps.length > 0) {
+    const currentStep = task.current_step || 0;
+    let stepsHtml = '<div style="display:flex;flex-direction:column;gap:8px;">';
+    task.steps.forEach((step, idx) => {
+      let icon, color, bgColor;
+      switch(step.status) {
+        case 'done':
+          icon = '✅'; color = '#3fb950'; bgColor = 'rgba(63,185,80,0.1)';
+          break;
+        case 'in_progress':
+          icon = '⚡'; color = '#f0883e'; bgColor = 'rgba(240,136,62,0.1)';
+          break;
+        case 'waiting':
+          icon = '⏳'; color = '#d29922'; bgColor = 'rgba(210,153,34,0.1)';
+          break;
+        case 'blocked':
+          icon = '🚫'; color = '#f85149'; bgColor = 'rgba(248,81,73,0.1)';
+          break;
+        default:
+          icon = '⬜'; color = '#8b949e'; bgColor = 'transparent';
+      }
+      const isCurrent = idx === currentStep && step.status !== 'done';
+      const border = isCurrent ? 'border: 1px solid ' + color + ';' : '';
+      let stepInfo = step.step;
+      if (step.waiting_for) {
+        stepInfo += '<div style="font-size:11px;color:#d29922;margin-top:4px;">⏳ Waiting for: ' + step.waiting_for + '</div>';
+      }
+      if (step.completed_at) {
+        const completedTime = new Date(step.completed_at).toLocaleString();
+        stepInfo += '<div style="font-size:10px;color:#8b949e;margin-top:2px;">✓ ' + completedTime + '</div>';
+      }
+      stepsHtml += `
+        <div style="display:flex;gap:10px;padding:8px;border-radius:6px;background:${bgColor};${border}">
+          <span style="font-size:16px;">${icon}</span>
+          <div style="flex:1;">
+            <div style="color:${step.status === 'done' ? '#8b949e' : '#e6edf3'};${step.status === 'done' ? 'text-decoration:line-through;' : ''}">${stepInfo}</div>
+          </div>
+          <span style="font-size:11px;color:#8b949e;">${idx + 1}/${task.steps.length}</span>
+        </div>
+      `;
+    });
+    stepsHtml += '</div>';
+    // Add retry count if exists
+    if (task.retry_count && task.retry_count > 0) {
+      stepsHtml += `<div style="margin-top:8px;font-size:11px;color:#f85149;">⚠️ Retry count: ${task.retry_count}/3</div>`;
+    }
+    document.getElementById('modalSteps').innerHTML = stepsHtml;
+    stepsSection.style.display = 'block';
+  } else {
+    stepsSection.style.display = 'none';
   }
   
   // Approach
