@@ -94,7 +94,10 @@ Good products have:
 
 1. Open BuckyDrop (use existing tab if open)
 2. Import product using 1688 URL
-3. **Get product weight from 1688 listing** — use ADULT size weight only
+3. **Extract from 1688 listing:**
+   - **Product weight** — use ADULT size weight only
+   - **Size chart table** — all measurements (chest, length, sleeve, etc.)
+   - **Size names** — note original names for conversion later
 4. Configure:
    - Shipping route: **YunExpress** (default)
    - Shipping destination: **USA** (use for ALL countries to save time)
@@ -218,14 +221,21 @@ Add product to appropriate collections:
 
 **State:** "Face swap: [X] images processed with American faces."
 
-### 4.7 Size Chart
+### 4.7 Size Chart (CRITICAL)
 
-1. Check if product has sizing information
-2. Apply our size chart conversion script
-3. Ensure the dynamic size selector works properly
-4. Test: When customer selects size, correct info displays
+**Get measurements FROM the 1688 listing:**
 
-**State:** "Size chart: Verified working with conversion script."
+1. **Extract size table from 1688** — find the measurements (chest, length, sleeve, etc.)
+2. **Create table with actual numbers** — use the exact measurements provided
+3. **Convert size names to our standard:**
+   - Kids: 80cm, 90cm, 100cm, 110cm, 120cm, 130cm, 140cm, 150cm
+   - Adults: Adult S, Adult M, Adult L, Adult XL, Adult XXL, Adult 3XL
+4. **Apply size conversion script** — format for Shopify
+5. **Verify dynamic selector works** — customer picks size, sees correct measurements
+
+**Never guess sizes** — always use the actual numbers from the 1688 listing.
+
+**State:** "Size chart: Extracted from 1688, [X] sizes, converted to our naming, script applied."
 
 ### 4.8 Variants & Pricing
 
@@ -277,7 +287,9 @@ Add product to appropriate collections:
 - [ ] Collections assigned (Mommy and Me + seasonal + category)
 - [ ] All images uploaded
 - [ ] Face swap done (if needed)
-- [ ] Size chart working
+- [ ] Size chart from 1688 data (actual measurements, not guessed)
+- [ ] Size names converted to our standard (80cm-150cm kids, Adult S-3XL)
+- [ ] Size conversion script applied
 - [ ] Price ≥ 2× cost (after ads/returns buffer)
 - [ ] Saved as DRAFT (not active)
 - [ ] Tracking updated
