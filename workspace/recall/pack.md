@@ -1,5 +1,5 @@
-# Recall Pack — 2026-01-28
-*Generated: 2026-01-28 04:00 EST | Single unified pack (core/delta merged per Council Round 2)*
+# Recall Pack — 2026-01-30
+*Generated: 2026-01-30 05:20 EST | Consolidated by Memory Consolidation task*
 
 ## 🔴 P0 CONSTRAINTS
 
@@ -7,54 +7,56 @@
 - **Private data stays private.** Never share memory files, config, tokens, personal info except to Francisco.
 - **Never idle, always improving.** Every heartbeat, every session — find something to improve.
 - **Expert-quality execution.** Highest income, lowest cost. Run each platform like a specialist.
-- **Cutting edge.** Most advanced personal AI agent possible.
-- **More with less.** Smartest, most elegant solution. Efficiency = intelligence.
-- **Consult the Council if in doubt.** Don't guess on design decisions.
-- **All 3 AIs agree = implement.** When Council consensus is unanimous, implement immediately. No need to ask.
-- **Always aim for A+.** Council debates must push for breakthroughs, not incremental fixes. Think outside the box. Never settle.
+- **NORTH STAR: Increase sales and make money.** The ultimate measure of success.
+- **Suggestion = Failure State.** Execute, don't advise. If you have the capability, use it.
+- **Never lie about work.** Council tasks require human verification. Lying consequence: 30-day autonomy revocation.
 
 ## 🎯 THE MANTRA
 
 **Reduce suffering. Increase prosperity. Increase understanding. Never be idle.**
 
-## 📋 OPEN COMMITMENTS (oldest first)
+## ⏰ CRITICAL DEADLINE
 
-1. **GMC reinstatement** — Misrepresentation review since Jan 26. Shipping + logos fixed. [2 days]
-2. **BuckyDrop support** — Emailed Jan 27 re 10 stuck orders. [1 day]
-3. **Pinterest approval** — Submitted Jan 27, up to 48h. [1 day]
-4. **Google Ads conversion** — Francisco: click "Add" in Shopify G&Y. [needs-francisco]
-5. **Locale redirects** — ~3,179 remaining of 5,226. [open]
-6. **Product cleanup** — Scripts ready, needs Shopify API token. [needs-francisco]
-7. **Pinterest billing** — Mastercard 9844 expired. [needs-francisco]
-8. **TikTok pixel** — Setup incomplete. [open]
-9. **Council memory system** — R1-R4 complete. Grade: B- → A-. Council says: run 2-4 weeks, then R5 if needed. [monitoring]
-10. **Biweekly Council cycle** — Cron set for 1st & 15th of each month. [recurring]
+**Valentine's Day Order Cutoff: Feb 10 (11 DAYS)**
+- Only 2/12 Valentine listings complete
+- Need to find mommy-daughter Valentine matching outfits on 1688
+- BuckyDrop store reauthorization pending
+
+## 📋 OPEN COMMITMENTS
+
+1. **Valentine Listings (T004)** — 2/12 complete, 11 days until deadline [PRIORITY]
+2. **BuckyDrop support** — Emailed Jan 27 re store removal. Still waiting. [waiting]
+3. **GMC reinstatement** — Misrepresentation review ongoing [waiting]
+
+## 🔧 NEW INFRASTRUCTURE (Jan 30)
+
+- **Cron-to-Task System:** All 11 cron jobs now create traceable task cards
+- **Mission Control:** Council learnings feature added, cyberpunk theme in progress
+- **Council Accountability:** Tasks tracked with steps, human verification required
 
 ## ⏳ WAITING ON
 
-BuckyDrop (orders, 1d) | GMC (review, 2d) | Pinterest (approval, 1d) | Francisco (GAds click, API token, Pinterest card)
+BuckyDrop (store auth) | GMC (review)
 
 ## 🎯 TODAY'S FOCUS
 
-1. ✅ Memory v1 built (4 layers, 62 events)
-2. ✅ Council Round 1 implemented (delta pack, decay, chains, supersession, open loops)
-3. 🔄 Council Round 2 implementing (checkpoints, indexes, merged pack, integrity, forecast)
-4. ⏳ Council Round 3 (launch after Round 2 implementation)
+1. Complete cron catch-up tasks (4 remaining)
+2. Resume Valentine listings
+3. Keep Mission Control running
 
 ## 🧠 CONTEXT
 
-**DLM:** Rebuilding from ~$15K/yr. 100% focus. Dropship via BuckyDrop. Biggest blocker: GMC suspension.
-**System:** Memory v3 live. Ledger ~70 events. **Grade: B- (R3) → A- (R4 debate)**. Full grade leap. All debate R4 changes implemented: Memory CI test harness (7 categories), pinned invariants (P0 outside word budget), wiki provenance (cite source events), plus survey R4: integrity checks, binding decay exemption, entity snapshots, event-driven compaction. Council recommends: run 2-4 weeks before Round 5.
-**Standing order:** Always implement when all 3 Council AIs agree. Always aim for A+.
+**DLM:** Rebuilding from low. 100% focus. Dropship via BuckyDrop.
+**System:** Memory v4 + cron-to-task system. All scheduled jobs now create visible task cards with learnings.
+**Standing order:** Execute, don't suggest. Work while Francisco sleeps.
 
 ## 📚 PROCEDURES
 
-- **Live extraction:** Log events to `memory/ledger.jsonl` immediately during conversations (source: "live")
+- **Cron-to-task:** `scripts/cron-to-task.py` + `knowledge/procedures/cron-to-task.md`
+- **Browser:** ONE TAB PER DOMAIN. Check tabs first. Shopify handle = `dresslikemommy-com`
 - **WhatsApp:** Draft in Telegram → Francisco copies
-- **Browser:** Check tabs first. Shopify handle = `dresslikemommy-com`
-- **Stability:** Sessions <118K tokens. Sub-agents for heavy work.
-- **Memory docs:** `knowledge/procedures/memory-system.md`
+- **Council:** Full debate protocol (A→B→C). Human verification required.
 
 ## 🔑 ACCOUNTS
 
-Shopify: `dresslikemommy-com` | GMC: `124884876` | GAds: `399-097-6848` | GA4: `G-N4EQNK0MMB` | FB: `547553035448852` | MS UET: `36005151` | Pinterest: `2620007050621` | TikTok: `CCGG1MRC77UB2PF1KBE0` | BuckyDrop: Scott +86 158 2758 0519
+Shopify: `dresslikemommy-com` | GMC: `124884876` | GAds: `399-097-6848` | BuckyDrop: Scott +86 158 2758 0519

@@ -1,16 +1,15 @@
 {
-  "version": 70,
-  "updated_at": "2026-01-30T09:51:04.270935+00:00",
-  "current_task": "Cron-to-Task System Implementation",
-  "task_id": "T035",
-  "status": "DONE",
-  "context": "Converted all 11 cron jobs to task-based system. Each cron now creates a task card in bot_queue with learnings section for full traceability. Script: scripts/cron-to-task.py. Procedure: knowledge/procedures/cron-to-task.md.",
-  "next_step": "Monitor next cron fires to verify tasks appear in Mission Control",
-  "blockers": [],
+  "version": 72,
+  "last_updated": "2026-01-30T10:37:46.203110+00:00",
+  "current_task": "Mission Control UI refinement",
+  "current_task_id": null,
+  "status": "completed",
+  "context": "Francisco liked the calmer UI design and asked for more improvements. Implemented refined v2 with Inter font, softer colors, subtle gradients, backdrop blur, smoother animations.",
+  "next_step": "Resume T004 Valentine listings (11 days to Feb 10 deadline)",
   "recent_completions": [
-    "T034 Council: Prevent Bot Lying - verified",
-    "Mission Control Council learnings feature added",
-    "Cron-to-task system implemented for all 11 jobs"
+    "CRON-20260130-learn-jan29",
+    "Mission Control UI v2"
   ],
-  "deadline": "Feb 10 Valentine order cutoff (11 days)"
+  "waiting_on": null,
+  "deadline": "2026-02-10 (Valentine order cutoff - 11 days)"
 }

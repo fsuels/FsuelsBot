@@ -8,34 +8,34 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-01-30 04:50 EST | **Version:** 70
+**Last updated:** 2026-01-30 05:35 EST | **Version:** 72
 
-**Current task:** T035 - Cron-to-Task System Implementation
-**Status:** ✅ DONE
-**Context:** Converted all 11 cron jobs to task-based system. Each cron now creates a task card in bot_queue with learnings section for full traceability.
-**Next step:** Monitor next cron fires to verify tasks appear in Mission Control
+**Current task:** Mission Control UI refinement ✅ DONE
+**Status:** Completed - Francisco approved
+**Context:** Francisco liked calmer UI, asked for more refinements. Implemented v2 with Inter font, softer colors, subtle gradients, backdrop blur, smoother animations.
+**Next step:** Resume T004 Valentine listings
 
 **⏰ DEADLINE:** 11 days until Feb 10 order cutoff
 
 **📋 TASK BOARD:** `memory/tasks.json` — THE SOURCE OF TRUTH
 
 **✅ RECENT COMPLETIONS:**
-- T034 Council: Prevent Bot Lying - verified by Francisco
-- Mission Control Council learnings feature added
-- Cron-to-task system implemented for all 11 jobs
+- Mission Control UI v2 refinements
+- CRON-20260130-learn-jan29 (4 learnings extracted)
+- Crash recovery (Brave API rate limits - transient)
 
-**🔧 CRON-TO-TASK SYSTEM (NEW):**
-- Script: `scripts/cron-to-task.py`
-- Procedure: `knowledge/procedures/cron-to-task.md`
-- All cron jobs now create traceable task cards
-- Tasks have `learnings` section (like Council tasks)
-- Click any completed cron task in Mission Control to see what it produced
+**🎨 UI IMPROVEMENTS (just completed):**
+- Inter font, refined typography
+- Softer colors, subtle gradients
+- Backdrop blur for depth
+- Smoother animations
+- Custom scrollbars
 
-**⏸️ QUEUED - T004 VALENTINE LISTINGS:**
-- Resume after cron system verified working
+**⏸️ NEXT UP - T004 VALENTINE LISTINGS:**
 - 11 days until deadline
+- Step 1: Optimize titles (1/10 done)
 
-**🔄 COMPACTION CHECKPOINT:** Pre-compaction flush at 04:50 EST
+**🔄 COMPACTION CHECKPOINT:** Pre-compaction flush at 05:35 EST
 
 **Standing rules:**
 - READ tasks.json at EVERY session start

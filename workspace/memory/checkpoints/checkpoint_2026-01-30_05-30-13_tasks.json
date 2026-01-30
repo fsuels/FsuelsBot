@@ -1,7 +1,7 @@
 {
-    "version": 30,
-    "updated_at": "2026-01-30T10:31:52.960914+00:00",
-    "updated_by": "heartbeat-recovery",
+    "version": 29,
+    "updated_at": "2026-01-30T10:23:08.256538+00:00",
+    "updated_by": "cron-to-task",
     "notes": "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
     "schema": {
         "context": {
@@ -25,9 +25,11 @@
     },
     "lanes": {
         "bot_current": [
+            "CRON-20260130-learn-jan29"
+        ],
+        "bot_queue": [
             "T004"
         ],
-        "bot_queue": [],
         "human": [
             "T006",
             "T030",
@@ -42,7 +44,6 @@
             "CRON-consolidation"
         ],
         "done_today": [
-            "CRON-20260130-learn-jan29",
             "CRON-20260130-consolidation",
             "CRON-20260130-curiosity-jan29",
             "CRON-20260130-research-brief-jan29",
@@ -663,7 +664,7 @@
             "current_step": 1,
             "retry_count": 0,
             "notes": "Fixed 1/10 bad titles (Matching Couples Striped Loungewear Set). See memory/draft-title-fixes.md for full list. About 10 products have bad Chinese titles, 40+ already have good titles.",
-            "started_at": "2026-01-30T10:31:52.960867+00:00"
+            "started_at": "2026-01-30T07:01:10.510541+00:00"
         },
         "T005": {
             "title": "Announcement bar urgency text",
@@ -1169,7 +1170,7 @@
         },
         "CRON-20260130-learn-jan29": {
             "title": "Catch up: What did I learn yesterday?",
-            "status": "done",
+            "status": "in_progress",
             "created_at": "2026-01-30T09:52:47.929074+00:00",
             "created_by": "cron",
             "cron_job_id": "learn-jan29",
@@ -1182,23 +1183,13 @@
             },
             "learnings": {
                 "question": "What lessons were extracted from Jan 29?",
-                "verdict": "Extracted 4 learnings from Jan 29",
-                "outcomes": [
-                    "Brave API rate limit constraint logged",
-                    "1688 captcha workaround documented",
-                    "Shopify theme editor limitation captured",
-                    "Procedure compliance insight preserved"
-                ],
-                "actionsTaken": [
-                    "Added learnings to learnings.db (ids 13-16)"
-                ],
-                "artifacts": [
-                    "learnings.db"
-                ]
+                "verdict": null,
+                "outcomes": [],
+                "actionsTaken": [],
+                "artifacts": []
             },
             "notes": "WHY THIS EXISTS:\nEvery day I make mistakes or discover better ways. If I do not capture those lessons, I repeat the same mistakes forever.\n\nWHAT IT DOES:\n1. Reviews what happened during the day\n2. Identifies what went wrong or could be better\n3. Extracts specific lessons (Context / Failure / Fix / Prevention)\n4. Updates my knowledge files so I do not repeat errors\n5. Commits changes to git\n\nWHAT YOU GET:\n- I get smarter every day\n- Same mistakes do not happen twice\n- Continuous improvement without you teaching me\n\nRUNS: Every day at 10:30 PM\nSTATUS: Catch-up task (should have run Jan 29)",
-            "started_at": "2026-01-30T10:07:50.284422+00:00",
-            "completed_at": "2026-01-30T10:31:44.737692+00:00"
+            "started_at": "2026-01-30T10:07:50.284422+00:00"
         },
         "CRON-20260130-ship-jan29": {
             "title": "Catch up: Do overnight work from yesterday",
