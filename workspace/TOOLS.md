@@ -63,6 +63,13 @@
 ## Browser Best Practices
 ⚠️ **MANDATORY: Read `procedures/browser.md` before ANY browser action!**
 
+### Speed Reality Check (Learned 2026-01-29)
+**Bot is SLOWER than human for visual/browser tasks.**
+- Bot: screenshot → process → action → wait → repeat = 5-15 sec/step
+- Human: look → click = 1 second
+- **For quick edits and visual navigation, prepare content/instructions and let human execute**
+- Bot should focus on: research, writing, data, background work, memory
+
 Quick rules (full details in procedure file):
 - **ONE TAB PER DOMAIN** — 1 Shopify, 1 BuckyDrop, 1 1688. NEVER 2+ tabs of same site.
 - **ALWAYS `browser tabs` FIRST** — check what's open before ANY action

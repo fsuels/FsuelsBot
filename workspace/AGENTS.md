@@ -8,18 +8,18 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-01-29 20:55 EST | **Version:** 57
+**Last updated:** 2026-01-29 21:15 EST | **Version:** 58
 
-**Current task:** T004 Valentine listing optimization
-**Status:** 🚫 BLOCKED (BuckyDrop login needed)
-**Context:** Pipeline OS Lite v2.0 implemented (T031). Gate 0 complete: 12 Valentine products found (6 Active, 6 Drafts). All 6 Drafts have 0 stock = need BuckyDrop sourcing. Red Heart Sweatshirt audited - already well optimized.
-**Next step:** Francisco logs into BuckyDrop → Bot sources 6 draft products
+**Current task:** T032 Mobile LCP fix (featured-collection.liquid)
+**Status:** 🔧 IN PROGRESS (manual edit with Francisco)
+**Context:** PageSpeed shows 6.9s LCP due to lazy loading on hero images. Real LCP is 2401ms (Good). Fix: disable lazy loading for first 2 products. Browser automation failing - guiding Francisco through manual edit.
+**Next step:** Francisco presses Ctrl+P → opens featured-collection.liquid → bot guides the 4-line edit
 
 **⏰ DEADLINE:** 12 days until Feb 10 order cutoff
 
 **📋 TASK BOARD:** `memory/tasks.json` — THE SOURCE OF TRUTH
 
-**🤖 QUEUE:** T004 Valentine listings (blocked), T021 Mission Control button
+**🤖 QUEUE:** T004 Valentine listings (blocked on BuckyDrop), T021 Mission Control button
 
 **👤 FRANCISCO'S TASKS:**
 - **🔑 BuckyDrop login** — BLOCKING T004 (buckydrop.com/en/login/)
@@ -29,7 +29,7 @@ This folder is home. Treat it that way.
 
 **✅ DONE TODAY:** 26 tasks (incl. T031 Pipeline OS Lite)
 
-**🔄 COMPACTION CHECKPOINT:** Pre-compaction flush at 20:55 EST
+**🔄 COMPACTION CHECKPOINT:** Pre-compaction flush at 21:15 EST - LCP fix in progress
 
 **Standing rules:**
 - READ tasks.json at EVERY session start
