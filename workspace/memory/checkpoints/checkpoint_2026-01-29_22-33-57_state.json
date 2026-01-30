@@ -1,0 +1,43 @@
+{
+    "version": 58,
+    "deadline": {
+        "date": "2026-02-10",
+        "description": "Valentine's Day order cutoff",
+        "daysRemaining": 12
+    },
+    "currentTask": {
+        "id": "T032",
+        "description": "Mobile LCP fix - featured-collection.liquid lazy loading",
+        "currentStep": "Edit featured-collection.liquid to disable lazy loading for first 2 products",
+        "nextStep": "Francisco presses Ctrl+P, opens featured-collection.liquid, I guide the edit",
+        "context": "PageSpeed shows 6.9s LCP due to hero images lazy loading. Real LCP is 2401ms (Good). Fix: first 2 products should have lazy_load: false. Browser automation failing - guiding Francisco manually.",
+        "status": "in_progress"
+    },
+    "blocker": {
+        "type": "Browser automation",
+        "system": "Clawdbot browser control",
+        "resumeInstruction": "Browser actions timing out. Screenshots work. Francisco doing manual edit with guidance.",
+        "evidence": "Multiple timeout errors on snapshot/act calls to 127.0.0.1:18791"
+    },
+    "lastUpdated": "2026-01-29T21:15:00-05:00",
+    "standingRules": [
+        "UPDATE state.json BEFORE responding",
+        "Dashboard must ALWAYS match what I report in chat",
+        "SUGGESTION = FAILURE STATE",
+        "NORTH STAR: Increase sales and make money"
+    ],
+    "taskBoard": "memory/tasks.json",
+    "recentCompletions": [
+        "T031: Pipeline OS Lite implementation (8 gates, hard invariants, UI contracts)"
+    ],
+    "valentineInventory": {
+        "active": 6,
+        "drafts": 6,
+        "draftsNeedBuckyDrop": true
+    },
+    "compactionCheckpoint": {
+        "timestamp": "2026-01-29T21:15:00-05:00",
+        "reason": "Pre-compaction memory flush - LCP fix in progress",
+        "sessionSummary": "Francisco requested Mobile LCP fix. Browser automation failing. Guiding manual edit of featured-collection.liquid. T004 Valentine still blocked on BuckyDrop."
+    }
+}
