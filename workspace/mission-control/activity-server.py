@@ -1078,14 +1078,14 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": "taskId required"}).encode())
                 return
             
-            # Load tasks.json, move task from human to bot_queue with verify flag
+            # Load tasks.json, move task from human to bot_current with verify flag
             tasks_file = os.path.join(WORKSPACE_DIR, "memory", "tasks.json")
             try:
                 with open(tasks_file, 'r', encoding='utf-8') as f:
                     tasks_data = json.load(f)
                 
                 human_lane = tasks_data.get('lanes', {}).get('human', [])
-                bot_queue = tasks_data.get('lanes', {}).get('bot_queue', [])
+                bot_current = tasks_data.get('lanes', {}).get('bot_current', [])
                 
                 if task_id not in human_lane:
                     self.send_response(400)
@@ -1094,18 +1094,21 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                     self.wfile.write(json.dumps({"error": f"{task_id} not in human lane"}).encode())
                     return
                 
-                # Remove from human, add to front of bot_queue
+                # Remove from human, add to bot_current (shows in "Working Now" IMMEDIATELY)
                 human_lane.remove(task_id)
-                bot_queue.insert(0, task_id)  # Add at front for priority
+                bot_current.insert(0, task_id)  # Add at front for visibility
                 
                 # Mark task as needs_verification
                 if task_id in tasks_data.get('tasks', {}):
                     tasks_data['tasks'][task_id]['needs_verification'] = True
                     tasks_data['tasks'][task_id]['verification_requested_at'] = datetime.now(timezone.utc).isoformat()
                     tasks_data['tasks'][task_id]['status'] = 'pending_verification'
+                    # Update title to show verification in progress
+                    original_title = tasks_data['tasks'][task_id].get('title', task_id)
+                    tasks_data['tasks'][task_id]['original_title'] = original_title
                 
                 tasks_data['lanes']['human'] = human_lane
-                tasks_data['lanes']['bot_queue'] = bot_queue
+                tasks_data['lanes']['bot_current'] = bot_current
                 tasks_data['updated_at'] = datetime.now(timezone.utc).isoformat()
                 
                 # Write back
@@ -1120,7 +1123,7 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                     "taskId": task_id,
                     "requestedAt": datetime.now(timezone.utc).isoformat(),
                     "status": "pending_verification",
-                    "movedToQueue": True
+                    "movedToCurrent": True
                 }
                 with open(request_file, 'w', encoding='utf-8') as f:
                     json.dump(request_data, f, indent=2)
@@ -1130,7 +1133,7 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps({
                     "success": True,
-                    "message": f"{task_id} moved to verification queue",
+                    "message": f"{task_id} moved to Working Now for verification",
                     "taskId": task_id
                 }).encode())
                 return
@@ -1219,6 +1222,31 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                 if os.path.exists(tasks_file):
                     with open(tasks_file, 'r', encoding='utf-8') as f:
                         tasks_data = json.load(f)
+                    
+                    # AUTO-PROMOTE: If bot_current is empty, pull from bot_queue
+                    lanes = tasks_data.get('lanes', {})
+                    bot_current = lanes.get('bot_current', [])
+                    bot_queue = lanes.get('bot_queue', [])
+                    
+                    if len(bot_current) == 0 and len(bot_queue) > 0:
+                        # Move first task from queue to current
+                        next_task_id = bot_queue.pop(0)
+                        bot_current.append(next_task_id)
+                        
+                        # Update task status
+                        if next_task_id in tasks_data.get('tasks', {}):
+                            tasks_data['tasks'][next_task_id]['status'] = 'in_progress'
+                            tasks_data['tasks'][next_task_id]['started_at'] = datetime.now(timezone.utc).isoformat()
+                        
+                        # Save back to file
+                        lanes['bot_current'] = bot_current
+                        lanes['bot_queue'] = bot_queue
+                        tasks_data['lanes'] = lanes
+                        tasks_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+                        
+                        with open(tasks_file, 'w', encoding='utf-8') as f:
+                            json.dump(tasks_data, f, indent=4, ensure_ascii=False)
+                    
                     self.wfile.write(json.dumps(tasks_data, indent=2, ensure_ascii=False).encode('utf-8'))
                 else:
                     self.wfile.write(json.dumps({"error": "tasks.json not found"}).encode('utf-8'))
