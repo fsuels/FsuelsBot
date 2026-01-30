@@ -1,6 +1,10 @@
 # HEARTBEAT.md
 
 ## Infrastructure (check every heartbeat)
+- **Update health state** — Mark session as active for crash detection:
+  ```powershell
+  @{status="active"; lastSeen=(Get-Date).ToString("o"); pid=$PID} | ConvertTo-Json | Set-Content "memory/last-healthy-state.json"
+  ```
 - **Mission Control server** — Is port 8765 listening? If not, restart: `Start-ScheduledTask -TaskName "MissionControlServer"`
 - If you had to restart it, send Francisco the mobile URL via Telegram:
   **📱 Dashboard:** http://192.168.4.25:8765?key=a6132abf77194fd10a77317a094771f1
@@ -12,6 +16,26 @@ Run EVERY heartbeat: `powershell -ExecutionPolicy Bypass -File "C:\dev\FsuelsBot
 - Keeps last 10 checkpoints per file (auto-cleanup)
 - Prevents context loss from compaction/crashes
 - This is NON-NEGOTIABLE — we lost context earlier today because of this gap
+
+## Error Collection (MANDATORY — check every heartbeat)
+Run collector: `powershell -ExecutionPolicy Bypass -File "C:\dev\FsuelsBot\workspace\scripts\collect-errors.ps1" -Quiet`
+- Captures errors from Clawdbot log + Windows event log
+- Appends to `memory/error-log.jsonl` for pattern analysis
+- If errors found: investigate root cause, log to learnings.db, implement fix
+
+## Disconnect Investigation Protocol (ALARM — not optional)
+**Every disconnect is an alarm. Treat it seriously.**
+1. **Immediately** check terminal output for errors
+2. **Identify** the root cause (timeout? memory? file missing? network?)
+3. **Log** the cause to learnings.db with prevention strategy
+4. **Fix** immediately if possible, or create task if complex
+5. **Update** procedures to prevent recurrence
+
+**Common disconnect causes:**
+- Context truncation (conversation too long) → Save state more frequently
+- Network timeout (API calls) → Normal, Clawdbot handles gracefully
+- Missing files (renamed/moved) → Update references
+- Memory pressure (node process) → Monitor WorkingSet64
 
 ## Memory Integrity (check every heartbeat)
 Run validator: `powershell -ExecutionPolicy Bypass -File "C:\dev\FsuelsBot\workspace\tests\validators\memory-integrity.ps1"`

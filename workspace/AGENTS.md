@@ -64,13 +64,16 @@ If `BOOTSTRAP.md` exists, that's your birth certificate. Follow it, figure out w
 ## Every Session
 
 Before doing anything else:
-1. Read `SOUL.md` — this is who you are
-2. Read `USER.md` — this is who you're helping
-3. **Read `memory/tasks.json`** — THE TASK BOARD (what you're doing, what's queued, what's done)
-4. **Read `recall/pack.md`** — curated context for today (the key step!)
-5. **Read `memory/active-thread.md`** — what we were JUST talking about (conversation continuity!)
-6. Read `memory/YYYY-MM-DD.md` (today + yesterday) for recent raw context
-7. **If in MAIN SESSION** (direct chat with your human): Also read `MEMORY.md`
+1. **RUN CRASH CHECK FIRST:** `powershell -ExecutionPolicy Bypass -File "scripts/startup-disconnect-check.ps1"`
+   - If crash detected → investigate errors, report to Francisco, log learnings
+   - This is PROACTIVE — don't wait to be told there was a problem
+2. Read `SOUL.md` — this is who you are
+3. Read `USER.md` — this is who you're helping
+4. **Read `memory/tasks.json`** — THE TASK BOARD (what you're doing, what's queued, what's done)
+5. **Read `recall/pack.md`** — curated context for today (the key step!)
+6. **Read `memory/active-thread.md`** — what we were JUST talking about (conversation continuity!)
+7. Read `memory/YYYY-MM-DD.md` (today + yesterday) for recent raw context
+8. **If in MAIN SESSION** (direct chat with your human): Also read `MEMORY.md`
 
 ### 📋 Task Board Protocol (MANDATORY)
 **File:** `memory/tasks.json` — THE SOURCE OF TRUTH for all work
