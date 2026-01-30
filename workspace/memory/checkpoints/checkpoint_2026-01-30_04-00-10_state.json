@@ -1,0 +1,26 @@
+﻿{
+    "version":  68,
+    "deadline":  {
+                     "date":  "2026-02-10",
+                     "description":  "Valentine\u0027s Day order cutoff",
+                     "daysRemaining":  11
+                 },
+    "currentTask":  {
+                        "id":  "T004",
+                        "description":  "Valentine listing optimization",
+                        "currentStep":  "Optimize titles per SEO procedure - 1/10 done",
+                        "nextStep":  null,
+                        "context":  "",
+                        "status":  "in_progress"
+                    },
+    "lastUpdated":  "2026-01-30T03:45:28-05:00",
+    "standingRules":  [
+                          "UPDATE state.json BEFORE responding",
+                          "Dashboard must ALWAYS match what I report in chat",
+                          "SUGGESTION = FAILURE STATE",
+                          "NORTH STAR: Increase sales and make money",
+                          "If something fails 2-3 times, STOP GRINDING, START QUESTIONING",
+                          "Never offer human as fallback - work with what you have"
+                      ],
+    "taskBoard":  "memory/tasks.json"
+}

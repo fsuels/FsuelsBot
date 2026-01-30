@@ -1,26 +1,16 @@
 {
-    "version": 66,
-    "deadline": {
-        "date": "2026-02-10",
-        "description": "Valentine's Day order cutoff",
-        "daysRemaining": 12
-    },
-    "currentTask": {
-        "id": "T004",
-        "description": "Valentine listing optimization + Draft product fixes",
-        "currentStep": "Resuming - fixing draft product titles",
-        "nextStep": "Continue through 15+ drafts, add descriptions, fix variants",
-        "context": "16+ raw BuckyDrop imports needing full setup. Fixed 1 so far. 12 days to Feb 10 deadline.",
-        "status": "in_progress"
-    },
-    "lastUpdated": "2026-01-30T01:25:00-05:00",
-    "standingRules": [
-        "UPDATE state.json BEFORE responding",
-        "Dashboard must ALWAYS match what I report in chat",
-        "SUGGESTION = FAILURE STATE",
-        "NORTH STAR: Increase sales and make money",
-        "If something fails 2-3 times, STOP GRINDING, START QUESTIONING",
-        "Never offer human as fallback - work with what you have"
-    ],
-    "taskBoard": "memory/tasks.json"
+  "version": 70,
+  "updated_at": "2026-01-30T09:51:04.270935+00:00",
+  "current_task": "Cron-to-Task System Implementation",
+  "task_id": "T035",
+  "status": "DONE",
+  "context": "Converted all 11 cron jobs to task-based system. Each cron now creates a task card in bot_queue with learnings section for full traceability. Script: scripts/cron-to-task.py. Procedure: knowledge/procedures/cron-to-task.md.",
+  "next_step": "Monitor next cron fires to verify tasks appear in Mission Control",
+  "blockers": [],
+  "recent_completions": [
+    "T034 Council: Prevent Bot Lying - verified",
+    "Mission Control Council learnings feature added",
+    "Cron-to-task system implemented for all 11 jobs"
+  ],
+  "deadline": "Feb 10 Valentine order cutoff (11 days)"
 }

@@ -720,6 +720,10 @@ body {
         <div class="modal-label">📝 Notes</div>
         <div class="modal-content" id="modalNotes"></div>
       </div>
+      <div class="modal-section" id="modalLearningsSection" style="display:none;">
+        <div class="modal-label">🧠 Council Learnings</div>
+        <div class="modal-content" id="modalLearnings"></div>
+      </div>
       <div class="modal-section" id="modalPlanSection">
         <div class="modal-label">📄 Plan Document</div>
         <a class="modal-link" id="modalPlanLink" href="#" target="_blank">
@@ -1111,6 +1115,32 @@ function showTaskDetail(id) {
     notesSection.style.display = 'none';
   }
   
+  // Learnings (for Council tasks)
+  const learningsSection = document.getElementById('modalLearningsSection');
+  if (task.learnings) {
+    let learningsHtml = '';
+    if (task.learnings.question) {
+      learningsHtml += '<div style="margin-bottom:12px;"><strong>Question:</strong> ' + task.learnings.question + '</div>';
+    }
+    if (task.learnings.verdict) {
+      learningsHtml += '<div style="margin-bottom:12px;padding:10px;background:rgba(163,113,247,0.15);border-radius:6px;border-left:3px solid #a371f7;"><strong>Verdict:</strong> ' + task.learnings.verdict + '</div>';
+    }
+    if (task.learnings.outcomes && task.learnings.outcomes.length > 0) {
+      learningsHtml += '<div style="margin-bottom:8px;"><strong>Outcomes:</strong><ul style="margin:4px 0 0 16px;">';
+      task.learnings.outcomes.forEach(function(o) { learningsHtml += '<li>' + o + '</li>'; });
+      learningsHtml += '</ul></div>';
+    }
+    if (task.learnings.actionsTaken && task.learnings.actionsTaken.length > 0) {
+      learningsHtml += '<div><strong>Actions Taken:</strong><ul style="margin:4px 0 0 16px;">';
+      task.learnings.actionsTaken.forEach(function(a) { learningsHtml += '<li>' + a + '</li>'; });
+      learningsHtml += '</ul></div>';
+    }
+    document.getElementById('modalLearnings').innerHTML = learningsHtml;
+    learningsSection.style.display = 'block';
+  } else {
+    learningsSection.style.display = 'none';
+  }
+  
   // Plan link
   const planSection = document.getElementById('modalPlanSection');
   if (task.plan) {
@@ -1412,9 +1442,15 @@ async function requestComplete(taskId, btn) {
     const data = await resp.json();
     
     if (data.success) {
-      btn.textContent = '⏳ Bot verifying...';
-      // Show a toast notification
-      showToast(`🔍 ${taskId} sent for verification. Bot will check and confirm.`);
+      // Check if it was a Council task (directly completed by human verification)
+      if (data.message && data.message.includes('verified and marked complete')) {
+        btn.textContent = '✅ Done!';
+        showToast(`✅ ${taskId} verified and complete!`);
+        setTimeout(() => loadTasks(), 500);
+      } else {
+        btn.textContent = '⏳ Bot verifying...';
+        showToast(`🔍 ${taskId} sent for verification. Bot will check and confirm.`);
+      }
     } else {
       btn.textContent = '❌ Error';
       btn.classList.remove('pending');

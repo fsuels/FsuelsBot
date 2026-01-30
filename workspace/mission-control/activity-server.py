@@ -1078,7 +1078,7 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": "taskId required"}).encode())
                 return
             
-            # Load tasks.json, move task from human to bot_current with verify flag
+            # Load tasks.json
             tasks_file = os.path.join(WORKSPACE_DIR, "memory", "tasks.json")
             try:
                 with open(tasks_file, 'r', encoding='utf-8') as f:
@@ -1086,7 +1086,38 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                 
                 human_lane = tasks_data.get('lanes', {}).get('human', [])
                 bot_current = tasks_data.get('lanes', {}).get('bot_current', [])
+                done_today = tasks_data.get('lanes', {}).get('done_today', [])
                 
+                # Check if this is a Council task (human verifies bot work → goes to done)
+                task_data = tasks_data.get('tasks', {}).get(task_id, {})
+                is_council = task_data.get('title', '').lower().startswith('council')
+                
+                # Council tasks: human clicked "Verify Bot Work" → move to done_today
+                if is_council and task_id in human_lane:
+                    human_lane.remove(task_id)
+                    done_today.insert(0, task_id)
+                    task_data['status'] = 'done'
+                    task_data['completed_at'] = datetime.now(timezone.utc).isoformat()
+                    task_data['verified_by'] = 'human'
+                    tasks_data['tasks'][task_id] = task_data
+                    tasks_data['lanes']['human'] = human_lane
+                    tasks_data['lanes']['done_today'] = done_today
+                    tasks_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+                    
+                    with open(tasks_file, 'w', encoding='utf-8') as f:
+                        json.dump(tasks_data, f, indent=4, ensure_ascii=False)
+                    
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({
+                        "success": True,
+                        "message": f"Council {task_id} verified and marked complete!",
+                        "taskId": task_id
+                    }).encode())
+                    return
+                
+                # Regular tasks: move from human to bot_current for bot verification
                 if task_id not in human_lane:
                     self.send_response(400)
                     self.send_header('Content-Type', 'application/json')

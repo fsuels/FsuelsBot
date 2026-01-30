@@ -8,29 +8,34 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-01-30 01:18 EST | **Version:** 66
+**Last updated:** 2026-01-30 04:50 EST | **Version:** 70
 
-**Current task:** Idle - awaiting next directive
-**Status:** ⚪ IDLE (Mission Control enhancements complete)
-**Context:** Completed T021 (Mark Complete button) + queue reorder arrows. T004 paused per Francisco. 15+ drafts still need fixing.
-**Next step:** Resume T004 (Valentine draft products) or Francisco's next request
+**Current task:** T035 - Cron-to-Task System Implementation
+**Status:** ✅ DONE
+**Context:** Converted all 11 cron jobs to task-based system. Each cron now creates a task card in bot_queue with learnings section for full traceability.
+**Next step:** Monitor next cron fires to verify tasks appear in Mission Control
 
-**⏰ DEADLINE:** 12 days until Feb 10 order cutoff
+**⏰ DEADLINE:** 11 days until Feb 10 order cutoff
 
 **📋 TASK BOARD:** `memory/tasks.json` — THE SOURCE OF TRUTH
 
-**✅ COMPLETED THIS SESSION:**
-- T021: Mission Control "Mark Complete" button for human tasks
-- Bonus: Queue reorder ▲/▼ arrows (requested by Francisco)
-- Mission Control server running (PID 95276)
+**✅ RECENT COMPLETIONS:**
+- T034 Council: Prevent Bot Lying - verified by Francisco
+- Mission Control Council learnings feature added
+- Cron-to-task system implemented for all 11 jobs
 
-**🔧 PAUSED - T004 DRAFT PRODUCTS:**
-- Found 16+ drafts (more than the 11 Francisco mentioned)
-- Most are RAW BuckyDrop imports needing full setup
-- Fixed 1: "Matching Couples Striped Loungewear Set | DLM"
-- Remaining need: titles, descriptions, variant cleanup, tags, collections
+**🔧 CRON-TO-TASK SYSTEM (NEW):**
+- Script: `scripts/cron-to-task.py`
+- Procedure: `knowledge/procedures/cron-to-task.md`
+- All cron jobs now create traceable task cards
+- Tasks have `learnings` section (like Council tasks)
+- Click any completed cron task in Mission Control to see what it produced
 
-**🔄 COMPACTION CHECKPOINT:** Pre-compaction flush at 01:18 EST
+**⏸️ QUEUED - T004 VALENTINE LISTINGS:**
+- Resume after cron system verified working
+- 11 days until deadline
+
+**🔄 COMPACTION CHECKPOINT:** Pre-compaction flush at 04:50 EST
 
 **Standing rules:**
 - READ tasks.json at EVERY session start
@@ -39,7 +44,7 @@ This folder is home. Treat it that way.
 - **SUGGESTION = FAILURE STATE** — execute, don't advise
 - **NORTH STAR: Increase sales and make money**
 - **If failing 2-3 times → STOP GRINDING, START QUESTIONING**
-- **EVERY ERROR = LEARNING** — log to learnings.db, find root cause, prevent recurrence
+- **Council tasks = human-verified completion only**
 
 ---
 ### State Management Protocol

@@ -1,0 +1,26 @@
+{
+    "version": 66,
+    "deadline": {
+        "date": "2026-02-10",
+        "description": "Valentine's Day order cutoff",
+        "daysRemaining": 12
+    },
+    "currentTask": {
+        "id": "T004",
+        "description": "Valentine listing optimization + Draft product fixes",
+        "currentStep": "Resuming - fixing draft product titles",
+        "nextStep": "Continue through 15+ drafts, add descriptions, fix variants",
+        "context": "16+ raw BuckyDrop imports needing full setup. Fixed 1 so far. 12 days to Feb 10 deadline.",
+        "status": "in_progress"
+    },
+    "lastUpdated": "2026-01-30T01:25:00-05:00",
+    "standingRules": [
+        "UPDATE state.json BEFORE responding",
+        "Dashboard must ALWAYS match what I report in chat",
+        "SUGGESTION = FAILURE STATE",
+        "NORTH STAR: Increase sales and make money",
+        "If something fails 2-3 times, STOP GRINDING, START QUESTIONING",
+        "Never offer human as fallback - work with what you have"
+    ],
+    "taskBoard": "memory/tasks.json"
+}
