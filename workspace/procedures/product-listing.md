@@ -51,6 +51,8 @@ Before sourcing ANY new products:
 - [ ] **Store age** — Established sellers (1+ years preferred)
 - [ ] **Response rate** — High response = reliable communication
 - [ ] **Product availability** — Check stock indicators, avoid "last item" or low stock
+- [ ] **1-piece dropshipping** — Must allow single unit orders (no MOQ)
+- [ ] **Fast warehouse delivery** — 24-48hrs to BuckyDrop China warehouse
 
 **Red flags (AVOID these vendors):**
 - ❌ No recent sales/reviews
@@ -58,6 +60,7 @@ Before sourcing ANY new products:
 - ❌ Poor ratings or many complaints
 - ❌ Listings that look too good to be true
 - ❌ Products showing "sold out" or "discontinued"
+- ❌ **Old listings** — factories keep discontinued products as "hooks"
 
 ### 1.2 Product Selection Criteria
 
@@ -76,13 +79,14 @@ Good products have:
 - ❌ Products from unreliable vendors
 - ❌ Items already in our catalog (check Phase 0!)
 
-### 1.3 Freshness Check
+### 1.3 Freshness Check (CRITICAL)
 
 - Sort by "newest" or "recent sales" when searching
-- Check if listing was recently updated
+- **Check listing creation date** — recently created listings only
 - Verify product photos look current (not dated styles)
+- **Avoid old listings** — factories don't update discontinued products, keep old listings as "hooks" to attract buyers
 
-**State:** "Product discovery: Vendor [name] has [rating], [transaction count] sales. Product fits matching criteria. Fresh listing."
+**State:** "Product discovery: Vendor [name] has [rating], [transaction count] sales. Listing created [date]. 1-piece OK. 24-48hr delivery. Product fits matching criteria."
 
 ---
 
@@ -90,19 +94,20 @@ Good products have:
 
 1. Open BuckyDrop (use existing tab if open)
 2. Import product using 1688 URL
-3. Configure:
+3. **Get product weight from 1688 listing** — use ADULT size weight only
+4. Configure:
    - Shipping route: **YunExpress** (default)
-   - Shipping destination: **USA** (even for UK/Canada/Australia orders)
+   - Shipping destination: **USA** (use for ALL countries to save time)
    - Variants: all sizes needed
 
-4. **Get the FULL cost breakdown:**
+5. **Get the FULL cost breakdown:**
    - Product cost
    - Domestic shipping (China)
-   - International shipping (to USA)
+   - International shipping (to USA) — **use weight for accurate estimate**
    - BuckyDrop fees
    - **TOTAL COST = sum of all above**
 
-**State:** "BuckyDrop import complete. Total cost: $[X] (product $[A] + domestic $[B] + intl $[C] + fees $[D])."
+**State:** "BuckyDrop import complete. Weight: [X]g. Total cost: $[Y] (product $[A] + domestic $[B] + intl $[C] + fees $[D])."
 
 ---
 
@@ -113,7 +118,10 @@ Good products have:
 ```
 MINIMUM PRICE = TOTAL COST × 2
 
-This ensures AT LEAST 50% profit margin.
+This ensures AT LEAST 50% profit margin AFTER:
+- Ads cost buffer
+- Returns cost buffer
+- Platform fees
 
 Examples:
 - $10 total cost → $20 minimum price
@@ -121,15 +129,19 @@ Examples:
 - $24 total cost → $48 minimum price
 ```
 
-### Competitor Check
+### Competitor Check (MUST BE COMPETITIVE)
 
 Before finalizing price:
 1. Search Amazon, Etsy, Google Shopping for similar products
 2. Note competitor price range
-3. If competitors are cheaper than our 2× cost → FLAG to Francisco
-4. If room exists → price between 2× cost and competitor average
+3. **If competitors are cheaper than our 2× cost:**
+   - Can we find a cheaper source?
+   - Is the margin still acceptable at competitor price?
+   - FLAG to Francisco if margin drops below 40%
+4. **Price to be competitive** — don't just 2× if market won't bear it
+5. If room exists → price between 2× cost and competitor average
 
-**State:** "Pricing: Cost $[X] × 2 = $[Y] minimum. Competitors at $[A]-$[B]. Final price: $[Z] ([M]% margin)."
+**State:** "Pricing: Cost $[X] × 2 = $[Y] minimum. Competitors at $[A]-$[B]. Final price: $[Z] ([M]% margin after ads/returns buffer)."
 
 ---
 
@@ -138,15 +150,61 @@ Before finalizing price:
 ### 4.1 Basic Info
 - **Title:** Clear, SEO-friendly (e.g., "Valentine Heart Mommy and Me Matching Pajamas")
 - **Description:** Benefits, materials, sizing info
-- **Tags:** Collection tags (Valentine's Day, Summer, etc.)
-- **Product type:** Set appropriately
+- **Product type:** Set appropriately (T-Shirt, Sweatshirt, Dress, Pajamas, etc.)
 
-### 4.2 Images
+### 4.2 Category & Metafields (CRITICAL FOR DISCOVERABILITY)
+
+**Study existing similar products** to understand the tagging patterns!
+
+**Category Selection:**
+- Choose correct category (e.g., Sweatshirts in Clothing > Tops)
+- This auto-populates some category metafields
+
+**Category Metafields (for site filters):**
+- **Color** — Use exact values from existing filter (Red, Pink, White, Black, Blue, Green, etc.) — capitalize consistently!
+- **Size** — All sizes in the listing
+- **Fabric** — Material type
+- **Age group** — Kids, Adults, All Ages
+- **Target gender** — Female, Male, Unisex
+
+**Product Metafields (for breadcrumbs/SEO):**
+- **Pattern** — Hearts, Floral, Solid, Stripes, etc.
+- **Style** — Casual, Formal, etc.
+- **Type** — Product type
+- **SubCategory / SubCategory2** — Navigation hierarchy
+- **Category1** — Top-level category
+
+### 4.3 Tags (MUST INCLUDE)
+
+Tags enable filtering and collection organization. **Study existing products for patterns!**
+
+**Required tags:**
+- **Color tags** — `red heart`, `pink`, `white`, etc.
+- **Size tags** — If needed for filtering
+- **Collection tags** — `valentines day`, `christmas`, `summer`, etc.
+- **Relationship tags** — `mother daughter`, `daddy and me`, `matching family`
+- **Brand tags** — `Mommy and Me`
+- **Product type tags** — `sweatshirt`, `pajamas`, `t-shirt`, etc.
+
+**Example for Valentine product:**
+```
+valentines day, red heart, mother daughter, Mommy and Me, matching family, heart sweatshirt, family outfit
+```
+
+### 4.4 Collections
+
+Add product to appropriate collections:
+- **Mommy and Me** — always
+- **New Mommy & Me** — if new product
+- **Seasonal collection** — Valentine's Day, Christmas, Summer, etc.
+- **Category collections** — Swimwear, Pajamas, T-Shirts, etc.
+
+### 4.5 Images
 - Upload all product images
 - **FACE CHECK:** If Chinese faces visible → need face swap
 - Order: Main image first, then angles, then size chart
 
-### 4.3 Face Swapping (if needed)
+### 4.6 Face Swapping (if needed)
 
 **When:** Product photos show Chinese models
 
@@ -160,7 +218,7 @@ Before finalizing price:
 
 **State:** "Face swap: [X] images processed with American faces."
 
-### 4.4 Size Chart
+### 4.7 Size Chart
 
 1. Check if product has sizing information
 2. Apply our size chart conversion script
@@ -169,19 +227,19 @@ Before finalizing price:
 
 **State:** "Size chart: Verified working with conversion script."
 
-### 4.5 Variants & Pricing
+### 4.8 Variants & Pricing
 
 - Set up all size variants (Adult S/M/L/XL, Child sizes)
 - Apply calculated price to all variants
 - Verify no variant is priced below minimum
 
-### 4.6 Save as DRAFT
+### 4.9 Save as DRAFT
 
 - **NEVER publish active** — Francisco reviews all drafts first
 - Save as DRAFT
 - Note draft number for tracking
 
-**State:** "Draft #[N] created: [Product name]. Price: $[X]. Awaiting Francisco's review."
+**State:** "Draft #[N] created: [Product name]. Price: $[X]. Tags: [list]. Collections: [list]. Awaiting Francisco's review."
 
 ---
 
@@ -210,13 +268,17 @@ Before finalizing price:
 - [ ] Product in stock
 
 ### Draft Completion Checklist
-- [ ] Title optimized
+- [ ] Title optimized (SEO-friendly, ≤60 chars)
 - [ ] Description complete
+- [ ] Category set correctly
+- [ ] Category metafields filled (Color, Size, Fabric, Age group)
+- [ ] Product metafields filled (Pattern, Style, Type, SubCategory, Category1)
+- [ ] Tags added (color, sizes, collection, relationship, brand, product type)
+- [ ] Collections assigned (Mommy and Me + seasonal + category)
 - [ ] All images uploaded
 - [ ] Face swap done (if needed)
 - [ ] Size chart working
-- [ ] Price ≥ 2× cost
-- [ ] Tagged for collections
+- [ ] Price ≥ 2× cost (after ads/returns buffer)
 - [ ] Saved as DRAFT (not active)
 - [ ] Tracking updated
 
