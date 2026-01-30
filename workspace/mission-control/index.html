@@ -8,12 +8,26 @@
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #0d1117;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+  background: #0a0a0f;
   color: #e6edf3;
   min-height: 100vh;
   padding: 20px;
+  background-image:
+    radial-gradient(circle at 10% 90%, rgba(0, 255, 200, 0.03) 0%, transparent 40%),
+    radial-gradient(circle at 90% 10%, rgba(255, 0, 150, 0.03) 0%, transparent 40%);
 }
+/* Circuit pattern */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 30h20M40 30h20M30 0v20M30 40v20' stroke='%23ffffff' stroke-opacity='0.02' fill='none'/%3E%3C/svg%3E");
+  opacity: 0.5;
+  z-index: 0;
+}
+.container { position: relative; z-index: 1; }
 
 /* Modal */
 .modal-overlay {
@@ -147,18 +161,30 @@ body {
 }
 @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
 
-/* Deadline Banner */
+/* Deadline Banner - Pink Neon */
 .deadline-banner {
-  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
-  border-radius: 12px;
-  padding: 16px 20px;
-  margin-bottom: 20px;
+  background: rgba(255, 0, 150, 0.1);
+  border: 2px solid #ff0096;
+  border-radius: 8px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  box-shadow: 0 0 30px rgba(255, 0, 150, 0.3), inset 0 0 30px rgba(255, 0, 150, 0.1);
 }
-.deadline-text { font-size: 16px; font-weight: 600; }
-.deadline-days { font-size: 28px; font-weight: 700; }
+.deadline-text {
+  font-size: 20px;
+  font-weight: 600;
+  color: #ff0096;
+  text-shadow: 0 0 10px rgba(255, 0, 150, 0.5);
+}
+.deadline-days {
+  font-size: 32px;
+  font-weight: 700;
+  color: #ff0096;
+  text-shadow: 0 0 15px rgba(255, 0, 150, 0.7);
+}
 
 /* Task Board Grid */
 .task-board {
@@ -168,13 +194,14 @@ body {
   margin-bottom: 24px;
 }
 
-/* Lane Cards */
+/* Lane Cards - Neon Borders */
 .lane {
-  background: #161b22;
-  border: 1px solid #30363d;
-  border-radius: 12px;
+  background: rgba(15, 15, 25, 0.8);
+  border: 2px solid;
+  border-radius: 8px;
   padding: 16px;
-  min-height: 200px;
+  min-height: 220px;
+  backdrop-filter: blur(10px);
 }
 .lane-header {
   display: flex;
@@ -199,40 +226,56 @@ body {
   color: #8b949e;
 }
 
-/* Bot Current - Special styling */
+/* Bot Current - Green Neon */
 .lane.bot-current {
-  border-color: #238636;
-  background: linear-gradient(135deg, #161b22 0%, #0d1a0f 100%);
+  border-color: #00ff88;
+  box-shadow: 0 0 25px rgba(0, 255, 136, 0.3), inset 0 0 25px rgba(0, 255, 136, 0.05);
 }
-.lane.bot-current .lane-title { color: #3fb950; }
+.lane.bot-current .lane-title {
+  color: #00ff88;
+  text-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+}
+/* Bot Queue - Orange Neon */
+.lane.bot-queue {
+  border-color: #ff8800;
+  box-shadow: 0 0 25px rgba(255, 136, 0, 0.3), inset 0 0 25px rgba(255, 136, 0, 0.05);
+}
+.lane.bot-queue .lane-title {
+  color: #ff8800;
+  text-shadow: 0 0 10px rgba(255, 136, 0, 0.5);
+}
 
-/* Human Lane - Special styling */
+/* Human Lane - Cyan Neon */
 .lane.human {
-  border-color: #1f6feb;
-  background: linear-gradient(135deg, #161b22 0%, #0d1117 100%);
+  border-color: #00d4ff;
+  box-shadow: 0 0 25px rgba(0, 212, 255, 0.3), inset 0 0 25px rgba(0, 212, 255, 0.05);
 }
-.lane.human .lane-title { color: #58a6ff; }
+.lane.human .lane-title {
+  color: #00d4ff;
+  text-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+}
 
 /* Task Items */
 .task-item {
-  background: #0d1117;
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 8px;
-  border-left: 3px solid #30363d;
+  background: rgba(20, 20, 35, 0.9);
+  border-radius: 6px;
+  padding: 14px;
+  margin-bottom: 10px;
+  border: 1px solid rgba(255,255,255,0.1);
   cursor: pointer;
   transition: all 0.2s;
 }
 .task-item:hover {
-  background: #1c2128;
-  transform: translateX(4px);
+  background: rgba(30, 30, 50, 0.9);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
 }
 .task-item.in-progress {
-  border-left-color: #3fb950;
-  background: rgba(63,185,80,0.05);
+  border-color: rgba(0, 255, 136, 0.3);
+  background: rgba(0, 255, 136, 0.05);
 }
-.task-item.pending { border-left-color: #8b949e; }
-.task-item.human-task { border-left-color: #58a6ff; }
+.task-item.pending { border-color: rgba(255,255,255,0.1); }
+.task-item.human-task { border-color: rgba(0, 212, 255, 0.2); }
 
 .task-id {
   font-size: 11px;
@@ -353,6 +396,21 @@ body {
 .transfer-btn:hover {
   background: rgba(88,166,255,0.3);
   border-color: #58a6ff;
+}
+.pause-btn {
+  color: #f0883e;
+  border: 1px solid rgba(240,136,62,0.4);
+  background: rgba(240,136,62,0.1);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+.pause-btn:hover {
+  background: rgba(240,136,62,0.3);
+  border-color: #f0883e;
+  color: #f0883e;
 }
 .confirm-bubble {
   display: none;
@@ -753,16 +811,16 @@ body {
     <!-- Bot Current -->
     <div class="lane bot-current">
       <div class="lane-header">
-        <span class="lane-title">🤖 Bot — Working Now</span>
+        <span class="lane-title">🤖 Bot - Working Now</span>
         <span class="lane-count" id="botCurrentCount">0</span>
       </div>
       <div id="botCurrentTasks">Loading...</div>
     </div>
 
     <!-- Bot Queue -->
-    <div class="lane">
+    <div class="lane bot-queue">
       <div class="lane-header">
-        <span class="lane-title">📋 Bot — Queue</span>
+        <span class="lane-title">📋 Bot - Queue</span>
         <span class="lane-count" id="botQueueCount">0</span>
       </div>
       <div id="botQueueTasks">Loading...</div>
@@ -771,7 +829,7 @@ body {
     <!-- Human Tasks -->
     <div class="lane human">
       <div class="lane-header">
-        <span class="lane-title">👤 Francisco — Your Tasks</span>
+        <span class="lane-title">👤 Francisco - Your Tasks</span>
         <span class="lane-count" id="humanCount">0</span>
       </div>
       <div id="humanTasks">Loading...</div>
@@ -824,17 +882,17 @@ async function loadTaskBoard() {
   try {
     const resp = await fetch('/api/tasks?' + Date.now());
     const data = await resp.json();
-    
+
     const tasks = data.tasks || {};
     allTasks = tasks;  // Store for modal
     const lanes = data.lanes || {};
-    
+
     // Calculate deadline
     const deadline = new Date('2026-02-10');
     const today = new Date();
     const daysLeft = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24));
     document.getElementById('deadlineDays').textContent = daysLeft + ' days';
-    
+
     // Render Bot Current
     const botCurrentIds = lanes.bot_current || [];
     document.getElementById('botCurrentCount').textContent = botCurrentIds.length;
@@ -843,7 +901,7 @@ async function loadTaskBoard() {
       if (!t) return '';
       return renderTask(id, t, 'in-progress');
     }).join('') || '<div style="color:#8b949e;font-size:13px;">No active task</div>';
-    
+
     // Render Bot Queue
     const botQueueIds = lanes.bot_queue || [];
     document.getElementById('botQueueCount').textContent = botQueueIds.length;
@@ -852,7 +910,7 @@ async function loadTaskBoard() {
       if (!t) return '';
       return renderTask(id, t, 'pending', idx === 0 ? 'NEXT' : null, {index: idx, total: botQueueIds.length});
     }).join('') || '<div style="color:#8b949e;font-size:13px;">Queue empty 🎉</div>';
-    
+
     // Render Human Tasks
     const humanIds = lanes.human || [];
     document.getElementById('humanCount').textContent = humanIds.length;
@@ -861,13 +919,13 @@ async function loadTaskBoard() {
       if (!t) return '';
       return renderTask(id, t, 'human-task');
     }).join('') || '<div style="color:#8b949e;font-size:13px;">All done! 🎉</div>';
-    
+
     // Store lanes for filtering
     currentLanes = lanes;
-    
+
     // Render Done with date filter
     renderDoneTasks();
-    
+
     // Render Trash
     const trashIds = lanes.trash || [];
     const trashSection = document.getElementById('trashSection');
@@ -890,7 +948,7 @@ async function loadTaskBoard() {
     } else {
       trashSection.style.display = 'none';
     }
-    
+
     // Render Scheduled (Cron Jobs)
     const schedIds = lanes.scheduled || [];
     document.getElementById('scheduledTasks').innerHTML = schedIds.map(id => {
@@ -907,9 +965,9 @@ async function loadTaskBoard() {
         </div>
       `;
     }).join('') || '<div style="color:#8b949e;">No scheduled tasks</div>';
-    
+
     document.getElementById('lastUpdate').textContent = 'Updated: ' + new Date().toLocaleTimeString();
-    
+
   } catch(e) {
     console.error('Failed to load tasks:', e);
     document.getElementById('botCurrentTasks').innerHTML = '<div style="color:#f85149;">Failed to load tasks.json</div>';
@@ -919,7 +977,7 @@ async function loadTaskBoard() {
 function renderTask(id, task, statusClass, badge, queueInfo) {
   const planLink = task.plan ? `<span class="task-plan">📄 ${task.plan.split('/').pop()}</span>` : '';
   const estimate = task.estimate ? `<span class="task-estimate">⏱ ${task.estimate}</span>` : '';
-  
+
   // Check for verification badge (human-completed task awaiting bot verification)
   let badgeHtml = '';
   if (task.needs_verification) {
@@ -927,7 +985,7 @@ function renderTask(id, task, statusClass, badge, queueInfo) {
   } else if (badge) {
     badgeHtml = `<span class="task-estimate" style="background:#238636;color:#fff;">${badge}</span>`;
   }
-  
+
   // Step progress indicator
   let stepProgress = '';
   if (task.steps && task.steps.length > 0) {
@@ -936,7 +994,7 @@ function renderTask(id, task, statusClass, badge, queueInfo) {
     const totalSteps = task.steps.length;
     const currentStepInfo = task.steps[currentStep];
     const stepStatus = currentStepInfo ? currentStepInfo.status : 'pending';
-    
+
     let stepIcon = '📋';
     let stepColor = '#8b949e';
     if (stepStatus === 'waiting') {
@@ -949,23 +1007,26 @@ function renderTask(id, task, statusClass, badge, queueInfo) {
       stepIcon = '🚫';
       stepColor = '#f85149';
     }
-    
+
     stepProgress = `<span class="task-estimate" style="background:rgba(88,166,255,0.15);color:${stepColor};">${stepIcon} Step ${currentStep + 1}/${totalSteps}</span>`;
   }
-  
+
   // Mark Complete button for human tasks
-  const completeBtn = statusClass === 'human-task' 
-    ? `<button class="complete-btn" onclick="event.stopPropagation(); requestComplete('${id}', this)">✓ Mark Complete</button>` 
+  const completeBtn = statusClass === 'human-task'
+    ? `<button class="complete-btn" onclick="event.stopPropagation(); requestComplete('${id}', this)">✓ Mark Complete</button>`
     : '';
-  
+
   // Transfer buttons - move between lanes
   let transferBtn = '';
   if (statusClass === 'human-task') {
     transferBtn = `<button class="transfer-btn" onclick="event.stopPropagation(); transferTask('${id}', 'human', 'bot_queue')" title="Move to Bot Queue">🤖←</button>`;
+  } else if (statusClass === 'in-progress') {
+    // Pause button - move from Working back to Queue
+    transferBtn = `<button class="transfer-btn pause-btn" onclick="event.stopPropagation(); transferTask('${id}', 'bot_current', 'bot_queue')" title="Pause - Move back to Queue">❚❚</button>`;
   } else if (queueInfo) {
     transferBtn = `<button class="transfer-btn" onclick="event.stopPropagation(); transferTask('${id}', 'bot_queue', 'human')" title="Move to Human Tasks">→👤</button>`;
   }
-  
+
   // Reorder buttons for queue tasks
   let reorderBtns = '';
   if (queueInfo) {
@@ -978,10 +1039,10 @@ function renderTask(id, task, statusClass, badge, queueInfo) {
       </div>
     `;
   }
-  
+
   // Delete button for all tasks
   const deleteBtn = `<button class="delete-btn" onclick="event.stopPropagation(); deleteTask('${id}', event)" title="Remove task">✕</button>`;
-  
+
   // Build toolbar with all action buttons
   let toolbar = '';
   const hasActions = completeBtn || transferBtn || reorderBtns || deleteBtn;
@@ -1007,20 +1068,45 @@ function renderTask(id, task, statusClass, badge, queueInfo) {
 function showTaskDetail(id) {
   const task = allTasks[id];
   if (!task) return;
-  
+
   document.getElementById('modalTitle').textContent = task.title;
   document.getElementById('modalId').textContent = id;
-  
+
   // Status
   const statusEl = document.getElementById('modalStatus');
   const status = task.status || 'pending';
   statusEl.textContent = status;
   statusEl.className = 'modal-status ' + (status === 'done' ? 'done' : status === 'in_progress' ? 'in-progress' : 'pending');
-  
+
   // Context (the WHY)
   const contextSection = document.getElementById('modalContextSection');
-  if (task.context && task.context.summary) {
-    let contextHtml = task.context.summary;
+  if (task.context && (task.context.summary || task.context.why_exists)) {
+    let contextHtml = '';
+
+    // Why it exists (priority display for cron tasks)
+    if (task.context.why_exists) {
+      contextHtml += '<div style="margin-bottom:12px;padding:10px;background:rgba(136,192,208,0.15);border-radius:6px;border-left:3px solid #88c0d0;">';
+      contextHtml += '<strong>❓ Why This Exists:</strong><br>' + task.context.why_exists;
+      contextHtml += '</div>';
+    }
+
+    // Benefit to you (priority display for cron tasks)
+    if (task.context.benefit_to_you) {
+      contextHtml += '<div style="margin-bottom:12px;padding:10px;background:rgba(163,190,140,0.15);border-radius:6px;border-left:3px solid #a3be8c;">';
+      contextHtml += '<strong>✅ Benefit To You:</strong><br>' + task.context.benefit_to_you;
+      contextHtml += '</div>';
+    }
+
+    // Schedule if present
+    if (task.context.schedule) {
+      contextHtml += '<div style="margin-bottom:12px;font-size:13px;"><strong>⏰ Schedule:</strong> ' + task.context.schedule + '</div>';
+    }
+
+    // Summary (fallback or additional)
+    if (task.context.summary && !task.context.why_exists) {
+      contextHtml += task.context.summary;
+    }
+
     // Add decisions if present
     if (task.context.decisions && task.context.decisions.length > 0) {
       contextHtml += '<div style="margin-top:12px;font-size:12px;"><strong>Key Decisions:</strong><ul style="margin:4px 0 0 16px;">';
@@ -1042,7 +1128,7 @@ function showTaskDetail(id) {
   } else {
     contextSection.style.display = 'none';
   }
-  
+
   // Steps Progress
   const stepsSection = document.getElementById('modalStepsSection');
   if (task.steps && task.steps.length > 0) {
@@ -1096,7 +1182,7 @@ function showTaskDetail(id) {
   } else {
     stepsSection.style.display = 'none';
   }
-  
+
   // Approach
   const approachSection = document.getElementById('modalApproachSection');
   if (task.approach) {
@@ -1105,7 +1191,7 @@ function showTaskDetail(id) {
   } else {
     approachSection.style.display = 'none';
   }
-  
+
   // Notes
   const notesSection = document.getElementById('modalNotesSection');
   if (task.notes) {
@@ -1114,7 +1200,7 @@ function showTaskDetail(id) {
   } else {
     notesSection.style.display = 'none';
   }
-  
+
   // Learnings (for Council tasks)
   const learningsSection = document.getElementById('modalLearningsSection');
   if (task.learnings) {
@@ -1140,7 +1226,7 @@ function showTaskDetail(id) {
   } else {
     learningsSection.style.display = 'none';
   }
-  
+
   // Plan link
   const planSection = document.getElementById('modalPlanSection');
   if (task.plan) {
@@ -1150,7 +1236,7 @@ function showTaskDetail(id) {
   } else {
     planSection.style.display = 'none';
   }
-  
+
   // Timeline (created + completed)
   const timelineSection = document.getElementById('modalTimelineSection');
   let timelineHtml = '';
@@ -1178,7 +1264,7 @@ function showTaskDetail(id) {
   } else {
     timelineSection.style.display = 'none';
   }
-  
+
   document.getElementById('taskModal').classList.add('active');
 }
 
@@ -1203,7 +1289,7 @@ function toggleDone() {
 
 function showDoneDate(filter) {
   currentDoneFilter = filter;
-  
+
   // Update button states
   document.querySelectorAll('.date-btn').forEach(btn => btn.classList.remove('active'));
   if (filter === 'today') {
@@ -1211,7 +1297,7 @@ function showDoneDate(filter) {
   } else if (filter === 'yesterday') {
     document.querySelector('.date-btn:nth-child(1)').classList.add('active');
   }
-  
+
   renderDoneTasks();
 }
 
@@ -1221,10 +1307,10 @@ function getDateString(date) {
 
 function renderDoneTasks() {
   const doneIds = currentLanes.done_today || [];
-  
+
   let filterDate;
   const now = new Date();
-  
+
   if (currentDoneFilter === 'today') {
     filterDate = getDateString(now);
   } else if (currentDoneFilter === 'yesterday') {
@@ -1234,7 +1320,7 @@ function renderDoneTasks() {
   } else {
     filterDate = currentDoneFilter; // Custom date from picker
   }
-  
+
   // Filter tasks by completion date
   const filteredIds = doneIds.filter(id => {
     const task = allTasks[id];
@@ -1242,7 +1328,7 @@ function renderDoneTasks() {
     const completedDate = task.completed.split('T')[0];
     return completedDate === filterDate;
   });
-  
+
   document.getElementById('doneCount').textContent = filteredIds.length;
   document.getElementById('doneTasks').innerHTML = filteredIds.map(id => {
     const t = allTasks[id];
@@ -1267,29 +1353,29 @@ function deleteCron(cronId, event) {
 function deleteTask(taskId, event) {
   // Close any existing bubble
   cancelDelete();
-  
+
   pendingDeleteId = taskId;
   const task = allTasks[taskId];
   const title = task ? task.title : taskId;
-  
+
   const bubble = document.getElementById('confirmBubble');
   document.getElementById('confirmTitle').textContent = `Delete this task?`;
   document.getElementById('confirmMessage').innerHTML = `<strong>${taskId}</strong><br>${title}`;
-  
+
   // Position near the clicked button
   const btn = event.target.closest('.delete-btn');
   const rect = btn.getBoundingClientRect();
-  
+
   bubble.style.top = (rect.bottom + 10) + 'px';
   bubble.style.left = (rect.right - 220) + 'px';
-  
+
   // Keep on screen
   if (parseInt(bubble.style.left) < 10) {
     bubble.style.left = '10px';
   }
-  
+
   bubble.classList.add('active');
-  
+
   // Close when clicking outside
   setTimeout(() => {
     document.addEventListener('click', closeOnClickOutside);
@@ -1314,9 +1400,9 @@ async function confirmDelete() {
   const isCron = pendingDeleteType === 'cron';
   document.getElementById('confirmBubble').classList.remove('active');
   document.removeEventListener('click', closeOnClickOutside);
-  
+
   if (!itemId) return;
-  
+
   try {
     const endpoint = isCron ? '/api/delete-cron' : '/api/delete-task';
     const bodyData = isCron ? { cronId: itemId } : { taskId: itemId };
@@ -1326,7 +1412,7 @@ async function confirmDelete() {
       body: JSON.stringify(bodyData)
     });
     const data = await resp.json();
-    
+
     if (data.success) {
       showToast(`🗑 ${itemId} removed`);
       loadTaskBoard();
@@ -1349,7 +1435,7 @@ async function restoreTask(taskId) {
       body: JSON.stringify({ taskId })
     });
     const data = await resp.json();
-    
+
     if (data.success) {
       showToast(`↩ ${taskId} restored to ${data.restoredTo}`);
       loadTaskBoard();
@@ -1364,7 +1450,7 @@ async function restoreTask(taskId) {
 // Permanent delete from trash
 async function permanentDelete(taskId) {
   if (!confirm(`Permanently delete ${taskId}? This cannot be undone.`)) return;
-  
+
   try {
     const resp = await fetch('/api/permanent-delete', {
       method: 'POST',
@@ -1372,7 +1458,7 @@ async function permanentDelete(taskId) {
       body: JSON.stringify({ taskId })
     });
     const data = await resp.json();
-    
+
     if (data.success) {
       showToast(`🗑 ${taskId} permanently deleted`);
       loadTaskBoard();
@@ -1393,7 +1479,7 @@ async function transferTask(taskId, fromLane, toLane) {
       body: JSON.stringify({ taskId, fromLane, toLane })
     });
     const data = await resp.json();
-    
+
     if (data.success) {
       const icon = toLane === 'bot_queue' ? '🤖' : '👤';
       showToast(`${icon} ${taskId} moved to ${toLane === 'bot_queue' ? 'Bot Queue' : 'Human Tasks'}`);
@@ -1415,7 +1501,7 @@ async function reorderTask(taskId, direction) {
       body: JSON.stringify({ taskId, direction })
     });
     const data = await resp.json();
-    
+
     if (data.success) {
       showToast(`${direction === 'up' ? '⬆️' : '⬇️'} ${taskId} moved ${direction}`);
       loadTaskBoard(); // Refresh the board
@@ -1432,7 +1518,7 @@ async function requestComplete(taskId, btn) {
   btn.disabled = true;
   btn.textContent = '⏳ Verifying...';
   btn.classList.add('pending');
-  
+
   try {
     const resp = await fetch('/api/request-complete', {
       method: 'POST',
@@ -1440,7 +1526,7 @@ async function requestComplete(taskId, btn) {
       body: JSON.stringify({ taskId })
     });
     const data = await resp.json();
-    
+
     if (data.success) {
       // Check if it was a Council task (directly completed by human verification)
       if (data.message && data.message.includes('verified and marked complete')) {
@@ -1476,7 +1562,7 @@ function showToast(message, type = 'info') {
   // Remove existing toast
   const existing = document.querySelector('.toast');
   if (existing) existing.remove();
-  
+
   const toast = document.createElement('div');
   toast.className = 'toast';
   toast.style.cssText = `
@@ -1496,7 +1582,7 @@ function showToast(message, type = 'info') {
   `;
   toast.textContent = message;
   document.body.appendChild(toast);
-  
+
   setTimeout(() => {
     toast.style.opacity = '0';
     toast.style.transition = 'opacity 0.3s';
@@ -1510,8 +1596,8 @@ let currentCronId = null;
 // Cron job summaries (plain English descriptions)
 const cronSummaries = {
   'CRON-research': '🔍 <strong>Daily AI Research Brief</strong><br><br>Every morning at 9 AM, I scan Twitter/X for the latest AI news, agent developments, Claude updates, and tips from experts. I compile a brief of the most important findings so you stay current on AI trends without having to scroll through feeds yourself.',
-  'CRON-curiosity': '🧠 <strong>Curiosity Engine</strong><br><br>At 9 PM each night, I look for opportunities to improve the business — competitor moves, seasonal trends, new product ideas, marketing angles. I research and document findings so we always have fresh ideas in the pipeline.',
-  'CRON-learn': '📚 <strong>Compound Loop: LEARN</strong><br><br>At 10:30 PM, I review what happened today — what worked, what failed, what we learned. I extract lessons and add them to our knowledge base so we keep getting smarter and don\'t repeat mistakes.',
+  'CRON-curiosity': '🧠 <strong>Curiosity Engine</strong><br><br>At 9 PM each night, I look for opportunities to improve the business - competitor moves, seasonal trends, new product ideas, marketing angles. I research and document findings so we always have fresh ideas in the pipeline.',
+  'CRON-learn': '📚 <strong>Compound Loop: LEARN</strong><br><br>At 10:30 PM, I review what happened today - what worked, what failed, what we learned. I extract lessons and add them to our knowledge base so we keep getting smarter and don\'t repeat mistakes.',
   'CRON-ship': '🚀 <strong>Compound Loop: SHIP</strong><br><br>Late night, I check the backlog for tasks that are ready to execute autonomously. If something is safe to do without approval (like SEO fixes, drafts, research), I do it overnight so you wake up to completed work.',
   'CRON-backup': '💾 <strong>Daily Git Backup</strong><br><br>At 11 PM, I automatically commit all workspace changes to GitHub. This ensures nothing is ever lost and we have a full history of everything we\'ve done.',
   'CRON-consolidation': '📦 <strong>Memory Consolidation</strong><br><br>At 3 AM, I clean up and organize the day\'s memory files. I extract the important stuff into the knowledge base, generate the recall pack for tomorrow, and archive raw logs. Keeps the system fast and focused.'
@@ -1521,16 +1607,16 @@ function showCronDetail(id) {
   currentCronId = id;
   const cron = allTasks[id];
   if (!cron) return;
-  
+
   document.getElementById('cronModalTitle').textContent = cron.title;
   document.getElementById('cronModalId').textContent = id;
   document.getElementById('cronSchedule').value = cron.schedule || '';
   document.getElementById('cronPlan').value = cron.plan || '';
-  
+
   // Show summary
   const summary = cronSummaries[id] || cron.description || 'No description available. Add one by editing the cron job.';
   document.getElementById('cronSummary').innerHTML = summary;
-  
+
   if (cron.nextRun) {
     const dt = new Date(cron.nextRun);
     const local = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
@@ -1538,10 +1624,10 @@ function showCronDetail(id) {
   } else {
     document.getElementById('cronNextRun').value = '';
   }
-  
+
   // Hide plan file content until requested
   document.getElementById('planFileSection').style.display = 'none';
-  
+
   document.getElementById('cronModal').classList.add('active');
 }
 
@@ -1551,7 +1637,7 @@ async function viewPlanFile() {
     showToast('No plan file specified', 'error');
     return;
   }
-  
+
   try {
     const resp = await fetch('/api/read-file', {
       method: 'POST',
@@ -1559,7 +1645,7 @@ async function viewPlanFile() {
       body: JSON.stringify({ path: planPath })
     });
     const data = await resp.json();
-    
+
     if (data.success) {
       document.getElementById('planFileContent').textContent = data.content;
       document.getElementById('planFileSection').style.display = 'block';
@@ -1579,12 +1665,12 @@ function closeCronModal(event) {
 
 async function saveCronChanges() {
   if (!currentCronId) return;
-  
+
   const schedule = document.getElementById('cronSchedule').value;
   const plan = document.getElementById('cronPlan').value;
   const nextRunInput = document.getElementById('cronNextRun').value;
   const nextRun = nextRunInput ? new Date(nextRunInput).toISOString() : null;
-  
+
   try {
     const resp = await fetch('/api/update-cron', {
       method: 'POST',
@@ -1592,7 +1678,7 @@ async function saveCronChanges() {
       body: JSON.stringify({ cronId: currentCronId, schedule, plan, nextRun })
     });
     const data = await resp.json();
-    
+
     if (data.success) {
       showToast(`✅ ${currentCronId} updated`);
       closeCronModal();

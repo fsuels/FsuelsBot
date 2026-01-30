@@ -1,6 +1,6 @@
 {
   "version": 29,
-  "updated_at": "2026-01-30T10:20:37.203756+00:00",
+  "updated_at": "2026-01-30T10:00:02.693783+00:00",
   "updated_by": "cron-to-task",
   "notes": "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
   "schema": {
@@ -25,12 +25,15 @@
   },
   "lanes": {
     "bot_current": [
-      "CRON-20260130-learn-jan29"
+      "T004"
     ],
     "bot_queue": [
-      "CRON-20260130-consolidation",
-      "T004",
-      "CRON-20260130-ship-jan29"
+      "CRON-20260130-ship-jan29",
+      "CRON-20260130-learn-jan29",
+      "CRON-20260130-curiosity-jan29",
+      "CRON-20260130-research-brief-jan29",
+      "CRON-20260130-research-brief",
+      "CRON-20260130-consolidation"
     ],
     "human": [
       "T006",
@@ -46,8 +49,6 @@
       "CRON-consolidation"
     ],
     "done_today": [
-      "CRON-20260130-curiosity-jan29",
-      "CRON-20260130-research-brief-jan29",
       "CRON-20260130-backup",
       "T034",
       "T032",
@@ -77,8 +78,7 @@
       "T028",
       "T029",
       "T031"
-    ],
-    "trash": []
+    ]
   },
   "tasks": {
     "T033": {
@@ -1040,19 +1040,47 @@
       "cron_job_id": "consolidation",
       "instructions": "Follow knowledge/procedures/memory-consolidation.md EXACTLY. 1) Git safety net first. 2) Read today's memory file. 3) Extract events to ledger.jsonl. 4) Update knowledge files. 5) Check open loops. 6) Run integrity checks. 7) Regenerate recall/pack.md. 8) Git commit all changes. BEFORE marking done, fill in learnings with what was produced.",
       "context": {
-        "why_exists": "I forget everything between sessions. Without this, you have to repeat yourself every day.",
-        "benefit_to_you": "I remember what we talked about. I learn from mistakes. You never have to explain things twice.",
-        "summary": "Saves important information to long-term memory so I can remember tomorrow what happened today.",
-        "schedule": "Every day at 3 AM"
+        "summary": "Memory consolidation prevents context loss. Without it, I forget everything and you have to repeat yourself.",
+        "decisions": [
+          "Auto-scheduled nightly to run while Francisco sleeps"
+        ],
+        "constraints": [
+          "Must complete before morning session starts"
+        ]
       },
       "learnings": {
-        "question": "What did Memory Consolidation produce?",
+        "question": "What did Memory Consolidation (3 AM) produce?",
         "verdict": null,
         "outcomes": [],
         "actionsTaken": [],
         "artifacts": []
       },
       "notes": "WHY THIS EXISTS:\nWithout this, I forget everything between sessions. My context gets truncated and I lose track of what happened.\n\nWHAT IT DOES:\n1. Reads today's conversation notes\n2. Extracts important facts, decisions, and lessons\n3. Saves them to my long-term memory files\n4. Rebuilds the \"recall pack\" - my cheat sheet for tomorrow\n\nWHAT YOU GET:\n- I remember our conversations and decisions\n- I don't repeat mistakes\n- I pick up where we left off without you re-explaining\n\nRUNS: Every day at 3 AM while you sleep"
+    },
+    "CRON-20260130-research-brief": {
+      "title": "Check AI news and report to Francisco",
+      "status": "pending",
+      "created_at": "2026-01-30T09:51:43.852781+00:00",
+      "created_by": "cron",
+      "cron_job_id": "research-brief",
+      "instructions": "1) Open X (x.com/home) in clawd browser - read Following feed for AI news. 2) Search web for Clawdbot/Moltbot/Claude news (past 24h). 3) Check ClawdHub for new skills. 4) Identify Top 3 actionable improvements with sources. 5) Send research brief to Francisco on Telegram. BEFORE marking done, fill in learnings with discoveries and improvements found.",
+      "context": {
+        "summary": "Daily AI intelligence briefing so Francisco stays ahead of the curve without doing the research himself.",
+        "decisions": [
+          "Focuses on actionable improvements, not just news"
+        ],
+        "constraints": [
+          "Must be concise - you are busy"
+        ]
+      },
+      "learnings": {
+        "question": "What did Daily AI Research Brief (9 AM) produce?",
+        "verdict": null,
+        "outcomes": [],
+        "actionsTaken": [],
+        "artifacts": []
+      },
+      "notes": "WHY THIS EXISTS:\nAI moves fast. New tools, updates, and tricks appear daily. You want to stay ahead without spending hours reading Twitter.\n\nWHAT IT DOES:\n1. Scans your X/Twitter feed for AI news\n2. Searches web for Clawdbot, Claude, agent updates\n3. Checks ClawdHub for new skills we could use\n4. Identifies top 3 actionable improvements\n5. Sends you a summary on Telegram\n\nWHAT YOU GET:\n- Stay current on AI without the work\n- Discover tools that save time or make money\n- Get improvements I can implement for you\n\nRUNS: Every day at 9 AM"
     },
     "CRON-20260130-backup": {
       "title": "Daily GitHub Backup (11:45 PM)",
@@ -1094,111 +1122,100 @@
     },
     "CRON-20260130-research-brief-jan29": {
       "title": "Catch up: AI news from yesterday",
-      "status": "done",
+      "status": "pending",
       "created_at": "2026-01-30T09:52:47.548918+00:00",
       "created_by": "cron",
       "cron_job_id": "research-brief-jan29",
       "instructions": "Catch-up task. 1) Search web for AI agent news from Jan 29. 2) Check for Clawdbot/Moltbot updates from that day. 3) Note any missed discoveries. BEFORE marking done, fill in learnings.",
       "context": {
-        "why_exists": "This was supposed to run yesterday but failed. We might have missed important news.",
-        "benefit_to_you": "Make sure nothing slipped through the cracks on Jan 29.",
-        "summary": "Catch-up task to check what AI news we missed yesterday.",
-        "schedule": "One-time catch-up"
+        "summary": "Catch-up for missed Jan 29 research brief.",
+        "decisions": [],
+        "constraints": []
       },
       "learnings": {
-        "question": "What AI news did we miss on Jan 29?",
-        "verdict": "Claude Code growth + Claude for Chrome extension are the big stories",
-        "outcomes": [
-          "Claude Code showing record growth (NYT Jan 23)",
-          "Claude for Chrome extension released - AI controls browser directly",
-          "Claude Skills vs MCP architecture guide published",
-          "Cowork product launched - autonomous action capabilities"
-        ],
-        "actionsTaken": [
-          "Searched web for AI agent news from past week",
-          "Identified key Anthropic/Claude developments"
-        ],
+        "question": "What did AI Research Brief (Jan 29 - MISSED) produce?",
+        "verdict": null,
+        "outcomes": [],
+        "actionsTaken": [],
         "artifacts": []
       },
-      "notes": "WHY THIS EXISTS:\nThis task failed to run yesterday. We might have missed important AI news or updates.\n\nWHAT IT DOES:\nRetroactive check of Jan 29 AI news to see if we missed anything important.\n\nWHAT YOU GET:\nPeace of mind that nothing slipped through the cracks.\n\nSTATUS: Catch-up task (should have run Jan 29 at 9 AM)",
-      "completed_at": "2026-01-30T10:20:21.837732+00:00"
+      "notes": "WHY THIS EXISTS:\nThis task failed to run yesterday. We might have missed important AI news or updates.\n\nWHAT IT DOES:\nRetroactive check of Jan 29 AI news to see if we missed anything important.\n\nWHAT YOU GET:\nPeace of mind that nothing slipped through the cracks.\n\nSTATUS: Catch-up task (should have run Jan 29 at 9 AM)"
     },
     "CRON-20260130-curiosity-jan29": {
       "title": "Catch up: Look for business opportunities",
-      "status": "done",
+      "status": "pending",
       "created_at": "2026-01-30T09:52:47.835930+00:00",
       "created_by": "cron",
       "cron_job_id": "curiosity-jan29",
       "instructions": "Catch-up: Review Jan 29 for anomalies or opportunities. Generate proposals if any found. Append to backlog.md.",
       "context": {
-        "why_exists": "You cannot watch everything - competitor prices, platform changes, seasonal trends. I can.",
-        "benefit_to_you": "Catch opportunities you would miss. Get early warning on threats. Make money from things you did not even know about.",
-        "summary": "Scans for business anomalies, competitor moves, and opportunities you might have missed.",
-        "schedule": "Every day at 9 PM"
+        "summary": "Proactive opportunity scanning so Francisco does not miss money-making chances.",
+        "decisions": [
+          "Limited to 3 proposals to avoid overwhelm"
+        ],
+        "constraints": [
+          "Cannot suggest new product categories or brand pivots without approval"
+        ]
       },
       "learnings": {
-        "question": "What opportunities or threats were discovered?",
-        "verdict": "PRIMARY OPPORTUNITY: Valentine deadline in 11 days - must complete listings",
-        "outcomes": [
-          "Valentine Order Cutoff Feb 10 = 11 days remaining",
-          "Only 2/12 Valentine listings complete",
-          "1688 search needed for mommy-daughter Valentine outfits",
-          "BuckyDrop store reauthorization still pending"
-        ],
-        "actionsTaken": [
-          "Reviewed Jan 29 memory file",
-          "Identified primary business priority"
-        ],
+        "question": "What did Curiosity Engine (Jan 29 - MISSED) produce?",
+        "verdict": null,
+        "outcomes": [],
+        "actionsTaken": [],
         "artifacts": []
       },
-      "notes": "WHY THIS EXISTS:\nYou cannot monitor everything. This job scans for things you might miss - competitor price changes, platform updates, seasonal opportunities.\n\nWHAT IT DOES:\n1. Checks for anomalies in sales/traffic\n2. Looks for competitor moves\n3. Scans for platform changes (Shopify, etc.)\n4. Generates max 3 proposals for things we could do\n5. Adds them to the backlog for review\n\nWHAT YOU GET:\n- Opportunities you would have missed\n- Early warning on threats\n- Ideas backed by data, not guessing\n\nRUNS: Every day at 9 PM\nSTATUS: Catch-up task (should have run Jan 29)",
-      "completed_at": "2026-01-30T10:20:37.203726+00:00"
+      "notes": "WHY THIS EXISTS:\nYou cannot monitor everything. This job scans for things you might miss - competitor price changes, platform updates, seasonal opportunities.\n\nWHAT IT DOES:\n1. Checks for anomalies in sales/traffic\n2. Looks for competitor moves\n3. Scans for platform changes (Shopify, etc.)\n4. Generates max 3 proposals for things we could do\n5. Adds them to the backlog for review\n\nWHAT YOU GET:\n- Opportunities you would have missed\n- Early warning on threats\n- Ideas backed by data, not guessing\n\nRUNS: Every day at 9 PM\nSTATUS: Catch-up task (should have run Jan 29)"
     },
     "CRON-20260130-learn-jan29": {
       "title": "Catch up: What did I learn yesterday?",
-      "status": "in_progress",
+      "status": "pending",
       "created_at": "2026-01-30T09:52:47.929074+00:00",
       "created_by": "cron",
       "cron_job_id": "learn-jan29",
       "instructions": "Catch-up: Extract lessons from Jan 29 work. Read memory/2026-01-29.md, extract learnings, update knowledge files.",
       "context": {
-        "why_exists": "I make mistakes. If I do not write down what I learned, I repeat them forever.",
-        "benefit_to_you": "I get smarter every day. Same mistake never happens twice. You get a better assistant without training me.",
-        "summary": "Reviews the day, extracts lessons from failures, updates my knowledge so I improve.",
-        "schedule": "Every day at 10:30 PM"
+        "summary": "Self-improvement loop. I extract lessons from failures so I compound knowledge instead of repeating mistakes.",
+        "decisions": [
+          "Max 5 lessons per night to stay focused"
+        ],
+        "constraints": [
+          "Must commit to git for traceability"
+        ]
       },
       "learnings": {
-        "question": "What lessons were extracted from Jan 29?",
+        "question": "What did Compound LEARN (Jan 29 - MISSED) produce?",
         "verdict": null,
         "outcomes": [],
         "actionsTaken": [],
         "artifacts": []
       },
-      "notes": "WHY THIS EXISTS:\nEvery day I make mistakes or discover better ways. If I do not capture those lessons, I repeat the same mistakes forever.\n\nWHAT IT DOES:\n1. Reviews what happened during the day\n2. Identifies what went wrong or could be better\n3. Extracts specific lessons (Context / Failure / Fix / Prevention)\n4. Updates my knowledge files so I do not repeat errors\n5. Commits changes to git\n\nWHAT YOU GET:\n- I get smarter every day\n- Same mistakes do not happen twice\n- Continuous improvement without you teaching me\n\nRUNS: Every day at 10:30 PM\nSTATUS: Catch-up task (should have run Jan 29)",
-      "started_at": "2026-01-30T10:07:50.284422+00:00"
+      "notes": "WHY THIS EXISTS:\nEvery day I make mistakes or discover better ways. If I do not capture those lessons, I repeat the same mistakes forever.\n\nWHAT IT DOES:\n1. Reviews what happened during the day\n2. Identifies what went wrong or could be better\n3. Extracts specific lessons (Context / Failure / Fix / Prevention)\n4. Updates my knowledge files so I do not repeat errors\n5. Commits changes to git\n\nWHAT YOU GET:\n- I get smarter every day\n- Same mistakes do not happen twice\n- Continuous improvement without you teaching me\n\nRUNS: Every day at 10:30 PM\nSTATUS: Catch-up task (should have run Jan 29)"
     },
     "CRON-20260130-ship-jan29": {
       "title": "Catch up: Do overnight work from yesterday",
-      "status": "in_progress",
+      "status": "pending",
       "created_at": "2026-01-30T09:52:48.022125+00:00",
       "created_by": "cron",
       "cron_job_id": "ship-jan29",
       "instructions": "Catch-up: Review if any task should have shipped on Jan 29. Log what was missed.",
       "context": {
-        "why_exists": "You sleep 8 hours. I do not sleep. Those hours should produce work, not be wasted.",
-        "benefit_to_you": "Wake up to completed work. Your backlog shrinks while you rest. 24/7 productivity without hiring anyone.",
-        "summary": "Picks the most valuable safe task from the backlog and actually does it while you sleep.",
-        "schedule": "Every day at 11 PM"
+        "summary": "Overnight autonomous work. I ship real tasks while Francisco sleeps, so he wakes up to progress.",
+        "decisions": [
+          "Only picks tasks that are safe and reversible"
+        ],
+        "constraints": [
+          "Will not do anything that needs approval",
+          "Max 45 min timeout"
+        ]
       },
       "learnings": {
-        "question": "What work was shipped overnight?",
+        "question": "What did Compound SHIP (Jan 29 - MISSED) produce?",
         "verdict": null,
         "outcomes": [],
         "actionsTaken": [],
         "artifacts": []
       },
-      "notes": "WHY THIS EXISTS:\nYou sleep 8 hours. That is 8 hours I could be working. This job picks the most valuable task and executes it while you rest.\n\nWHAT IT DOES:\n1. Reads the backlog of pending tasks\n2. Scores each by value/effort/risk\n3. Picks the highest scoring task that is safe to do\n4. Executes it (writes content, fixes SEO, etc.)\n5. Sends you a morning report of what got done\n\nWHAT YOU GET:\n- Wake up to completed work\n- Backlog shrinks while you sleep\n- Multiplies your productivity by working 24/7\n\nRUNS: Every day at 11 PM\nSTATUS: Catch-up task (should have run Jan 29)",
-      "started_at": "2026-01-30T10:05:48.131319+00:00"
+      "notes": "WHY THIS EXISTS:\nYou sleep 8 hours. That is 8 hours I could be working. This job picks the most valuable task and executes it while you rest.\n\nWHAT IT DOES:\n1. Reads the backlog of pending tasks\n2. Scores each by value/effort/risk\n3. Picks the highest scoring task that is safe to do\n4. Executes it (writes content, fixes SEO, etc.)\n5. Sends you a morning report of what got done\n\nWHAT YOU GET:\n- Wake up to completed work\n- Backlog shrinks while you sleep\n- Multiplies your productivity by working 24/7\n\nRUNS: Every day at 11 PM\nSTATUS: Catch-up task (should have run Jan 29)"
     }
   }
 }
