@@ -30,6 +30,33 @@
 
 ---
 
+## Curiosity Engine Proposals (2026-01-29 9:00 PM)
+
+### Proposal 1: Mobile LCP Emergency — 12.2s → <2.5s
+- **Discovery:** Today's audit (3 AM session) revealed LCP of 12.2 seconds — nearly 5x the "Poor" threshold. Already documented in `knowledge/mobile-speed-optimization.md`.
+- **Why it matters:** Core Web Vitals directly impact SEO rankings. 53% of users abandon sites loading >3s. This is actively killing conversions.
+- **Suggested task:** Image compression audit + hero banner resize. Shopify Files audit for >500KB images, TinyIMG free tier, max hero at 1200px/200KB.
+- **TPS estimate:** Revenue Impact 8 × Confidence 0.85 ÷ Human Min 5 ÷ Risk 1 = **1.36**
+- **Persona:** Traffic (technical SEO)
+
+### Proposal 2: Valentine Draft Products — Delete or Source Decision
+- **Discovery:** 6 Valentine draft products exist in Shopify but have 0 stock because NO BuckyDrop sources are linked. They CANNOT SELL. Only 1 of 7 Valentine products (Red Heart Sweatshirt) is fully operational.
+- **Why it matters:** Feb 10 deadline = 12 days. Dead weight drafts clutter store. Either source them via BuckyDrop request form OR delete to clean up.
+- **Suggested task:** Submit BuckyDrop sourcing request for top 3 Valentine products (using their inquiry form), delete remaining 3 unsourceable drafts.
+- **TPS estimate:** Revenue Impact 7 × Confidence 0.6 ÷ Human Min 8 ÷ Risk 1.5 = **0.35** (but deadline-urgent)
+- **Persona:** Catalog
+- **Note:** REQUIRES human action (Francisco login) — may need to move to human lane
+
+### Proposal 3: Pinterest Merchant Status Check (48hr Window Passed)
+- **Discovery:** Pinterest merchant review submitted Jan 27 at 2:05 PM. Now 72+ hours passed. Status completely unknown — could be approved, rejected, or pending.
+- **Why it matters:** Maps to Level 2 (Unblock Distribution). Pinterest is free organic shopping channel. Previous rejection was broken links — now fixed with redirects.
+- **Suggested task:** Log into Pinterest Business Hub, check merchant status, document result. If rejected, extract new rejection reasons for next attempt.
+- **TPS estimate:** Revenue Impact 6 × Confidence 0.7 ÷ Human Min 2 ÷ Risk 1 = **2.1** (unchanged from Jan 28)
+- **Persona:** Traffic
+- **Note:** Already in backlog from Jan 28 — BUMPING PRIORITY due to time elapsed
+
+---
+
 ## Curiosity Engine Proposals (2026-01-28 9:00 PM)
 
 ### Proposal 1: Resume Locale Redirect Batch

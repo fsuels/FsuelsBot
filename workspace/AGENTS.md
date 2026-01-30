@@ -8,27 +8,28 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-01-29 22:45 EST | **Version:** 52
+**Last updated:** 2026-01-29 20:55 EST | **Version:** 57
 
-**Current task:** None (idle)
-**Status:** idle
-**Context:** Christmas cleanup complete — removed from nav menu + homepage section. Announcement bar already shows Valentine promo. Earlier removed seasonal:valentines tag from 50 products (4 legit Valentine items may need re-tagging).
-**Next step:** Resume T004 Valentine listings OR re-tag 4 legit Valentine products
+**Current task:** T004 Valentine listing optimization
+**Status:** 🚫 BLOCKED (BuckyDrop login needed)
+**Context:** Pipeline OS Lite v2.0 implemented (T031). Gate 0 complete: 12 Valentine products found (6 Active, 6 Drafts). All 6 Drafts have 0 stock = need BuckyDrop sourcing. Red Heart Sweatshirt audited - already well optimized.
+**Next step:** Francisco logs into BuckyDrop → Bot sources 6 draft products
 
 **⏰ DEADLINE:** 12 days until Feb 10 order cutoff
 
 **📋 TASK BOARD:** `memory/tasks.json` — THE SOURCE OF TRUTH
 
-**🤖 QUEUE:** T004 Valentine listings, T021 Mission Control button
+**🤖 QUEUE:** T004 Valentine listings (blocked), T021 Mission Control button
 
-**👤 FRANCISCO'S TASKS (tell me when done):**
+**👤 FRANCISCO'S TASKS:**
+- **🔑 BuckyDrop login** — BLOCKING T004 (buckydrop.com/en/login/)
 - T006: Hero banner copy (2 min)
-- ~~T007: Hide Christmas nav~~ ✅ DONE BY BOT
-- ~~T008: Valentine on homepage~~ ✅ Already live (announcement bar)
 - T009: BuckyDrop import (5 min)
 - T030: Review Valentine drafts + set Active
 
-**✅ DONE TODAY:** 25 tasks completed (incl. Christmas cleanup)
+**✅ DONE TODAY:** 26 tasks (incl. T031 Pipeline OS Lite)
+
+**🔄 COMPACTION CHECKPOINT:** Pre-compaction flush at 20:55 EST
 
 **Standing rules:**
 - READ tasks.json at EVERY session start
