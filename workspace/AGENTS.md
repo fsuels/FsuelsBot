@@ -45,6 +45,8 @@ This folder is home. Treat it that way.
 - **NORTH STAR: Increase sales and make money**
 - **If failing 2-3 times → STOP GRINDING, START QUESTIONING**
 - **Council tasks = human-verified completion only**
+- **ALWAYS create a task card for ANY work** — no work without a task in tasks.json
+- **Task cards must be DESCRIPTIVE** — include: (1) what I understood, (2) what I did/will do, (3) why it benefits Francisco
 
 ---
 ### State Management Protocol

@@ -972,7 +972,17 @@ async function loadTaskBoard() {
       const t = tasks[id];
       if (!t) return '';
       return renderTask(id, t, 'in-progress');
-    }).join('') || '<div style="color:#8b949e;font-size:13px;">No active task</div>';
+    }).join('') || '<div style="color:#6e7681;font-size:12px;">No active task</div>';
+
+    // Update global status badge
+    const statusBadge = document.getElementById('globalStatus');
+    if (botCurrentIds.length > 0) {
+      statusBadge.textContent = 'WORKING';
+      statusBadge.className = 'status-badge working';
+    } else {
+      statusBadge.textContent = 'IDLE';
+      statusBadge.className = 'status-badge idle';
+    }
 
     // Render Bot Queue
     const botQueueIds = lanes.bot_queue || [];
