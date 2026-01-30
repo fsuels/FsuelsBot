@@ -57,6 +57,22 @@ Francisco → Opus (understands the ask)
 → Francisco (gets the best possible answer)
 ```
 
+### When Automation Fails (CRITICAL — Added 2026-01-30)
+**Browser automation is fragile.** Tab targeting fails, inputs don't work, pages hang. Don't grind — adapt.
+
+**Fallback Ladder:**
+1. **Try Gemini CLI first** — Most reliable, no browser needed
+2. **One tab at a time** — Close other AI tabs, focus on single target
+3. **Human pastes questions** — Prepare the text, Francisco copy-pastes into each AI
+4. **Proceed with partial** — 3/4 AIs is better than nothing; note what's missing
+
+**Time Limits:**
+- If one AI doesn't respond in 60 seconds → move on
+- If browser automation fails twice → switch to manual
+- If total session exceeds 20 minutes → deliver verdict with what you have
+
+**RULE: Never grind. Human is faster for visual browser tasks.**
+
 ## Trigger
 User says anything like:
 - "Council: [question]"
@@ -67,14 +83,25 @@ User says anything like:
 
 ## The Panel
 
-| AI | Access Method | Strengths | Cost |
-|---|---|---|---|
-| **Grok** | Browser → X/Grok tab | Real-time X data, contrarian takes, trending info | Included in X sub |
-| **ChatGPT** | Browser → chatgpt.com tab | Strong business/marketing, broad knowledge, custom GPTs | Included in ChatGPT Pro |
-| **Gemini** | Terminal CLI (`gemini`) | Google search grounding, latest web data | Free |
-| **Open Arena** | Browser → arena site | Access to open-source models, diverse perspectives | Free |
-| **Claude Sonnet** (Orchestrator) | Native / Spawn | Runs the council session — types questions, reads answers, manages rounds | Included in Claude Max |
-| **Claude Opus 4.5** (Final judge) | Main session | Delivers the final verdict with full context and reasoning | Included in Claude Max |
+| AI | Access Method | Strengths | Cognitive Role | Cost |
+|---|---|---|---|---|
+| **Grok** | Browser → X/Grok tab | Real-time X data, contrarian takes | **Skeptic/Falsification** — Find why this fails | Included in X sub |
+| **ChatGPT** | Browser → chatgpt.com tab | Business/marketing, structured analysis | **Systemic/Structural** — How does this scale? | Included in ChatGPT Pro |
+| **Gemini** | Terminal CLI (`gemini`) | Google search grounding, web data | **Data/Pragmatism** — What are technical blockers? | Free |
+| **Open Arena** | Browser → arena site | Open-source models, diversity | **Contrarian Wildcard** — Challenge assumptions | Free |
+| **Claude Sonnet** (Orchestrator) | Native / Spawn | Runs the session, manages rounds | **Orchestrator** — Collect and organize | Included in Claude Max |
+| **Claude Opus 4.5** (Final judge) | Main session | Full context, deep reasoning | **Synthesis/Context** — What fits OUR situation? | Included in Claude Max |
+
+### Cognitive Roles (MANDATORY — Added 2026-01-30)
+**Don't just ask the same question.** Give each AI a specific LENS to prevent the "consensus trap" where everyone agrees politely.
+
+When framing questions for Round A, append the role instruction:
+- **Grok:** "Your job is to find flaws. Be skeptical. Why might this fail?"
+- **ChatGPT:** "Analyze this systemically. How does it scale? What are structural issues?"
+- **Gemini:** "Focus on data and pragmatics. What are the technical blockers?"
+- **Claude:** "Consider our specific context. What fits Francisco's situation?"
+
+This forces divergent thinking instead of echo-chamber agreement.
 
 ## Workflow
 
@@ -182,6 +209,11 @@ If Round B produced genuinely new insights or sharp disagreements:
 - Share the Round B revisions back. "They've seen your critique and revised. Here's their updated position: [paste]. Final rebuttal — what's your strongest argument now?"
 - Skip this round if the AIs are converging and just restating positions.
 
+**Round D — Pre-Mortem (optional, for high-stakes decisions)**
+If consensus is reached but stakes are high:
+- Ask all AIs: "Assume the consensus we just reached has FAILED miserably 1 year from now. Why did it happen? What did we miss?"
+- This catches blind spots that groupthink creates.
+
 **The goal:** Discovery, not validation. The debate aims to uncover NEW insights — ideas none of the AIs would have reached alone. Push them to go beyond their initial thinking. When one AI challenges another, the response should contain something NEW, not just a defense of the original position. If the debate is just producing "I agree" or "I stand by my answer," push harder: "That's not good enough. What are you NOT seeing? What assumption are you making that might be wrong?"
 
 By the end, each AI has SEEN and RESPONDED TO the others' arguments. Their final positions are battle-tested, not first drafts. Agreements mean more because they survived challenge. Disagreements are sharper and better-reasoned. And ideally, the cross-pollination sparked ideas that didn't exist before the debate started.
@@ -242,7 +274,7 @@ The other AIs give generic expert advice. YOU give advice tailored to Francisco'
 3. **Use the exact same initial question** for all AIs in Round A
 4. **Don't reveal you're an AI** asking on behalf of someone — just ask the question naturally
 5. **Summarize, don't paste walls of text** — when sharing one AI's response with another, condense to key arguments (2-4 bullet points), not full transcripts
-4. **Time management** — the whole process should take 2-3 minutes max
+4. **Time management** — Quick Council: 5-10 min. Full 3-round: 15-20 min. Multi-round: 30-60 min.
 5. **If one AI is down/slow**, proceed with the others and note it
 6. **Save council sessions** to `council-sessions/` with date and topic for reference
 7. **Gemini CLI** may be rate-limited — if it fails, note it and proceed with browser AIs
