@@ -1,17 +1,17 @@
 {
-    "version": 66,
+    "version": 65,
     "deadline": {
         "date": "2026-02-10",
         "description": "Valentine's Day order cutoff",
         "daysRemaining": 12
     },
     "currentTask": {
-        "id": "none",
-        "description": "Mission Control enhancements complete, awaiting next directive",
-        "currentStep": "Idle - T021 done, queue reorder arrows added",
-        "nextStep": "Resume T004 (Valentine draft products) or Francisco's next request",
-        "context": "Completed T021 (Mark Complete button) + bonus feature (queue reorder arrows). Both working. T004 paused per Francisco, 15+ drafts still need fixing. 12 days to Feb 10 deadline.",
-        "status": "idle"
+        "id": "T021",
+        "description": "Mission Control: Mark Complete button for human tasks",
+        "currentStep": "✅ COMPLETE",
+        "nextStep": "Return to T004 (Valentine drafts) per Francisco",
+        "context": "Added Mark Complete button to human task cards. Button sends verification request to memory/complete-requests/. Bot checks on heartbeat, verifies work, then marks done.",
+        "status": "done"
     },
     "lastUpdated": "2026-01-30T01:25:00-05:00",
     "standingRules": [

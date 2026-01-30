@@ -252,6 +252,16 @@ body {
   gap: 8px;
   flex-wrap: wrap;
 }
+.task-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 6px;
+  padding: 4px 6px;
+}
 .task-plan {
   font-size: 11px;
   color: #58a6ff;
@@ -268,6 +278,159 @@ body {
   padding: 2px 6px;
   border-radius: 4px;
 }
+.complete-btn {
+  font-size: 11px;
+  color: #3fb950;
+  background: rgba(63,185,80,0.15);
+  border: 1px solid rgba(63,185,80,0.3);
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.complete-btn:hover {
+  background: rgba(63,185,80,0.3);
+  border-color: #3fb950;
+}
+.complete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.complete-btn.pending {
+  color: #d29922;
+  background: rgba(210,153,34,0.15);
+  border-color: rgba(210,153,34,0.3);
+}
+.reorder-btn {
+  font-size: 12px;
+  color: #8b949e;
+  background: rgba(139,148,158,0.15);
+  border: 1px solid rgba(139,148,158,0.3);
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.reorder-btn:hover {
+  color: #58a6ff;
+  background: rgba(88,166,255,0.2);
+  border-color: rgba(88,166,255,0.4);
+}
+.reorder-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.reorder-controls {
+  display: flex;
+  gap: 2px;
+}
+.delete-btn {
+  font-size: 14px;
+  font-weight: bold;
+  color: #f85149;
+  background: rgba(248,81,73,0.15);
+  border: 1px solid rgba(248,81,73,0.3);
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.delete-btn:hover {
+  background: rgba(248,81,73,0.3);
+  border-color: #f85149;
+}
+.transfer-btn {
+  font-size: 12px;
+  color: #58a6ff;
+  background: rgba(88,166,255,0.15);
+  border: 1px solid rgba(88,166,255,0.3);
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.transfer-btn:hover {
+  background: rgba(88,166,255,0.3);
+  border-color: #58a6ff;
+}
+.confirm-bubble {
+  display: none;
+  position: fixed;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  width: 220px;
+  z-index: 2000;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  animation: fadeIn 0.15s ease;
+}
+.confirm-bubble.active { display: block; }
+.confirm-bubble::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  right: 20px;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid #30363d;
+}
+.confirm-bubble::after {
+  content: '';
+  position: absolute;
+  top: -6px;
+  right: 21px;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 7px solid #161b22;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.confirm-bubble .confirm-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e6edf3;
+  margin-bottom: 8px;
+}
+.confirm-bubble .confirm-message {
+  font-size: 12px;
+  color: #8b949e;
+  margin-bottom: 12px;
+  line-height: 1.3;
+}
+.confirm-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+.confirm-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.confirm-btn.cancel {
+  background: #21262d;
+  border: 1px solid #30363d;
+  color: #e6edf3;
+}
+.confirm-btn.cancel:hover {
+  background: #30363d;
+}
+.confirm-btn.delete {
+  background: #da3633;
+  border: 1px solid #da3633;
+  color: #fff;
+}
+.confirm-btn.delete:hover {
+  background: #f85149;
+}
 
 /* Done Section */
 .done-section {
@@ -281,8 +444,51 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  cursor: pointer;
   padding-bottom: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.done-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+.done-date-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.date-btn {
+  font-size: 11px;
+  color: #8b949e;
+  background: #21262d;
+  border: 1px solid #30363d;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.date-btn:hover {
+  background: #30363d;
+  color: #e6edf3;
+}
+.date-btn.active {
+  background: #238636;
+  border-color: #238636;
+  color: #fff;
+}
+.date-input {
+  font-size: 11px;
+  color: #e6edf3;
+  background: #21262d;
+  border: 1px solid #30363d;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.date-input::-webkit-calendar-picker-indicator {
+  filter: invert(1);
 }
 .done-grid {
   display: grid;
@@ -317,12 +523,101 @@ body {
 }
 .scheduled-item {
   background: #0d1117;
-  padding: 10px;
-  border-radius: 6px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  transition: all 0.2s;
+  border: 1px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.scheduled-item:hover {
+  background: #1c2128;
+  border-color: #30363d;
+}
+.scheduled-content {
+  flex: 1;
+  cursor: pointer;
+}
+.scheduled-title { color: #e6edf3; margin-bottom: 4px; font-weight: 500; }
+.scheduled-time { color: #d29922; font-size: 11px; margin-bottom: 2px; }
+.scheduled-next { color: #8b949e; font-size: 10px; }
+.scheduled-delete {
+  padding: 4px 6px;
   font-size: 12px;
 }
-.scheduled-title { color: #e6edf3; margin-bottom: 4px; }
-.scheduled-time { color: #8b949e; font-size: 11px; }
+.trash-section {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.trash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 8px;
+}
+.trash-item {
+  background: #0d1117;
+  padding: 10px 12px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #8b949e;
+  border: 1px solid transparent;
+}
+.trash-item:hover {
+  border-color: #30363d;
+}
+.trash-item-title {
+  flex: 1;
+  text-decoration: line-through;
+}
+.trash-item-date {
+  font-size: 10px;
+  color: #6e7681;
+}
+.restore-btn {
+  font-size: 11px;
+  color: #3fb950;
+  background: rgba(63,185,80,0.1);
+  border: 1px solid rgba(63,185,80,0.2);
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.restore-btn:hover {
+  background: rgba(63,185,80,0.2);
+}
+.perma-delete-btn {
+  font-size: 12px;
+  color: #f85149;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+}
+.perma-delete-btn:hover {
+  color: #ff6b6b;
+}
+.cron-input {
+  width: 100%;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  padding: 10px 12px;
+  color: #e6edf3;
+  font-size: 14px;
+  margin-top: 6px;
+}
+.cron-input:focus {
+  outline: none;
+  border-color: #58a6ff;
+}
 
 /* Footer */
 .footer {
@@ -343,6 +638,57 @@ body {
 </style>
 </head>
 <body>
+<!-- Delete Confirm Bubble -->
+<div class="confirm-bubble" id="confirmBubble">
+  <div class="confirm-title" id="confirmTitle">Delete this task?</div>
+  <div class="confirm-message" id="confirmMessage">Task name</div>
+  <div class="confirm-buttons">
+    <button class="confirm-btn cancel" onclick="cancelDelete()">Cancel</button>
+    <button class="confirm-btn delete" onclick="confirmDelete()">Delete</button>
+  </div>
+</div>
+
+<!-- Cron Detail Modal -->
+<div class="modal-overlay" id="cronModal" onclick="closeCronModal(event)">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:600px;">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="cronModalTitle">Cron Job</div>
+        <div class="modal-id" id="cronModalId">CRON-xxx</div>
+      </div>
+      <button class="modal-close" onclick="closeCronModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-section">
+        <div class="modal-label">💡 What This Does</div>
+        <div class="modal-content" id="cronSummary" style="font-size:14px;line-height:1.5;"></div>
+      </div>
+      <div class="modal-section">
+        <div class="modal-label">⏰ Schedule</div>
+        <input type="text" class="cron-input" id="cronSchedule" placeholder="e.g. 9 AM daily">
+      </div>
+      <div class="modal-section">
+        <div class="modal-label">📅 Next Run</div>
+        <input type="datetime-local" class="cron-input" id="cronNextRun">
+      </div>
+      <div class="modal-section">
+        <div class="modal-label">📄 Plan/Procedure File</div>
+        <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
+          <input type="text" class="cron-input" id="cronPlan" placeholder="path/to/procedure.md" style="flex:1;margin:0;">
+          <button class="confirm-btn cancel" onclick="viewPlanFile()" style="white-space:nowrap;">📖 View File</button>
+        </div>
+      </div>
+      <div class="modal-section" id="planFileSection" style="display:none;">
+        <div class="modal-label">📋 Plan File Contents</div>
+        <div class="modal-content" id="planFileContent" style="max-height:300px;overflow-y:auto;font-size:12px;white-space:pre-wrap;font-family:monospace;"></div>
+      </div>
+      <div class="modal-section" style="margin-top: 20px;">
+        <button class="confirm-btn delete" style="width:100%;" onclick="saveCronChanges()">💾 Save Changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Task Detail Modal -->
 <div class="modal-overlay" id="taskModal" onclick="closeModal(event)">
   <div class="modal" onclick="event.stopPropagation()">
@@ -428,13 +774,29 @@ body {
     </div>
   </div>
 
-  <!-- Done Today -->
+  <!-- Done Section with Date Filter -->
   <div class="done-section">
-    <div class="done-header" onclick="toggleDone()">
-      <span class="lane-title">✅ Done Today <span class="lane-count" id="doneCount">0</span></span>
-      <span id="doneToggle">▼ Show</span>
+    <div class="done-header">
+      <div class="done-header-left" onclick="toggleDone()">
+        <span class="lane-title">✅ Done <span class="lane-count" id="doneCount">0</span></span>
+        <span id="doneToggle">▼ Show</span>
+      </div>
+      <div class="done-date-filter">
+        <button class="date-btn" onclick="showDoneDate('yesterday')">Yesterday</button>
+        <button class="date-btn active" onclick="showDoneDate('today')">Today</button>
+        <input type="date" id="doneDate" class="date-input" onchange="showDoneDate(this.value)">
+      </div>
     </div>
     <div class="done-grid collapsed" id="doneTasks"></div>
+  </div>
+
+  <!-- Trash -->
+  <div class="trash-section" id="trashSection" style="display:none;">
+    <div class="lane-header">
+      <span class="lane-title">🗑 Trash <span class="lane-count" id="trashCount">0</span></span>
+      <span style="font-size:11px;color:#8b949e;">Auto-empties after 7 days</span>
+    </div>
+    <div class="trash-grid" id="trashTasks"></div>
   </div>
 
   <!-- Scheduled -->
@@ -484,7 +846,7 @@ async function loadTaskBoard() {
     document.getElementById('botQueueTasks').innerHTML = botQueueIds.map((id, idx) => {
       const t = tasks[id];
       if (!t) return '';
-      return renderTask(id, t, 'pending', idx === 0 ? 'NEXT' : null);
+      return renderTask(id, t, 'pending', idx === 0 ? 'NEXT' : null, {index: idx, total: botQueueIds.length});
     }).join('') || '<div style="color:#8b949e;font-size:13px;">Queue empty 🎉</div>';
     
     // Render Human Tasks
@@ -496,24 +858,48 @@ async function loadTaskBoard() {
       return renderTask(id, t, 'human-task');
     }).join('') || '<div style="color:#8b949e;font-size:13px;">All done! 🎉</div>';
     
-    // Render Done Today
-    const doneIds = lanes.done_today || [];
-    document.getElementById('doneCount').textContent = doneIds.length;
-    document.getElementById('doneTasks').innerHTML = doneIds.map(id => {
-      const t = tasks[id];
-      if (!t) return '';
-      return `<div class="done-item" onclick="showTaskDetail('${id}')" style="cursor:pointer;"><span class="check">✓</span>${t.title}</div>`;
-    }).join('') || '<div class="done-item">Nothing yet</div>';
+    // Store lanes for filtering
+    currentLanes = lanes;
     
-    // Render Scheduled
+    // Render Done with date filter
+    renderDoneTasks();
+    
+    // Render Trash
+    const trashIds = lanes.trash || [];
+    const trashSection = document.getElementById('trashSection');
+    if (trashIds.length > 0) {
+      trashSection.style.display = 'block';
+      document.getElementById('trashCount').textContent = trashIds.length;
+      document.getElementById('trashTasks').innerHTML = trashIds.map(id => {
+        const t = tasks[id];
+        if (!t) return '';
+        const deletedDate = t.deleted_at ? new Date(t.deleted_at).toLocaleDateString() : '';
+        return `
+          <div class="trash-item">
+            <span class="trash-item-title">${t.title}</span>
+            <span class="trash-item-date">${deletedDate}</span>
+            <button class="restore-btn" onclick="restoreTask('${id}')">↩ Restore</button>
+            <button class="perma-delete-btn" onclick="permanentDelete('${id}')" title="Delete forever">✕</button>
+          </div>
+        `;
+      }).join('');
+    } else {
+      trashSection.style.display = 'none';
+    }
+    
+    // Render Scheduled (Cron Jobs)
     const schedIds = lanes.scheduled || [];
     document.getElementById('scheduledTasks').innerHTML = schedIds.map(id => {
       const t = tasks[id];
       if (!t) return '';
       return `
         <div class="scheduled-item">
-          <div class="scheduled-title">${t.title}</div>
-          <div class="scheduled-time">${t.schedule || ''}</div>
+          <div class="scheduled-content" onclick="showCronDetail('${id}')">
+            <div class="scheduled-title">${t.title}</div>
+            <div class="scheduled-time">⏰ ${t.schedule || ''}</div>
+            <div class="scheduled-next">${t.nextRun ? 'Next: ' + new Date(t.nextRun).toLocaleString() : ''}</div>
+          </div>
+          <button class="delete-btn scheduled-delete" onclick="event.stopPropagation(); deleteCron('${id}', event)" title="Remove">✕</button>
         </div>
       `;
     }).join('') || '<div style="color:#8b949e;">No scheduled tasks</div>';
@@ -526,10 +912,17 @@ async function loadTaskBoard() {
   }
 }
 
-function renderTask(id, task, statusClass, badge) {
+function renderTask(id, task, statusClass, badge, queueInfo) {
   const planLink = task.plan ? `<span class="task-plan">📄 ${task.plan.split('/').pop()}</span>` : '';
   const estimate = task.estimate ? `<span class="task-estimate">⏱ ${task.estimate}</span>` : '';
-  const badgeHtml = badge ? `<span class="task-estimate" style="background:#238636;color:#fff;">${badge}</span>` : '';
+  
+  // Check for verification badge (human-completed task awaiting bot verification)
+  let badgeHtml = '';
+  if (task.needs_verification) {
+    badgeHtml = `<span class="task-estimate" style="background:#7c3aed;color:#fff;">🔍 VERIFY</span>`;
+  } else if (badge) {
+    badgeHtml = `<span class="task-estimate" style="background:#238636;color:#fff;">${badge}</span>`;
+  }
   
   // Step progress indicator
   let stepProgress = '';
@@ -556,6 +949,42 @@ function renderTask(id, task, statusClass, badge) {
     stepProgress = `<span class="task-estimate" style="background:rgba(88,166,255,0.15);color:${stepColor};">${stepIcon} Step ${currentStep + 1}/${totalSteps}</span>`;
   }
   
+  // Mark Complete button for human tasks
+  const completeBtn = statusClass === 'human-task' 
+    ? `<button class="complete-btn" onclick="event.stopPropagation(); requestComplete('${id}', this)">✓ Mark Complete</button>` 
+    : '';
+  
+  // Transfer buttons - move between lanes
+  let transferBtn = '';
+  if (statusClass === 'human-task') {
+    transferBtn = `<button class="transfer-btn" onclick="event.stopPropagation(); transferTask('${id}', 'human', 'bot_queue')" title="Move to Bot Queue">🤖←</button>`;
+  } else if (queueInfo) {
+    transferBtn = `<button class="transfer-btn" onclick="event.stopPropagation(); transferTask('${id}', 'bot_queue', 'human')" title="Move to Human Tasks">→👤</button>`;
+  }
+  
+  // Reorder buttons for queue tasks
+  let reorderBtns = '';
+  if (queueInfo) {
+    const upDisabled = queueInfo.index === 0 ? 'disabled' : '';
+    const downDisabled = queueInfo.index === queueInfo.total - 1 ? 'disabled' : '';
+    reorderBtns = `
+      <div class="reorder-controls">
+        <button class="reorder-btn" ${upDisabled} onclick="event.stopPropagation(); reorderTask('${id}', 'up')" title="Move up">▲</button>
+        <button class="reorder-btn" ${downDisabled} onclick="event.stopPropagation(); reorderTask('${id}', 'down')" title="Move down">▼</button>
+      </div>
+    `;
+  }
+  
+  // Delete button for all tasks
+  const deleteBtn = `<button class="delete-btn" onclick="event.stopPropagation(); deleteTask('${id}', event)" title="Remove task">✕</button>`;
+  
+  // Build toolbar with all action buttons
+  let toolbar = '';
+  const hasActions = completeBtn || transferBtn || reorderBtns || deleteBtn;
+  if (hasActions) {
+    toolbar = `<div class="task-toolbar">${completeBtn}${transferBtn}${reorderBtns}${deleteBtn}</div>`;
+  }
+
   return `
     <div class="task-item ${statusClass}" onclick="showTaskDetail('${id}')">
       <div class="task-id">${id}</div>
@@ -565,6 +994,7 @@ function renderTask(id, task, statusClass, badge) {
         ${planLink}
         ${estimate}
         ${badgeHtml}
+        ${toolbar}
       </div>
     </div>
   `;
@@ -727,6 +1157,8 @@ function closeModal(event) {
   document.getElementById('taskModal').classList.remove('active');
 }
 
+let currentDoneFilter = 'today';
+
 function toggleDone() {
   const grid = document.getElementById('doneTasks');
   const toggle = document.getElementById('doneToggle');
@@ -739,11 +1171,410 @@ function toggleDone() {
   }
 }
 
+function showDoneDate(filter) {
+  currentDoneFilter = filter;
+  
+  // Update button states
+  document.querySelectorAll('.date-btn').forEach(btn => btn.classList.remove('active'));
+  if (filter === 'today') {
+    document.querySelector('.date-btn:nth-child(2)').classList.add('active');
+  } else if (filter === 'yesterday') {
+    document.querySelector('.date-btn:nth-child(1)').classList.add('active');
+  }
+  
+  renderDoneTasks();
+}
+
+function getDateString(date) {
+  return date.toISOString().split('T')[0];
+}
+
+function renderDoneTasks() {
+  const doneIds = currentLanes.done_today || [];
+  
+  let filterDate;
+  const now = new Date();
+  
+  if (currentDoneFilter === 'today') {
+    filterDate = getDateString(now);
+  } else if (currentDoneFilter === 'yesterday') {
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    filterDate = getDateString(yesterday);
+  } else {
+    filterDate = currentDoneFilter; // Custom date from picker
+  }
+  
+  // Filter tasks by completion date
+  const filteredIds = doneIds.filter(id => {
+    const task = allTasks[id];
+    if (!task || !task.completed) return currentDoneFilter === 'today'; // Show if no date and viewing today
+    const completedDate = task.completed.split('T')[0];
+    return completedDate === filterDate;
+  });
+  
+  document.getElementById('doneCount').textContent = filteredIds.length;
+  document.getElementById('doneTasks').innerHTML = filteredIds.map(id => {
+    const t = allTasks[id];
+    if (!t) return '';
+    return `<div class="done-item" onclick="showTaskDetail('${id}')" style="cursor:pointer;"><span class="check">✓</span>${t.title}</div>`;
+  }).join('') || `<div class="done-item">Nothing completed on ${filterDate}</div>`;
+}
+
+let currentLanes = {};
+
 loadTaskBoard();
+
+// Delete task/cron with custom confirm bubble
+let pendingDeleteId = null;
+let pendingDeleteType = 'task'; // 'task' or 'cron'
+
+function deleteCron(cronId, event) {
+  pendingDeleteType = 'cron';
+  deleteTask(cronId, event);
+}
+
+function deleteTask(taskId, event) {
+  // Close any existing bubble
+  cancelDelete();
+  
+  pendingDeleteId = taskId;
+  const task = allTasks[taskId];
+  const title = task ? task.title : taskId;
+  
+  const bubble = document.getElementById('confirmBubble');
+  document.getElementById('confirmTitle').textContent = `Delete this task?`;
+  document.getElementById('confirmMessage').innerHTML = `<strong>${taskId}</strong><br>${title}`;
+  
+  // Position near the clicked button
+  const btn = event.target.closest('.delete-btn');
+  const rect = btn.getBoundingClientRect();
+  
+  bubble.style.top = (rect.bottom + 10) + 'px';
+  bubble.style.left = (rect.right - 220) + 'px';
+  
+  // Keep on screen
+  if (parseInt(bubble.style.left) < 10) {
+    bubble.style.left = '10px';
+  }
+  
+  bubble.classList.add('active');
+  
+  // Close when clicking outside
+  setTimeout(() => {
+    document.addEventListener('click', closeOnClickOutside);
+  }, 10);
+}
+
+function closeOnClickOutside(e) {
+  const bubble = document.getElementById('confirmBubble');
+  if (!bubble.contains(e.target) && !e.target.closest('.delete-btn')) {
+    cancelDelete();
+  }
+}
+
+function cancelDelete() {
+  pendingDeleteId = null;
+  document.getElementById('confirmBubble').classList.remove('active');
+  document.removeEventListener('click', closeOnClickOutside);
+}
+
+async function confirmDelete() {
+  const itemId = pendingDeleteId;
+  const isCron = pendingDeleteType === 'cron';
+  document.getElementById('confirmBubble').classList.remove('active');
+  document.removeEventListener('click', closeOnClickOutside);
+  
+  if (!itemId) return;
+  
+  try {
+    const endpoint = isCron ? '/api/delete-cron' : '/api/delete-task';
+    const bodyData = isCron ? { cronId: itemId } : { taskId: itemId };
+    const resp = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(bodyData)
+    });
+    const data = await resp.json();
+    
+    if (data.success) {
+      showToast(`🗑 ${itemId} removed`);
+      loadTaskBoard();
+    } else {
+      showToast(`Error: ${data.error || 'Failed to delete'}`, 'error');
+    }
+  } catch(e) {
+    showToast('Failed to delete', 'error');
+  }
+  pendingDeleteId = null;
+  pendingDeleteType = 'task';
+}
+
+// Restore task from trash
+async function restoreTask(taskId) {
+  try {
+    const resp = await fetch('/api/restore-task', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ taskId })
+    });
+    const data = await resp.json();
+    
+    if (data.success) {
+      showToast(`↩ ${taskId} restored to ${data.restoredTo}`);
+      loadTaskBoard();
+    } else {
+      showToast(`Error: ${data.error}`, 'error');
+    }
+  } catch(e) {
+    showToast('Failed to restore', 'error');
+  }
+}
+
+// Permanent delete from trash
+async function permanentDelete(taskId) {
+  if (!confirm(`Permanently delete ${taskId}? This cannot be undone.`)) return;
+  
+  try {
+    const resp = await fetch('/api/permanent-delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ taskId })
+    });
+    const data = await resp.json();
+    
+    if (data.success) {
+      showToast(`🗑 ${taskId} permanently deleted`);
+      loadTaskBoard();
+    } else {
+      showToast(`Error: ${data.error}`, 'error');
+    }
+  } catch(e) {
+    showToast('Failed to delete', 'error');
+  }
+}
+
+// Transfer task between lanes
+async function transferTask(taskId, fromLane, toLane) {
+  try {
+    const resp = await fetch('/api/transfer-task', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ taskId, fromLane, toLane })
+    });
+    const data = await resp.json();
+    
+    if (data.success) {
+      const icon = toLane === 'bot_queue' ? '🤖' : '👤';
+      showToast(`${icon} ${taskId} moved to ${toLane === 'bot_queue' ? 'Bot Queue' : 'Human Tasks'}`);
+      loadTaskBoard();
+    } else {
+      showToast(`Error: ${data.error || 'Failed to transfer'}`, 'error');
+    }
+  } catch(e) {
+    showToast('Failed to transfer task', 'error');
+  }
+}
+
+// Reorder task in queue
+async function reorderTask(taskId, direction) {
+  try {
+    const resp = await fetch('/api/reorder-task', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ taskId, direction })
+    });
+    const data = await resp.json();
+    
+    if (data.success) {
+      showToast(`${direction === 'up' ? '⬆️' : '⬇️'} ${taskId} moved ${direction}`);
+      loadTaskBoard(); // Refresh the board
+    } else {
+      showToast(`Error: ${data.error || 'Failed to reorder'}`, 'error');
+    }
+  } catch(e) {
+    showToast('Failed to reorder task', 'error');
+  }
+}
+
+// Request task completion verification
+async function requestComplete(taskId, btn) {
+  btn.disabled = true;
+  btn.textContent = '⏳ Verifying...';
+  btn.classList.add('pending');
+  
+  try {
+    const resp = await fetch('/api/request-complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ taskId })
+    });
+    const data = await resp.json();
+    
+    if (data.success) {
+      btn.textContent = '⏳ Bot verifying...';
+      // Show a toast notification
+      showToast(`🔍 ${taskId} sent for verification. Bot will check and confirm.`);
+    } else {
+      btn.textContent = '❌ Error';
+      btn.classList.remove('pending');
+      showToast(`Error: ${data.error || 'Unknown error'}`, 'error');
+      setTimeout(() => {
+        btn.textContent = '✓ Mark Complete';
+        btn.disabled = false;
+      }, 2000);
+    }
+  } catch(e) {
+    btn.textContent = '❌ Failed';
+    btn.classList.remove('pending');
+    showToast('Failed to send request', 'error');
+    setTimeout(() => {
+      btn.textContent = '✓ Mark Complete';
+      btn.disabled = false;
+    }, 2000);
+  }
+}
+
+// Toast notification
+function showToast(message, type = 'info') {
+  // Remove existing toast
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+  
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.style.cssText = `
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: ${type === 'error' ? '#f85149' : '#238636'};
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    z-index: 2000;
+    animation: slideUp 0.3s ease;
+    max-width: 90%;
+    text-align: center;
+  `;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.3s';
+    setTimeout(() => toast.remove(), 300);
+  }, 4000);
+}
+
+// Cron modal functions
+let currentCronId = null;
+
+// Cron job summaries (plain English descriptions)
+const cronSummaries = {
+  'CRON-research': '🔍 <strong>Daily AI Research Brief</strong><br><br>Every morning at 9 AM, I scan Twitter/X for the latest AI news, agent developments, Claude updates, and tips from experts. I compile a brief of the most important findings so you stay current on AI trends without having to scroll through feeds yourself.',
+  'CRON-curiosity': '🧠 <strong>Curiosity Engine</strong><br><br>At 9 PM each night, I look for opportunities to improve the business — competitor moves, seasonal trends, new product ideas, marketing angles. I research and document findings so we always have fresh ideas in the pipeline.',
+  'CRON-learn': '📚 <strong>Compound Loop: LEARN</strong><br><br>At 10:30 PM, I review what happened today — what worked, what failed, what we learned. I extract lessons and add them to our knowledge base so we keep getting smarter and don\'t repeat mistakes.',
+  'CRON-ship': '🚀 <strong>Compound Loop: SHIP</strong><br><br>Late night, I check the backlog for tasks that are ready to execute autonomously. If something is safe to do without approval (like SEO fixes, drafts, research), I do it overnight so you wake up to completed work.',
+  'CRON-backup': '💾 <strong>Daily Git Backup</strong><br><br>At 11 PM, I automatically commit all workspace changes to GitHub. This ensures nothing is ever lost and we have a full history of everything we\'ve done.',
+  'CRON-consolidation': '📦 <strong>Memory Consolidation</strong><br><br>At 3 AM, I clean up and organize the day\'s memory files. I extract the important stuff into the knowledge base, generate the recall pack for tomorrow, and archive raw logs. Keeps the system fast and focused.'
+};
+
+function showCronDetail(id) {
+  currentCronId = id;
+  const cron = allTasks[id];
+  if (!cron) return;
+  
+  document.getElementById('cronModalTitle').textContent = cron.title;
+  document.getElementById('cronModalId').textContent = id;
+  document.getElementById('cronSchedule').value = cron.schedule || '';
+  document.getElementById('cronPlan').value = cron.plan || '';
+  
+  // Show summary
+  const summary = cronSummaries[id] || cron.description || 'No description available. Add one by editing the cron job.';
+  document.getElementById('cronSummary').innerHTML = summary;
+  
+  if (cron.nextRun) {
+    const dt = new Date(cron.nextRun);
+    const local = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    document.getElementById('cronNextRun').value = local;
+  } else {
+    document.getElementById('cronNextRun').value = '';
+  }
+  
+  // Hide plan file content until requested
+  document.getElementById('planFileSection').style.display = 'none';
+  
+  document.getElementById('cronModal').classList.add('active');
+}
+
+async function viewPlanFile() {
+  const planPath = document.getElementById('cronPlan').value;
+  if (!planPath) {
+    showToast('No plan file specified', 'error');
+    return;
+  }
+  
+  try {
+    const resp = await fetch('/api/read-file', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: planPath })
+    });
+    const data = await resp.json();
+    
+    if (data.success) {
+      document.getElementById('planFileContent').textContent = data.content;
+      document.getElementById('planFileSection').style.display = 'block';
+    } else {
+      showToast(`Error: ${data.error}`, 'error');
+    }
+  } catch(e) {
+    showToast('Failed to read file', 'error');
+  }
+}
+
+function closeCronModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  document.getElementById('cronModal').classList.remove('active');
+  currentCronId = null;
+}
+
+async function saveCronChanges() {
+  if (!currentCronId) return;
+  
+  const schedule = document.getElementById('cronSchedule').value;
+  const plan = document.getElementById('cronPlan').value;
+  const nextRunInput = document.getElementById('cronNextRun').value;
+  const nextRun = nextRunInput ? new Date(nextRunInput).toISOString() : null;
+  
+  try {
+    const resp = await fetch('/api/update-cron', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cronId: currentCronId, schedule, plan, nextRun })
+    });
+    const data = await resp.json();
+    
+    if (data.success) {
+      showToast(`✅ ${currentCronId} updated`);
+      closeCronModal();
+      loadTaskBoard();
+    } else {
+      showToast(`Error: ${data.error}`, 'error');
+    }
+  } catch(e) {
+    showToast('Failed to save changes', 'error');
+  }
+}
 
 // Close modal on Escape key
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') closeModal();
+  if (e.key === 'Escape') {
+    closeModal();
+    closeCronModal();
+  }
 });
 </script>
 </body>

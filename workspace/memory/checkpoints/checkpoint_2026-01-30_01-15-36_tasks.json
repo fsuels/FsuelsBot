@@ -1,6 +1,6 @@
 {
-    "version":  22,
-    "updated_at":  "2026-01-29T20:20:00-05:00",
+    "version":  24,
+    "updated_at":  "2026-01-30T01:30:00-05:00",
     "updated_by":  "fsuels-bot",
     "notes":  "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
     "schema":  {
@@ -25,10 +25,11 @@
                },
     "lanes":  {
                   "bot_current":  [
-                                      "T004"
                                   ],
                   "bot_queue":  [
-                                    "T021"
+                                    "T004",
+                                    "T033",
+                                    "T032"
                                 ],
                   "human":  [
                                 "T006",
@@ -46,6 +47,7 @@
                                     "CRON-consolidation"
                                 ],
                   "done_today":  [
+                                     "T021",
                                      "T017",
                                      "T001",
                                      "T010",
@@ -73,6 +75,48 @@
                                  ]
               },
     "tasks":  {
+                  "T033":  {
+                               "title":  "Create Valentine Landing Page",
+                               "status":  "pending",
+                               "created":  "2026-01-30T01:30:00-05:00",
+                               "context":  {
+                                               "summary":  "Council verdict (Grok vs ChatGPT): Landing page is PREREQUISITE before any paid ads. Current problem: Valentine banner exists but NOT in navigation, discovery fragmented. Landing page concentrates intent, improves conversion, scales instantly. Zero cost to execute, makes all other actions more effective.",
+                                               "created_from":  "council-sessions/valentine-strategy",
+                                               "decisions":  [
+                                                                 "Create focused /collections/valentines page",
+                                                                 "All Valentine products visible in one view",
+                                                                 "Shipping deadline prominent (Order by Feb 10!)",
+                                                                 "THEN consider paid ads"
+                                                             ],
+                                               "constraints":  [
+                                                                   "Zero budget",
+                                                                   "Must complete AFTER draft fixes per Francisco"
+                                                               ]
+                                           },
+                               "plan":  "procedures/product-listing.md",
+                               "approach":  "1. Check if Valentine collection exists. 2. Ensure all Valentine products are in it. 3. Add to main navigation. 4. Add urgency copy (Order by Feb 10). 5. Feature on homepage.",
+                               "steps":  [
+                                             {
+                                                 "step":  "Check Valentine collection exists",
+                                                 "status":  "pending"
+                                             },
+                                             {
+                                                 "step":  "Add all Valentine products to collection",
+                                                 "status":  "pending"
+                                             },
+                                             {
+                                                 "step":  "Add Valentine link to main navigation",
+                                                 "status":  "pending"
+                                             },
+                                             {
+                                                 "step":  "Add urgency copy and deadline messaging",
+                                                 "status":  "pending"
+                                             }
+                                         ],
+                               "current_step":  0,
+                               "retry_count":  0,
+                               "notes":  "Council verdict: Landing page before ads. Queued AFTER draft fixes per Francisco directive."
+                           },
                   "T025":  {
                                "title":  "SQLite learnings.db for knowledge management",
                                "status":  "done",
@@ -329,14 +373,15 @@
                            },
                   "T021":  {
                                "title":  "Mission Control: Mark Complete button for human tasks",
-                               "status":  "pending",
+                               "status":  "done",
+                               "completed":  "2026-01-30T01:14:00-05:00",
                                "created":  "2026-01-29T13:57:00-05:00",
                                "context":  {
                                                "summary":  "Francisco requested ability to mark tasks complete from Mission Control dashboard. Button notifies bot → bot VERIFIES work is correct → then marks done. Quality control built in.",
                                                "decisions":  [
                                                                  "Add button to human task cards",
                                                                  "Bot verifies before marking done",
-                                                                 "POST to endpoint or WebSocket message"
+                                                                 "POST to endpoint + file-based queue"
                                                              ],
                                                "constraints":  [
                                                                    "Keep it simple",
@@ -344,8 +389,17 @@
                                                                    "Real-time feedback"
                                                                ]
                                            },
-                               "plan":  "mission-control/server.js",
-                               "approach":  "1. Add \u0027Mark Complete\u0027 button to human task cards. 2. Create /api/complete-task endpoint. 3. Endpoint sends message to bot. 4. Bot VERIFIES the work (screenshot/check). 5. If correct, bot marks done. If not, bot reports issue.",
+                               "plan":  "mission-control/activity-server.py",
+                               "approach":  "1. Add Mark Complete button. 2. Create /api/request-complete endpoint. 3. Button writes to memory/complete-requests/. 4. Bot checks on heartbeat, verifies work. 5. Marks done or reports issue.",
+                               "steps": [
+                                   {"step": "Add /api/request-complete endpoint", "status": "done", "completed_at": "2026-01-30T01:12:00-05:00"},
+                                   {"step": "Add Mark Complete button to human task cards", "status": "done", "completed_at": "2026-01-30T01:14:00-05:00"},
+                                   {"step": "Add toast notification and button state handling", "status": "done", "completed_at": "2026-01-30T01:15:00-05:00"},
+                                   {"step": "Update HEARTBEAT.md with complete-requests check", "status": "done", "completed_at": "2026-01-30T01:16:00-05:00"},
+                                   {"step": "Restart Mission Control server and test", "status": "done", "completed_at": "2026-01-30T01:14:00-05:00"}
+                               ],
+                               "current_step": 4,
+                               "retry_count": 0,
                                "notes":  "Francisco\u0027s idea - verify first, then mark done. Quality control loop."
                            },
                   "T020":  {
@@ -539,27 +593,31 @@
                                "status":  "in_progress",
                                "created":  "2026-01-29T03:00:00-05:00",
                                "context":  {
-                                               "summary":  "Valentine\u0027s Day deadline Feb 10 (12 days). Current Valentine products need better titles, descriptions, images. Add urgency copy. 7 Valentine products exist but only 1 fully sourced in BuckyDrop.",
+                                               "summary":  "Valentine\u0027s Day deadline Feb 10 (12 days). Found 4 products ALL IN DRAFT status! Must optimize and publish. Products: (1) Red Heart Sweatshirt, (2) Heart Patch Sweaters, (3) Red Cable Knit Cardigans, (4) Heart Embroidered Pullovers.",
                                                "created_from":  "EVT-20260129-019",
                                                "decisions":  [
                                                                  "Focus on existing products first",
                                                                  "Add urgency messaging",
-                                                                 "Follow SEO procedure"
+                                                                 "Follow SEO procedure",
+                                                                 "CRITICAL: All 4 products are DRAFT - need publishing!"
                                                              ],
                                                "constraints":  [
-                                                                   "Feb 10 deadline",
-                                                                   "Must have BuckyDrop source to fulfill"
+                                                                   "Feb 10 deadline (12 days)",
+                                                                   "Must have BuckyDrop source to fulfill",
+                                                                   "Titles 2 need fixing (truncation)"
                                                                ]
                                            },
                                "plan":  "procedures/product-listing.md",
                                "steps":  [
                                              {
                                                  "step":  "List current Valentine products",
-                                                 "status":  "pending"
+                                                 "status":  "done",
+                                                 "completed_at":  "2026-01-30T01:05:00-05:00",
+                                                 "artifacts":  ["Found 4 products ALL DRAFT: Red Heart Sweatshirt, Heart Patch Sweaters, Red Cable Knit Cardigans, Heart Embroidered Pullovers"]
                                              },
                                              {
                                                  "step":  "Optimize titles per SEO procedure",
-                                                 "status":  "pending"
+                                                 "status":  "in_progress"
                                              },
                                              {
                                                  "step":  "Add urgency copy to descriptions",
@@ -568,11 +626,15 @@
                                              {
                                                  "step":  "Verify pricing and BuckyDrop source",
                                                  "status":  "pending"
+                                             },
+                                             {
+                                                 "step":  "Publish products (currently DRAFT)",
+                                                 "status":  "pending"
                                              }
                                          ],
-                               "current_step":  0,
+                               "current_step":  1,
                                "retry_count":  0,
-                               "notes":  "Improve existing Valentine product listings"
+                               "notes":  "CRITICAL: 4 Valentine products found ALL in DRAFT! 12 days to deadline."
                            },
                   "T005":  {
                                "title":  "Announcement bar urgency text",
@@ -788,6 +850,26 @@
                                            },
                                "approach":  "1. Check existing Valentine drafts in Shopify. 2. Source the 0-stock items via BuckyDrop if wanted. 3. Set to Active after verification.",
                                "notes":  "Products: Sequin Heart Leggings (0 stock), Baby Valentine Romper (0 stock), Valentine Heart Pajamas (0 stock). Red Heart Sweatshirt already Active."
+                           },
+                  "T032":  {
+                               "title":  "Verify LCP fix (waiting for CDN cache)",
+                               "status":  "pending",
+                               "created":  "2026-01-29T22:08:00-05:00",
+                               "context":  {
+                                               "summary":  "Mobile LCP fix applied to card-product.liquid - changed all 3 loading attributes to use {% unless lazy_load == false %}loading=\"lazy\"{% endunless %}. featured-collection.liquid already passes lazy_load: false for first 2 products. Fix should work but Shopify CDN cache is slow to propagate.",
+                                               "decisions":  [
+                                                                 "Wait for CDN cache (2-5 min)",
+                                                                 "Verify via PageSpeed test",
+                                                                 "Check image loading attributes"
+                                                             ],
+                                               "constraints":  [
+                                                                   "CDN caching can take minutes",
+                                                                   "Real LCP was already 2401ms (good) - this is for synthetic test improvement"
+                                                               ]
+                                           },
+                               "plan":  "knowledge/mobile-speed-optimization.md",
+                               "approach":  "1. Wait 5+ minutes for CDN. 2. Hard refresh dresslikemommy.com. 3. Check first 2 product images for loading attribute (should be absent or eager). 4. Run PageSpeed test. 5. LCP should improve from 6.9s to ~3s.",
+                               "notes":  "Code changes done by Francisco in Shopify code editor. All 3 img loading attributes fixed in card-product.liquid."
                            },
                   "T031":  {
                                "title":  "Pipeline OS Lite implementation (Council workflow optimization)",

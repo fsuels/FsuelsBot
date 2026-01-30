@@ -45,6 +45,14 @@ Run validator: `powershell -ExecutionPolicy Bypass -File "C:\dev\FsuelsBot\works
 - Backlog items scoring 8-11? → Queue as priority for today
 - Uncommitted git changes? → Commit and push
 
+### Complete Requests (Task Verification)
+- Check `memory/complete-requests/` for pending verification files
+- For each request file (e.g., `T006.json`):
+  1. **VERIFY** the work is actually complete (check the relevant system/screenshot/etc.)
+  2. If complete: Move task to `done_today` in tasks.json, delete the request file
+  3. If NOT complete: Message Francisco with what's still missing, delete the request file
+- This is how the Mission Control "Mark Complete" button works — it requests verification, you verify
+
 ## Periodic Checks (rotate through, 2-4x daily)
 
 ### Self-Improvement (weekly)

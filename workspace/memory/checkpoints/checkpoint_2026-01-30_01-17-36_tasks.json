@@ -1,6 +1,6 @@
 {
     "version": 24,
-    "updated_at": "2026-01-30T06:27:33.863184+00:00",
+    "updated_at": "2026-01-30T06:17:16.085832+00:00",
     "updated_by": "fsuels-bot",
     "notes": "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
     "schema": {
@@ -32,7 +32,9 @@
         ],
         "human": [
             "T006",
+            "T007",
             "T008",
+            "T009",
             "T030"
         ],
         "scheduled": [
@@ -44,7 +46,6 @@
             "CRON-consolidation"
         ],
         "done_today": [
-            "T007",
             "T021",
             "T017",
             "T001",
@@ -698,9 +699,7 @@
         },
         "T007": {
             "title": "Hide Christmas nav link",
-            "status": "done",
-            "completed": "2026-01-30T01:21:00-05:00",
-            "verified_by": "bot",
+            "status": "pending",
             "owner": "francisco",
             "estimate": "1 min",
             "context": {
@@ -728,7 +727,7 @@
         },
         "T009": {
             "title": "Import 2 products via BuckyDrop",
-            "status": "deleted",
+            "status": "pending",
             "owner": "francisco",
             "estimate": "5 min",
             "context": {
@@ -742,8 +741,7 @@
                 ]
             },
             "plan": "memory/2026-01-29-quick-wins.md",
-            "approach": "Open BuckyDrop > Import > Paste 1688 URLs from quick-wins file > Map variants > Save",
-            "deleted_at": "2026-01-30T06:27:33.863153+00:00"
+            "approach": "Open BuckyDrop > Import > Paste 1688 URLs from quick-wins file > Map variants > Save"
         },
         "T001": {
             "title": "Task tracking system v3",

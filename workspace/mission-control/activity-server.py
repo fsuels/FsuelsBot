@@ -515,6 +515,638 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
 
         return False
 
+    def do_POST(self):
+        auth = self._check_auth()
+        if auth == "redirect":
+            return
+        if not auth:
+            self.send_response(403)
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b'{"error": "Access denied"}')
+            return
+
+        path = self.path.split('?')[0]
+        
+        if path == '/api/delete-cron':
+            # Read request body
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            try:
+                data = json.loads(body) if body else {}
+            except:
+                data = {}
+            
+            cron_id = data.get('cronId')
+            if not cron_id:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "cronId required"}).encode())
+                return
+            
+            # Load tasks.json
+            tasks_file = os.path.join(WORKSPACE_DIR, "memory", "tasks.json")
+            try:
+                with open(tasks_file, 'r', encoding='utf-8') as f:
+                    tasks_data = json.load(f)
+                
+                scheduled = tasks_data.get('lanes', {}).get('scheduled', [])
+                
+                if cron_id not in scheduled:
+                    self.send_response(400)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": f"{cron_id} not in scheduled"}).encode())
+                    return
+                
+                # Remove from scheduled lane
+                scheduled.remove(cron_id)
+                tasks_data['lanes']['scheduled'] = scheduled
+                
+                # Move to trash
+                if 'trash' not in tasks_data['lanes']:
+                    tasks_data['lanes']['trash'] = []
+                tasks_data['lanes']['trash'].append(cron_id)
+                
+                # Mark with deletion info
+                if cron_id in tasks_data.get('tasks', {}):
+                    tasks_data['tasks'][cron_id]['status'] = 'trashed'
+                    tasks_data['tasks'][cron_id]['deleted_at'] = datetime.now(timezone.utc).isoformat()
+                    tasks_data['tasks'][cron_id]['deleted_from'] = 'scheduled'
+                
+                tasks_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+                
+                # Write back
+                with open(tasks_file, 'w', encoding='utf-8') as f:
+                    json.dump(tasks_data, f, indent=4, ensure_ascii=False)
+                
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "success": True,
+                    "message": f"Moved {cron_id} to trash",
+                    "cronId": cron_id
+                }).encode())
+                return
+                
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+                return
+        
+        if path == '/api/restore-task':
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            try:
+                data = json.loads(body) if body else {}
+            except:
+                data = {}
+            
+            task_id = data.get('taskId')
+            if not task_id:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "taskId required"}).encode())
+                return
+            
+            tasks_file = os.path.join(WORKSPACE_DIR, "memory", "tasks.json")
+            try:
+                with open(tasks_file, 'r', encoding='utf-8') as f:
+                    tasks_data = json.load(f)
+                
+                trash = tasks_data.get('lanes', {}).get('trash', [])
+                if task_id not in trash:
+                    self.send_response(400)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": f"{task_id} not in trash"}).encode())
+                    return
+                
+                # Get original lane or default to bot_queue
+                task = tasks_data.get('tasks', {}).get(task_id, {})
+                restore_to = task.get('deleted_from', 'bot_queue')
+                if restore_to == 'done_today':
+                    restore_to = 'bot_queue'  # Don't restore to done
+                
+                # Remove from trash
+                trash.remove(task_id)
+                tasks_data['lanes']['trash'] = trash
+                
+                # Add to restore lane
+                if restore_to not in tasks_data['lanes']:
+                    tasks_data['lanes'][restore_to] = []
+                tasks_data['lanes'][restore_to].append(task_id)
+                
+                # Update task status
+                if task_id in tasks_data.get('tasks', {}):
+                    tasks_data['tasks'][task_id]['status'] = 'pending'
+                    del tasks_data['tasks'][task_id]['deleted_at']
+                    if 'deleted_from' in tasks_data['tasks'][task_id]:
+                        del tasks_data['tasks'][task_id]['deleted_from']
+                
+                tasks_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+                
+                with open(tasks_file, 'w', encoding='utf-8') as f:
+                    json.dump(tasks_data, f, indent=4, ensure_ascii=False)
+                
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "success": True,
+                    "message": f"Restored {task_id}",
+                    "restoredTo": restore_to
+                }).encode())
+                return
+                
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+                return
+        
+        if path == '/api/permanent-delete':
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            try:
+                data = json.loads(body) if body else {}
+            except:
+                data = {}
+            
+            task_id = data.get('taskId')
+            if not task_id:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "taskId required"}).encode())
+                return
+            
+            tasks_file = os.path.join(WORKSPACE_DIR, "memory", "tasks.json")
+            try:
+                with open(tasks_file, 'r', encoding='utf-8') as f:
+                    tasks_data = json.load(f)
+                
+                trash = tasks_data.get('lanes', {}).get('trash', [])
+                if task_id not in trash:
+                    self.send_response(400)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": f"{task_id} not in trash"}).encode())
+                    return
+                
+                # Remove from trash
+                trash.remove(task_id)
+                tasks_data['lanes']['trash'] = trash
+                
+                # Remove task entirely
+                if task_id in tasks_data.get('tasks', {}):
+                    del tasks_data['tasks'][task_id]
+                
+                tasks_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+                
+                with open(tasks_file, 'w', encoding='utf-8') as f:
+                    json.dump(tasks_data, f, indent=4, ensure_ascii=False)
+                
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "success": True,
+                    "message": f"Permanently deleted {task_id}"
+                }).encode())
+                return
+                
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+                return
+        
+        if path == '/api/read-file':
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            try:
+                data = json.loads(body) if body else {}
+            except:
+                data = {}
+            
+            file_path = data.get('path')
+            if not file_path:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "path required"}).encode())
+                return
+            
+            # Security: only allow reading from workspace
+            full_path = os.path.join(WORKSPACE_DIR, file_path)
+            full_path = os.path.normpath(full_path)
+            
+            if not full_path.startswith(WORKSPACE_DIR):
+                self.send_response(403)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "Access denied - path outside workspace"}).encode())
+                return
+            
+            try:
+                if os.path.exists(full_path):
+                    with open(full_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    
+                    # Limit size for safety
+                    if len(content) > 50000:
+                        content = content[:50000] + '\n\n... [truncated - file too large]'
+                    
+                    self.send_response(200)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({
+                        "success": True,
+                        "content": content,
+                        "path": file_path
+                    }).encode())
+                else:
+                    self.send_response(404)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": f"File not found: {file_path}"}).encode())
+                return
+                
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+                return
+        
+        if path == '/api/update-cron':
+            # Read request body
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            try:
+                data = json.loads(body) if body else {}
+            except:
+                data = {}
+            
+            cron_id = data.get('cronId')
+            if not cron_id:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "cronId required"}).encode())
+                return
+            
+            # Load tasks.json
+            tasks_file = os.path.join(WORKSPACE_DIR, "memory", "tasks.json")
+            try:
+                with open(tasks_file, 'r', encoding='utf-8') as f:
+                    tasks_data = json.load(f)
+                
+                if cron_id not in tasks_data.get('tasks', {}):
+                    self.send_response(400)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": f"{cron_id} not found"}).encode())
+                    return
+                
+                # Update cron fields
+                cron = tasks_data['tasks'][cron_id]
+                if 'schedule' in data:
+                    cron['schedule'] = data['schedule']
+                if 'plan' in data:
+                    cron['plan'] = data['plan']
+                if 'nextRun' in data:
+                    cron['nextRun'] = data['nextRun']
+                
+                tasks_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+                
+                # Write back
+                with open(tasks_file, 'w', encoding='utf-8') as f:
+                    json.dump(tasks_data, f, indent=4, ensure_ascii=False)
+                
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "success": True,
+                    "message": f"Updated {cron_id}",
+                    "cronId": cron_id
+                }).encode())
+                return
+                
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+                return
+        
+        if path == '/api/transfer-task':
+            # Read request body
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            try:
+                data = json.loads(body) if body else {}
+            except:
+                data = {}
+            
+            task_id = data.get('taskId')
+            from_lane = data.get('fromLane')
+            to_lane = data.get('toLane')
+            
+            if not task_id or not from_lane or not to_lane:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "taskId, fromLane, and toLane required"}).encode())
+                return
+            
+            # Load tasks.json
+            tasks_file = os.path.join(WORKSPACE_DIR, "memory", "tasks.json")
+            try:
+                with open(tasks_file, 'r', encoding='utf-8') as f:
+                    tasks_data = json.load(f)
+                
+                from_list = tasks_data.get('lanes', {}).get(from_lane, [])
+                to_list = tasks_data.get('lanes', {}).get(to_lane, [])
+                
+                if task_id not in from_list:
+                    self.send_response(400)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": f"{task_id} not in {from_lane}"}).encode())
+                    return
+                
+                # Move task
+                from_list.remove(task_id)
+                to_list.append(task_id)
+                
+                tasks_data['lanes'][from_lane] = from_list
+                tasks_data['lanes'][to_lane] = to_list
+                tasks_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+                
+                # Write back
+                with open(tasks_file, 'w', encoding='utf-8') as f:
+                    json.dump(tasks_data, f, indent=4, ensure_ascii=False)
+                
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "success": True,
+                    "message": f"Moved {task_id} from {from_lane} to {to_lane}",
+                    "taskId": task_id
+                }).encode())
+                return
+                
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+                return
+        
+        if path == '/api/delete-task':
+            # Read request body
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            try:
+                data = json.loads(body) if body else {}
+            except:
+                data = {}
+            
+            task_id = data.get('taskId')
+            if not task_id:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "taskId required"}).encode())
+                return
+            
+            # Load tasks.json
+            tasks_file = os.path.join(WORKSPACE_DIR, "memory", "tasks.json")
+            try:
+                with open(tasks_file, 'r', encoding='utf-8') as f:
+                    tasks_data = json.load(f)
+                
+                # Remove from all lanes
+                removed_from = None
+                for lane_name in ['bot_current', 'bot_queue', 'human', 'done_today']:
+                    lane = tasks_data.get('lanes', {}).get(lane_name, [])
+                    if task_id in lane:
+                        lane.remove(task_id)
+                        tasks_data['lanes'][lane_name] = lane
+                        removed_from = lane_name
+                        break
+                
+                if not removed_from:
+                    self.send_response(400)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": f"{task_id} not found in any lane"}).encode())
+                    return
+                
+                # Move to trash lane
+                if 'trash' not in tasks_data['lanes']:
+                    tasks_data['lanes']['trash'] = []
+                tasks_data['lanes']['trash'].append(task_id)
+                
+                # Mark task with deletion info
+                if task_id in tasks_data.get('tasks', {}):
+                    tasks_data['tasks'][task_id]['status'] = 'trashed'
+                    tasks_data['tasks'][task_id]['deleted_at'] = datetime.now(timezone.utc).isoformat()
+                    tasks_data['tasks'][task_id]['deleted_from'] = removed_from
+                
+                tasks_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+                
+                # Write back
+                with open(tasks_file, 'w', encoding='utf-8') as f:
+                    json.dump(tasks_data, f, indent=4, ensure_ascii=False)
+                
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "success": True,
+                    "message": f"Moved {task_id} to trash",
+                    "taskId": task_id
+                }).encode())
+                return
+                
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+                return
+        
+        if path == '/api/reorder-task':
+            # Read request body
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            try:
+                data = json.loads(body) if body else {}
+            except:
+                data = {}
+            
+            task_id = data.get('taskId')
+            direction = data.get('direction')  # 'up' or 'down'
+            
+            if not task_id or direction not in ('up', 'down'):
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "taskId and direction (up/down) required"}).encode())
+                return
+            
+            # Load tasks.json
+            tasks_file = os.path.join(WORKSPACE_DIR, "memory", "tasks.json")
+            try:
+                with open(tasks_file, 'r', encoding='utf-8') as f:
+                    tasks_data = json.load(f)
+                
+                bot_queue = tasks_data.get('lanes', {}).get('bot_queue', [])
+                
+                if task_id not in bot_queue:
+                    self.send_response(400)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": f"{task_id} not in bot_queue"}).encode())
+                    return
+                
+                idx = bot_queue.index(task_id)
+                
+                if direction == 'up' and idx > 0:
+                    # Swap with previous
+                    bot_queue[idx], bot_queue[idx-1] = bot_queue[idx-1], bot_queue[idx]
+                elif direction == 'down' and idx < len(bot_queue) - 1:
+                    # Swap with next
+                    bot_queue[idx], bot_queue[idx+1] = bot_queue[idx+1], bot_queue[idx]
+                else:
+                    self.send_response(400)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": f"Cannot move {direction} from position {idx}"}).encode())
+                    return
+                
+                tasks_data['lanes']['bot_queue'] = bot_queue
+                tasks_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+                
+                # Write back
+                with open(tasks_file, 'w', encoding='utf-8') as f:
+                    json.dump(tasks_data, f, indent=4, ensure_ascii=False)
+                
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "success": True,
+                    "message": f"Moved {task_id} {direction}",
+                    "newOrder": bot_queue
+                }).encode())
+                return
+                
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+                return
+        
+        if path == '/api/request-complete':
+            # Read request body
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            try:
+                data = json.loads(body) if body else {}
+            except:
+                data = {}
+            
+            task_id = data.get('taskId')
+            if not task_id:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "taskId required"}).encode())
+                return
+            
+            # Load tasks.json, move task from human to bot_queue with verify flag
+            tasks_file = os.path.join(WORKSPACE_DIR, "memory", "tasks.json")
+            try:
+                with open(tasks_file, 'r', encoding='utf-8') as f:
+                    tasks_data = json.load(f)
+                
+                human_lane = tasks_data.get('lanes', {}).get('human', [])
+                bot_queue = tasks_data.get('lanes', {}).get('bot_queue', [])
+                
+                if task_id not in human_lane:
+                    self.send_response(400)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": f"{task_id} not in human lane"}).encode())
+                    return
+                
+                # Remove from human, add to front of bot_queue
+                human_lane.remove(task_id)
+                bot_queue.insert(0, task_id)  # Add at front for priority
+                
+                # Mark task as needs_verification
+                if task_id in tasks_data.get('tasks', {}):
+                    tasks_data['tasks'][task_id]['needs_verification'] = True
+                    tasks_data['tasks'][task_id]['verification_requested_at'] = datetime.now(timezone.utc).isoformat()
+                    tasks_data['tasks'][task_id]['status'] = 'pending_verification'
+                
+                tasks_data['lanes']['human'] = human_lane
+                tasks_data['lanes']['bot_queue'] = bot_queue
+                tasks_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+                
+                # Write back
+                with open(tasks_file, 'w', encoding='utf-8') as f:
+                    json.dump(tasks_data, f, indent=4, ensure_ascii=False)
+                
+                # Also create verification request file for bot heartbeat
+                requests_dir = os.path.join(WORKSPACE_DIR, "memory", "complete-requests")
+                os.makedirs(requests_dir, exist_ok=True)
+                request_file = os.path.join(requests_dir, f"{task_id}.json")
+                request_data = {
+                    "taskId": task_id,
+                    "requestedAt": datetime.now(timezone.utc).isoformat(),
+                    "status": "pending_verification",
+                    "movedToQueue": True
+                }
+                with open(request_file, 'w', encoding='utf-8') as f:
+                    json.dump(request_data, f, indent=2)
+                
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "success": True,
+                    "message": f"{task_id} moved to verification queue",
+                    "taskId": task_id
+                }).encode())
+                return
+                
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+                return
+        
+        self.send_response(404)
+        self.send_header('Content-Type', 'application/json')
+        self.end_headers()
+        self.wfile.write(b'{"error": "Not found"}')
+
     def do_GET(self):
         auth = self._check_auth()
         if auth == "redirect":
