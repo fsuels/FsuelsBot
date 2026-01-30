@@ -1,6 +1,6 @@
 {
-    "version": 78,
-    "updated_at": "2026-01-30T22:56:55.117356+00:00",
+    "version": 76,
+    "updated_at": "2026-01-30T22:55:01.702993+00:00",
     "updated_by": "T058-marketplace-creation",
     "notes": "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
     "schema": {
@@ -2851,13 +2851,6 @@
                 "Shopify + ChatGPT Workflows (500-1500)",
                 "n8n + Voice Agent Developer (500-2000)",
                 "GoHighLevel Full Implementation (250-1550)"
-            ],
-            "discussion": [
-                {
-                    "ts": "2026-01-30T22:56:55.117313+00:00",
-                    "author": "human",
-                    "message": "work on this we have already ghostbrokerai in X account and moltbook"
-                }
             ]
         },
         "T056": {
@@ -2873,7 +2866,7 @@
             "needs_verification": true
         },
         "T057": {
-            "title": "Register GhostBrokerAI on Moltbook",
+            "title": "Register NexusBroker on Moltbook",
             "status": "pending_verification",
             "created": "2026-01-30T16:48:10.169009",
             "context": {
@@ -2914,16 +2907,6 @@
                     "ts": "2026-01-30T22:54:10.409798+00:00",
                     "author": "human",
                     "message": "we sold this already you got the name same as we have in X , ghostbrokerai"
-                },
-                {
-                    "ts": "2026-01-30T22:56:19.550213+00:00",
-                    "author": "human",
-                    "message": "stop this! you are not getting the context correctly we already have the name we want is for X and Moltbook \"ghostbrokerai\""
-                },
-                {
-                    "message": "Got it! GhostBrokerAI is already registered on Moltbook (credentials in memory/ghostbrokerai-credentials.json). You have @GhostBrokerAI on X. Just need to claim: visit https://moltbook.com/claim/moltbook_claim_jUGCyz1X1S1MrraaE8v4yHUXk7baGp8s and post the verification tweet with code: rocky-CG5B",
-                    "author": "bot",
-                    "ts": "2026-01-30T17:56:48.0272188-05:00"
                 }
             ]
         },
@@ -2969,11 +2952,6 @@
                     "ts": "2026-01-30T22:55:01.702973+00:00",
                     "author": "human",
                     "message": "verify we are got the handle \"ghostbrokerai\""
-                },
-                {
-                    "message": "Verified! You have @GhostBrokerAI on X. GhostBrokerAI is registered on Moltbook. Once you claim it (rocky-CG5B), we can start the Ghost Broker marketplace.",
-                    "author": "bot",
-                    "ts": "2026-01-30T17:56:48.0432121-05:00"
                 }
             ]
         }

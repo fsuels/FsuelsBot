@@ -52,6 +52,14 @@ Run validator: `powershell -ExecutionPolicy Bypass -File "C:\dev\FsuelsBot\works
 4. **Check opportunities** — Sales dip? Competitor move? Seasonal event? → Action, not report
 5. **RULE:** Every heartbeat produces at least ONE action OR a blocker report with alternate paths
 
+### 🚨 IDLE CHECK (MANDATORY)
+**If `bot_current` has tasks, I MUST be executing.** Check:
+1. Is there a task in bot_current? → I should be working on it RIGHT NOW
+2. Did my last response contain "want me to" / "shall I" / "let me know"? → VIOLATION
+3. Am I waiting for permission when the queue already gave it? → VIOLATION
+
+**If violation detected:** Resume work immediately. Don't explain, don't apologize — just execute.
+
 ### Pressure Loop Check
 - Any sub-agent tasks completed since last heartbeat? → Run pressure check
 - Any errors logged? → Check for patterns in .learnings/
@@ -69,7 +77,13 @@ Run validator: `powershell -ExecutionPolicy Bypass -File "C:\dev\FsuelsBot\works
 - Backlog items scoring 8-11? → Queue as priority for today
 - Uncommitted git changes? → Commit and push
 
-### Complete Requests (Task Verification)
+### Discussion Reply Check (MANDATORY)
+Run: `powershell -ExecutionPolicy Bypass -File "C:\dev\FsuelsBot\workspace\scripts\check-discussion-comments.ps1" -Quiet`
+- Detects unanswered human comments in task discussions
+- If found: respond in discussion + send Telegram notification with [TaskID] prefix
+- Example: "[T041] Hello! Responding to your card comment..."
+
+## Complete Requests (Task Verification)
 - Check `memory/complete-requests/` for pending verification files
 - For each request file (e.g., `T006.json`):
   1. **VERIFY** the work is actually complete (check the relevant system/screenshot/etc.)

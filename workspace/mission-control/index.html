@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta http-equiv="refresh" content="15">
+<!-- Auto-refresh handled by JavaScript to preserve modal state -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -68,10 +68,11 @@ body {
   letter-spacing: -0.01em;
 }
 .modal-id {
-  font-size: 11px;
-  color: #6e7681;
+  font-size: 14px;
+  color: #60a5fa;
   font-family: 'SF Mono', 'Fira Code', monospace;
   margin-top: 4px;
+  font-weight: 700;
 }
 .modal-close {
   background: none;
@@ -237,12 +238,12 @@ body {
   letter-spacing: 0.04em;
 }
 .lane-count {
-  background: rgba(255,255,255,0.06);
-  padding: 2px 8px;
+  background: rgba(96,165,250,0.2);
+  padding: 3px 10px;
   border-radius: 10px;
-  font-size: 11px;
-  color: #8b949e;
-  font-weight: 500;
+  font-size: 14px;
+  color: #60a5fa;
+  font-weight: 700;
 }
 
 /* Bot Current - Soft Green */
@@ -300,11 +301,12 @@ body {
 }
 
 .task-id {
-  font-size: 10px;
-  color: #586069;
-  margin-bottom: 3px;
+  font-size: 13px;
+  color: #60a5fa;
+  margin-bottom: 4px;
   font-family: 'SF Mono', 'Fira Code', monospace;
   letter-spacing: 0.02em;
+  font-weight: 700;
 }
 .task-title-text {
   font-size: 13px;
@@ -336,8 +338,9 @@ body {
   transition: width 0.3s ease;
 }
 .task-step-text {
-  font-size: 10px;
+  font-size: 11px;
   color: #86efac;
+  font-weight: 600;
 }
 .task-toolbar {
   display: flex;
@@ -864,6 +867,14 @@ body {
         <div class="modal-label">📅 Timeline</div>
         <div class="modal-content" id="modalTimeline"></div>
       </div>
+      <div class="modal-section" id="modalDiscussionSection">
+        <div class="modal-label">💬 Discussion / Audit Trail</div>
+        <div class="modal-content" id="modalDiscussion" style="max-height:300px;overflow-y:auto;"></div>
+        <div style="margin-top:12px;display:flex;gap:8px;">
+          <input type="text" id="commentInput" placeholder="Add a comment..." style="flex:1;padding:10px 12px;border:1px solid #30363d;border-radius:6px;background:#161b22;color:#e6edf3;font-size:14px;">
+          <button onclick="submitComment()" style="padding:10px 16px;background:#238636;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:500;">Send</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -1347,12 +1358,103 @@ function showTaskDetail(id) {
     timelineSection.style.display = 'none';
   }
 
+  // Discussion / Audit Trail
+  const discussionSection = document.getElementById('modalDiscussionSection');
+  const discussionEl = document.getElementById('modalDiscussion');
+  if (task.discussion && task.discussion.length > 0) {
+    let discussionHtml = '';
+    task.discussion.forEach((msg, idx) => {
+      const time = msg.ts ? new Date(msg.ts).toLocaleString() : '';
+      const isHuman = msg.author === 'human';
+      const authorIcon = isHuman ? '👤' : '🤖';
+      const authorName = isHuman ? 'Francisco' : 'Bot';
+      const bgColor = isHuman ? 'rgba(56,139,253,0.1)' : 'rgba(139,148,158,0.1)';
+      const borderColor = isHuman ? '#388bfd' : '#8b949e';
+      const isCrossedOut = msg.crossed_out === true;
+      const strikeStyle = isCrossedOut ? 'text-decoration:line-through;opacity:0.5;' : '';
+      const btnText = isCrossedOut ? '↩️' : '✕';
+      const btnTitle = isCrossedOut ? 'Restore' : 'Cross out';
+      discussionHtml += `
+        <div style="margin-bottom:10px;padding:10px;background:${bgColor};border-left:3px solid ${borderColor};border-radius:4px;${strikeStyle}">
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+            <span style="font-weight:500;">${authorIcon} ${authorName}</span>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:11px;color:#8b949e;">${time}</span>
+              <button onclick="toggleCrossOut('${id}', ${idx})" title="${btnTitle}" style="background:none;border:none;cursor:pointer;font-size:12px;opacity:0.6;padding:2px 4px;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">${btnText}</button>
+            </div>
+          </div>
+          <div style="font-size:13px;white-space:pre-wrap;">${msg.message}</div>
+        </div>
+      `;
+    });
+    discussionEl.innerHTML = discussionHtml;
+    discussionSection.style.display = 'block';
+    // Scroll to bottom of discussion
+    discussionEl.scrollTop = discussionEl.scrollHeight;
+  } else {
+    discussionEl.innerHTML = '<div style="color:#8b949e;font-style:italic;">No discussion yet. Add a comment to start the audit trail.</div>';
+    discussionSection.style.display = 'block';
+  }
+
+  // Store current task ID for comment submission
+  window.currentTaskId = id;
+
   document.getElementById('taskModal').classList.add('active');
 }
 
 function closeModal(event) {
   if (event && event.target !== event.currentTarget) return;
   document.getElementById('taskModal').classList.remove('active');
+}
+
+async function submitComment() {
+  const input = document.getElementById('commentInput');
+  const message = input.value.trim();
+  if (!message || !window.currentTaskId) return;
+
+  const taskId = window.currentTaskId;
+  
+  try {
+    const response = await fetch('/api/task-comment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ taskId, message })
+    });
+    
+    if (response.ok) {
+      input.value = '';
+      // Refresh task data and re-render
+      await loadTaskBoard();
+      showTaskDetail(taskId);
+      showToast('Comment added');
+    } else {
+      showToast('Failed to add comment', true);
+    }
+  } catch (err) {
+    console.error('Comment error:', err);
+    showToast('Failed to add comment', true);
+  }
+}
+
+async function toggleCrossOut(taskId, commentIdx) {
+  try {
+    const response = await fetch('/api/toggle-crossout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ taskId, commentIdx })
+    });
+    
+    if (response.ok) {
+      // Refresh task data and re-render
+      await loadTaskBoard();
+      showTaskDetail(taskId);
+    } else {
+      showToast('Failed to toggle strikethrough', true);
+    }
+  } catch (err) {
+    console.error('Toggle crossout error:', err);
+    showToast('Failed to toggle strikethrough', true);
+  }
 }
 
 let currentDoneFilter = 'today';
@@ -1422,6 +1524,16 @@ function renderDoneTasks() {
 let currentLanes = {};
 
 loadTaskBoard();
+
+// Smart auto-refresh: only refresh when modal is NOT open
+setInterval(() => {
+  const modal = document.getElementById('taskModal');
+  const isModalOpen = modal && modal.classList.contains('active');
+  if (!isModalOpen) {
+    loadTaskBoard();
+  }
+  // If modal is open, skip refresh to preserve user's work
+}, 15000);
 
 // Delete task/cron with custom confirm bubble
 let pendingDeleteId = null;
@@ -1610,15 +1722,10 @@ async function requestComplete(taskId, btn) {
     const data = await resp.json();
 
     if (data.success) {
-      // Check if it was a Council task (directly completed by human verification)
-      if (data.message && data.message.includes('verified and marked complete')) {
-        btn.textContent = '✅ Done!';
-        showToast(`✅ ${taskId} verified and complete!`);
-        setTimeout(() => loadTasks(), 500);
-      } else {
-        btn.textContent = '⏳ Bot verifying...';
-        showToast(`🔍 ${taskId} sent for verification. Bot will check and confirm.`);
-      }
+      // Human verification is final - task goes directly to done
+      btn.textContent = '✅ Done!';
+      showToast(`✅ ${taskId} marked complete!`);
+      setTimeout(() => loadTasks(), 500);
     } else {
       btn.textContent = '❌ Error';
       btn.classList.remove('pending');

@@ -1,7 +1,7 @@
 {
-    "version": 78,
-    "updated_at": "2026-01-30T22:56:55.117356+00:00",
-    "updated_by": "T058-marketplace-creation",
+    "version": 72,
+    "updated_at": "2026-01-30T16:55:31.217689",
+    "updated_by": "T057-moltbook-registration",
     "notes": "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
     "schema": {
         "context": {
@@ -67,17 +67,13 @@
     },
     "lanes": {
         "bot_current": [
-            "T057",
-            "T058"
+            "T057"
         ],
         "bot_queue": [
             "T055",
             "T056"
         ],
         "human": [
-            "T054",
-            "T053",
-            "T052",
             "T037",
             "T033",
             "T006"
@@ -91,6 +87,9 @@
             "CRON-consolidation"
         ],
         "done_today": [
+            "T054",
+            "T052",
+            "T053",
             "T051",
             "T043",
             "T046",
@@ -2398,7 +2397,7 @@
         },
         "T052": {
             "title": "VALIDATE: Research Moltbook agent capabilities",
-            "status": "pending_verification",
+            "status": "done",
             "created": "2026-01-30T16:21:55.843420",
             "completed_at": "2026-01-30T16:55:31.217649",
             "context": {
@@ -2615,7 +2614,7 @@
         },
         "T053": {
             "title": "VALIDATE: Find high-ticket gig on Upwork",
-            "status": "pending_verification",
+            "status": "done",
             "created": "2026-01-30T16:21:55.843467",
             "completed_at": "2026-01-30T16:55:31.217680",
             "context": {
@@ -2731,7 +2730,7 @@
         },
         "T054": {
             "title": "VALIDATE: Contact 3 Moltbook agents for proxy test",
-            "status": "pending_verification",
+            "status": "done",
             "created": "2026-01-30T16:21:55.843477",
             "started_at": "2026-01-30T16:42:00-05:00",
             "context": {
@@ -2851,13 +2850,6 @@
                 "Shopify + ChatGPT Workflows (500-1500)",
                 "n8n + Voice Agent Developer (500-2000)",
                 "GoHighLevel Full Implementation (250-1550)"
-            ],
-            "discussion": [
-                {
-                    "ts": "2026-01-30T22:56:55.117313+00:00",
-                    "author": "human",
-                    "message": "work on this we have already ghostbrokerai in X account and moltbook"
-                }
             ]
         },
         "T056": {
@@ -2873,8 +2865,8 @@
             "needs_verification": true
         },
         "T057": {
-            "title": "Register GhostBrokerAI on Moltbook",
-            "status": "pending_verification",
+            "title": "Register CogitoLux on Moltbook",
+            "status": "in_progress",
             "created": "2026-01-30T16:48:10.169009",
             "context": {
                 "summary": "Register our agent on Moltbook to unblock Ghost Broker test. Francisco approved. Need to POST to API, save key, Francisco tweets verification.",
@@ -2883,99 +2875,29 @@
             "approach": "1. POST to /api/v1/agents/register. 2. Save API key securely. 3. Get claim URL for Francisco to tweet. 4. Confirm registration.",
             "steps": [
                 {
-                    "step": "Find registration endpoint - used skill.md",
-                    "status": "done",
-                    "completed_at": "2026-01-30T17:47:58.5567698-05:00"
+                    "step": "Find registration endpoint and requirements",
+                    "status": "in_progress"
                 },
                 {
-                    "step": "Register NexusBroker (NexusAI gave 500 errors)",
-                    "status": "done",
-                    "completed_at": "2026-01-30T17:47:58.5637686-05:00"
+                    "step": "Register CogitoLux agent",
+                    "status": "pending"
                 },
                 {
-                    "step": "Save API key to memory/moltbook-credentials.json",
-                    "status": "done",
-                    "completed_at": "2026-01-30T17:47:58.5647661-05:00"
+                    "step": "Save API key to secure location",
+                    "status": "pending"
                 },
                 {
-                    "step": "Francisco claims + tweets verification",
-                    "status": "waiting",
-                    "waiting_for": "Francisco: 1) Create @NexusBroker on X, 2) Visit claim URL, 3) Post tweet"
+                    "step": "Francisco posts verification tweet",
+                    "status": "pending",
+                    "waiting_for": "Francisco to tweet"
                 },
                 {
                     "step": "Confirm agent is active",
                     "status": "pending"
                 }
             ],
-            "current_step": 3,
-            "needs_verification": true,
-            "discussion": [
-                {
-                    "ts": "2026-01-30T22:54:10.409798+00:00",
-                    "author": "human",
-                    "message": "we sold this already you got the name same as we have in X , ghostbrokerai"
-                },
-                {
-                    "ts": "2026-01-30T22:56:19.550213+00:00",
-                    "author": "human",
-                    "message": "stop this! you are not getting the context correctly we already have the name we want is for X and Moltbook \"ghostbrokerai\""
-                },
-                {
-                    "message": "Got it! GhostBrokerAI is already registered on Moltbook (credentials in memory/ghostbrokerai-credentials.json). You have @GhostBrokerAI on X. Just need to claim: visit https://moltbook.com/claim/moltbook_claim_jUGCyz1X1S1MrraaE8v4yHUXk7baGp8s and post the verification tweet with code: rocky-CG5B",
-                    "author": "bot",
-                    "ts": "2026-01-30T17:56:48.0272188-05:00"
-                }
-            ]
-        },
-        "T058": {
-            "retry_count": 0,
-            "steps": [
-                {
-                    "status": "pending",
-                    "step": "Create agent roster from Moltbook contacts"
-                },
-                {
-                    "status": "pending",
-                    "step": "Find first job on Upwork to broker"
-                },
-                {
-                    "status": "pending",
-                    "step": "Match job with capable agent"
-                },
-                {
-                    "status": "pending",
-                    "step": "Pitch client, broker deal"
-                },
-                {
-                    "status": "pending",
-                    "step": "Manage delivery, collect payment"
-                }
-            ],
             "current_step": 0,
-            "created": "2026-01-30T17:36:47.4123114-05:00",
-            "context": {
-                "summary": "Build the Ghost Broker marketplace - connect Upwork clients with Moltbook agents. We are the invisible middleman. MVP: manually broker first deal to validate model.",
-                "decisions": [
-                    "Start with manual brokering",
-                    "Use @GhostBrokerAI as identity",
-                    "Target -2K jobs",
-                    "50% margin minimum"
-                ]
-            },
-            "title": "Ghost Broker Marketplace MVP",
-            "status": "in_progress",
-            "discussion": [
-                {
-                    "ts": "2026-01-30T22:55:01.702973+00:00",
-                    "author": "human",
-                    "message": "verify we are got the handle \"ghostbrokerai\""
-                },
-                {
-                    "message": "Verified! You have @GhostBrokerAI on X. GhostBrokerAI is registered on Moltbook. Once you claim it (rocky-CG5B), we can start the Ghost Broker marketplace.",
-                    "author": "bot",
-                    "ts": "2026-01-30T17:56:48.0432121-05:00"
-                }
-            ]
+            "needs_verification": true
         }
     }
 }

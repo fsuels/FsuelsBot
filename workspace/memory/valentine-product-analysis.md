@@ -19,10 +19,17 @@
 
 ## Urgency Copy Status
 
-| Product | Has "ORDER BY FEB 10"? |
-|---------|------------------------|
-| Love Heart T-Shirt | ✅ YES |
-| Others | TBD - need to check |
+| Product | Has "ORDER BY FEB 10"? | Price | Margin |
+|---------|------------------------|-------|--------|
+| Love Heart T-Shirt | ✅ YES | TBD | TBD |
+| Red Heart Sweatshirt | ❌ NO | $24.99 | 62% ✅ |
+| Heart Patch Sweaters | TBD | TBD | TBD |
+| Red Cable Knit Cardigans | TBD | TBD | TBD |
+| Heart Embroidered Pullovers | TBD | TBD | TBD |
+| Avocado Valentine Tees | TBD | TBD | TBD |
+| Valentine Pajamas | TBD | TBD | TBD |
+
+**ACTION:** Add urgency copy to all products missing it
 
 ## BuckyDrop Cost Data ✅ (Retrieved 2026-01-30)
 

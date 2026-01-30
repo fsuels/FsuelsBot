@@ -1117,7 +1117,7 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                     }).encode())
                     return
                 
-                # Regular tasks: move from human to bot_current for bot verification
+                # ALL tasks: human verification is FINAL - move directly to done_today
                 if task_id not in human_lane:
                     self.send_response(400)
                     self.send_header('Content-Type', 'application/json')
@@ -1125,47 +1125,171 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                     self.wfile.write(json.dumps({"error": f"{task_id} not in human lane"}).encode())
                     return
                 
-                # Remove from human, add to bot_current (shows in "Working Now" IMMEDIATELY)
+                # Remove from human, add to done_today
                 human_lane.remove(task_id)
-                bot_current.insert(0, task_id)  # Add at front for visibility
+                done_today.insert(0, task_id)
                 
-                # Mark task as needs_verification
+                # Mark task as done (human verified)
                 if task_id in tasks_data.get('tasks', {}):
-                    tasks_data['tasks'][task_id]['needs_verification'] = True
-                    tasks_data['tasks'][task_id]['verification_requested_at'] = datetime.now(timezone.utc).isoformat()
-                    tasks_data['tasks'][task_id]['status'] = 'pending_verification'
-                    # Update title to show verification in progress
-                    original_title = tasks_data['tasks'][task_id].get('title', task_id)
-                    tasks_data['tasks'][task_id]['original_title'] = original_title
+                    tasks_data['tasks'][task_id]['status'] = 'done'
+                    tasks_data['tasks'][task_id]['completed_at'] = datetime.now(timezone.utc).isoformat()
+                    tasks_data['tasks'][task_id]['verified_by'] = 'human'
                 
                 tasks_data['lanes']['human'] = human_lane
-                tasks_data['lanes']['bot_current'] = bot_current
+                tasks_data['lanes']['done_today'] = done_today
                 tasks_data['updated_at'] = datetime.now(timezone.utc).isoformat()
                 
                 # Write back
                 with open(tasks_file, 'w', encoding='utf-8') as f:
                     json.dump(tasks_data, f, indent=4, ensure_ascii=False)
                 
-                # Also create verification request file for bot heartbeat
-                requests_dir = os.path.join(WORKSPACE_DIR, "memory", "complete-requests")
-                os.makedirs(requests_dir, exist_ok=True)
-                request_file = os.path.join(requests_dir, f"{task_id}.json")
-                request_data = {
-                    "taskId": task_id,
-                    "requestedAt": datetime.now(timezone.utc).isoformat(),
-                    "status": "pending_verification",
-                    "movedToCurrent": True
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "success": True,
+                    "message": f"{task_id} marked complete!",
+                    "taskId": task_id
+                }).encode())
+                return
+                
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+                return
+        
+        if path == '/api/task-comment':
+            # Add comment to task's discussion array
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            try:
+                data = json.loads(body) if body else {}
+            except:
+                data = {}
+            
+            task_id = data.get('taskId')
+            message = data.get('message', '').strip()
+            
+            if not task_id or not message:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "taskId and message required"}).encode())
+                return
+            
+            tasks_file = os.path.join(WORKSPACE_DIR, "memory", "tasks.json")
+            try:
+                with open(tasks_file, 'r', encoding='utf-8') as f:
+                    tasks_data = json.load(f)
+                
+                task_data = tasks_data.get('tasks', {}).get(task_id)
+                if not task_data:
+                    self.send_response(404)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": f"Task {task_id} not found"}).encode())
+                    return
+                
+                # Initialize discussion array if not exists
+                if 'discussion' not in task_data:
+                    task_data['discussion'] = []
+                
+                # Add the comment
+                comment = {
+                    "ts": datetime.now(timezone.utc).isoformat(),
+                    "author": "human",
+                    "message": message
                 }
-                with open(request_file, 'w', encoding='utf-8') as f:
-                    json.dump(request_data, f, indent=2)
+                task_data['discussion'].append(comment)
+                
+                # Update task and version
+                tasks_data['tasks'][task_id] = task_data
+                tasks_data['version'] = tasks_data.get('version', 0) + 1
+                tasks_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+                
+                with open(tasks_file, 'w', encoding='utf-8') as f:
+                    json.dump(tasks_data, f, indent=4, ensure_ascii=False)
                 
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()
                 self.wfile.write(json.dumps({
                     "success": True,
-                    "message": f"{task_id} moved to Working Now for verification",
+                    "message": "Comment added",
                     "taskId": task_id
+                }).encode())
+                return
+                
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+                return
+        
+        if path == '/api/toggle-crossout':
+            # Toggle crossed_out status on a discussion comment
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            try:
+                data = json.loads(body) if body else {}
+            except:
+                data = {}
+            
+            task_id = data.get('taskId')
+            comment_idx = data.get('commentIdx')
+            
+            if not task_id or comment_idx is None:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "taskId and commentIdx required"}).encode())
+                return
+            
+            tasks_file = os.path.join(WORKSPACE_DIR, "memory", "tasks.json")
+            try:
+                with open(tasks_file, 'r', encoding='utf-8') as f:
+                    tasks_data = json.load(f)
+                
+                task_data = tasks_data.get('tasks', {}).get(task_id)
+                if not task_data:
+                    self.send_response(404)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": f"Task {task_id} not found"}).encode())
+                    return
+                
+                discussion = task_data.get('discussion', [])
+                if comment_idx < 0 or comment_idx >= len(discussion):
+                    self.send_response(400)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": "Invalid comment index"}).encode())
+                    return
+                
+                # Toggle crossed_out status
+                current = discussion[comment_idx].get('crossed_out', False)
+                discussion[comment_idx]['crossed_out'] = not current
+                
+                # Update task and version
+                task_data['discussion'] = discussion
+                tasks_data['tasks'][task_id] = task_data
+                tasks_data['version'] = tasks_data.get('version', 0) + 1
+                tasks_data['updated_at'] = datetime.now(timezone.utc).isoformat()
+                
+                with open(tasks_file, 'w', encoding='utf-8') as f:
+                    json.dump(tasks_data, f, indent=4, ensure_ascii=False)
+                
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "success": True,
+                    "crossed_out": not current,
+                    "taskId": task_id,
+                    "commentIdx": comment_idx
                 }).encode())
                 return
                 
