@@ -1,0 +1,2 @@
+Product,1688_URL,Gate,Substep,Status,LastCheckpoint,EvidenceLinks,HumanNeeded,BlockerType,ResumeInstruction,Weight_g,TotalCost,Price,Margin_pct,Notes
+Example Product,https://detail.1688.com/offer/123456.html,Intake,I_01_dedupe_check,In progress,2026-01-29T20:00:00,https://screenshot.url,N,,,,,,,Starting intake check

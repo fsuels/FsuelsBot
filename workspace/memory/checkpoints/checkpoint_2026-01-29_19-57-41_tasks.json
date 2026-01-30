@@ -1,6 +1,6 @@
 {
-    "version":  22,
-    "updated_at":  "2026-01-29T20:20:00-05:00",
+    "version":  21,
+    "updated_at":  "2026-01-29T18:33:53-05:00",
     "updated_by":  "fsuels-bot",
     "notes":  "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
     "schema":  {
@@ -68,8 +68,7 @@
                                      "T026",
                                      "T027",
                                      "T028",
-                                     "T029",
-                                     "T031"
+                                     "T029"
                                  ]
               },
     "tasks":  {
@@ -788,31 +787,6 @@
                                            },
                                "approach":  "1. Check existing Valentine drafts in Shopify. 2. Source the 0-stock items via BuckyDrop if wanted. 3. Set to Active after verification.",
                                "notes":  "Products: Sequin Heart Leggings (0 stock), Baby Valentine Romper (0 stock), Valentine Heart Pajamas (0 stock). Red Heart Sweatshirt already Active."
-                           },
-                  "T031":  {
-                               "title":  "Pipeline OS Lite implementation (Council workflow optimization)",
-                               "status":  "done",
-                               "created":  "2026-01-29T20:15:00-05:00",
-                               "completed":  "2026-01-29T20:20:00-05:00",
-                               "context":  {
-                                               "summary":  "5-round Council session analyzed product listing workflow failures (skipped BuckyDrop, lost state, duplicate tabs). Solution: Pipeline OS Lite with 8 gates, hard invariants, UI contracts, ledger tracking.",
-                                               "created_from":  "council-sessions/2026-01-29-workflow-optimization-5round.md",
-                                               "decisions":  [
-                                                                 "Spreadsheet as ledger (zero budget)",
-                                                                 "Hard gate: Shopify Draft cannot start until BuckyDrop=Done",
-                                                                 "8 gates replacing 6 phases",
-                                                                 "UI Contracts with Entry/Success/Failure/Fallback/Stop",
-                                                                 "Non-blocking session handling"
-                                                             ],
-                                               "constraints":  [
-                                                                   "$0 extra budget",
-                                                                   "Use existing tools",
-                                                                   "Batch 3-5 products for discovery"
-                                                               ]
-                                           },
-                               "plan":  "council-sessions/2026-01-29-workflow-optimization-5round.md",
-                               "approach":  "1. Update procedures/product-listing.md to v2.0 with 8 gates and invariants. 2. Create ledger template CSV and JSON schema. 3. Add UI contracts for BuckyDrop, 1688, Shopify.",
-                               "notes":  "Council grade: A-. Key insight: problems were about missing control planes, not batching."
                            }
               }
 }

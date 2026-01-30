@@ -1,0 +1,130 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Product Pipeline Ledger",
+  "description": "Pipeline OS Lite tracking schema for product sourcing workflow",
+  "type": "object",
+  "properties": {
+    "products": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["product", "gate", "status"],
+        "properties": {
+          "product": {
+            "type": "string",
+            "description": "Product name/identifier"
+          },
+          "1688_url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Source URL on 1688"
+          },
+          "gate": {
+            "type": "string",
+            "enum": ["Intake", "Vet", "Freeze", "BuckyDrop", "Pricing", "Draft", "QA", "Closeout"],
+            "description": "Current pipeline gate"
+          },
+          "substep": {
+            "type": "string",
+            "pattern": "^[A-Z]+_[0-9]{2}_[a-z_]+$",
+            "description": "Precise substep ID (e.g., BD_03_select_variant)",
+            "examples": [
+              "I_01_dedupe_check",
+              "V_02_vendor_verify",
+              "F_01_lock_facts",
+              "BD_01_session_check",
+              "BD_02_import_url",
+              "BD_03_select_variant",
+              "BD_04_extract_costs",
+              "P_01_calculate_price",
+              "P_02_competitor_check",
+              "D_01_create_product",
+              "D_02_fill_metafields",
+              "D_03_add_images",
+              "D_04_face_swap",
+              "D_05_size_chart",
+              "D_06_save_draft",
+              "Q_01_run_checklist",
+              "C_01_update_ledger"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["Not started", "In progress", "Blocked", "Done"],
+            "description": "Current status"
+          },
+          "lastCheckpoint": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last checkpoint timestamp"
+          },
+          "evidenceLinks": {
+            "type": "array",
+            "items": {"type": "string", "format": "uri"},
+            "description": "URLs to screenshots/evidence of completion"
+          },
+          "humanNeeded": {
+            "type": "boolean",
+            "default": false,
+            "description": "Whether human intervention is required"
+          },
+          "blockerType": {
+            "type": "string",
+            "enum": ["Login", "UI_load", "Captcha", "Missing_data", "Policy", null],
+            "description": "Type of blocker if status is Blocked"
+          },
+          "resumeInstruction": {
+            "type": "string",
+            "description": "Exact next action to resume from this point"
+          },
+          "weight_g": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Product weight in grams (adult size)"
+          },
+          "costs": {
+            "type": "object",
+            "properties": {
+              "product": {"type": "number"},
+              "domestic": {"type": "number"},
+              "international": {"type": "number"},
+              "fees": {"type": "number"},
+              "total": {"type": "number"}
+            },
+            "description": "Cost breakdown from BuckyDrop"
+          },
+          "price": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Final selling price"
+          },
+          "margin_pct": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "Calculated profit margin percentage"
+          },
+          "draftUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "Shopify draft product URL"
+          },
+          "notes": {
+            "type": "string",
+            "description": "Free-form notes"
+          }
+        }
+      }
+    },
+    "cohort": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string"},
+        "searchTerm": {"type": "string"},
+        "startedAt": {"type": "string", "format": "date-time"},
+        "targetCount": {"type": "integer"},
+        "completedCount": {"type": "integer"}
+      }
+    }
+  }
+}
