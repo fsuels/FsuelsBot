@@ -1,51 +1,50 @@
 # Active Thread
 
-*Last updated: 2026-01-29 21:15 EST*
+*Last updated: 2026-01-29 22:55 EST*
 
-## Current State: Mobile LCP Fix In Progress
+## Current State: Phase 2 Product Imports
 
-**T032: Mobile LCP fix** - Francisco requested I implement the proper fix for lazy loading.
+**T033: Import 7 products from 1688 → BuckyDrop → Shopify**
 
-### The Problem:
-- PageSpeed simulates Slow 4G → shows 6.9s LCP
-- Root cause: Hero product images have `loading="lazy"` (1.25s delay)
-- Real-user LCP is 2401ms ("Good") - not urgent but worth fixing
+Francisco provided 7 1688 URLs for Phase 2 import:
 
-### The Fix:
-Edit `sections/featured-collection.liquid` to pass `lazy_load: false` for first 2 products.
+### URLs:
+1. ✅ https://detail.1688.com/offer/853944666153.html — Added to BuckyDrop Product List
+2. ⏳ https://detail.1688.com/offer/969885791145.html
+3. ⏳ https://detail.1688.com/offer/934291597297.html
+4. ⏳ https://detail.1688.com/offer/979076019926.html
+5. ⏳ https://detail.1688.com/offer/862560576658.html
+6. ⏳ https://detail.1688.com/offer/980618496327.html
+7. ⏳ https://detail.1688.com/offer/971972174266.html
 
-**Find this code:**
-```liquid
-{% for product in collection.products limit: section.settings.products_to_show %}
-  {% render 'card-product',
-    card_product: product,
-```
+### Product 1 Pricing (Family Matching Outfit - Wool Lamb):
+- Product: ¥63-99 ($8.86-13.92)
+- Domestic ship: ¥5
+- Platform fee: ¥5.5
+- Value-added: ¥13.1
+- Base total: ~$12.18 (before intl shipping)
+- Est. intl shipping: ~$7
+- **Total cost: ~$19**
+- **Min price (×1.5): ~$28.50 → $29.99**
+- ⚠️ Min order: 2 units
 
-**Change to:**
-```liquid
-{% for product in collection.products limit: section.settings.products_to_show %}
-  {% assign lazy = true %}
-  {% if forloop.first or forloop.index == 2 %}
-    {% assign lazy = false %}
-  {% endif %}
-  {% render 'card-product',
-    card_product: product,
-    lazy_load: lazy,
-```
+### Workflow (Council Verdict):
+Browser automation is SLOW (10+ min/product). Council confirmed:
+- **Human pilots** — Francisco does visual navigation
+- **AI copilots** — I handle pricing, SEO, content
 
-### Current Blocker:
-- Browser automation timing out (screenshots work, actions don't)
-- Francisco doing manual edit with my guidance
-- He's at the Shopify code editor now
-- Next: Press Ctrl+P, type "featured-collection", make the edit
+### Current Division:
+- **Francisco:** Speed-run remaining 6 imports → push all 7 to Shopify as drafts
+- **Bot:** Calculate pricing for all, draft SEO titles/descriptions, polish in Shopify
 
-## Background Tasks Still Open:
-- **T004 Valentine listings** - BLOCKED on BuckyDrop login (6 drafts need sourcing)
-- **T021 Mission Control button** - In queue
+### Key Learnings Today:
+1. Browser automation speed ceiling — human faster for visual tasks
+2. "Recurring Problem Protocol" added to SOUL.md
+3. Council session proved its own thesis (25 min with browser issues)
 
 ## Quick Recovery:
 If context truncated:
 1. Read this file
-2. LCP fix is simple 4-line edit to featured-collection.liquid
-3. Francisco is at the code editor doing it manually
-4. After LCP fix, return to T004 Valentine (needs BuckyDrop login)
+2. Check state.json for pending URLs
+3. Product 1 is in BuckyDrop Product List
+4. Waiting on Francisco to import remaining 6 or confirm workflow

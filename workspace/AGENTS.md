@@ -8,28 +8,32 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-01-29 21:15 EST | **Version:** 58
+**Last updated:** 2026-01-29 22:55 EST | **Version:** 59
 
-**Current task:** T032 Mobile LCP fix (featured-collection.liquid)
-**Status:** 🔧 IN PROGRESS (manual edit with Francisco)
-**Context:** PageSpeed shows 6.9s LCP due to lazy loading on hero images. Real LCP is 2401ms (Good). Fix: disable lazy loading for first 2 products. Browser automation failing - guiding Francisco through manual edit.
-**Next step:** Francisco presses Ctrl+P → opens featured-collection.liquid → bot guides the 4-line edit
+**Current task:** T033 Phase 2: Import 7 products (1688 → BuckyDrop → Shopify)
+**Status:** 🔧 IN PROGRESS (collaborative - Francisco imports, I price/SEO)
+**Context:** Francisco provided 7 1688 URLs. Browser automation too slow (10+ min/product). Council verdict: human pilots browser, AI copilots with pricing/content. Product 1 added to BuckyDrop. 6 URLs pending.
+**Next step:** Francisco speed-runs 6 remaining imports → I calculate pricing + draft SEO
 
 **⏰ DEADLINE:** 12 days until Feb 10 order cutoff
 
 **📋 TASK BOARD:** `memory/tasks.json` — THE SOURCE OF TRUTH
 
-**🤖 QUEUE:** T004 Valentine listings (blocked on BuckyDrop), T021 Mission Control button
+**🤖 QUEUE:** T032 LCP fix (paused), T004 Valentine drafts (needs sourcing)
 
 **👤 FRANCISCO'S TASKS:**
-- **🔑 BuckyDrop login** — BLOCKING T004 (buckydrop.com/en/login/)
-- T006: Hero banner copy (2 min)
-- T009: BuckyDrop import (5 min)
+- **Speed-run 6 BuckyDrop imports** (URLs in state.json)
+- Push all 7 to Shopify as drafts
 - T030: Review Valentine drafts + set Active
 
-**✅ DONE TODAY:** 26 tasks (incl. T031 Pipeline OS Lite)
+**✅ DONE TODAY:** 27 tasks (incl. Council browser redesign, Nightly learn)
 
-**🔄 COMPACTION CHECKPOINT:** Pre-compaction flush at 21:15 EST - LCP fix in progress
+**🔄 COMPACTION CHECKPOINT:** Pre-compaction flush at 22:55 EST - Phase 2 imports in progress
+
+**📚 KEY LEARNINGS TODAY:**
+- Browser automation: human is faster for visual tasks
+- Council: "AI as copilot, human as pilot" for browser work
+- Added "Recurring Problem Protocol" to SOUL.md
 
 **Standing rules:**
 - READ tasks.json at EVERY session start
@@ -37,6 +41,7 @@ This folder is home. Treat it that way.
 - UPDATE tasks.json BEFORE reporting work
 - **SUGGESTION = FAILURE STATE** — execute, don't advise
 - **NORTH STAR: Increase sales and make money**
+- **If failing 2-3 times → STOP GRINDING, START QUESTIONING**
 
 ---
 ### State Management Protocol

@@ -1,6 +1,6 @@
 {
-    "version":  21,
-    "updated_at":  "2026-01-29T18:33:53-05:00",
+    "version":  23,
+    "updated_at":  "2026-01-29T22:08:00-05:00",
     "updated_by":  "fsuels-bot",
     "notes":  "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
     "schema":  {
@@ -28,7 +28,8 @@
                                       "T004"
                                   ],
                   "bot_queue":  [
-                                    "T021"
+                                    "T021",
+                                    "T032"
                                 ],
                   "human":  [
                                 "T006",
@@ -68,7 +69,8 @@
                                      "T026",
                                      "T027",
                                      "T028",
-                                     "T029"
+                                     "T029",
+                                     "T031"
                                  ]
               },
     "tasks":  {
@@ -787,6 +789,51 @@
                                            },
                                "approach":  "1. Check existing Valentine drafts in Shopify. 2. Source the 0-stock items via BuckyDrop if wanted. 3. Set to Active after verification.",
                                "notes":  "Products: Sequin Heart Leggings (0 stock), Baby Valentine Romper (0 stock), Valentine Heart Pajamas (0 stock). Red Heart Sweatshirt already Active."
+                           },
+                  "T032":  {
+                               "title":  "Verify LCP fix (waiting for CDN cache)",
+                               "status":  "pending",
+                               "created":  "2026-01-29T22:08:00-05:00",
+                               "context":  {
+                                               "summary":  "Mobile LCP fix applied to card-product.liquid - changed all 3 loading attributes to use {% unless lazy_load == false %}loading=\"lazy\"{% endunless %}. featured-collection.liquid already passes lazy_load: false for first 2 products. Fix should work but Shopify CDN cache is slow to propagate.",
+                                               "decisions":  [
+                                                                 "Wait for CDN cache (2-5 min)",
+                                                                 "Verify via PageSpeed test",
+                                                                 "Check image loading attributes"
+                                                             ],
+                                               "constraints":  [
+                                                                   "CDN caching can take minutes",
+                                                                   "Real LCP was already 2401ms (good) - this is for synthetic test improvement"
+                                                               ]
+                                           },
+                               "plan":  "knowledge/mobile-speed-optimization.md",
+                               "approach":  "1. Wait 5+ minutes for CDN. 2. Hard refresh dresslikemommy.com. 3. Check first 2 product images for loading attribute (should be absent or eager). 4. Run PageSpeed test. 5. LCP should improve from 6.9s to ~3s.",
+                               "notes":  "Code changes done by Francisco in Shopify code editor. All 3 img loading attributes fixed in card-product.liquid."
+                           },
+                  "T031":  {
+                               "title":  "Pipeline OS Lite implementation (Council workflow optimization)",
+                               "status":  "done",
+                               "created":  "2026-01-29T20:15:00-05:00",
+                               "completed":  "2026-01-29T20:20:00-05:00",
+                               "context":  {
+                                               "summary":  "5-round Council session analyzed product listing workflow failures (skipped BuckyDrop, lost state, duplicate tabs). Solution: Pipeline OS Lite with 8 gates, hard invariants, UI contracts, ledger tracking.",
+                                               "created_from":  "council-sessions/2026-01-29-workflow-optimization-5round.md",
+                                               "decisions":  [
+                                                                 "Spreadsheet as ledger (zero budget)",
+                                                                 "Hard gate: Shopify Draft cannot start until BuckyDrop=Done",
+                                                                 "8 gates replacing 6 phases",
+                                                                 "UI Contracts with Entry/Success/Failure/Fallback/Stop",
+                                                                 "Non-blocking session handling"
+                                                             ],
+                                               "constraints":  [
+                                                                   "$0 extra budget",
+                                                                   "Use existing tools",
+                                                                   "Batch 3-5 products for discovery"
+                                                               ]
+                                           },
+                               "plan":  "council-sessions/2026-01-29-workflow-optimization-5round.md",
+                               "approach":  "1. Update procedures/product-listing.md to v2.0 with 8 gates and invariants. 2. Create ledger template CSV and JSON schema. 3. Add UI contracts for BuckyDrop, 1688, Shopify.",
+                               "notes":  "Council grade: A-. Key insight: problems were about missing control planes, not batching."
                            }
               }
 }
