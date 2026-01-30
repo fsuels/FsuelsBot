@@ -6,8 +6,8 @@
 | # | Current Title | New Title | Status |
 |---|--------------|-----------|--------|
 | 1 | Winter Warm Couple Pajamas, Thickened Hemivel Men's and Women's Loungewear Set, Striped Simple, Can Be Worn Outside in Winter | Matching Couples Striped Loungewear Set \| DLM | ✅ DONE |
-| 2 | Internet celebrity spring and autumn new Korean version of parent-child clothing, a family of three, mother and daughter clothing, sports hooded sweatshirt, small fragrant style dress | Mommy and Me Hooded Sweatshirt Dress Set \| DLM | PENDING |
-| 3 | Parent-child clothing 2025 autumn and winter new family of three and four striped love baby crawler clothes knitted sweaters and jumpsuits | Family Matching Heart Knit Sweaters \| DLM | PENDING |
+| 2 | Internet celebrity spring and autumn new Korean version of parent-child clothing, a family of three, mother and daughter clothing, sports hooded sweatshirt, small fragrant style dress | Mommy and Me Hooded Sweatshirt Dress Set \| DLM | ✅ DONE |
+| 3 | Parent-child clothing 2025 autumn and winter new family of three and four striped love baby crawler clothes knitted sweaters and jumpsuits | Family Matching Heart Knit Sweaters \| DLM | ✅ DONE |
 | 4 | Parent-child outfit: A family of three, spring and autumn knitted sweaters, foreign baby clothes, autumn clothes, mother and son mother-and-daughter outings | Matching Family Knit Sweater Set \| DLM | PENDING |
 | 5 | New Year's robe, parent-child outfit, family of three, four, autumn and winter, red 2026 Year of the Horse, natal year, sweatshirt, New Year's greetings | Lunar New Year Family Matching Sweatshirt \| DLM | PENDING |
 | 6 | New Year's robe parent-child costume A family of three Chinese New Year red velvet sweatshirt mother and daughter mother and son festive family costume | Red Velvet Family Matching Sweatshirt \| DLM | PENDING |
@@ -43,4 +43,4 @@ For Feb 10 deadline, prioritize:
 - Total drafts: ~50
 - Need title fixes: ~10
 - Already good: ~40
-- Fixed so far: 1
+- Fixed so far: 3 (✅ Loungewear Set, ✅ Hooded Sweatshirt Dress, ✅ Heart Knit Sweaters)

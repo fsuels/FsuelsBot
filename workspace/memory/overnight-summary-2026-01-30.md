@@ -20,10 +20,13 @@
 ### 🔄 In Progress
 
 **T004: Draft Product Title Fixes**
-- Fixed 1 of ~10 bad titles: "Matching Couples Striped Loungewear Set | DLM"
+- Fixed 3 of ~10 bad titles:
+  1. ✅ "Matching Couples Striped Loungewear Set | DLM"
+  2. ✅ "Mommy and Me Hooded Sweatshirt Dress Set | DLM"
+  3. ✅ "Family Matching Heart Knit Sweaters | DLM"
 - Created tracking list in memory/draft-title-fixes.md
 - ~40 drafts already have good titles (no action needed)
-- Remaining: 9 products with Chinese/translated titles need fixing
+- Remaining: 7 products with Chinese/translated titles need fixing
 
 **T033: Valentine Landing Page** (Moved to your queue)
 - ✅ Valentine collection exists (4 products)
