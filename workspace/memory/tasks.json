@@ -1,6 +1,6 @@
 {
-  "version": 140,
-  "updated_at": "2026-01-31T10:16:51.964Z",
+  "version": 141,
+  "updated_at": "2026-01-31T10:17:55.530Z",
   "updated_by": "bot-backend-tasks",
   "notes": "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
   "schema": {
@@ -68,7 +68,6 @@
   "lanes": {
     "bot_current": [
       "T134",
-      "T130",
       "T129",
       "T108",
       "T127",
@@ -140,6 +139,7 @@
       "CRON-consolidation"
     ],
     "done_today": [
+      "T130",
       "T132",
       "T135",
       "T086",
@@ -4651,7 +4651,7 @@
     },
     "T130": {
       "title": "Ghost Broker UX/Navigation Audit - AI + Human Friendly",
-      "status": "in_progress",
+      "status": "done",
       "created": "2026-01-31T04:13:52-05:00",
       "priority": "P0",
       "context": {
@@ -4733,15 +4733,20 @@
         },
         {
           "step": "Cross-page navigation check",
-          "status": "pending"
+          "status": "done",
+          "completed_at": "2026-01-31T10:17:55.528Z",
+          "notes": "Nav fixed on all 18 pages via fix-nav.cjs script"
         },
         {
           "step": "Final review + report",
-          "status": "pending"
+          "status": "done",
+          "completed_at": "2026-01-31T10:17:55.530Z",
+          "notes": "UX Audit complete: SEO, nav, footer, mobile responsive on all pages"
         }
       ],
       "current_step": 10,
-      "retry_count": 0
+      "retry_count": 0,
+      "completed": "2026-01-31T10:17:55.530Z"
     },
     "T131": {
       "title": "Ghost Broker Influencer Outreach - Daily Viral Campaign",
