@@ -1358,6 +1358,19 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                 with open(predictions_file, 'w', encoding='utf-8') as f:
                     json.dump(preds, f, indent=4)
                 
+                # Log to daily predictions log
+                log_file = os.path.join(WORKSPACE_DIR, "memory", "predictions-log.jsonl")
+                log_entry = {
+                    "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                    "time": datetime.now(timezone.utc).strftime("%H:%M:%S"),
+                    "event": "score",
+                    "prediction_id": pred_id,
+                    "score": score,
+                    "stats": preds['stats']
+                }
+                with open(log_file, 'a', encoding='utf-8') as f:
+                    f.write(json.dumps(log_entry) + '\n')
+                
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()

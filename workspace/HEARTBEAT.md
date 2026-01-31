@@ -1,5 +1,13 @@
 # HEARTBEAT.md
 
+## Predictions Review (check every heartbeat)
+- Read `memory/predictions-log.jsonl` for new scores since last check
+- If Francisco scored predictions ✗ Wrong:
+  1. Note WHAT was wrong
+  2. Update my behavior accordingly
+  3. Log the learning to `memory/predictions.md` Surprisal Log
+- Daily at end of day: summarize scores and learnings
+
 ## Infrastructure (check every heartbeat)
 - **Update health state** — Mark session as active for crash detection:
   ```powershell
