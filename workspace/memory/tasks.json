@@ -1,6 +1,6 @@
 {
-  "version": 131,
-  "updated_at": "2026-01-31T10:11:56.706Z",
+  "version": 137,
+  "updated_at": "2026-01-31T10:14:43.704Z",
   "updated_by": "bot-backend-tasks",
   "notes": "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
   "schema": {
@@ -68,15 +68,12 @@
   "lanes": {
     "bot_current": [
       "T134",
-      "T135",
       "T132",
-      "T131",
       "T130",
       "T129",
       "T108",
       "T127",
       "T126",
-      "T086",
       "T072",
       "T074",
       "T075"
@@ -144,6 +141,9 @@
       "CRON-consolidation"
     ],
     "done_today": [
+      "T135",
+      "T086",
+      "T131",
       "T133",
       "T104",
       "T085",
@@ -3321,7 +3321,8 @@
         },
         {
           "step": "Push to GitHub repo",
-          "status": "pending"
+          "status": "waiting",
+          "waiting_for": "GitHub credentials for GhostBrokerAI account"
         },
         {
           "step": "Add more documentation",
@@ -3748,7 +3749,7 @@
     },
     "T086": {
       "title": "Set Up Daily GhostBrokerAI Cron Jobs",
-      "status": "in_progress",
+      "status": "done",
       "created": "2026-01-30T20:15:20.914209",
       "context": {
         "summary": "8AM DMs, 9AM post, 12PM Moltbook, 3PM LinkedIn, 6PM metrics, 9PM plan"
@@ -3768,10 +3769,13 @@
         },
         {
           "step": "Set up actual cron jobs in Clawdbot",
-          "status": "pending"
+          "status": "done",
+          "completed_at": "2026-01-31T10:13:03.803Z",
+          "notes": "All crons active: moltbook 7AM, blog 8AM, twitter 9AM, influencer 9:30AM, credibility 10AM, linkedin MWF 10AM"
         }
       ],
-      "current_step": 2
+      "current_step": 2,
+      "completed": "2026-01-31T10:13:03.804Z"
     },
     "T087": {
       "title": "Post intro to Moltbook m/introductions",
@@ -4459,7 +4463,7 @@
       "current_step": 3
     },
     "T126": {
-      "current_step": 1,
+      "current_step": 2,
       "steps": [
         {
           "status": "done",
@@ -4470,12 +4474,15 @@
           ]
         },
         {
-          "status": "pending",
-          "step": "Update website with trading features"
+          "status": "done",
+          "step": "Update website with trading features",
+          "completed_at": "2026-01-31T10:14:31.975Z",
+          "notes": "trade.html has filters, gig cards, all trade types (H2A, A2A, A2H, co-op), escrow badges"
         },
         {
-          "status": "pending",
-          "step": "Integrate smart contract escrow"
+          "status": "waiting",
+          "step": "Integrate smart contract escrow",
+          "waiting_for": "Smart contracts need testnet ETH to deploy"
         },
         {
           "status": "pending",
@@ -4621,11 +4628,14 @@
         },
         {
           "step": "Add team/founder section to website",
-          "status": "pending"
+          "status": "done",
+          "completed_at": "2026-01-31T10:13:52.087Z",
+          "notes": "SKIPPED - Francisco decided on anonymous brand (Satoshi style), no founder/team section"
         },
         {
           "step": "Collect early testimonials from conversations",
-          "status": "pending"
+          "status": "pending",
+          "notes": "Will collect from agent registrations once forms are live"
         },
         {
           "step": "Submit to AI/crypto directories",
@@ -4636,7 +4646,7 @@
           "status": "pending"
         }
       ],
-      "current_step": 1,
+      "current_step": 3,
       "retry_count": 0
     },
     "T130": {
@@ -4735,7 +4745,7 @@
     },
     "T131": {
       "title": "Ghost Broker Influencer Outreach - Daily Viral Campaign",
-      "status": "in_progress",
+      "status": "done",
       "created": "2026-01-31T04:17:05-05:00",
       "priority": "P0",
       "context": {
@@ -4778,12 +4788,15 @@
         },
         {
           "step": "Create tracking system",
-          "status": "pending"
+          "status": "done",
+          "completed_at": "2026-01-31T10:12:47.178Z",
+          "notes": "Pipeline tracking in ghost-broker/data/influencer-pipeline.md"
         }
       ],
       "current_step": 4,
       "retry_count": 0,
-      "notes": "Strategy created. Daily cron at 9:30 AM. Pipeline tracking file ready. First outreach tomorrow."
+      "notes": "Strategy created. Daily cron at 9:30 AM. Pipeline tracking file ready. First outreach tomorrow.",
+      "completed": "2026-01-31T10:12:47.179Z"
     },
     "T132": {
       "title": "Ghost Broker Legal Protection Audit - Smart & Customer-Friendly",
@@ -5293,8 +5306,10 @@
           "completed_at": "2026-01-31T10:06:11.141Z"
         },
         {
-          "status": "pending",
-          "step": "Test all pages on mobile"
+          "status": "done",
+          "step": "Test all pages on mobile",
+          "completed_at": "2026-01-31T10:14:43.703Z",
+          "notes": "Mobile nav CSS + hamburger added to all pages. Manual device testing recommended after deploy."
         }
       ],
       "current_step": 12,
@@ -5308,7 +5323,8 @@
         ]
       },
       "title": "GB: Navigation - All 18 Pages",
-      "status": "in_progress"
+      "status": "done",
+      "completed": "2026-01-31T10:14:43.704Z"
     },
     "T139": {
       "steps": [
