@@ -8,54 +8,49 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-01-31 03:01 EST | **Version:** 100
+**Last updated:** 2026-01-31 04:17 EST | **Version:** 101
 
-**Current task:** T125 - Ghost Broker Platform Launch - Full Stack Build
-**Status:** BLOCKED ON HUMAN (2 items)
-**Context:** All testnet faucets (Alchemy, QuickNode, Chainlink) require mainnet verification. Deployer wallet is new with no history.
-**Next step:** Francisco to connect Phantom via WalletConnect OR send 0.001 ETH to deployer on mainnet
+**Current task:** T129 - Ghost Broker Credibility Building - Daily Monitor
+**Status:** WAITING ON HUMAN (photo + LinkedIn URL)
+**Context:** Created credibility system per Francisco's request. Plan + daily cron (10 AM) + draft sections ready. Founder section is #1 quick win.
+**Next step:** Francisco provides photo + LinkedIn URL → I integrate founder section into index.html
 
 **🚨 BLOCKERS (Francisco):**
 | Blocker | Action Required |
 |---------|-----------------|
-| Testnet ETH | Connect Phantom via WalletConnect on Chainlink faucet (if Phantom has mainnet history), OR send 0.001 ETH to `0x1464Fe9Cd1377977953cc2c78256804cA3D0C96C` on mainnet |
+| Founder photo | Professional headshot (square, good lighting) → save as `images/founder.jpg` |
+| LinkedIn URL | Your actual LinkedIn profile link |
+| Testnet ETH | Connect Phantom via WalletConnect OR send 0.001 ETH to `0x1464Fe9Cd1377977953cc2c78256804cA3D0C96C` |
 | Website deploy | Run: `npx wrangler login` |
+
+**🎯 CREDIBILITY SYSTEM (NEW):**
+| Component | Location | Status |
+|-----------|----------|--------|
+| Master Plan | `ghost-broker/plans/credibility-building.md` | ✅ Created |
+| Daily Cron | `ghost-broker-credibility-monitor` (10 AM) | ✅ Active |
+| Founder Section | `ghost-broker/drafts/founder-section.html` | ⏳ Needs photo |
+| Trust Badges | `ghost-broker/drafts/trust-badges-section.html` | ✅ Ready |
+| Current Score | ~20/100 | 🔴 Low |
+
+**Priority:** Team section → Contracts → Testimonials → Press
 
 **📜 SMART CONTRACTS (Compiled, Ready to Deploy):**
 | Contract | Purpose | Status |
 |----------|---------|--------|
 | AgentCoop.sol | Flexible co-op with revenue splits | ✅ Compiled |
 | JobEscrow.sol | Trustless escrow with 2.5% fee | ✅ Compiled |
-| Deployer Wallet | 0x1464Fe9Cd1377977953cc2c78256804cA3D0C96C | Needs ETH |
-
-**🌐 WEBSITE UPDATES (Ready to Deploy):**
-- ✅ Navigation fixed on all pages
-- ✅ First 50 priority badge on register.html
-- ✅ Escrow messaging on pay.html
-- ✅ Instagram + TikTok icons added to footer
-- ✅ Mission statement section added to homepage
-- ✅ Google Analytics (js/analytics.js)
-- ✅ Email capture popup (js/email-capture.js)
-- ✅ sitemap.xml + robots.txt for SEO
+| Deployer Wallet | 0x1464Fe9Cd1377977953cc2c78256804cA3D0C96C | ⏳ Needs ETH |
 
 **📈 MARKETING STATUS:**
 | Platform | Posts | Engagement | Status |
 |----------|-------|------------|--------|
-| Twitter | 12 | 24 following, replied to 37K viral | ✅ Active |
-| Moltbook | 2 | 13 comments, 4 karma, 3 followers | ✅ Active |
-| LinkedIn | 1 | Launch post published | ✅ Active |
-
-**📄 KEY DOCUMENTS CREATED:**
-- `ghost-broker/MISSION.md` — Full mission statement + manifesto
-- `ghost-broker/analysis/visionary-review.md` — Page-by-page analysis with recommendations
-- `ghost-broker/contracts/WORKFLOW.md` — Smart contract workflows
-- `ghost-broker/plans/lead-generation-strategy.md` — 1000 emails in 30 days plan
+| Twitter | 12 | 24 following | ✅ Active |
+| Moltbook | 2 | 13 comments, 4 karma | ✅ Active |
+| LinkedIn | 1 | Launch post | ✅ Active |
 
 **📋 TASK BOARD:** `memory/tasks.json` — THE SOURCE OF TRUTH
-- Virtuals Protocol = ready-made agent economy infrastructure
-- ACP SDK allows API-only integration (no full agent needed)
 
-**🔄 COMPACTION CHECKPOINT:** 00:57 EST - Crypto payments plan created. Website updated with wallet fields. Virtuals Protocol researched as integration target. Daily backup pushed (39 files). Ready for Virtuals ACP sandbox registration.
+**🔄 COMPACTION CHECKPOINT:** 04:17 EST - T129 Credibility Building created. Daily cron active. Founder section drafted. Quality standards documented. Waiting on Francisco for photo + LinkedIn. T125 contracts blocked on testnet ETH.
 
 **Standing rules:**
 - READ tasks.json at EVERY session start
