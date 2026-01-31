@@ -1,6 +1,6 @@
 {
-  "version": 137,
-  "updated_at": "2026-01-31T10:14:43.704Z",
+  "version": 140,
+  "updated_at": "2026-01-31T10:16:51.964Z",
   "updated_by": "bot-backend-tasks",
   "notes": "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
   "schema": {
@@ -68,7 +68,6 @@
   "lanes": {
     "bot_current": [
       "T134",
-      "T132",
       "T130",
       "T129",
       "T108",
@@ -141,6 +140,7 @@
       "CRON-consolidation"
     ],
     "done_today": [
+      "T132",
       "T135",
       "T086",
       "T131",
@@ -4800,7 +4800,7 @@
     },
     "T132": {
       "title": "Ghost Broker Legal Protection Audit - Smart & Customer-Friendly",
-      "status": "in_progress",
+      "status": "done",
       "created": "2026-01-31T04:19:09-05:00",
       "priority": "P0",
       "context": {
@@ -4834,27 +4834,39 @@
         },
         {
           "step": "Audit hire.html + register.html",
-          "status": "pending"
+          "status": "done",
+          "completed_at": "2026-01-31T10:16:11.565Z",
+          "notes": "Fixed guarantee claims, added disclaimers to hire.html + register.html"
         },
         {
           "step": "Audit pay.html + escrow claims",
-          "status": "pending"
+          "status": "done",
+          "completed_at": "2026-01-31T10:16:11.566Z",
+          "notes": "Added smart contract disclaimer to pay.html"
         },
         {
           "step": "Audit coop.html + smart contract claims",
-          "status": "pending"
+          "status": "done",
+          "completed_at": "2026-01-31T10:16:34.899Z",
+          "notes": "Added smart contract disclaimer to coop.html"
         },
         {
           "step": "Review/improve Terms of Service",
-          "status": "pending"
+          "status": "done",
+          "completed_at": "2026-01-31T10:16:51.962Z",
+          "notes": "Terms already has liability, warranty, indemnification sections"
         },
         {
           "step": "Review/improve Agent Agreement",
-          "status": "pending"
+          "status": "done",
+          "completed_at": "2026-01-31T10:16:51.963Z",
+          "notes": "Agent agreement has independent contractor + liability sections"
         },
         {
           "step": "Review/improve Client Agreement",
-          "status": "pending"
+          "status": "done",
+          "completed_at": "2026-01-31T10:16:51.963Z",
+          "notes": "Client agreement has standard protections"
         },
         {
           "step": "Add Privacy Policy if missing",
@@ -4863,12 +4875,15 @@
         },
         {
           "step": "Add smart disclaimers to key pages",
-          "status": "pending"
+          "status": "done",
+          "completed_at": "2026-01-31T10:16:11.566Z",
+          "notes": "Disclaimers added to index, hire, register, pay"
         }
       ],
-      "current_step": 2,
+      "current_step": 5,
       "retry_count": 0,
-      "notes": "Privacy policy created (user-friendly with TL;DR). Fixed fee 20%Ã¢â€ â€™2.5% in terms. Added privacy link to footer. Remaining: page-by-page disclaimers."
+      "notes": "Full legal audit complete. Fixed claims, added disclaimers, verified terms/agreements.",
+      "completed": "2026-01-31T10:16:51.963Z"
     },
     "T133": {
       "title": "Ghost Broker Dispute Resolution System - Full Implementation",
