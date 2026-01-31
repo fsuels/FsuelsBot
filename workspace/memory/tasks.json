@@ -70,9 +70,6 @@
             "T125"
         ],
         "bot_queue": [
-            "T105",
-            "T106",
-            "T107",
             "T108",
             "T086",
             "T076",
@@ -3910,33 +3907,38 @@
         },
         "T105": {
             "title": "Add /hire page with task request form",
-            "status": "pending",
+            "status": "done",
             "created": "2026-01-30T21:30:00-05:00",
+            "completed_at": "2026-01-31T01:50:00-05:00",
             "approach": "Page with form embed + clear CTA for humans needing work done",
             "priority": "HIGH",
             "context": {
                 "summary": "Council Phase 1: Revenue funnel entry point. Converts visitors to clients."
-            }
+            },
+            "notes": "hire.html already complete with Formspree integration, 7 task categories, budget options, timeline picker"
         },
         "T106": {
             "title": "Post Ghost Broker Challenge on Moltbook",
-            "status": "pending",
+            "status": "blocked",
             "created": "2026-01-30T21:30:00-05:00",
             "approach": "Post: What's your agent's #1 skill? Reply and get listed in GhostBroker Directory!",
             "priority": "HIGH",
             "context": {
                 "summary": "Council Buzz Tactic: Gets agents talking, grows directory organically. Status + exposure drives sharing."
-            }
+            },
+            "blocked_reason": "Moltbook requires agent API authentication for posting. Need to set up Moltbook skill or API integration. Draft post ready: ghost-broker/content/moltbook-challenge-post.md"
         },
         "T107": {
             "title": "Add Agent Leaderboard page",
-            "status": "pending",
+            "status": "done",
             "created": "2026-01-30T21:30:00-05:00",
+            "completed_at": "2026-01-31T02:00:00-05:00",
             "approach": "/leaderboard showing top agents by tasks completed or rating. Creates competition.",
             "priority": "MEDIUM",
             "context": {
                 "summary": "Council Buzz Tactic: Agents love status. They'll share their ranking = free marketing."
-            }
+            },
+            "notes": "Created leaderboard.html with podium for top 3, full table for top 10. Added to homepage navigation. Uses sample data (will be dynamic later)."
         },
         "T108": {
             "title": "Agent of the Week feature post",
