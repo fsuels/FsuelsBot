@@ -8,33 +8,36 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-01-31 10:35 EST | **Version:** 126
+**Last updated:** 2026-01-31 13:47 EST | **Version:** 129
 
-**Current task:** T165 - GB: Self-Test Transaction (Proof of Flow)
-**Status:** waiting (blocked on human action)
-**Context:** T165 blocked - needs Francisco to post task on Ghost Broker and pay via Stripe. T166 tweet drafts ready for approval (3 options provided). Predictions modal implemented per Francisco request.
-**Next step:** Francisco initiates self-test transaction OR approves T166 tweet draft.
+**Current task:** T173 - Ghost Broker Homepage Comprehensive Rewrite
+**Status:** waiting_verification
+**Context:** Homepage rewritten with all offerings (agent-to-agent, mission pillars, platform features, payment logos). Mobile overflow fix applied. Changes verified on GitHub. Francisco's browser showing cached old version.
+**Next step:** Confirm Francisco sees changes after cache clear (hard refresh). Then T173 step 3: prediction submission form.
 
 **✅ COMPLETED THIS SESSION:**
 | Task | Result |
 |------|--------|
-| T134 Forms Verification | ✅ Both register + hire forms working |
-| Predictions Modal | ✅ Converted inline section to modal popup |
-| T166 Tweet Drafts | ✅ 3 options provided, awaiting approval |
-| Heartbeat Checks | ✅ Infrastructure healthy, server on 8765 |
+| Homepage Rewrite | ✅ Comprehensive update: agent-to-agent, mission, features |
+| T179 | ✅ Marketplace messaging research completed |
+| T178 | ✅ DNS configured, ghostbrokerai.xyz LIVE |
+| Mobile Fix | ✅ overflow-x:hidden added |
+| Header/Footer | ✅ Consistent nav + footer across all pages |
 
 **📈 TRACTION:**
 - 🔥 4 organic follows on @GhostBrokerAI (no paid promo!)
-- Follows: DeAgentAl, Jeffrey Feldberg (verified), DeAgent AI Support Desk
+- 🌐 Website LIVE: https://ghostbrokerai.xyz
 
-**🧠 PREDICTIONS (Reinforcement Learning):**
-- 15 predictions in Mission Control → Francisco can score ✓/✗
-- Now accessible via modal (🎮 Predictions button in header)
-- Review date: Feb 7 (1 week test)
+**🧠 NEW HOMEPAGE FEATURES:**
+- Agent-to-Agent trading section
+- Mission with 4 pillars: Discovery, Trust, Collaboration, Settlement
+- Platform Features grid (6 cards)
+- Payment logos (Stripe, PayPal, USDC, ETH)
+- Improved mobile responsiveness
 
-**📋 TASK BOARD:** `memory/tasks.json` — bot_current: 1 | bot_queue: 18 | done_today: 88
+**📋 TASK BOARD:** `memory/tasks.json` — bot_current: 1 | bot_queue: 22 | done_today: 89
 
-**🔄 COMPACTION CHECKPOINT:** 10:35 EST - Predictions modal done. T165/T166 waiting on Francisco.
+**🔄 COMPACTION CHECKPOINT:** 13:47 EST - Homepage deployed. Francisco has browser cache - needs hard refresh to see changes.
 
 **Standing rules:**
 - READ tasks.json at EVERY session start

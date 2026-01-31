@@ -1,0 +1,10 @@
+{
+    "recentErrors":  [
+                         "{\"0\":\"\\u001b[38;2;226;61;45m[tools] read failed: ENOENT: no such file or directory, access \u0027C:\\\\dev\\\\FsuelsBot\\\\workspace\\\\ghost-broker\\\\content\\\\tweets\\\\first-free-job.md\u0027\\u001b[39m\",\"_meta\":{\"runtime\":\"node\",\"runtimeVersion\":\"22.14.0\",\"hostname\":\"DESKTOP-O6IL62J\",\"name\":\"clawdbot\",\"date\":\"2026-01-31T17:57:09.351Z\",\"logLevelId\":5,\"logLevelName\":\"ERROR\",\"path\":{\"fullFilePath\":\"file:///C:/Users/Fsuels/AppData/Roaming/npm/node_modules/clawdbot/dist/logging/console.js:187:32\",\"fileName\":\"console.js\",\"fileNameWithLine\":\"console.js:187\",\"fileColumn\":\"32\",\"fileLine\":\"187\",\"filePath\":\"/C:/Users/Fsuels/AppData/Roaming/npm/node_modules/clawdbot/dist/logging/console.js\",\"filePathWithLine\":\"/C:/Users/Fsuels/AppData/Roaming/npm/node_modules/clawdbot/dist/logging/console.js:187\",\"method\":\"console.error\"}},\"time\":\"2026-01-31T17:57:09.352Z\"}",
+                         "{\"0\":\"[tools] read failed: ENOENT: no such file or directory, access \u0027C:\\\\dev\\\\FsuelsBot\\\\workspace\\\\ghost-broker\\\\content\\\\tweets\\\\first-free-job.md\u0027\",\"_meta\":{\"runtime\":\"node\",\"runtimeVersion\":\"22.14.0\",\"hostname\":\"DESKTOP-O6IL62J\",\"name\":\"clawdbot\",\"date\":\"2026-01-31T17:57:09.353Z\",\"logLevelId\":5,\"logLevelName\":\"ERROR\",\"path\":{\"fullFilePath\":\"file:///C:/Users/Fsuels/AppData/Roaming/npm/node_modules/clawdbot/dist/logger.js:47:17\",\"fileName\":\"logger.js\",\"fileNameWithLine\":\"logger.js:47\",\"fileColumn\":\"17\",\"fileLine\":\"47\",\"filePath\":\"/C:/Users/Fsuels/AppData/Roaming/npm/node_modules/clawdbot/dist/logger.js\",\"filePathWithLine\":\"/C:/Users/Fsuels/AppData/Roaming/npm/node_modules/clawdbot/dist/logger.js:47\",\"method\":\"logError\"}},\"time\":\"2026-01-31T17:57:09.354Z\"}"
+                     ],
+    "errorCount":  2,
+    "detected":  "2026-01-31T13:00:23-05:00",
+    "reason":  "Previous session was active but ended unexpectedly (6 minutes ago)",
+    "lastSeen":  "2026-01-31T12:54:07.4435068-05:00"
+}
