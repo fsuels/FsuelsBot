@@ -67,7 +67,7 @@ function Test-TasksSchema {
     
     # Validate lanes structure
     if ($Tasks.lanes) {
-        $validLanes = @("bot_current", "bot_queue", "human", "scheduled", "done_today")
+        $validLanes = @("bot_current", "bot_queue", "human", "scheduled", "done_today", "trash")
         foreach ($lane in $Tasks.lanes.PSObject.Properties.Name) {
             if ($lane -notin $validLanes) {
                 $errors += "Unknown lane: $lane"

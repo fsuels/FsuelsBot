@@ -1,0 +1,15 @@
+{
+    "version": 93,
+    "deadline": {},
+    "currentTask": {
+        "id": "T125",
+        "description": "Ghost Broker Crypto Payments",
+        "currentStep": "Waiting for wallet creation",
+        "nextStep": "Update pay.html with real addresses, deploy, register on Virtuals ACP",
+        "context": "Stripe complete (test mode). pay.html created with placeholder addresses. Francisco creating ETH/Base + Solana wallets.",
+        "status": "waiting_human"
+    },
+    "lastUpdated": "2026-01-31T00:46:00-05:00",
+    "standingRules": {},
+    "taskBoard": "memory/tasks.json"
+}

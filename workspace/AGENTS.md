@@ -8,35 +8,42 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-01-30 23:35 EST | **Version:** 89
+**Last updated:** 2026-01-31 05:35 EST | **Version:** 91
 
-**Current task:** IDLE - Council T123 complete
-**Status:** Council Memory Decay complete. Verdict: pin + recency sort (`is_pinned DESC, last_accessed DESC`). Ghost Broker PARKED per earlier Council.
-**Context:** Ran 3-round Council on memory decay. Grok attacked all proposals. Gemini provided pragmatic 80% solution. Final verdict: simple two-column sort beats complex decay.
-**Next step:** Await Francisco direction or check bot_queue for next priority
+**Current task:** T125 - Ghost Broker Crypto Payments
+**Status:** Stripe account created, payment link ready, continuing crypto integration
+**Context:** Francisco shared Austen Allred tweet about AI agents needing wallets. Created comprehensive crypto payments plan. Updated ghostbrokerai.xyz with wallet address fields and crypto payment messaging. Researched Virtuals Protocol. Also set up Stripe account for Ghost Broker.
+**Next step:** Complete Stripe setup (add branding, test Connect for agent payouts), then register Ghost Broker on Virtuals ACP sandbox
 
-**🧠 COUNCIL T123 VERDICT (Memory Decay):**
-- **Question:** Should we add access-frequency tracking and tiered decay?
-- **Answer:** Use pin + recency sort. Skip complex decay.
-- **Implementation:** `ORDER BY is_pinned DESC, last_accessed DESC`
-- **Effort:** 1 hour
-- **Skip:** tiered decay, access counting, frequency weighting
+**💳 STRIPE SETUP (In Progress):**
+- **Account:** ghostbrokerai@proton.me (FKG Trading LLC)
+- **Products enabled:** Invoicing, Tax, Payments, Connect, Radar
+- **First product:** AI Agent Service - $50.00 USD
+- **Payment link:** https://buy.stripe.com/test_aFaeV7dcRcyqab86MocZa00
+- **Status:** TEST mode - needs business verification for live
 
-**🏆 COUNCIL VERDICT (Ghost Broker - stands):**
-- **WINNER:** Upwork Direct (shortest path to payment)
-- **Ghost Broker:** PARKED - 30+ day play, not sprint
-- **DLM Valentine:** Keep products live for organic traffic
+**🪙 CRYPTO PAYMENTS INITIATIVE:**
+- **Trigger:** Austen Allred tweet - "Autonomous AI agents is the killer use case crypto has been waiting for"
+- **Plan:** `ghost-broker/plans/crypto-payments.md`
+- **Website updates:** Wallet field added, crypto messaging on homepage
+- **Integration target:** Virtuals Protocol (Base L2, ACP escrow, SDK available)
 
-**⏰ DEADLINE:** 10 days until Feb 10 order cutoff
+**🔗 VIRTUALS PROTOCOL:**
+- Built on Base (Coinbase L2) - exactly our recommended chain
+- ACP = Agent Commerce Protocol with built-in escrow
+- Python/Node SDK for API-only integration
+- **Opportunity:** Register Ghost Broker as matchmaking service on their network
+
+**⏰ DEADLINE:** 9 days until Feb 10 Valentine cutoff
 
 **📋 TASK BOARD:** `memory/tasks.json` — THE SOURCE OF TRUTH
 
 **🌐 GHOST BROKER WEBSITE (ghostbrokerai.xyz):**
 | Page | Status | URL |
 |------|--------|-----|
-| Home | ✅ LIVE | ghostbrokerai.xyz |
+| Home | ✅ LIVE + Crypto messaging | ghostbrokerai.xyz |
 | Hire Agent | ✅ LIVE + Back Nav | ghostbrokerai.xyz/hire.html |
-| Register Agent | ✅ LIVE + Back Nav | ghostbrokerai.xyz/register.html |
+| Register Agent | ✅ LIVE + Wallet field | ghostbrokerai.xyz/register.html |
 | Terms of Service | ✅ LIVE | ghostbrokerai.xyz/terms.html |
 | Agent Agreement | ✅ LIVE | ghostbrokerai.xyz/agent-agreement.html |
 | Client Agreement | ✅ LIVE | ghostbrokerai.xyz/client-agreement.html |
@@ -51,14 +58,12 @@ This folder is home. Treat it that way.
 | GitHub | GhostBrokerAI | ✅ ORG CREATED | https://github.com/GhostBrokerAI |
 | Domain | ghostbrokerai.xyz | ✅ PURCHASED + DEPLOYED | ghostbrokerai.xyz |
 
-**📚 LEARNINGS ADDED (2026-01-30):**
-- Edit staleness: re-read files before editing
-- Upwork > Ghost Broker for urgent revenue
-- Crash recovery via active-thread.md
-- Ghost Broker = 30+ day play
-- Edit tool needs exact whitespace match
+**📚 LEARNINGS ADDED (2026-01-31):**
+- Windows console scripts: avoid Unicode emojis (cp1252 encoding)
+- Virtuals Protocol = ready-made agent economy infrastructure
+- ACP SDK allows API-only integration (no full agent needed)
 
-**🔄 COMPACTION CHECKPOINT:** 22:40 EST - Website fully deployed with legal pages. Privacy fix applied (name removed). LEARN cron done. Awaiting next task.
+**🔄 COMPACTION CHECKPOINT:** 00:57 EST - Crypto payments plan created. Website updated with wallet fields. Virtuals Protocol researched as integration target. Daily backup pushed (39 files). Ready for Virtuals ACP sandbox registration.
 
 **Standing rules:**
 - READ tasks.json at EVERY session start

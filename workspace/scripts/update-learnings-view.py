@@ -41,7 +41,7 @@ def main():
     conn.commit()
     conn.close()
     
-    print('\n✅ Memory decay (pin + recency sort) implemented!')
+    print('\n[DONE] Memory decay (pin + recency sort) implemented!')
 
 if __name__ == "__main__":
     main()
