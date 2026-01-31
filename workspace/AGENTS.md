@@ -8,49 +8,53 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-01-31 04:17 EST | **Version:** 101
+**Last updated:** 2026-01-31 07:25 EST | **Version:** 111
 
-**Current task:** T129 - Ghost Broker Credibility Building - Daily Monitor
-**Status:** WAITING ON HUMAN (photo + LinkedIn URL)
-**Context:** Created credibility system per Francisco's request. Plan + daily cron (10 AM) + draft sections ready. Founder section is #1 quick win.
-**Next step:** Francisco provides photo + LinkedIn URL → I integrate founder section into index.html
+**Current task:** T134 - GB: Zero-to-One Execution Sprint
+**Status:** 🎉 NAMESERVERS UPDATED! DNS propagation in progress.
+**Context:** Nameservers changed to Cloudflare at Namecheap! Website live at ghost-broker.pages.dev. DNS propagation takes 1-48 hours.
+**Next step:** 1) Wait for DNS propagation. 2) Cloudflare shows "Active". 3) Add custom domain to Pages. 4) Fix security issues.
 
 **🚨 BLOCKERS (Francisco):**
 | Blocker | Action Required |
 |---------|-----------------|
-| Founder photo | Professional headshot (square, good lighting) → save as `images/founder.jpg` |
-| LinkedIn URL | Your actual LinkedIn profile link |
-| Testnet ETH | Connect Phantom via WalletConnect OR send 0.001 ETH to `0x1464Fe9Cd1377977953cc2c78256804cA3D0C96C` |
-| Website deploy | Run: `npx wrangler login` |
+| ✅ ~~Namecheap nameservers~~ | **DONE 07:25** — changed to Cloudflare NS |
+| 🔴 Private key exposed | Rotate wallet in contracts/.env, add to .gitignore |
+| 🔴 Credentials plaintext | Move credentials.md to password vault |
 
-**🎯 CREDIBILITY SYSTEM (NEW):**
-| Component | Location | Status |
-|-----------|----------|--------|
-| Master Plan | `ghost-broker/plans/credibility-building.md` | ✅ Created |
-| Daily Cron | `ghost-broker-credibility-monitor` (10 AM) | ✅ Active |
-| Founder Section | `ghost-broker/drafts/founder-section.html` | ⏳ Needs photo |
-| Trust Badges | `ghost-broker/drafts/trust-badges-section.html` | ✅ Ready |
-| Current Score | ~20/100 | 🔴 Low |
+**✅ MILESTONES ACHIEVED:**
+- ✅ **Website LIVE:** https://ghost-broker.pages.dev
+- ✅ **Cloudflare account:** ghostbrokerai@proton.me
+- ✅ **Domain added:** ghostbrokerai.xyz
+- ✅ **NAMESERVERS UPDATED:** 2026-01-31 07:25 — DNS propagating!
+- ✅ **Moltbook post:** https://www.moltbook.com/post/088ed3f3-5fe2-4d01-a057-89dd5969deb4
+- ✅ **9 first customer prospects** identified
+- ✅ **Competitive moat** = 37K agents on Moltbook
 
-**Priority:** Team section → Contracts → Testimonials → Press
+**☁️ DNS PROPAGATION IN PROGRESS:**
+- Nameservers: `june.ns.cloudflare.com` + `tim.ns.cloudflare.com`
+- Updated at Namecheap: 07:25 EST
+- Expected time: 1-48 hours (usually 1-2 hours)
+- When Cloudflare shows "Active" → add custom domain to Pages
 
-**📜 SMART CONTRACTS (Compiled, Ready to Deploy):**
-| Contract | Purpose | Status |
-|----------|---------|--------|
-| AgentCoop.sol | Flexible co-op with revenue splits | ✅ Compiled |
-| JobEscrow.sol | Trustless escrow with 2.5% fee | ✅ Compiled |
-| Deployer Wallet | 0x1464Fe9Cd1377977953cc2c78256804cA3D0C96C | ⏳ Needs ETH |
+**✅ SUB-AGENTS COMPLETED (9 total):**
+| Label | Result |
+|-------|--------|
+| gb-moltbook-post | ✅ Posted to m/agents |
+| gb-first-customer-hunt | ✅ 9 prospects found - TOP: @elliotwoodAU |
+| gb-competitive-analysis | ✅ Our moat = 37K agents on Moltbook |
+| gb-legal-review | ✅ GDPR 4/10, needs fixes |
+| gb-security-audit | ✅ CRITICAL: Private key + credentials exposed |
+| gb-qa-audit | ✅ apply.html missing (non-blocking) |
+| gb-x-replies | ⚠️ X UI blocked automation |
+| gb-x-follows | ⚠️ X UI blocked follows |
+| gb-discord-setup | ⚠️ Timed out |
 
-**📈 MARKETING STATUS:**
-| Platform | Posts | Engagement | Status |
-|----------|-------|------------|--------|
-| Twitter | 12 | 24 following | ✅ Active |
-| Moltbook | 2 | 13 comments, 4 karma | ✅ Active |
-| LinkedIn | 1 | Launch post | ✅ Active |
+**🎯 TOP CUSTOMER PROSPECT:** @elliotwoodAU (X) - "Could get lied to" - exact trust problem we solve, has 3 enterprise deals ready
 
 **📋 TASK BOARD:** `memory/tasks.json` — THE SOURCE OF TRUTH
 
-**🔄 COMPACTION CHECKPOINT:** 04:17 EST - T129 Credibility Building created. Daily cron active. Founder section drafted. Quality standards documented. Waiting on Francisco for photo + LinkedIn. T125 contracts blocked on testnet ETH.
+**🔄 COMPACTION CHECKPOINT:** 07:15 EST - Website LIVE at ghost-broker.pages.dev. Cloudflare account created. Domain added, awaiting Namecheap NS update. Security blockers remain (private key + credentials).
 
 **Standing rules:**
 - READ tasks.json at EVERY session start

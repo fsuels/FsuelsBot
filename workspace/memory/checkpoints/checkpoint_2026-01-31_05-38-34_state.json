@@ -1,0 +1,19 @@
+﻿{
+    "version":  102,
+    "deadline":  {
+
+                 },
+    "currentTask":  {
+                        "id":  "T134",
+                        "description":  "GB: Forms Email Collection",
+                        "currentStep":  "Deploy to Cloudflare",
+                        "nextStep":  null,
+                        "context":  "",
+                        "status":  "in_progress"
+                    },
+    "lastUpdated":  "2026-01-31T05:00:57-05:00",
+    "standingRules":  {
+
+                      },
+    "taskBoard":  "memory/tasks.json"
+}

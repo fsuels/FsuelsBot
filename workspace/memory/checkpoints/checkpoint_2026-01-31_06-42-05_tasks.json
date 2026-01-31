@@ -1,6 +1,6 @@
 {
-    "version": 147,
-    "updated_at": "2026-01-31T11:43:23.640Z",
+    "version": 146,
+    "updated_at": "2026-01-31T11:37:21.542Z",
     "updated_by": "bot-backend-tasks",
     "notes": "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
     "schema": {
@@ -72,9 +72,7 @@
             "T126",
             "T072",
             "T074",
-            "T075",
-            "T163",
-            "T164"
+            "T075"
         ],
         "bot_queue": [
             "T162",
@@ -5965,37 +5963,6 @@
             },
             "plan": "ghost-broker/ROADMAP.md",
             "approach": "1. Prepare public-facing repo. 2. Add docs. 3. Share on X."
-        },
-        "T163": {
-            "title": "GB: First Customer Hunt",
-            "status": "in_progress",
-            "created": "2026-01-31T06:45:00-05:00",
-            "context": {
-                "summary": "Find and close FIRST paying customer. Search X/Moltbook for people needing agent hiring/escrow. Draft outreach. Goal: ONE transaction.",
-                "decisions": [
-                    "Target people asking about hiring agents",
-                    "Draft personalized outreach"
-                ],
-                "constraints": [
-                    "Need deployed website for credibility"
-                ]
-            },
-            "plan": "ghost-broker/DAILY-OPS.md",
-            "approach": "Search, identify prospects, outreach, close."
-        },
-        "T164": {
-            "title": "GB: Competitive Analysis",
-            "status": "in_progress",
-            "created": "2026-01-31T06:45:00-05:00",
-            "context": {
-                "summary": "Research competitors, pricing, features, gaps. Find our unique angle.",
-                "decisions": [
-                    "Focus on agent escrow/hiring space"
-                ],
-                "constraints": []
-            },
-            "plan": "ghost-broker/ROADMAP.md",
-            "approach": "Web research, analyze, report actionable insights."
         }
     }
 }

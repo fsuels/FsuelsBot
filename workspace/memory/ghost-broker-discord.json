@@ -1,0 +1,14 @@
+{
+  "platform": "discord",
+  "server_name": "Ghost Broker Ai's server",
+  "server_id": "1467107485654712499",
+  "username": "ghostbrokerai",
+  "invite_link": "https://discord.gg/KHMVSQ9n",
+  "invite_expires": "7 days from 2026-01-31",
+  "note": "Need to make invite permanent in Discord settings",
+  "channels": {
+    "general_text": "1467107486808150170",
+    "general_voice": true
+  },
+  "created": "2026-01-31T05:45:00-05:00"
+}
