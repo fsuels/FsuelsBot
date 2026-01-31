@@ -6,6 +6,31 @@
 
 ---
 
+## 🎨 QUALITY STANDARDS (NON-NEGOTIABLE)
+
+**Every trust element must be:**
+- **Beautiful** — Matches the site's premium dark aesthetic
+- **Tasteful** — Subtle confidence, not desperate begging for trust
+- **Professional** — Would look at home on a YC-backed startup
+- **Growth-focused** — Each element should drive registrations or hires
+
+**What "good quality" looks like:**
+| Element | ❌ Bad | ✅ Good |
+|---------|--------|---------|
+| Team section | Generic stock photo, no bio | Real photo, compelling story, LinkedIn link |
+| Testimonials | Fake quotes, no names | Real users, specific results, verifiable |
+| Press logos | Pixelated badges | Clean SVGs, actual publications |
+| Security badge | "Trust us" text | Verifiable contract address, audit link |
+| Social proof | "1000+ users!" (fake) | Real-time counter with actual numbers |
+
+**Design principles:**
+- Dark mode consistency (match existing site)
+- Minimal, not cluttered
+- Let the quality speak — don't oversell
+- Every claim should be verifiable
+
+---
+
 ## 🎯 CREDIBILITY SCORE TRACKER
 
 | Signal | Current | Target | Status |
