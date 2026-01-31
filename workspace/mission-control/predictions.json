@@ -152,6 +152,10 @@
         "accuracy": 0,
         "last_play_date": null,
         "level": 1,
-        "xp": 0
+        "xp": 0,
+        "bot_score": 0,
+        "human_score": 0,
+        "total_rating_sum": 0,
+        "blind_spots_found": 0
     }
 }

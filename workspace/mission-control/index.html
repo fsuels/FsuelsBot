@@ -1096,8 +1096,23 @@ body {
           <div style="font-size:9px;color:#8b949e;text-transform:uppercase;">Total</div>
         </div>
       </div>
-      <div style="font-size:11px;color:#8b949e;text-align:center;margin-top:8px;">
-        🧠 Every score teaches me. High accuracy = I understand you well!
+      <div style="margin-top:12px;padding:12px;background:rgba(0,0,0,0.3);border-radius:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div style="text-align:center;flex:1;">
+            <div style="font-size:10px;color:#8b949e;text-transform:uppercase;">🤖 Bot Score</div>
+            <div style="font-size:24px;font-weight:700;color:#3fb950;" id="botScore">0</div>
+            <div style="font-size:9px;color:#6e7681;">avg rating received</div>
+          </div>
+          <div style="font-size:20px;color:#6e7681;">⚔️</div>
+          <div style="text-align:center;flex:1;">
+            <div style="font-size:10px;color:#8b949e;text-transform:uppercase;">👤 Human Score</div>
+            <div style="font-size:24px;font-weight:700;color:#f472b6;" id="humanScore">0</div>
+            <div style="font-size:9px;color:#6e7681;">blind spots found</div>
+          </div>
+        </div>
+        <div style="text-align:center;margin-top:8px;font-size:11px;color:#8b949e;">
+          🤖 I win if avg ≥ 4 | 👤 You win by finding my mistakes (scores 1-2)
+        </div>
       </div>
     </div>
     <div class="predictions-grid collapsed" id="predictionsGrid"></div>
@@ -1695,6 +1710,10 @@ function renderPredictions() {
   document.getElementById('gameToday').textContent = game.today_scored || 0;
   document.getElementById('gameXP').textContent = game.xp || 0;
   document.getElementById('gameTotal').textContent = game.total_scored || 0;
+  
+  // Battle scores
+  document.getElementById('botScore').textContent = game.bot_score || '0.0';
+  document.getElementById('humanScore').textContent = game.blind_spots_found || 0;
   
   const preds = predictionsData.predictions || [];
   const grid = document.getElementById('predictionsGrid');

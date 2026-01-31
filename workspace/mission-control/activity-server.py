@@ -1385,6 +1385,14 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                 game['today_scored'] += 1
                 game['total_scored'] += 1
                 game['xp'] += score * 2  # XP based on score: 2-10 points
+                
+                # Track battle scores
+                game['total_rating_sum'] = game.get('total_rating_sum', 0) + score
+                game['bot_score'] = round(game['total_rating_sum'] / game['total_scored'], 1)
+                
+                if score <= 2:  # Human found a blind spot!
+                    game['blind_spots_found'] = game.get('blind_spots_found', 0) + 1
+                game['human_score'] = game.get('blind_spots_found', 0)
                 game['best_streak'] = max(game['streak'], game.get('best_streak', 0))
                 
                 # Calculate accuracy
