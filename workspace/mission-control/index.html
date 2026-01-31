@@ -1746,6 +1746,12 @@ function renderPredictions() {
             <button class="score-btn rating ${p.score === 4 ? 'active' : ''}" onclick="scorePrediction('${p.id}', 4)" title="Mostly right">4</button>
             <button class="score-btn rating ${p.score === 5 ? 'active' : ''}" onclick="scorePrediction('${p.id}', 5)" title="Spot on!">5</button>
           </div>
+          <div class="prediction-feedback" style="margin-top:8px;">
+            <input type="text" class="feedback-input" id="feedback-${p.id}" placeholder="Why? (optional feedback)" 
+              style="width:100%;padding:6px 10px;font-size:11px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#c9d1d9;"
+              onkeypress="if(event.key==='Enter')saveFeedback('${p.id}')">
+            ${p.feedback ? '<div style="font-size:10px;color:#a78bfa;margin-top:4px;">💬 ' + p.feedback + '</div>' : ''}
+          </div>
         </div>
       `;
     });
@@ -1775,6 +1781,27 @@ async function scorePrediction(id, score) {
     }
   } catch (e) {
     console.error('Failed to score prediction:', e);
+  }
+}
+
+async function saveFeedback(id) {
+  const input = document.getElementById('feedback-' + id);
+  const feedback = input.value.trim();
+  if (!feedback) return;
+  
+  try {
+    const resp = await fetch('/api/prediction-feedback', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({id, feedback})
+    });
+    const result = await resp.json();
+    if (result.ok) {
+      input.value = '';
+      loadPredictions(); // Refresh to show feedback
+    }
+  } catch (e) {
+    console.error('Failed to save feedback:', e);
   }
 }
 

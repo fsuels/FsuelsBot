@@ -1300,6 +1300,66 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": str(e)}).encode())
                 return
         
+        if path == '/api/prediction-feedback':
+            # Save written feedback for a prediction
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            try:
+                data = json.loads(body) if body else {}
+            except:
+                data = {}
+            
+            pred_id = data.get('id')
+            feedback = data.get('feedback', '').strip()
+            
+            if not pred_id or not feedback:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "Missing id or feedback"}).encode())
+                return
+            
+            predictions_file = os.path.join(DASHBOARD_DIR, "predictions.json")
+            try:
+                with open(predictions_file, 'r', encoding='utf-8') as f:
+                    preds = json.load(f)
+                
+                # Find and update the prediction
+                for p in preds.get('predictions', []):
+                    if p.get('id') == pred_id:
+                        p['feedback'] = feedback
+                        p['feedback_at'] = datetime.now(timezone.utc).isoformat()
+                        break
+                
+                preds['version'] += 1
+                with open(predictions_file, 'w', encoding='utf-8') as f:
+                    json.dump(preds, f, indent=4)
+                
+                # Log to predictions log
+                log_file = os.path.join(WORKSPACE_DIR, "memory", "predictions-log.jsonl")
+                log_entry = {
+                    "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                    "time": datetime.now(timezone.utc).strftime("%H:%M:%S"),
+                    "event": "feedback",
+                    "prediction_id": pred_id,
+                    "feedback": feedback
+                }
+                with open(log_file, 'a', encoding='utf-8') as f:
+                    f.write(json.dumps(log_entry) + '\n')
+                
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"ok": True}).encode())
+                return
+                
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+                return
+
         if path == '/api/score-prediction':
             # Score a prediction as correct (✓) or wrong (✗)
             content_length = int(self.headers.get('Content-Length', 0))
