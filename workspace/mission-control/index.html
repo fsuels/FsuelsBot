@@ -1069,6 +1069,13 @@ body {
           <div style="font-size:20px;font-weight:700;color:#c9d1d9;" id="gameXP">0</div>
           <div style="font-size:9px;color:#8b949e;text-transform:uppercase;">XP</div>
         </div>
+        <div style="text-align:center;min-width:60px;">
+          <div style="font-size:20px;font-weight:700;color:#f472b6;" id="gameTotal">0</div>
+          <div style="font-size:9px;color:#8b949e;text-transform:uppercase;">Total</div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:#8b949e;text-align:center;margin-top:8px;">
+        🧠 Every score teaches me. High accuracy = I understand you well!
       </div>
     </div>
     <div class="predictions-grid collapsed" id="predictionsGrid"></div>
@@ -1665,6 +1672,7 @@ function renderPredictions() {
   document.getElementById('gameAccuracy').textContent = (game.accuracy || 0) + '%';
   document.getElementById('gameToday').textContent = game.today_scored || 0;
   document.getElementById('gameXP').textContent = game.xp || 0;
+  document.getElementById('gameTotal').textContent = game.total_scored || 0;
   
   const preds = predictionsData.predictions || [];
   const grid = document.getElementById('predictionsGrid');
