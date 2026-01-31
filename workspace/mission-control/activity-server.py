@@ -1309,10 +1309,15 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
             except:
                 data = {}
             
-            category = data.get('category', 'general')
+            category = data.get('category', 'fun')
             
             # Scenario templates by category
             scenarios = {
+                'general': [
+                    {"scenario": "You can have dinner with anyone alive. Who?", "prediction": "Elon Musk - you admire builders who think big and execute."},
+                    {"scenario": "What matters more: being respected or being liked?", "prediction": "Respected. You value competence and results over popularity."},
+                    {"scenario": "Morning person or night owl?", "prediction": "Morning person - you hit the gym, get things done early."},
+                ],
                 'decisions': [
                     {"scenario": "You find a $100 bill on the ground at the gym. No one's around. What do you do?", "prediction": "You'd turn it in to the front desk - honesty matters to you."},
                     {"scenario": "A client offers double your rate but wants you to work on something you find boring. Do you take it?", "prediction": "You'd take it - money is tight and practical needs come first."},

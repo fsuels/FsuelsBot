@@ -1803,21 +1803,30 @@ async function getScenario(category) {
   document.getElementById('currentScenario').style.display = 'block';
   document.getElementById('scenarioText').innerHTML = '<em>Loading scenario...</em>';
   document.getElementById('botPrediction').innerHTML = '';
+  document.getElementById('userAnswer').value = '';
+  currentQAScore = null;
+  document.querySelectorAll('#currentScenario .qa-score-btn').forEach(btn => btn.classList.remove('active'));
   
   try {
     const resp = await fetch('/api/generate-scenario', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
+      credentials: 'same-origin',
       body: JSON.stringify({category})
     });
+    if (!resp.ok) {
+      throw new Error('Server returned ' + resp.status);
+    }
     const data = await resp.json();
     if (data.scenario) {
       currentScenarioData = data;
       document.getElementById('scenarioText').innerHTML = data.scenario;
       document.getElementById('botPrediction').innerHTML = '🤖 <strong>My prediction:</strong> ' + data.prediction;
+    } else if (data.error) {
+      document.getElementById('scenarioText').innerHTML = '<em style="color:#f87171;">Error: ' + data.error + '</em>';
     }
   } catch (e) {
-    document.getElementById('scenarioText').innerHTML = '<em style="color:#f87171;">Failed to load scenario. Try again.</em>';
+    document.getElementById('scenarioText').innerHTML = '<em style="color:#f87171;">Failed: ' + e.message + '. Try refreshing the page.</em>';
   }
 }
 
