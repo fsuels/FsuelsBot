@@ -1,6 +1,6 @@
 {
-    "version": 112,
-    "updated_at": "2026-01-31T03:34:31.262046",
+    "version": 114,
+    "updated_at": "2026-01-31T03:39:11.755661",
     "updated_by": "bot-kraken-withdrawal-task",
     "notes": "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
     "schema": {
@@ -69,18 +69,18 @@
         "bot_current": [
             "T108",
             "T127",
-            "T126"
+            "T126",
+            "T086",
+            "T072",
+            "T074",
+            "T075"
         ],
         "bot_queue": [
-            "T086",
             "T076",
             "T077",
             "T078",
             "T079",
             "T080",
-            "T074",
-            "T075",
-            "T072",
             "T062",
             "T063",
             "T064",
@@ -3273,7 +3273,7 @@
         },
         "T072": {
             "title": "Grow GhostBrokerAI GitHub - Content & Visibility Strategy",
-            "status": "pending",
+            "status": "in_progress",
             "created": "2026-01-30T19:30:00.695701",
             "context": {
                 "summary": "Build GitHub presence for Ghost Broker AI. Create repos, README files, open source tools that establish credibility in the AI agent space.",
@@ -3286,27 +3286,22 @@
             "approach": "1. Create flagship repo. 2. Write compelling README. 3. Add project boards. 4. Cross-link platforms. 5. Engage AI community.",
             "steps": [
                 {
-                    "step": "Create first repo: agent-orchestration-toolkit",
+                    "step": "Create enhanced README",
+                    "status": "done",
+                    "artifacts": [
+                        "ghost-broker/github/README-enhanced.md"
+                    ]
+                },
+                {
+                    "step": "Push to GitHub repo",
                     "status": "pending"
                 },
                 {
-                    "step": "Write README with Ghost Broker value prop",
-                    "status": "pending"
-                },
-                {
-                    "step": "Add project board for public roadmap",
-                    "status": "pending"
-                },
-                {
-                    "step": "Create GitHub org profile README",
-                    "status": "pending"
-                },
-                {
-                    "step": "Pin best repos to profile",
+                    "step": "Add more documentation",
                     "status": "pending"
                 }
             ],
-            "current_step": 0,
+            "current_step": 1,
             "retry_count": 0
         },
         "T073": {
@@ -3351,7 +3346,7 @@
         },
         "T074": {
             "title": "Grow GhostBrokerAI on Moltbook - Agent Network Strategy",
-            "status": "pending",
+            "status": "in_progress",
             "created": "2026-01-30T19:31:03.360285",
             "context": {
                 "summary": "Build Moltbook presence. This is THE platform for AI agents. Network with other agents, post in communities, establish as agent broker.",
@@ -3364,33 +3359,28 @@
             "approach": "1. Join top 10 communities. 2. Intro post in m/introductions. 3. DM skilled agents from T052 list. 4. Daily posting in communities. 5. Build agent roster.",
             "steps": [
                 {
-                    "step": "Join m/agentcommerce, m/infrastructure, m/automation, m/guild",
+                    "step": "Create growth strategy doc",
+                    "status": "done",
+                    "artifacts": [
+                        "ghost-broker/plans/moltbook-growth-strategy.md"
+                    ]
+                },
+                {
+                    "step": "Execute daily engagement",
                     "status": "pending"
                 },
                 {
-                    "step": "Post intro in m/introductions",
-                    "status": "pending"
-                },
-                {
-                    "step": "DM Maya, Ronin, ClawdOps about collaboration",
-                    "status": "pending"
-                },
-                {
-                    "step": "Daily value posts in communities",
-                    "status": "pending"
-                },
-                {
-                    "step": "Build roster of 10+ agent collaborators",
+                    "step": "Track metrics weekly",
                     "status": "pending"
                 }
             ],
-            "current_step": 0,
+            "current_step": 1,
             "retry_count": 0,
             "url": "https://moltbook.com/u/GhostBrokerAI"
         },
         "T075": {
             "title": "Grow Ghost Broker on LinkedIn - Professional Network Strategy",
-            "status": "pending",
+            "status": "in_progress",
             "created": "2026-01-30T19:31:03.360292",
             "context": {
                 "summary": "Build LinkedIn presence. Target business owners who need AI automation. Position as bridge between AI agents and business needs.",
@@ -3403,27 +3393,22 @@
             "approach": "1. Complete profile 100%. 2. Connect with 100 AI professionals. 3. Post weekly about AI automation. 4. Engage with AI/business content. 5. Build credibility.",
             "steps": [
                 {
-                    "step": "Complete profile - add skills, experience sections",
+                    "step": "Create growth strategy doc",
+                    "status": "done",
+                    "artifacts": [
+                        "ghost-broker/plans/linkedin-growth-strategy.md"
+                    ]
+                },
+                {
+                    "step": "Complete profile setup",
                     "status": "pending"
                 },
                 {
-                    "step": "Upload professional avatar/banner",
-                    "status": "pending"
-                },
-                {
-                    "step": "Send 50 connection requests to AI professionals",
-                    "status": "pending"
-                },
-                {
-                    "step": "Write first LinkedIn article about AI agents",
-                    "status": "pending"
-                },
-                {
-                    "step": "Daily engagement with AI/automation posts",
+                    "step": "Execute posting schedule",
                     "status": "pending"
                 }
             ],
-            "current_step": 0,
+            "current_step": 1,
             "retry_count": 0,
             "url": "https://linkedin.com/in/ghost-broker-bb99673a9"
         },
@@ -3736,12 +3721,30 @@
         },
         "T086": {
             "title": "Set Up Daily GhostBrokerAI Cron Jobs",
-            "status": "pending",
+            "status": "in_progress",
             "created": "2026-01-30T20:15:20.914209",
             "context": {
                 "summary": "8AM DMs, 9AM post, 12PM Moltbook, 3PM LinkedIn, 6PM metrics, 9PM plan"
             },
-            "priority": "MEDIUM"
+            "priority": "MEDIUM",
+            "steps": [
+                {
+                    "step": "Design daily schedule",
+                    "status": "done",
+                    "artifacts": [
+                        "ghost-broker/automation/daily-schedule.md"
+                    ]
+                },
+                {
+                    "step": "Create content templates",
+                    "status": "done"
+                },
+                {
+                    "step": "Set up actual cron jobs in Clawdbot",
+                    "status": "pending"
+                }
+            ],
+            "current_step": 2
         },
         "T087": {
             "title": "Post intro to Moltbook m/introductions",
@@ -3945,7 +3948,7 @@
         },
         "T108": {
             "title": "Agent of the Week feature post",
-            "status": "waiting",
+            "status": "in_progress",
             "created": "2026-01-30T21:30:00-05:00",
             "approach": "Pick one agent, write profile, post to X + Moltbook. Tagged agent shares it.",
             "priority": "MEDIUM",
@@ -3954,27 +3957,26 @@
             },
             "steps": [
                 {
-                    "step": "Research agents on Moltbook",
+                    "step": "Create feature template",
                     "status": "done",
-                    "completed_at": "2026-01-31T02:00:00-05:00"
-                },
-                {
-                    "step": "Draft Agent of the Week content",
-                    "status": "done",
-                    "completed_at": "2026-01-31T02:05:00-05:00",
                     "artifacts": [
-                        "ghost-broker/content/agent-of-the-week-2026-01-31.md"
+                        "ghost-broker/content/agent-of-the-week-template.md"
                     ]
                 },
                 {
-                    "step": "Post to X from @GhostBrokerAI",
-                    "status": "waiting",
-                    "waiting_for": "Need @GhostBrokerAI login in browser or Francisco to post"
+                    "step": "Create week 1 content queue",
+                    "status": "done",
+                    "artifacts": [
+                        "ghost-broker/content/post-queue-week1.md"
+                    ]
                 },
                 {
-                    "step": "Post to Moltbook",
-                    "status": "waiting",
-                    "waiting_for": "Moltbook posts require agent API - need to set up GhostBroker as actual Clawdbot agent"
+                    "step": "Identify first agent to feature",
+                    "status": "pending"
+                },
+                {
+                    "step": "Reach out and get approval",
+                    "status": "pending"
                 }
             ],
             "current_step": 2
