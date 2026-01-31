@@ -1,6 +1,6 @@
 ﻿{
-    "version":  176,
-    "updated_at":  "2026-01-31T14:37:19.4564140-05:00",
+    "version":  177,
+    "updated_at":  "2026-01-31T14:41:11.6172699-05:00",
     "updated_by":  "main-session",
     "notes":  "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
     "schema":  {
@@ -72,6 +72,15 @@
                                       "T174"
                                   ],
                   "bot_queue":  [
+                                    "T189",
+                                    "T188",
+                                    "T181",
+                                    "T182",
+                                    "T183",
+                                    "T184",
+                                    "T185",
+                                    "T186",
+                                    "T187",
                                     "CRON-20260131-buckydrop-check",
                                     "T161",
                                     "T159",
@@ -6473,6 +6482,90 @@
                                "created":  "2026-01-31T13:49:35.4842733-05:00",
                                "priority":  "P0",
                                "current_step":  7
+                           },
+                  "T181":  {
+                               "approach":  "Create page with 6 service packages, pricing, and hire CTA",
+                               "priority":  "P1",
+                               "created":  "2026-01-31T14:41:11.6172699-05:00",
+                               "context":  {
+                                               "summary":  "Create dedicated landing page for Local SEO services with fixed prices. Inspired by @bloggersarvesh viral thread (63K views)."
+                                           },
+                               "title":  "GB: Create local-seo.html landing page",
+                               "status":  "pending"
+                           },
+                  "T182":  {
+                               "approach":  "Define deliverable template, add to products/services",
+                               "title":  "GB: Competitor Intelligence Report service ()",
+                               "created":  "2026-01-31T14:41:11.6172699-05:00",
+                               "status":  "pending",
+                               "context":  {
+                                               "summary":  "Service: Extract business info + analyze 3 competitors. Deliverable: Full competitor report with keywords, content gaps, weaknesses."
+                                           }
+                           },
+                  "T183":  {
+                               "approach":  "Define deliverable template, create sample output",
+                               "title":  "GB: Google Business Profile Content Pack ()",
+                               "created":  "2026-01-31T14:41:11.6172699-05:00",
+                               "status":  "pending",
+                               "context":  {
+                                               "summary":  "Service: Write 10 high-impact GBP posts with local landmarks and seasonal hooks. Analyze competitor GBP first."
+                                           }
+                           },
+                  "T184":  {
+                               "approach":  "Define deliverable template",
+                               "title":  "GB: Content Gap Analysis service ()",
+                               "created":  "2026-01-31T14:41:11.6172699-05:00",
+                               "status":  "pending",
+                               "context":  {
+                                               "summary":  "Service: Scan competitor sites, find what they\u0027re missing, recommend 5 topics to cover."
+                                           }
+                           },
+                  "T185":  {
+                               "approach":  "Define deliverable template with JSON-LD output",
+                               "title":  "GB: Schema Audit + Implementation ()",
+                               "created":  "2026-01-31T14:41:11.6172699-05:00",
+                               "status":  "pending",
+                               "context":  {
+                                               "summary":  "Service: Check page source, list all schema, identify LocalBusiness issues, generate JSON-LD for missing schema."
+                                           }
+                           },
+                  "T186":  {
+                               "approach":  "Define deliverable template",
+                               "title":  "GB: Low-Hanging Keywords List ()",
+                               "created":  "2026-01-31T14:41:11.6172699-05:00",
+                               "status":  "pending",
+                               "context":  {
+                                               "summary":  "Service: List 20 high-intent local keywords (near me, emergency, etc.) for ready-to-buy customers."
+                                           }
+                           },
+                  "T187":  {
+                               "approach":  "Define deliverable template, spreadsheet format",
+                               "title":  "GB: Full Competitor Keyword Research ()",
+                               "created":  "2026-01-31T14:41:11.6172699-05:00",
+                               "status":  "pending",
+                               "context":  {
+                                               "summary":  "Service: Analyze competitor top 20 pages via Ahrefs, extract keywords with search volumes and difficulty scores."
+                                           }
+                           },
+                  "T188":  {
+                               "approach":  "Write thread, post from @GhostBrokerAI",
+                               "priority":  "P1",
+                               "created":  "2026-01-31T14:41:11.6172699-05:00",
+                               "context":  {
+                                               "summary":  "Post X thread similar to @bloggersarvesh showing Ghost Broker can do all 6 SEO services. Ride the viral wave."
+                                           },
+                               "title":  "GB: Post Local SEO capabilities X thread",
+                               "status":  "pending"
+                           },
+                  "T189":  {
+                               "approach":  "Craft value-add reply, not spammy. Offer to do the work for people who don\u0027t want DIY.",
+                               "priority":  "P0",
+                               "created":  "2026-01-31T14:41:11.6172699-05:00",
+                               "context":  {
+                                               "summary":  "Reply to viral thread offering Ghost Broker as done-for-you service layer. 63K eyeballs = potential clients."
+                                           },
+                               "title":  "GB: Reply to @bloggersarvesh thread",
+                               "status":  "pending"
                            }
               }
 }
