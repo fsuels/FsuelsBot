@@ -1,0 +1,10 @@
+{
+    "recentErrors":  [
+                         "{\"0\":\"\\u001b[38;2;226;61;45m[tools] edit failed: Could not find the exact text in memory/tasks.json. The old text must match exactly including all whitespace and newlines.\\u001b[39m\",\"_meta\":{\"runtime\":\"node\",\"runtimeVersion\":\"22.14.0\",\"hostname\":\"DESKTOP-O6IL62J\",\"name\":\"clawdbot\",\"date\":\"2026-01-31T03:16:21.740Z\",\"logLevelId\":5,\"logLevelName\":\"ERROR\",\"path\":{\"fullFilePath\":\"file:///C:/Users/Fsuels/AppData/Roaming/npm/node_modules/clawdbot/dist/logging/console.js:187:32\",\"fileName\":\"console.js\",\"fileNameWithLine\":\"console.js:187\",\"fileColumn\":\"32\",\"fileLine\":\"187\",\"filePath\":\"/C:/Users/Fsuels/AppData/Roaming/npm/node_modules/clawdbot/dist/logging/console.js\",\"filePathWithLine\":\"/C:/Users/Fsuels/AppData/Roaming/npm/node_modules/clawdbot/dist/logging/console.js:187\",\"method\":\"console.error\"}},\"time\":\"2026-01-31T03:16:21.741Z\"}",
+                         "{\"0\":\"[tools] edit failed: Could not find the exact text in memory/tasks.json. The old text must match exactly including all whitespace and newlines.\",\"_meta\":{\"runtime\":\"node\",\"runtimeVersion\":\"22.14.0\",\"hostname\":\"DESKTOP-O6IL62J\",\"name\":\"clawdbot\",\"date\":\"2026-01-31T03:16:21.743Z\",\"logLevelId\":5,\"logLevelName\":\"ERROR\",\"path\":{\"fullFilePath\":\"file:///C:/Users/Fsuels/AppData/Roaming/npm/node_modules/clawdbot/dist/logger.js:47:17\",\"fileName\":\"logger.js\",\"fileNameWithLine\":\"logger.js:47\",\"fileColumn\":\"17\",\"fileLine\":\"47\",\"filePath\":\"/C:/Users/Fsuels/AppData/Roaming/npm/node_modules/clawdbot/dist/logger.js\",\"filePathWithLine\":\"/C:/Users/Fsuels/AppData/Roaming/npm/node_modules/clawdbot/dist/logger.js:47\",\"method\":\"logError\"}},\"time\":\"2026-01-31T03:16:21.744Z\"}"
+                     ],
+    "errorCount":  2,
+    "detected":  "2026-01-30T22:30:16-05:00",
+    "reason":  "Previous session was active but ended unexpectedly (27 minutes ago)",
+    "lastSeen":  "2026-01-30T22:03:14.0025139-05:00"
+}

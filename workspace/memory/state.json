@@ -1,54 +1,28 @@
 {
-  "version": 86,
-  "updated_at": "2026-01-31T02:41:00Z",
+  "version": 87,
+  "updated_at": "2026-01-31T03:15:00Z",
   "current_task": {
-    "id": "T110",
-    "title": "Draft 5 Upwork Proposals for AI Automation Gigs",
+    "id": "T111",
+    "title": "Draft Ghost Broker Terms of Service",
     "status": "in_progress"
   },
-  "context": "Council complete. Upwork Direct is fastest path to cash. Francisco confirmed. Now drafting killer proposals for AI/chatbot/automation gigs.",
-  "next_step": "Draft 5 proposals targeting $500-2K AI automation gigs",
+  "context": "Francisco approved Ghost Broker foundation work using FKG Trading LLC. Created 12 new tasks: 4 contracts, 4 vetting, 3 competitive advantage, 1 insurance (human). Now drafting ToS.",
+  "next_step": "Draft Terms of Service with Council-recommended language",
   "completed_today": [
     "T081 - 20 Agent Outreach DMs created",
     "T082 - 10 Client Outreach DMs created",
     "T083 - Validation Tracking Spreadsheet created",
     "First tweet posted on @GhostBrokerAI",
     "ghostbrokerai.xyz domain purchased",
-    "T109 - Council: Fastest Path to Cash (Verdict: Upwork Direct)"
+    "T109 - Council: Fastest Path to Cash (Verdict: Upwork Direct)",
+    "T110 - 5 Upwork proposal templates",
+    "T099 - 5 engagement replies on AI agent tweets"
   ],
   "blockers": [],
-  "council_verdict": {
-    "question": "Fastest path to getting paid with $0 budget",
-    "winner": "Upwork Direct",
-    "reasoning": "Escrow = faster payment, AI does work, lower trust barrier than brokering",
-    "ghost_broker_status": "PARKED - 30+ day play, not sprint",
-    "dlm_status": "Keep products live for organic Valentine traffic",
-    "action_plan": {
-      "tonight": "Draft 5 killer proposals",
-      "tomorrow": "Apply to 10+ gigs",
-      "day_4_5": "Land first gig, start work",
-      "day_6_7": "Deliver, get paid via escrow"
-    }
-  },
-  "registrations": {
-    "complete": ["ProtonMail", "X/Twitter", "Moltbook", "LinkedIn", "GitHub", "Domain"],
-    "pending": ["Instagram", "TikTok", "YouTube", "ENS"]
-  },
-  "growth_tasks_queued": ["T072", "T073", "T074", "T075", "T076", "T077", "T078", "T079", "T080"],
-  "validation_metrics": {
-    "day": 1,
-    "dms_sent": 0,
-    "responses": 0,
-    "interested": 0,
-    "target_day7": "30 conversations",
-    "target_day30": "FIRST REVENUE"
-  },
-  "artifacts": [
-    "ghost-broker/outreach/agent-dms.md",
-    "ghost-broker/outreach/client-dms.md",
-    "ghost-broker/tracking/validation-tracker.csv",
-    "ghost-broker/tracking/metrics.md",
-    "ghost-broker/MISSION.md",
-    "ghost-broker/credentials.md"
-  ]
+  "new_tasks_created": {
+    "contracts": ["T111 ToS", "T112 Agent Agreement", "T113 Client Agreement", "T114 NDA"],
+    "vetting": ["T115 Checklist", "T116 Proficiency Tests", "T117 Portfolio Review", "T118 Probation"],
+    "competitive": ["T119 Moltbook Advantage", "T120 Positioning", "T121 Competitor Map"],
+    "human": ["T122 E&O Insurance"]
+  }
 }
