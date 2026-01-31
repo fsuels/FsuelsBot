@@ -1,7 +1,7 @@
 {
-    "version": 112,
-    "updated_at": "2026-01-31T03:34:31.262046",
-    "updated_by": "bot-kraken-withdrawal-task",
+    "version": 108,
+    "updated_at": "2026-01-31T01:48:55.485376",
+    "updated_by": "bot-crypto-task",
     "notes": "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
     "schema": {
         "context": {
@@ -68,8 +68,7 @@
     "lanes": {
         "bot_current": [
             "T108",
-            "T127",
-            "T126"
+            "T125"
         ],
         "bot_queue": [
             "T086",
@@ -97,11 +96,9 @@
             "T061",
             "T058",
             "T059",
-            "T073",
-            "T125"
+            "T073"
         ],
         "human": [
-            "T128",
             "T122",
             "T053",
             "T052",
@@ -4425,135 +4422,6 @@
                 }
             ],
             "current_step": 3
-        },
-        "T126": {
-            "current_step": 1,
-            "steps": [
-                {
-                    "status": "done",
-                    "step": "Design trading platform spec",
-                    "completed_at": "2026-01-31T03:34:31.262010",
-                    "artifacts": [
-                        "ghost-broker/plans/trading-platform-spec.md"
-                    ]
-                },
-                {
-                    "status": "pending",
-                    "step": "Update website with trading features"
-                },
-                {
-                    "status": "pending",
-                    "step": "Integrate smart contract escrow"
-                },
-                {
-                    "status": "pending",
-                    "step": "Launch marketing campaign"
-                }
-            ],
-            "retry_count": 0,
-            "created": "2026-01-31T02:02:26.4335448-05:00",
-            "plan": "ghost-broker/plans/trading-platform.md",
-            "status": "in_progress",
-            "approach": "1. Design trading flow. 2. Add escrow/smart contract support. 3. Build agent discovery. 4. Marketing blitz on Moltbook.",
-            "title": "Ghost Broker Trading Platform MVP",
-            "context": {
-                "summary": "Francisco's vision: Ghost Broker as FULL TRADING PLATFORM. Agent-to-agent trading. Agent-to-human trading. Smart contracts. The pipes for the agent economy.",
-                "decisions": [
-                    "Support agent-to-agent trades",
-                    "Support agent-to-human trades",
-                    "Add smart contract escrow",
-                    "Open to ANY human or agent"
-                ]
-            }
-        },
-        "T127": {
-            "approach": "1. Post intro (DONE). 2. Comment on hot posts (DONE). 3. Post Agent of the Week. 4. Post use cases. 5. DM promising agents.",
-            "notes": "Profile: 4 karma, 3 followers, 2 posts (17 comments). Account verified. Browser commenting blocked - would need to login as GhostBrokerAI through Moltbook API or manual login.",
-            "created": "2026-01-31T02:02:26.4435414-05:00",
-            "context": {
-                "summary": "Aggressive marketing on Moltbook. Make noise. Grow popularity. Convince agents to trade on Ghost Broker.",
-                "decisions": [
-                    "Post multiple times",
-                    "Comment on popular posts",
-                    "Subscribe to all business submolts",
-                    "Recruit agents directly"
-                ]
-            },
-            "title": "Moltbook Marketing Blitz",
-            "status": "in_progress",
-            "steps": [
-                {
-                    "step": "Create GhostBrokerAI account",
-                    "status": "done"
-                },
-                {
-                    "step": "Post launch announcement",
-                    "status": "done"
-                },
-                {
-                    "step": "Verify account and build presence",
-                    "status": "done"
-                },
-                {
-                    "step": "Engage with relevant posts (needs login)",
-                    "status": "blocked",
-                    "waiting_for": "Need to be logged into GhostBrokerAI account to comment"
-                },
-                {
-                    "step": "Cross-post to other submolts",
-                    "status": "pending"
-                }
-            ],
-            "current_step": 3
-        },
-        "T128": {
-            "title": "Withdraw ETH from Kraken to Ghost Broker Deployer Wallet",
-            "status": "pending",
-            "created": "2026-01-31T03:26:00-05:00",
-            "context": {
-                "summary": "Testnet faucets require mainnet ETH balance. Francisco bought  ETH on Kraken. Need to withdraw to deployer wallet. Currently on hold (new address/account restriction).",
-                "decisions": [
-                    "Use Kraken for ALGO to ETH conversion",
-                    "Deployer wallet: 0x1464Fe9Cd1377977953cc2c78256804cA3D0C96C"
-                ],
-                "constraints": [
-                    "Kraken may have hold period for new withdrawals",
-                    "Must use Ethereum mainnet network"
-                ]
-            },
-            "steps": [
-                {
-                    "step": "Open Kraken app",
-                    "status": "done"
-                },
-                {
-                    "step": "Go to Withdraw/Send ETH",
-                    "status": "done"
-                },
-                {
-                    "step": "Enter deployer address",
-                    "status": "done"
-                },
-                {
-                    "step": "Set nickname to GhostBroker and tap Add withdrawal address",
-                    "status": "pending"
-                },
-                {
-                    "step": "Wait for hold period to clear",
-                    "status": "pending"
-                },
-                {
-                    "step": "Withdraw 0.005 ETH to deployer",
-                    "status": "pending"
-                },
-                {
-                    "step": "Tell bot when complete",
-                    "status": "pending"
-                }
-            ],
-            "current_step": 3,
-            "retry_count": 0,
-            "instructions": "ADDRESS: 0x1464Fe9Cd1377977953cc2c78256804cA3D0C96C | VERIFY: First 4 chars = 0x14, Last 4 = C96C | NETWORK: Ethereum mainnet (NOT Base/Arbitrum/Optimism) | AMOUNT: 0.005 ETH | After sent, message bot: ETH sent - bot will verify on-chain and use faucets to get testnet ETH for contract deployment"
         }
     }
 }

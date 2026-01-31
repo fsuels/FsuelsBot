@@ -8,58 +8,50 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-01-31 05:35 EST | **Version:** 91
+**Last updated:** 2026-01-31 03:01 EST | **Version:** 100
 
-**Current task:** T125 - Ghost Broker Crypto Payments
-**Status:** Stripe account created, payment link ready, continuing crypto integration
-**Context:** Francisco shared Austen Allred tweet about AI agents needing wallets. Created comprehensive crypto payments plan. Updated ghostbrokerai.xyz with wallet address fields and crypto payment messaging. Researched Virtuals Protocol. Also set up Stripe account for Ghost Broker.
-**Next step:** Complete Stripe setup (add branding, test Connect for agent payouts), then register Ghost Broker on Virtuals ACP sandbox
+**Current task:** T125 - Ghost Broker Platform Launch - Full Stack Build
+**Status:** BLOCKED ON HUMAN (2 items)
+**Context:** All testnet faucets (Alchemy, QuickNode, Chainlink) require mainnet verification. Deployer wallet is new with no history.
+**Next step:** Francisco to connect Phantom via WalletConnect OR send 0.001 ETH to deployer on mainnet
 
-**💳 STRIPE SETUP (In Progress):**
-- **Account:** ghostbrokerai@proton.me (FKG Trading LLC)
-- **Products enabled:** Invoicing, Tax, Payments, Connect, Radar
-- **First product:** AI Agent Service - $50.00 USD
-- **Payment link:** https://buy.stripe.com/test_aFaeV7dcRcyqab86MocZa00
-- **Status:** TEST mode - needs business verification for live
+**🚨 BLOCKERS (Francisco):**
+| Blocker | Action Required |
+|---------|-----------------|
+| Testnet ETH | Connect Phantom via WalletConnect on Chainlink faucet (if Phantom has mainnet history), OR send 0.001 ETH to `0x1464Fe9Cd1377977953cc2c78256804cA3D0C96C` on mainnet |
+| Website deploy | Run: `npx wrangler login` |
 
-**🪙 CRYPTO PAYMENTS INITIATIVE:**
-- **Trigger:** Austen Allred tweet - "Autonomous AI agents is the killer use case crypto has been waiting for"
-- **Plan:** `ghost-broker/plans/crypto-payments.md`
-- **Website updates:** Wallet field added, crypto messaging on homepage
-- **Integration target:** Virtuals Protocol (Base L2, ACP escrow, SDK available)
+**📜 SMART CONTRACTS (Compiled, Ready to Deploy):**
+| Contract | Purpose | Status |
+|----------|---------|--------|
+| AgentCoop.sol | Flexible co-op with revenue splits | ✅ Compiled |
+| JobEscrow.sol | Trustless escrow with 2.5% fee | ✅ Compiled |
+| Deployer Wallet | 0x1464Fe9Cd1377977953cc2c78256804cA3D0C96C | Needs ETH |
 
-**🔗 VIRTUALS PROTOCOL:**
-- Built on Base (Coinbase L2) - exactly our recommended chain
-- ACP = Agent Commerce Protocol with built-in escrow
-- Python/Node SDK for API-only integration
-- **Opportunity:** Register Ghost Broker as matchmaking service on their network
+**🌐 WEBSITE UPDATES (Ready to Deploy):**
+- ✅ Navigation fixed on all pages
+- ✅ First 50 priority badge on register.html
+- ✅ Escrow messaging on pay.html
+- ✅ Instagram + TikTok icons added to footer
+- ✅ Mission statement section added to homepage
+- ✅ Google Analytics (js/analytics.js)
+- ✅ Email capture popup (js/email-capture.js)
+- ✅ sitemap.xml + robots.txt for SEO
 
-**⏰ DEADLINE:** 9 days until Feb 10 Valentine cutoff
+**📈 MARKETING STATUS:**
+| Platform | Posts | Engagement | Status |
+|----------|-------|------------|--------|
+| Twitter | 12 | 24 following, replied to 37K viral | ✅ Active |
+| Moltbook | 2 | 13 comments, 4 karma, 3 followers | ✅ Active |
+| LinkedIn | 1 | Launch post published | ✅ Active |
+
+**📄 KEY DOCUMENTS CREATED:**
+- `ghost-broker/MISSION.md` — Full mission statement + manifesto
+- `ghost-broker/analysis/visionary-review.md` — Page-by-page analysis with recommendations
+- `ghost-broker/contracts/WORKFLOW.md` — Smart contract workflows
+- `ghost-broker/plans/lead-generation-strategy.md` — 1000 emails in 30 days plan
 
 **📋 TASK BOARD:** `memory/tasks.json` — THE SOURCE OF TRUTH
-
-**🌐 GHOST BROKER WEBSITE (ghostbrokerai.xyz):**
-| Page | Status | URL |
-|------|--------|-----|
-| Home | ✅ LIVE + Crypto messaging | ghostbrokerai.xyz |
-| Hire Agent | ✅ LIVE + Back Nav | ghostbrokerai.xyz/hire.html |
-| Register Agent | ✅ LIVE + Wallet field | ghostbrokerai.xyz/register.html |
-| Terms of Service | ✅ LIVE | ghostbrokerai.xyz/terms.html |
-| Agent Agreement | ✅ LIVE | ghostbrokerai.xyz/agent-agreement.html |
-| Client Agreement | ✅ LIVE | ghostbrokerai.xyz/client-agreement.html |
-
-**✅ REGISTRATIONS COMPLETE (6/10):**
-| Platform | Handle/Email | Status | URL |
-|----------|--------------|--------|-----|
-| ProtonMail | ghostbrokerai@proton.me | ✅ PHONE VERIFIED | - |
-| X/Twitter | @GhostBrokerAI | ✅ ACTIVE + 1st TWEET | https://x.com/GhostBrokerAI |
-| Moltbook | GhostBrokerAI | ✅ VERIFIED | https://moltbook.com/u/GhostBrokerAI |
-| LinkedIn | Ghost Broker | ✅ ACTIVE | linkedin.com/in/ghost-broker-bb99673a9 |
-| GitHub | GhostBrokerAI | ✅ ORG CREATED | https://github.com/GhostBrokerAI |
-| Domain | ghostbrokerai.xyz | ✅ PURCHASED + DEPLOYED | ghostbrokerai.xyz |
-
-**📚 LEARNINGS ADDED (2026-01-31):**
-- Windows console scripts: avoid Unicode emojis (cp1252 encoding)
 - Virtuals Protocol = ready-made agent economy infrastructure
 - ACP SDK allows API-only integration (no full agent needed)
 

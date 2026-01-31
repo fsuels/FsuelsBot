@@ -1,0 +1,19 @@
+﻿{
+    "version":  96,
+    "deadline":  {
+
+                 },
+    "currentTask":  {
+                        "id":  "T125",
+                        "description":  "Implement Ghost Broker Crypto Payments",
+                        "currentStep":  "Create Ghost Broker treasury wallets (ETH/Base + Solana)",
+                        "nextStep":  null,
+                        "context":  "",
+                        "status":  "pending"
+                    },
+    "lastUpdated":  "2026-01-31T01:31:28-05:00",
+    "standingRules":  {
+
+                      },
+    "taskBoard":  "memory/tasks.json"
+}
