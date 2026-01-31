@@ -1310,9 +1310,15 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                 data = {}
             
             pred_id = data.get('id')
-            score = data.get('score')  # 'correct' or 'wrong'
+            score = data.get('score')  # 1-5 numeric rating
             
-            if not pred_id or score not in ['correct', 'wrong']:
+            # Convert to int if needed
+            try:
+                score = int(score)
+            except:
+                pass
+            
+            if not pred_id or score not in [1, 2, 3, 4, 5]:
                 self.send_response(400)
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()
@@ -1334,16 +1340,16 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                         found = True
                         
                         # Update stats
-                        if old_score == 'correct':
-                            preds['stats']['correct'] -= 1
-                        elif old_score == 'wrong':
-                            preds['stats']['wrong'] -= 1
-                        else:
+                        if old_score is None:
                             preds['stats']['pending'] -= 1
-                        
-                        if score == 'correct':
-                            preds['stats']['correct'] += 1
+                        elif old_score >= 4:
+                            preds['stats']['correct'] -= 1
                         else:
+                            preds['stats']['wrong'] -= 1
+                        
+                        if score >= 4:  # 4-5 = correct
+                            preds['stats']['correct'] += 1
+                        else:  # 1-3 = needs improvement
                             preds['stats']['wrong'] += 1
                         break
                 
@@ -1378,7 +1384,7 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                 
                 game['today_scored'] += 1
                 game['total_scored'] += 1
-                game['xp'] += 10 if score == 'correct' else 5  # More XP for correct predictions
+                game['xp'] += score * 2  # XP based on score: 2-10 points
                 game['best_streak'] = max(game['streak'], game.get('best_streak', 0))
                 
                 # Calculate accuracy

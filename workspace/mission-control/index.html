@@ -562,13 +562,17 @@ body {
   border-radius: 10px;
   padding: 12px;
 }
-.prediction-card.scored-correct {
-  border-color: rgba(63,185,80,0.4);
-  background: rgba(63,185,80,0.05);
-}
-.prediction-card.scored-wrong {
+.prediction-card.scored-1, .prediction-card.scored-2 {
   border-color: rgba(248,113,113,0.4);
   background: rgba(248,113,113,0.05);
+}
+.prediction-card.scored-3 {
+  border-color: rgba(251,191,36,0.4);
+  background: rgba(251,191,36,0.05);
+}
+.prediction-card.scored-4, .prediction-card.scored-5 {
+  border-color: rgba(63,185,80,0.4);
+  background: rgba(63,185,80,0.05);
 }
 .prediction-header {
   display: flex;
@@ -615,6 +619,23 @@ body {
   cursor: pointer;
   transition: all 0.15s;
 }
+.score-btn.rating {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #8b949e;
+  min-width: 36px;
+  padding: 8px 4px;
+}
+.score-btn.rating:hover { 
+  background: rgba(139,92,246,0.2); 
+  border-color: rgba(139,92,246,0.4);
+  color: #a78bfa;
+}
+.score-btn.rating.active { 
+  background: rgba(139,92,246,0.4); 
+  border-color: rgba(139,92,246,0.6);
+  color: #fff;
+}
 .score-btn.correct {
   background: rgba(63,185,80,0.15);
   border: 1px solid rgba(63,185,80,0.3);
@@ -644,6 +665,7 @@ body {
 .history-item .date { color: #6e7681; min-width: 80px; }
 .history-item .pred-id { color: #a78bfa; font-weight: 600; min-width: 30px; }
 .history-item .score-correct { color: #3fb950; }
+.history-item .score-neutral { color: #fbbf24; }
 .history-item .score-wrong { color: #f87171; }
 .history-item .note { color: #8b949e; flex: 1; }
 
@@ -1689,9 +1711,7 @@ function renderPredictions() {
     const catEmoji = cat === 'priority' ? '🎯' : cat === 'behavior' ? '⏰' : '🧭';
     html += `<div style="grid-column:1/-1;font-size:11px;color:#8b949e;text-transform:uppercase;margin-top:8px;">${catEmoji} ${cat}</div>`;
     items.forEach(p => {
-      const scoreClass = p.score === 'correct' ? 'scored-correct' : p.score === 'wrong' ? 'scored-wrong' : '';
-      const correctActive = p.score === 'correct' ? 'active' : '';
-      const wrongActive = p.score === 'wrong' ? 'active' : '';
+      const scoreClass = p.score ? `scored-${p.score}` : '';
       html += `
         <div class="prediction-card ${scoreClass}">
           <div class="prediction-header">
@@ -1701,8 +1721,11 @@ function renderPredictions() {
           <div class="prediction-text">${p.prediction}</div>
           <div class="prediction-rationale">${p.rationale}</div>
           <div class="prediction-actions">
-            <button class="score-btn correct ${correctActive}" onclick="scorePrediction('${p.id}', 'correct')">✓ Correct</button>
-            <button class="score-btn wrong ${wrongActive}" onclick="scorePrediction('${p.id}', 'wrong')">✗ Wrong</button>
+            <button class="score-btn rating ${p.score === 1 ? 'active' : ''}" onclick="scorePrediction('${p.id}', 1)" title="Completely wrong">1</button>
+            <button class="score-btn rating ${p.score === 2 ? 'active' : ''}" onclick="scorePrediction('${p.id}', 2)" title="Mostly wrong">2</button>
+            <button class="score-btn rating ${p.score === 3 ? 'active' : ''}" onclick="scorePrediction('${p.id}', 3)" title="Partially right">3</button>
+            <button class="score-btn rating ${p.score === 4 ? 'active' : ''}" onclick="scorePrediction('${p.id}', 4)" title="Mostly right">4</button>
+            <button class="score-btn rating ${p.score === 5 ? 'active' : ''}" onclick="scorePrediction('${p.id}', 5)" title="Spot on!">5</button>
           </div>
         </div>
       `;
@@ -1751,13 +1774,14 @@ async function loadPredictionsHistory() {
     let html = '';
     for (const e of entries.slice(0, 50)) { // Show last 50
       if (e.event === 'score') {
-        const scoreClass = e.score === 'correct' ? 'score-correct' : 'score-wrong';
-        const scoreIcon = e.score === 'correct' ? '✓' : '✗';
+        const scoreNum = parseInt(e.score) || 0;
+        const scoreClass = scoreNum >= 4 ? 'score-correct' : scoreNum === 3 ? 'score-neutral' : 'score-wrong';
+        const stars = '★'.repeat(scoreNum) + '☆'.repeat(5 - scoreNum);
         html += `
           <div class="history-item">
             <span class="date">${e.date} ${e.time || ''}</span>
             <span class="pred-id">${e.prediction_id}</span>
-            <span class="${scoreClass}">${scoreIcon} ${e.score}</span>
+            <span class="${scoreClass}">${stars}</span>
           </div>
         `;
       } else if (e.event === 'system_created') {
