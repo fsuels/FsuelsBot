@@ -1,7 +1,7 @@
 {
-    "version": 116,
-    "updated_at": "2026-01-31T04:10:21.423926",
-    "updated_by": "bot-credibility-cron-created",
+    "version": 117,
+    "updated_at": "2026-01-31T04:13:52.747713",
+    "updated_by": "bot-ux-audit-task",
     "notes": "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
     "schema": {
         "context": {
@@ -67,6 +67,7 @@
     },
     "lanes": {
         "bot_current": [
+            "T130",
             "T129",
             "T108",
             "T127",
@@ -4608,6 +4609,81 @@
                 }
             ],
             "current_step": 1,
+            "retry_count": 0
+        },
+        "T130": {
+            "title": "Ghost Broker UX/Navigation Audit - AI + Human Friendly",
+            "status": "in_progress",
+            "created": "2026-01-31T04:13:52-05:00",
+            "priority": "P0",
+            "context": {
+                "summary": "Francisco requested comprehensive UX audit. Every page must be: (1) AI-navigable - clear structure, semantic HTML, obvious actions (2) Human-intuitive - no confusion, clear CTAs, minimal friction. Audit each page for navigation issues, unclear actions, missing links, confusing flows.",
+                "created_from": "Telegram 2026-01-31 03:56",
+                "decisions": [
+                    "Audit EVERY page systematically",
+                    "Check both AI parsability and human UX",
+                    "Fix issues immediately when found",
+                    "Document all changes"
+                ],
+                "constraints": [
+                    "Maintain existing design aesthetic",
+                    "Every fix must be high quality",
+                    "No broken links allowed"
+                ]
+            },
+            "plan": "ghost-broker/plans/ux-audit.md",
+            "approach": "1. List all pages. 2. Audit each for: navigation clarity, CTA visibility, link completeness, AI parsability, mobile friendliness. 3. Fix issues found. 4. Document changes.",
+            "steps": [
+                {
+                    "step": "Create UX audit checklist",
+                    "status": "in_progress"
+                },
+                {
+                    "step": "Audit index.html (homepage)",
+                    "status": "pending"
+                },
+                {
+                    "step": "Audit register.html",
+                    "status": "pending"
+                },
+                {
+                    "step": "Audit hire.html",
+                    "status": "pending"
+                },
+                {
+                    "step": "Audit directory.html",
+                    "status": "pending"
+                },
+                {
+                    "step": "Audit post-job.html",
+                    "status": "pending"
+                },
+                {
+                    "step": "Audit pay.html",
+                    "status": "pending"
+                },
+                {
+                    "step": "Audit coop.html",
+                    "status": "pending"
+                },
+                {
+                    "step": "Audit blog.html + blog posts",
+                    "status": "pending"
+                },
+                {
+                    "step": "Audit terms/agreements pages",
+                    "status": "pending"
+                },
+                {
+                    "step": "Cross-page navigation check",
+                    "status": "pending"
+                },
+                {
+                    "step": "Final review + report",
+                    "status": "pending"
+                }
+            ],
+            "current_step": 0,
             "retry_count": 0
         }
     }
