@@ -1,6 +1,6 @@
 {
-    "version": 117,
-    "updated_at": "2026-01-31T04:13:52.747713",
+    "version": 120,
+    "updated_at": "2026-01-31T04:18:36.462103",
     "updated_by": "bot-ux-audit-task",
     "notes": "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
     "schema": {
@@ -67,6 +67,7 @@
     },
     "lanes": {
         "bot_current": [
+            "T131",
             "T130",
             "T129",
             "T108",
@@ -4636,11 +4637,14 @@
             "steps": [
                 {
                     "step": "Create UX audit checklist",
-                    "status": "in_progress"
+                    "status": "done",
+                    "completed_at": "2026-01-31T04:16:38.408376"
                 },
                 {
                     "step": "Audit index.html (homepage)",
-                    "status": "pending"
+                    "status": "done",
+                    "completed_at": "2026-01-31T04:16:38.408410",
+                    "notes": "Added mobile hamburger menu + fixed nav links: removed duplicate trade.html, added directory.html, clearer labels"
                 },
                 {
                     "step": "Audit register.html",
@@ -4683,8 +4687,60 @@
                     "status": "pending"
                 }
             ],
-            "current_step": 0,
+            "current_step": 2,
             "retry_count": 0
+        },
+        "T131": {
+            "title": "Ghost Broker Influencer Outreach - Daily Viral Campaign",
+            "status": "in_progress",
+            "created": "2026-01-31T04:17:05-05:00",
+            "priority": "P0",
+            "context": {
+                "summary": "Francisco wants daily influencer outreach to go viral. Need smart approach - not spammy. Target AI/crypto/tech influencers who cover agent economy, AI tools, Web3. Get them to organically talk about Ghost Broker.",
+                "created_from": "Telegram 2026-01-31 03:58",
+                "decisions": [
+                    "Daily cron for outreach activities",
+                    "Focus on genuine engagement not cold pitching",
+                    "Target AI/crypto/tech influencers",
+                    "Build relationships before asking for coverage"
+                ],
+                "constraints": [
+                    "No spam - quality over quantity",
+                    "Authentic engagement only",
+                    "Zero budget for paid promotions"
+                ]
+            },
+            "plan": "ghost-broker/plans/influencer-outreach.md",
+            "approach": "1. Research top AI/crypto influencers. 2. Create engagement strategy. 3. Set up daily cron. 4. Track and iterate.",
+            "steps": [
+                {
+                    "step": "Research influencer outreach best practices",
+                    "status": "done",
+                    "completed_at": "2026-01-31T04:18:36.462058"
+                },
+                {
+                    "step": "Identify target influencers (AI, crypto, tech)",
+                    "status": "done",
+                    "completed_at": "2026-01-31T04:18:36.462092"
+                },
+                {
+                    "step": "Create outreach strategy and templates",
+                    "status": "done",
+                    "completed_at": "2026-01-31T04:18:36.462096"
+                },
+                {
+                    "step": "Set up daily cron job",
+                    "status": "done",
+                    "completed_at": "2026-01-31T04:18:36.462098"
+                },
+                {
+                    "step": "Create tracking system",
+                    "status": "pending"
+                }
+            ],
+            "current_step": 4,
+            "retry_count": 0,
+            "notes": "Strategy created. Daily cron at 9:30 AM. Pipeline tracking file ready. First outreach tomorrow."
         }
     }
 }
