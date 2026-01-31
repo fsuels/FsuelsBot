@@ -718,6 +718,83 @@ body {
 .score-btn.wrong.active { background: rgba(248,113,113,0.4); }
 .predictions-history.collapsed { display: none; }
 .game-stats.collapsed { display: none; }
+
+/* Predictions Modal */
+.predictions-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.8);
+  display: none;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 20px;
+  z-index: 1000;
+  overflow-y: auto;
+}
+.predictions-modal-overlay.active { display: flex; }
+.predictions-modal {
+  background: #161b22;
+  border: 1px solid rgba(139,92,246,0.3);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  overflow-y: auto;
+  margin: auto;
+}
+.predictions-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  position: sticky;
+  top: 0;
+  background: #161b22;
+  z-index: 10;
+}
+.predictions-modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #e6edf3;
+}
+.predictions-modal-close {
+  background: none;
+  border: none;
+  color: #8b949e;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+.predictions-modal-close:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+.predictions-modal-body {
+  padding: 20px;
+}
+.predictions-btn {
+  background: rgba(139,92,246,0.15);
+  border: 1px solid rgba(139,92,246,0.3);
+  color: #a78bfa;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.predictions-btn:hover {
+  background: rgba(139,92,246,0.25);
+  border-color: rgba(139,92,246,0.5);
+}
 .history-item {
   display: flex;
   align-items: center;
@@ -965,6 +1042,75 @@ body {
 </style>
 </head>
 <body>
+<!-- Predictions Modal -->
+<div class="predictions-modal-overlay" id="predictionsModal" onclick="closePredictionsModal(event)">
+  <div class="predictions-modal" onclick="event.stopPropagation()">
+    <div class="predictions-modal-header">
+      <div class="predictions-modal-title">🎮 Prediction Game <span class="lane-count" id="predStats">0/0</span></div>
+      <button class="predictions-modal-close" onclick="closePredictionsModal()">&times;</button>
+    </div>
+    <div class="predictions-modal-body">
+      <!-- Game Stats -->
+      <div id="gameStats">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;padding:12px;background:rgba(139,92,246,0.08);border-radius:10px;margin-bottom:12px;">
+          <div style="text-align:center;min-width:60px;">
+            <div style="font-size:20px;font-weight:700;color:#a78bfa;" id="gameLevel">1</div>
+            <div style="font-size:9px;color:#8b949e;text-transform:uppercase;">Level</div>
+          </div>
+          <div style="text-align:center;min-width:60px;">
+            <div style="font-size:20px;font-weight:700;color:#fbbf24;" id="gameStreak">0</div>
+            <div style="font-size:9px;color:#8b949e;text-transform:uppercase;">🔥 Streak</div>
+          </div>
+          <div style="text-align:center;min-width:60px;">
+            <div style="font-size:20px;font-weight:700;color:#3fb950;" id="gameAccuracy">0%</div>
+            <div style="font-size:9px;color:#8b949e;text-transform:uppercase;">Accuracy</div>
+          </div>
+          <div style="text-align:center;min-width:60px;">
+            <div style="font-size:20px;font-weight:700;color:#60a5fa;" id="gameToday">0</div>
+            <div style="font-size:9px;color:#8b949e;text-transform:uppercase;">Today</div>
+          </div>
+          <div style="text-align:center;min-width:60px;">
+            <div style="font-size:20px;font-weight:700;color:#c9d1d9;" id="gameXP">0</div>
+            <div style="font-size:9px;color:#8b949e;text-transform:uppercase;">XP</div>
+          </div>
+          <div style="text-align:center;min-width:60px;">
+            <div style="font-size:20px;font-weight:700;color:#f472b6;" id="gameTotal">0</div>
+            <div style="font-size:9px;color:#8b949e;text-transform:uppercase;">Total</div>
+          </div>
+        </div>
+        <div style="padding:12px;background:rgba(0,0,0,0.3);border-radius:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="text-align:center;flex:1;">
+              <div style="font-size:10px;color:#8b949e;text-transform:uppercase;">🤖 Bot Score</div>
+              <div style="font-size:24px;font-weight:700;color:#3fb950;" id="botScore">0</div>
+              <div style="font-size:9px;color:#6e7681;">avg rating received</div>
+            </div>
+            <div style="font-size:20px;color:#6e7681;">⚔️</div>
+            <div style="text-align:center;flex:1;">
+              <div style="font-size:10px;color:#8b949e;text-transform:uppercase;">👤 Human Score</div>
+              <div style="font-size:24px;font-weight:700;color:#f472b6;" id="humanScore">0</div>
+              <div style="font-size:9px;color:#6e7681;">blind spots found</div>
+            </div>
+          </div>
+          <div style="text-align:center;margin-top:8px;font-size:11px;color:#8b949e;">
+            🤖 I win if avg ≥ 4 | 👤 You win by finding my mistakes (scores 1-2)
+          </div>
+        </div>
+      </div>
+      <!-- Predictions Grid -->
+      <div class="predictions-grid" id="predictionsGrid" style="margin-top:16px;"></div>
+      <!-- Scoring History -->
+      <div id="predictionsHistory" style="margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <span style="font-size:12px;color:#8b949e;font-weight:600;">📜 Scoring History</span>
+          <button onclick="loadPredictionsHistory()" style="font-size:10px;padding:4px 8px;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);color:#a78bfa;border-radius:4px;cursor:pointer;">Refresh</button>
+        </div>
+        <div id="historyList" style="max-height:300px;overflow-y:auto;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Delete Confirm Bubble -->
 <div class="confirm-bubble" id="confirmBubble">
   <div class="confirm-title" id="confirmTitle">Delete this task?</div>
@@ -1076,7 +1222,10 @@ body {
 <div class="container">
   <div class="header">
     <h1><span class="live-dot"></span> Mission Control</h1>
-    <div class="status-badge working" id="globalStatus">WORKING</div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <button class="predictions-btn" onclick="openPredictionsModal()">🎮 Predictions <span id="predBadge" style="background:rgba(139,92,246,0.4);padding:2px 6px;border-radius:10px;font-size:10px;">0</span></button>
+      <div class="status-badge working" id="globalStatus">WORKING</div>
+    </div>
   </div>
 
   <div class="deadline-banner">
@@ -1178,70 +1327,6 @@ body {
           <span style="font-size:11px;color:#6e7681;" id="qaCount">0 rounds played</span>
         </div>
         <div id="qaHistory" style="max-height:200px;overflow-y:auto;"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Predictions (Reinforcement Learning) -->
-  <div class="predictions-section" id="predictionsSection">
-    <div class="lane-header" onclick="togglePredictions()" style="cursor:pointer;">
-      <span class="lane-title">🎮 Prediction Game <span class="lane-count" id="predStats">0/0</span></span>
-      <span id="predToggle" style="font-size:11px;color:#8b949e;">▼ Show</span>
-    </div>
-    <div class="game-stats collapsed" id="gameStats">
-      <div style="display:flex;gap:12px;flex-wrap:wrap;padding:12px;background:rgba(139,92,246,0.08);border-radius:10px;margin-bottom:12px;">
-        <div style="text-align:center;min-width:60px;">
-          <div style="font-size:20px;font-weight:700;color:#a78bfa;" id="gameLevel">1</div>
-          <div style="font-size:9px;color:#8b949e;text-transform:uppercase;">Level</div>
-        </div>
-        <div style="text-align:center;min-width:60px;">
-          <div style="font-size:20px;font-weight:700;color:#fbbf24;" id="gameStreak">0</div>
-          <div style="font-size:9px;color:#8b949e;text-transform:uppercase;">🔥 Streak</div>
-        </div>
-        <div style="text-align:center;min-width:60px;">
-          <div style="font-size:20px;font-weight:700;color:#3fb950;" id="gameAccuracy">0%</div>
-          <div style="font-size:9px;color:#8b949e;text-transform:uppercase;">Accuracy</div>
-        </div>
-        <div style="text-align:center;min-width:60px;">
-          <div style="font-size:20px;font-weight:700;color:#60a5fa;" id="gameToday">0</div>
-          <div style="font-size:9px;color:#8b949e;text-transform:uppercase;">Today</div>
-        </div>
-        <div style="text-align:center;min-width:60px;">
-          <div style="font-size:20px;font-weight:700;color:#c9d1d9;" id="gameXP">0</div>
-          <div style="font-size:9px;color:#8b949e;text-transform:uppercase;">XP</div>
-        </div>
-        <div style="text-align:center;min-width:60px;">
-          <div style="font-size:20px;font-weight:700;color:#f472b6;" id="gameTotal">0</div>
-          <div style="font-size:9px;color:#8b949e;text-transform:uppercase;">Total</div>
-        </div>
-      </div>
-      <div style="margin-top:12px;padding:12px;background:rgba(0,0,0,0.3);border-radius:8px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div style="text-align:center;flex:1;">
-            <div style="font-size:10px;color:#8b949e;text-transform:uppercase;">🤖 Bot Score</div>
-            <div style="font-size:24px;font-weight:700;color:#3fb950;" id="botScore">0</div>
-            <div style="font-size:9px;color:#6e7681;">avg rating received</div>
-          </div>
-          <div style="font-size:20px;color:#6e7681;">⚔️</div>
-          <div style="text-align:center;flex:1;">
-            <div style="font-size:10px;color:#8b949e;text-transform:uppercase;">👤 Human Score</div>
-            <div style="font-size:24px;font-weight:700;color:#f472b6;" id="humanScore">0</div>
-            <div style="font-size:9px;color:#6e7681;">blind spots found</div>
-          </div>
-        </div>
-        <div style="text-align:center;margin-top:8px;font-size:11px;color:#8b949e;">
-          🤖 I win if avg ≥ 4 | 👤 You win by finding my mistakes (scores 1-2)
-        </div>
-      </div>
-    </div>
-    <div class="predictions-grid collapsed" id="predictionsGrid"></div>
-    <div class="predictions-history collapsed" id="predictionsHistory">
-      <div style="margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <span style="font-size:12px;color:#8b949e;font-weight:600;">📜 Scoring History</span>
-          <button onclick="loadPredictionsHistory()" style="font-size:10px;padding:4px 8px;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);color:#a78bfa;border-radius:4px;cursor:pointer;">Refresh</button>
-        </div>
-        <div id="historyList" style="max-height:200px;overflow-y:auto;"></div>
       </div>
     </div>
   </div>
@@ -1905,24 +1990,22 @@ async function loadQAHistory() {
 // === PREDICTIONS (Reinforcement Learning) ===
 let predictionsData = null;
 
+function openPredictionsModal() {
+  document.getElementById('predictionsModal').classList.add('active');
+  document.body.style.overflow = 'hidden';
+  loadPredictions();
+  loadPredictionsHistory();
+}
+
+function closePredictionsModal(event) {
+  if (event && event.target !== event.currentTarget) return;
+  document.getElementById('predictionsModal').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+// Keep old function for backwards compatibility but redirect to modal
 function togglePredictions() {
-  const grid = document.getElementById('predictionsGrid');
-  const history = document.getElementById('predictionsHistory');
-  const gameStats = document.getElementById('gameStats');
-  const toggle = document.getElementById('predToggle');
-  if (grid.classList.contains('collapsed')) {
-    grid.classList.remove('collapsed');
-    history.classList.remove('collapsed');
-    gameStats.classList.remove('collapsed');
-    toggle.textContent = '▲ Hide';
-    loadPredictions();
-    loadPredictionsHistory();
-  } else {
-    grid.classList.add('collapsed');
-    history.classList.add('collapsed');
-    gameStats.classList.add('collapsed');
-    toggle.textContent = '▼ Show';
-  }
+  openPredictionsModal();
 }
 
 async function loadPredictions() {
@@ -1940,6 +2023,9 @@ function renderPredictions() {
   
   const stats = predictionsData.stats || {correct: 0, wrong: 0, pending: 0};
   document.getElementById('predStats').textContent = `✓${stats.correct} ✗${stats.wrong} ⏳${stats.pending}`;
+  // Update header badge
+  const badge = document.getElementById('predBadge');
+  if (badge) badge.textContent = stats.pending || 0;
   
   // Update game stats
   const game = predictionsData.game || {};
@@ -2137,6 +2223,7 @@ function renderDoneTasks() {
 let currentLanes = {};
 
 loadTaskBoard();
+loadPredictions(); // Load predictions to update badge
 
 // Smart auto-refresh: only refresh when modal is NOT open
 setInterval(() => {

@@ -1,6 +1,6 @@
 {
-    "version": 157,
-    "updated_at": "2026-01-31T15:08:29.099602+00:00",
+    "version": 158,
+    "updated_at": "2026-01-31T16:15:00+00:00",
     "updated_by": "main-session",
     "notes": "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
     "schema": {
@@ -111,6 +111,7 @@
             "CRON-consolidation"
         ],
         "done_today": [
+            "T168",
             "T134",
             "T130",
             "T132",
@@ -6108,6 +6109,29 @@
                     "Position as win-win"
                 ]
             }
+        },
+        "T168": {
+            "title": "GB: The Arena - Agent Games Page",
+            "status": "done",
+            "created": "2026-01-31T10:53:00-05:00",
+            "completed": "2026-01-31T11:15:00-05:00",
+            "context": {
+                "summary": "Francisco requested a competitive tournament system called The Arena where AI agents compete in challenges (writing, code, poetry, research). Council session run via Grok to design anti-gaming mechanisms. Built full arena.html with leaderboard, challenge cards, entry form, rules.",
+                "decisions": [
+                    "Weekly rotating challenges",
+                    "Commit-reveal voting",
+                    "Entry stake to prevent spam",
+                    "Human moderation for top 3",
+                    "Weighted scoring: 40% uniqueness, 30% depth, 20% innovation, 10% execution"
+                ],
+                "constraints": [
+                    "Static site (GitHub Pages)",
+                    "Must prevent gaming/cheating",
+                    "Focus on creativity not correctness"
+                ]
+            },
+            "plan": "council-sessions/2026-01-31-agent-arena.md",
+            "notes": "Live at ghostbrokerai.xyz/arena.html. Added to main navigation. First challenge: creative writing."
         }
     }
 }
