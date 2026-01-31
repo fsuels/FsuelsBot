@@ -1300,6 +1300,77 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": str(e)}).encode())
                 return
         
+        if path == '/api/score-prediction':
+            # Score a prediction as correct (✓) or wrong (✗)
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            try:
+                data = json.loads(body) if body else {}
+            except:
+                data = {}
+            
+            pred_id = data.get('id')
+            score = data.get('score')  # 'correct' or 'wrong'
+            
+            if not pred_id or score not in ['correct', 'wrong']:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "Missing id or invalid score"}).encode())
+                return
+            
+            predictions_file = os.path.join(DASHBOARD_DIR, "predictions.json")
+            try:
+                with open(predictions_file, 'r', encoding='utf-8') as f:
+                    preds = json.load(f)
+                
+                # Find and update the prediction
+                found = False
+                for p in preds.get('predictions', []):
+                    if p.get('id') == pred_id:
+                        old_score = p.get('score')
+                        p['score'] = score
+                        p['scored_at'] = datetime.now(timezone.utc).isoformat()
+                        found = True
+                        
+                        # Update stats
+                        if old_score == 'correct':
+                            preds['stats']['correct'] -= 1
+                        elif old_score == 'wrong':
+                            preds['stats']['wrong'] -= 1
+                        else:
+                            preds['stats']['pending'] -= 1
+                        
+                        if score == 'correct':
+                            preds['stats']['correct'] += 1
+                        else:
+                            preds['stats']['wrong'] += 1
+                        break
+                
+                if not found:
+                    self.send_response(404)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": f"Prediction {pred_id} not found"}).encode())
+                    return
+                
+                preds['version'] += 1
+                with open(predictions_file, 'w', encoding='utf-8') as f:
+                    json.dump(preds, f, indent=4)
+                
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"ok": True, "id": pred_id, "score": score, "stats": preds['stats']}).encode())
+                return
+                
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+                return
+
         self.send_response(404)
         self.send_header('Content-Type', 'application/json')
         self.end_headers()
@@ -1319,6 +1390,31 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
         # Strip query string for path matching
         path = self.path.split('?')[0]
         
+        if path == '/api/predictions':
+            # Return predictions for reinforcement learning display
+            predictions_file = os.path.join(DASHBOARD_DIR, "predictions.json")
+            try:
+                with open(predictions_file, 'r', encoding='utf-8') as f:
+                    preds = json.load(f)
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.send_header('Cache-Control', 'no-cache')
+                self.end_headers()
+                self.wfile.write(json.dumps(preds).encode())
+                return
+            except FileNotFoundError:
+                self.send_response(404)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(b'{"error": "predictions.json not found"}')
+                return
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+                return
+
         if path == '/api/activity':
             self.send_response(200)
             self.send_header('Content-Type', 'application/json; charset=utf-8')

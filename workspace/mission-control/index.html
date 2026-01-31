@@ -541,6 +541,95 @@ body {
 }
 
 /* Done Section */
+/* Predictions Section */
+.predictions-section {
+  background: rgba(13, 17, 23, 0.5);
+  border: 1px solid rgba(139,92,246,0.15);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+.predictions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.predictions-grid.collapsed { display: none; }
+.prediction-card {
+  background: rgba(22, 27, 34, 0.6);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 10px;
+  padding: 12px;
+}
+.prediction-card.scored-correct {
+  border-color: rgba(63,185,80,0.4);
+  background: rgba(63,185,80,0.05);
+}
+.prediction-card.scored-wrong {
+  border-color: rgba(248,113,113,0.4);
+  background: rgba(248,113,113,0.05);
+}
+.prediction-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+.prediction-id {
+  font-size: 10px;
+  color: #8b949e;
+  background: rgba(139,92,246,0.15);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.prediction-confidence {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.prediction-confidence.HIGH { background: rgba(63,185,80,0.2); color: #3fb950; }
+.prediction-confidence.MEDIUM { background: rgba(251,191,36,0.2); color: #fbbf24; }
+.prediction-confidence.LOW { background: rgba(248,113,113,0.2); color: #f87171; }
+.prediction-text {
+  font-size: 13px;
+  color: #e6edf3;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+.prediction-rationale {
+  font-size: 11px;
+  color: #8b949e;
+  margin-bottom: 10px;
+}
+.prediction-actions {
+  display: flex;
+  gap: 8px;
+}
+.score-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.score-btn.correct {
+  background: rgba(63,185,80,0.15);
+  border: 1px solid rgba(63,185,80,0.3);
+  color: #3fb950;
+}
+.score-btn.correct:hover { background: rgba(63,185,80,0.25); }
+.score-btn.correct.active { background: rgba(63,185,80,0.4); }
+.score-btn.wrong {
+  background: rgba(248,113,113,0.15);
+  border: 1px solid rgba(248,113,113,0.3);
+  color: #f87171;
+}
+.score-btn.wrong:hover { background: rgba(248,113,113,0.25); }
+.score-btn.wrong.active { background: rgba(248,113,113,0.4); }
+
 .done-section {
   background: rgba(13, 17, 23, 0.5);
   border: 1px solid rgba(255,255,255,0.04);
@@ -933,6 +1022,15 @@ body {
       </div>
     </div>
     <div class="done-grid collapsed" id="doneTasks"></div>
+  </div>
+
+  <!-- Predictions (Reinforcement Learning) -->
+  <div class="predictions-section" id="predictionsSection">
+    <div class="lane-header" onclick="togglePredictions()" style="cursor:pointer;">
+      <span class="lane-title">🧠 Predictions <span class="lane-count" id="predStats">0/0</span></span>
+      <span id="predToggle" style="font-size:11px;color:#8b949e;">▼ Show</span>
+    </div>
+    <div class="predictions-grid collapsed" id="predictionsGrid"></div>
   </div>
 
   <!-- Trash -->
@@ -1468,6 +1566,99 @@ function toggleDone() {
   } else {
     grid.classList.add('collapsed');
     toggle.textContent = '▼ Show';
+  }
+}
+
+// === PREDICTIONS (Reinforcement Learning) ===
+let predictionsData = null;
+
+function togglePredictions() {
+  const grid = document.getElementById('predictionsGrid');
+  const toggle = document.getElementById('predToggle');
+  if (grid.classList.contains('collapsed')) {
+    grid.classList.remove('collapsed');
+    toggle.textContent = '▲ Hide';
+    loadPredictions();
+  } else {
+    grid.classList.add('collapsed');
+    toggle.textContent = '▼ Show';
+  }
+}
+
+async function loadPredictions() {
+  try {
+    const resp = await fetch('/api/predictions?' + Date.now());
+    predictionsData = await resp.json();
+    renderPredictions();
+  } catch (e) {
+    document.getElementById('predictionsGrid').innerHTML = '<div style="color:#f87171;">Failed to load predictions</div>';
+  }
+}
+
+function renderPredictions() {
+  if (!predictionsData) return;
+  
+  const stats = predictionsData.stats || {correct: 0, wrong: 0, pending: 0};
+  document.getElementById('predStats').textContent = `✓${stats.correct} ✗${stats.wrong} ⏳${stats.pending}`;
+  
+  const preds = predictionsData.predictions || [];
+  const grid = document.getElementById('predictionsGrid');
+  
+  // Group by category
+  const byCategory = {priority: [], behavior: [], decision: []};
+  preds.forEach(p => {
+    if (byCategory[p.category]) byCategory[p.category].push(p);
+  });
+  
+  let html = '';
+  for (const [cat, items] of Object.entries(byCategory)) {
+    if (items.length === 0) continue;
+    const catEmoji = cat === 'priority' ? '🎯' : cat === 'behavior' ? '⏰' : '🧭';
+    html += `<div style="grid-column:1/-1;font-size:11px;color:#8b949e;text-transform:uppercase;margin-top:8px;">${catEmoji} ${cat}</div>`;
+    items.forEach(p => {
+      const scoreClass = p.score === 'correct' ? 'scored-correct' : p.score === 'wrong' ? 'scored-wrong' : '';
+      const correctActive = p.score === 'correct' ? 'active' : '';
+      const wrongActive = p.score === 'wrong' ? 'active' : '';
+      html += `
+        <div class="prediction-card ${scoreClass}">
+          <div class="prediction-header">
+            <span class="prediction-id">${p.id}</span>
+            <span class="prediction-confidence ${p.confidence}">${p.confidence}</span>
+          </div>
+          <div class="prediction-text">${p.prediction}</div>
+          <div class="prediction-rationale">${p.rationale}</div>
+          <div class="prediction-actions">
+            <button class="score-btn correct ${correctActive}" onclick="scorePrediction('${p.id}', 'correct')">✓ Correct</button>
+            <button class="score-btn wrong ${wrongActive}" onclick="scorePrediction('${p.id}', 'wrong')">✗ Wrong</button>
+          </div>
+        </div>
+      `;
+    });
+  }
+  
+  grid.innerHTML = html || '<div style="color:#6e7681;">No predictions yet</div>';
+}
+
+async function scorePrediction(id, score) {
+  try {
+    const resp = await fetch('/api/score-prediction', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({id, score})
+    });
+    const result = await resp.json();
+    if (result.ok) {
+      // Update local data and re-render
+      const pred = predictionsData.predictions.find(p => p.id === id);
+      if (pred) {
+        pred.score = score;
+        pred.scored_at = new Date().toISOString();
+      }
+      predictionsData.stats = result.stats;
+      renderPredictions();
+    }
+  } catch (e) {
+    console.error('Failed to score prediction:', e);
   }
 }
 

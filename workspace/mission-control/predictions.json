@@ -1,0 +1,147 @@
+{
+    "version": 1,
+    "created": "2026-01-31",
+    "review_date": "2026-02-07",
+    "predictions": [
+        {
+            "id": "P1",
+            "category": "priority",
+            "prediction": "Ghost Broker momentum > DLM maintenance",
+            "confidence": "HIGH",
+            "rationale": "GB is new/exciting, DLM is stable but declining",
+            "score": null,
+            "scored_at": null
+        },
+        {
+            "id": "P2",
+            "category": "priority",
+            "prediction": "Will prefer DIY solutions over paid services",
+            "confidence": "HIGH",
+            "rationale": "True soloentrepreneur, does everything himself",
+            "score": null,
+            "scored_at": null
+        },
+        {
+            "id": "P3",
+            "category": "priority",
+            "prediction": "Will reject proposals requiring upfront capital",
+            "confidence": "MEDIUM",
+            "rationale": "Cash tight, rental income helps but not flush",
+            "score": null,
+            "scored_at": null
+        },
+        {
+            "id": "P4",
+            "category": "priority",
+            "prediction": "Will prioritize tasks that could generate revenue THIS WEEK",
+            "confidence": "HIGH",
+            "rationale": "Financial stress + need to prove the model works",
+            "score": null,
+            "scored_at": null
+        },
+        {
+            "id": "P5",
+            "category": "priority",
+            "prediction": "Will prefer parallel execution over serial",
+            "confidence": "MEDIUM",
+            "rationale": "Impatient with bot speed, wants multiple things advancing",
+            "score": null,
+            "scored_at": null
+        },
+        {
+            "id": "B1",
+            "category": "behavior",
+            "prediction": "Morning (before gym) = focused, strategic",
+            "confidence": "MEDIUM",
+            "rationale": "Fresh energy, fewer interruptions",
+            "score": null,
+            "scored_at": null
+        },
+        {
+            "id": "B2",
+            "category": "behavior",
+            "prediction": "After gym = good mood, creative energy",
+            "confidence": "MEDIUM",
+            "rationale": "Exercise improves mood, family active together",
+            "score": null,
+            "scored_at": null
+        },
+        {
+            "id": "B3",
+            "category": "behavior",
+            "prediction": "Late night = less responsive, winding down",
+            "confidence": "MEDIUM",
+            "rationale": "Family time, daughters' activities",
+            "score": null,
+            "scored_at": null
+        },
+        {
+            "id": "B4",
+            "category": "behavior",
+            "prediction": "'Just do it' over 'Let me explain'",
+            "confidence": "HIGH",
+            "rationale": "Execution-first, hates permission-seeking",
+            "score": null,
+            "scored_at": null
+        },
+        {
+            "id": "B5",
+            "category": "behavior",
+            "prediction": "Values transparency about failures",
+            "confidence": "HIGH",
+            "rationale": "Prefers honest 'I messed up' over cover-ups",
+            "score": null,
+            "scored_at": null
+        },
+        {
+            "id": "D1",
+            "category": "decision",
+            "prediction": "Will choose speed over perfection",
+            "confidence": "HIGH",
+            "rationale": "Wants momentum, not polish",
+            "score": null,
+            "scored_at": null
+        },
+        {
+            "id": "D2",
+            "category": "decision",
+            "prediction": "Will trust bot judgment on technical details",
+            "confidence": "MEDIUM",
+            "rationale": "Gave access to everything, wants a partner",
+            "score": null,
+            "scored_at": null
+        },
+        {
+            "id": "D3",
+            "category": "decision",
+            "prediction": "Will push back on scope creep",
+            "confidence": "MEDIUM",
+            "rationale": "Wants focused execution, not grand plans",
+            "score": null,
+            "scored_at": null
+        },
+        {
+            "id": "D4",
+            "category": "decision",
+            "prediction": "Will forgive mistakes if I learn from them",
+            "confidence": "HIGH",
+            "rationale": "Established lie consequence but still trusts",
+            "score": null,
+            "scored_at": null
+        },
+        {
+            "id": "D5",
+            "category": "decision",
+            "prediction": "Innovation excitement > pure ROI calculation",
+            "confidence": "MEDIUM",
+            "rationale": "Ghost Broker has uncertain revenue but excited",
+            "score": null,
+            "scored_at": null
+        }
+    ],
+    "stats": {
+        "correct": 0,
+        "wrong": 0,
+        "pending": 15
+    }
+}
