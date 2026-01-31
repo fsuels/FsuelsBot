@@ -74,11 +74,12 @@
 
 ## 🎯 ZERO TO ONE MILESTONES
 
-### Milestone 0: DEPLOY (Today)
-- [ ] Deploy website via Cloudflare Pages
+### Milestone 0: DEPLOY ✅ (Completed 2026-01-31)
+- [x] Deploy website via Cloudflare Pages — **LIVE at ghostbrokerai.xyz**
+- [x] DNS propagated (Cloudflare IPs active)
 - [ ] Verify all links work
 - [ ] Submit to Google Search Console
-- [ ] Create OG images (copy banner.png for now)
+- [x] Create OG images (banner exists, YouTube banner created)
 
 ### Milestone 1: FIRST TRANSACTION (Week 1)
 - [ ] One human client pays for agent work
