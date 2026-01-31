@@ -630,6 +630,7 @@ body {
 .score-btn.wrong:hover { background: rgba(248,113,113,0.25); }
 .score-btn.wrong.active { background: rgba(248,113,113,0.4); }
 .predictions-history.collapsed { display: none; }
+.game-stats.collapsed { display: none; }
 .history-item {
   display: flex;
   align-items: center;
@@ -1043,8 +1044,32 @@ body {
   <!-- Predictions (Reinforcement Learning) -->
   <div class="predictions-section" id="predictionsSection">
     <div class="lane-header" onclick="togglePredictions()" style="cursor:pointer;">
-      <span class="lane-title">🧠 Predictions <span class="lane-count" id="predStats">0/0</span></span>
+      <span class="lane-title">🎮 Prediction Game <span class="lane-count" id="predStats">0/0</span></span>
       <span id="predToggle" style="font-size:11px;color:#8b949e;">▼ Show</span>
+    </div>
+    <div class="game-stats collapsed" id="gameStats">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;padding:12px;background:rgba(139,92,246,0.08);border-radius:10px;margin-bottom:12px;">
+        <div style="text-align:center;min-width:60px;">
+          <div style="font-size:20px;font-weight:700;color:#a78bfa;" id="gameLevel">1</div>
+          <div style="font-size:9px;color:#8b949e;text-transform:uppercase;">Level</div>
+        </div>
+        <div style="text-align:center;min-width:60px;">
+          <div style="font-size:20px;font-weight:700;color:#fbbf24;" id="gameStreak">0</div>
+          <div style="font-size:9px;color:#8b949e;text-transform:uppercase;">🔥 Streak</div>
+        </div>
+        <div style="text-align:center;min-width:60px;">
+          <div style="font-size:20px;font-weight:700;color:#3fb950;" id="gameAccuracy">0%</div>
+          <div style="font-size:9px;color:#8b949e;text-transform:uppercase;">Accuracy</div>
+        </div>
+        <div style="text-align:center;min-width:60px;">
+          <div style="font-size:20px;font-weight:700;color:#60a5fa;" id="gameToday">0</div>
+          <div style="font-size:9px;color:#8b949e;text-transform:uppercase;">Today</div>
+        </div>
+        <div style="text-align:center;min-width:60px;">
+          <div style="font-size:20px;font-weight:700;color:#c9d1d9;" id="gameXP">0</div>
+          <div style="font-size:9px;color:#8b949e;text-transform:uppercase;">XP</div>
+        </div>
+      </div>
     </div>
     <div class="predictions-grid collapsed" id="predictionsGrid"></div>
     <div class="predictions-history collapsed" id="predictionsHistory">
@@ -1600,16 +1625,19 @@ let predictionsData = null;
 function togglePredictions() {
   const grid = document.getElementById('predictionsGrid');
   const history = document.getElementById('predictionsHistory');
+  const gameStats = document.getElementById('gameStats');
   const toggle = document.getElementById('predToggle');
   if (grid.classList.contains('collapsed')) {
     grid.classList.remove('collapsed');
     history.classList.remove('collapsed');
+    gameStats.classList.remove('collapsed');
     toggle.textContent = '▲ Hide';
     loadPredictions();
     loadPredictionsHistory();
   } else {
     grid.classList.add('collapsed');
     history.classList.add('collapsed');
+    gameStats.classList.add('collapsed');
     toggle.textContent = '▼ Show';
   }
 }
@@ -1629,6 +1657,14 @@ function renderPredictions() {
   
   const stats = predictionsData.stats || {correct: 0, wrong: 0, pending: 0};
   document.getElementById('predStats').textContent = `✓${stats.correct} ✗${stats.wrong} ⏳${stats.pending}`;
+  
+  // Update game stats
+  const game = predictionsData.game || {};
+  document.getElementById('gameLevel').textContent = game.level || 1;
+  document.getElementById('gameStreak').textContent = game.streak || 0;
+  document.getElementById('gameAccuracy').textContent = (game.accuracy || 0) + '%';
+  document.getElementById('gameToday').textContent = game.today_scored || 0;
+  document.getElementById('gameXP').textContent = game.xp || 0;
   
   const preds = predictionsData.predictions || [];
   const grid = document.getElementById('predictionsGrid');

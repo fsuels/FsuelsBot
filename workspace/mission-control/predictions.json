@@ -143,5 +143,15 @@
         "correct": 0,
         "wrong": 0,
         "pending": 15
+    },
+    "game": {
+        "streak": 0,
+        "best_streak": 0,
+        "today_scored": 0,
+        "total_scored": 0,
+        "accuracy": 0,
+        "last_play_date": null,
+        "level": 1,
+        "xp": 0
     }
 }

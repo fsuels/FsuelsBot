@@ -1358,6 +1358,38 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                 with open(predictions_file, 'w', encoding='utf-8') as f:
                     json.dump(preds, f, indent=4)
                 
+                # Update game stats
+                today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                game = preds.get('game', {"streak": 0, "best_streak": 0, "today_scored": 0, "total_scored": 0, "accuracy": 0, "last_play_date": None, "level": 1, "xp": 0})
+                
+                if game.get('last_play_date') != today:
+                    # New day - check streak
+                    if game.get('last_play_date'):
+                        from datetime import timedelta
+                        last = datetime.strptime(game['last_play_date'], "%Y-%m-%d")
+                        if (datetime.strptime(today, "%Y-%m-%d") - last).days == 1:
+                            game['streak'] += 1
+                        else:
+                            game['streak'] = 1
+                    else:
+                        game['streak'] = 1
+                    game['today_scored'] = 0
+                    game['last_play_date'] = today
+                
+                game['today_scored'] += 1
+                game['total_scored'] += 1
+                game['xp'] += 10 if score == 'correct' else 5  # More XP for correct predictions
+                game['best_streak'] = max(game['streak'], game.get('best_streak', 0))
+                
+                # Calculate accuracy
+                total = preds['stats']['correct'] + preds['stats']['wrong']
+                game['accuracy'] = round(preds['stats']['correct'] / total * 100) if total > 0 else 0
+                
+                # Level up every 100 XP
+                game['level'] = 1 + game['xp'] // 100
+                
+                preds['game'] = game
+                
                 # Log to daily predictions log
                 log_file = os.path.join(WORKSPACE_DIR, "memory", "predictions-log.jsonl")
                 log_entry = {
@@ -1366,7 +1398,8 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                     "event": "score",
                     "prediction_id": pred_id,
                     "score": score,
-                    "stats": preds['stats']
+                    "stats": preds['stats'],
+                    "game": game
                 }
                 with open(log_file, 'a', encoding='utf-8') as f:
                     f.write(json.dumps(log_entry) + '\n')
