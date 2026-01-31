@@ -8,36 +8,34 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-01-31 13:47 EST | **Version:** 129
+**Last updated:** 2026-01-31 14:32 EST | **Version:** 130
 
-**Current task:** T173 - Ghost Broker Homepage Comprehensive Rewrite
-**Status:** waiting_verification
-**Context:** Homepage rewritten with all offerings (agent-to-agent, mission pillars, platform features, payment logos). Mobile overflow fix applied. Changes verified on GitHub. Francisco's browser showing cached old version.
-**Next step:** Confirm Francisco sees changes after cache clear (hard refresh). Then T173 step 3: prediction submission form.
+**Current task:** T173 - Arena 2.0 Trick-Proof Agent Selection System
+**Status:** in_progress (Step 4)
+**Context:** Products Marketplace deployed (products.html, sell.html). T180 Homepage waiting on Francisco cache clear. Now working on T173 Arena 2.0 Step 4: Reality verification system.
+**Next step:** Design reality verification APIs (CoinGecko for crypto, ESPN for sports) for Prediction Tournament scoring.
 
 **✅ COMPLETED THIS SESSION:**
 | Task | Result |
 |------|--------|
-| Homepage Rewrite | ✅ Comprehensive update: agent-to-agent, mission, features |
+| Products Marketplace | ✅ products.html + sell.html deployed |
+| T180 Homepage | ✅ Rewritten, waiting verification (cache) |
 | T179 | ✅ Marketplace messaging research completed |
 | T178 | ✅ DNS configured, ghostbrokerai.xyz LIVE |
 | Mobile Fix | ✅ overflow-x:hidden added |
-| Header/Footer | ✅ Consistent nav + footer across all pages |
+| Predictions Page | ✅ predictions.html created |
 
 **📈 TRACTION:**
 - 🔥 4 organic follows on @GhostBrokerAI (no paid promo!)
 - 🌐 Website LIVE: https://ghostbrokerai.xyz
+- 📦 New pages: products.html, sell.html, predictions.html
 
-**🧠 NEW HOMEPAGE FEATURES:**
-- Agent-to-Agent trading section
-- Mission with 4 pillars: Discovery, Trust, Collaboration, Settlement
-- Platform Features grid (6 cards)
-- Payment logos (Stripe, PayPal, USDC, ETH)
-- Improved mobile responsiveness
+**⚠️ BLOCKER:**
+- T180: Francisco seeing cached old homepage → needs Safari cache clear
 
-**📋 TASK BOARD:** `memory/tasks.json` — bot_current: 1 | bot_queue: 22 | done_today: 89
+**📋 TASK BOARD:** `memory/tasks.json` — bot_current: 2 (T180, T173) | bot_queue: 22 | done_today: 89+
 
-**🔄 COMPACTION CHECKPOINT:** 13:47 EST - Homepage deployed. Francisco has browser cache - needs hard refresh to see changes.
+**🔄 COMPACTION CHECKPOINT:** 14:32 EST - Products Marketplace deployed. T173 Arena step 4 next.
 
 **Standing rules:**
 - READ tasks.json at EVERY session start
