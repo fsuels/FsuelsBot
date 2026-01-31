@@ -85,7 +85,7 @@ def add_learning(statement: str, kind: str, tags: list = None, entity: str = Non
     return learning_id
 
 def list_learnings(kind: str = None, active_only: bool = True, limit: int = 50):
-    """List learnings with optional filters."""
+    """List learnings with optional filters. Updates last_accessed_at for retrieved items."""
     conn = get_db()
     cur = conn.cursor()
     
@@ -101,6 +101,14 @@ def list_learnings(kind: str = None, active_only: bool = True, limit: int = 50):
     
     cur.execute(query, params)
     rows = cur.fetchall()
+    
+    # Update last_accessed_at for retrieved items (Council T123 verdict)
+    if rows:
+        ids = [row[0] for row in rows]
+        placeholders = ','.join('?' * len(ids))
+        cur.execute(f"UPDATE learning SET last_accessed_at = datetime('now') WHERE id IN ({placeholders})", ids)
+        conn.commit()
+    
     conn.close()
     
     print(f"=== Learnings ({len(rows)} results) ===")
@@ -111,7 +119,7 @@ def list_learnings(kind: str = None, active_only: bool = True, limit: int = 50):
     return rows
 
 def search_learnings(query: str, limit: int = 20):
-    """Simple search in statements."""
+    """Simple search in statements. Updates last_accessed_at for retrieved items."""
     conn = get_db()
     cur = conn.cursor()
     
@@ -123,6 +131,14 @@ def search_learnings(query: str, limit: int = 20):
     """, (f"%{query}%", limit))
     
     rows = cur.fetchall()
+    
+    # Update last_accessed_at for retrieved items (Council T123 verdict)
+    if rows:
+        ids = [row[0] for row in rows]
+        placeholders = ','.join('?' * len(ids))
+        cur.execute(f"UPDATE learning SET last_accessed_at = datetime('now') WHERE id IN ({placeholders})", ids)
+        conn.commit()
+    
     conn.close()
     
     print(f"=== Search results for '{query}' ({len(rows)} matches) ===")

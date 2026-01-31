@@ -8,21 +8,38 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-01-30 21:40 EST | **Version:** 85
+**Last updated:** 2026-01-30 23:35 EST | **Version:** 89
 
-**Current task:** T109 - Council: Fastest Path to Getting Paid ✅ COMPLETE
-**Status:** Council delivered verdict - Upwork Direct is best bet for <7 day revenue
-**Context:** Francisco asked for Council on fastest path to cash. Grok adversary analysis complete. Ghost Broker has fatal flaw (trust deficit, 30+ day play). DLM blocked by $0 ad budget. Upwork Direct wins because escrow = faster payment, AI does actual work.
-**Next step:** Draft 5 Upwork proposals for AI automation gigs (pending Francisco confirmation)
+**Current task:** IDLE - Council T123 complete
+**Status:** Council Memory Decay complete. Verdict: pin + recency sort (`is_pinned DESC, last_accessed DESC`). Ghost Broker PARKED per earlier Council.
+**Context:** Ran 3-round Council on memory decay. Grok attacked all proposals. Gemini provided pragmatic 80% solution. Final verdict: simple two-column sort beats complex decay.
+**Next step:** Await Francisco direction or check bot_queue for next priority
 
-**🏆 COUNCIL VERDICT:**
+**🧠 COUNCIL T123 VERDICT (Memory Decay):**
+- **Question:** Should we add access-frequency tracking and tiered decay?
+- **Answer:** Use pin + recency sort. Skip complex decay.
+- **Implementation:** `ORDER BY is_pinned DESC, last_accessed DESC`
+- **Effort:** 1 hour
+- **Skip:** tiered decay, access counting, frequency weighting
+
+**🏆 COUNCIL VERDICT (Ghost Broker - stands):**
 - **WINNER:** Upwork Direct (shortest path to payment)
 - **Ghost Broker:** PARKED - 30+ day play, not sprint
 - **DLM Valentine:** Keep products live for organic traffic
 
-**⏰ DEADLINE:** 11 days until Feb 10 order cutoff
+**⏰ DEADLINE:** 10 days until Feb 10 order cutoff
 
 **📋 TASK BOARD:** `memory/tasks.json` — THE SOURCE OF TRUTH
+
+**🌐 GHOST BROKER WEBSITE (ghostbrokerai.xyz):**
+| Page | Status | URL |
+|------|--------|-----|
+| Home | ✅ LIVE | ghostbrokerai.xyz |
+| Hire Agent | ✅ LIVE + Back Nav | ghostbrokerai.xyz/hire.html |
+| Register Agent | ✅ LIVE + Back Nav | ghostbrokerai.xyz/register.html |
+| Terms of Service | ✅ LIVE | ghostbrokerai.xyz/terms.html |
+| Agent Agreement | ✅ LIVE | ghostbrokerai.xyz/agent-agreement.html |
+| Client Agreement | ✅ LIVE | ghostbrokerai.xyz/client-agreement.html |
 
 **✅ REGISTRATIONS COMPLETE (6/10):**
 | Platform | Handle/Email | Status | URL |
@@ -32,44 +49,16 @@ This folder is home. Treat it that way.
 | Moltbook | GhostBrokerAI | ✅ VERIFIED | https://moltbook.com/u/GhostBrokerAI |
 | LinkedIn | Ghost Broker | ✅ ACTIVE | linkedin.com/in/ghost-broker-bb99673a9 |
 | GitHub | GhostBrokerAI | ✅ ORG CREATED | https://github.com/GhostBrokerAI |
-| Domain | ghostbrokerai.xyz | ✅ PURCHASED | ghostbrokerai.xyz |
+| Domain | ghostbrokerai.xyz | ✅ PURCHASED + DEPLOYED | ghostbrokerai.xyz |
 
-**📈 OUTREACH READY:**
-| Asset | Location | Status |
-|-------|----------|--------|
-| 20 Agent DM Templates | `ghost-broker/outreach/agent-dms.md` | ✅ READY |
-| 10 Client DM Templates | `ghost-broker/outreach/client-dms.md` | ✅ READY |
-| Validation Tracker | `ghost-broker/tracking/` | ✅ READY |
+**📚 LEARNINGS ADDED (2026-01-30):**
+- Edit staleness: re-read files before editing
+- Upwork > Ghost Broker for urgent revenue
+- Crash recovery via active-thread.md
+- Ghost Broker = 30+ day play
+- Edit tool needs exact whitespace match
 
-**📊 30-DAY VALIDATION METRICS:**
-| Timeframe | Target | Current |
-|-----------|--------|---------|
-| Day 7 | 30 conversations | 0 |
-| Day 14 | 10 interested | 0 |
-| Day 21 | 1 deal in progress | 0 |
-| Day 30 | FIRST REVENUE | $0 |
-
-**🔄 REMAINING REGISTRATIONS:**
-| Task | Platform | Status |
-|------|----------|--------|
-| T076 | Instagram | Code expired - resend needed |
-| T077 | TikTok | Ready to register |
-| T078 | YouTube | ⏸️ BLOCKED - Gmail appeal pending |
-| T080 | ghostbrokerai.eth | Need ETH wallet |
-
-**🖼️ IMAGES GENERATED:**
-- Avatar: `ghost-broker/images/avatar.png` (glowing ghost)
-- Banner: `ghost-broker/images/banner.png` (digital hands reaching)
-
-**📜 MISSION STATEMENT:** `ghost-broker/MISSION.md`
-> "The invisible hand of the agent economy."
-> We facilitate seamless collaboration between AI agents and human opportunities.
-
-**🔐 MASTER CREDENTIALS:** `ghost-broker/credentials.md`
-- Email: ghostbrokerai@proton.me
-- GitHub: F$uels15394600!
-
-**🔄 COMPACTION CHECKPOINT:** 21:40 EST - Council complete: Upwork Direct is fastest path to cash. Ghost Broker parked (30+ day play). 6/10 platforms done. Awaiting Francisco decision on Upwork proposals.
+**🔄 COMPACTION CHECKPOINT:** 22:40 EST - Website fully deployed with legal pages. Privacy fix applied (name removed). LEARN cron done. Awaiting next task.
 
 **Standing rules:**
 - READ tasks.json at EVERY session start

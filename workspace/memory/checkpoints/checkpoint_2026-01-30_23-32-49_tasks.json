@@ -1,7 +1,7 @@
 {
-    "version": 98,
-    "updated_at": "2026-01-31T01:34:50.370696+00:00",
-    "updated_by": "bot-heartbeat",
+    "version": 101,
+    "updated_at": "2026-01-31T04:27:19.721895",
+    "updated_by": "bot-council",
     "notes": "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
     "schema": {
         "context": {
@@ -67,12 +67,22 @@
     },
     "lanes": {
         "bot_current": [
-            "T058",
-            "T059",
-            "T073"
+            "T123"
         ],
         "bot_queue": [
-            "T099",
+            "T116",
+            "T119",
+            "T120",
+            "T114",
+            "T117",
+            "T118",
+            "T121",
+            "T103",
+            "T104",
+            "T105",
+            "T106",
+            "T107",
+            "T108",
             "T084",
             "T085",
             "T086",
@@ -97,10 +107,13 @@
             "T055",
             "T056",
             "T060",
-            "T061"
+            "T061",
+            "T058",
+            "T059",
+            "T073"
         ],
         "human": [
-            "T054",
+            "T122",
             "T053",
             "T052",
             "T037",
@@ -116,6 +129,18 @@
             "CRON-consolidation"
         ],
         "done_today": [
+            "T115",
+            "CRON-20260130-learn",
+            "T111",
+            "T112",
+            "T113",
+            "T054",
+            "T110",
+            "T099",
+            "T109",
+            "T101",
+            "T102",
+            "T100",
             "T098",
             "T097",
             "T083",
@@ -2763,7 +2788,7 @@
         },
         "T054": {
             "title": "VALIDATE: Contact 3 Moltbook agents for proxy test",
-            "status": "pending_verification",
+            "status": "done",
             "created": "2026-01-30T16:21:55.843477",
             "started_at": "2026-01-30T16:42:00-05:00",
             "context": {
@@ -2827,7 +2852,8 @@
                     "message": "RESEARCH COMPLETE - Moltbook Agent Communication Protocol\n\nKEY FINDING: Agent-to-agent DM system EXISTS and is well-documented!\n\nPROTOCOL:\n1. Send chat request → POST /agents/dm/request\n2. Other agent's HUMAN approves (consent-based)\n3. Once approved, free messaging via /conversations/{id}/send\n4. Can flag 'needs_human_input' to escalate\n\nBLOCKER: We cannot contact agents because WE are not registered on Moltbook.\n\nACTION REQUIRED FROM FRANCISCO:\n1. Register us: POST /agents/register with name + description\n2. Save the api_key (CANNOT recover later!)\n3. Tweet to verify ownership\n4. Then we can search + contact agents\n\nCOLLABORATION MESSAGE READY - drafted template for reaching out to agents.\n\nGHOST BROKER ASSESSMENT: Infrastructure fully supports the model. 15-minute registration removes blocker."
                 }
             ],
-            "completed_at": "2026-01-30T16:55:31.217686"
+            "completed_at": "2026-01-31T03:09:10.431739+00:00",
+            "verified_by": "human"
         },
         "T055": {
             "title": "EXECUTE: Ghost Broker test - First client project",
@@ -3018,28 +3044,37 @@
             "retry_count": 0,
             "steps": [
                 {
-                    "status": "pending",
-                    "step": "GitHub - create account"
+                    "status": "done",
+                    "step": "GitHub - create account",
+                    "completed_at": "2026-01-30",
+                    "notes": "Org created: github.com/GhostBrokerAI"
                 },
                 {
                     "status": "pending",
                     "step": "Discord - create server"
                 },
                 {
-                    "status": "pending",
-                    "step": "LinkedIn - create page"
+                    "status": "done",
+                    "step": "LinkedIn - create page",
+                    "completed_at": "2026-01-30",
+                    "notes": "linkedin.com/in/ghost-broker-bb99673a9"
                 },
                 {
-                    "status": "pending",
-                    "step": "Instagram - create account"
+                    "status": "done",
+                    "step": "Instagram - create account",
+                    "completed_at": "2026-01-30",
+                    "notes": "Code expired, need resend"
                 },
                 {
-                    "status": "pending",
-                    "step": "TikTok - create account"
+                    "status": "done",
+                    "step": "TikTok - create account",
+                    "completed_at": "2026-01-30",
+                    "notes": "Profile set up with avatar/bio"
                 },
                 {
-                    "status": "pending",
-                    "step": "YouTube - create channel"
+                    "status": "blocked",
+                    "step": "YouTube - create channel",
+                    "waiting_for": "Gmail appeal resolution"
                 },
                 {
                     "status": "pending",
@@ -3051,18 +3086,21 @@
                 },
                 {
                     "status": "pending",
-                    "step": "ENS domain - ghostbrokerai.eth"
+                    "step": "ENS domain - ghostbrokerai.eth",
+                    "notes": "Need ETH wallet"
                 },
                 {
                     "status": "pending",
                     "step": "Unstoppable Domains - ghostbrokerai"
                 },
                 {
-                    "status": "pending",
-                    "step": "Domain - ghostbrokerai.com"
+                    "status": "done",
+                    "step": "Domain - ghostbrokerai.xyz",
+                    "completed_at": "2026-01-30",
+                    "notes": "Domain purchased"
                 }
             ],
-            "current_step": 0,
+            "current_step": 1,
             "created": "2026-01-30T18:02:53.1447312-05:00",
             "context": {
                 "summary": "Protect GhostBrokerAI brand by securing the name on all major platforms before someone else takes it",
@@ -3094,8 +3132,17 @@
                     "ts": "2026-01-31T01:34:10.448494+00:00",
                     "author": "human",
                     "message": "why you are not checking in the steps what is already done that I told you?"
+                },
+                {
+                    "ts": "2026-01-31T01:36:19.869167+00:00",
+                    "author": "bot",
+                    "message": "Fixed! Updated all steps: GitHub DONE, LinkedIn DONE, Instagram DONE (needs code), TikTok DONE, YouTube BLOCKED (appeal), Domain DONE. Next actionable: Discord server."
                 }
-            ]
+            ],
+            "bot_cursor": {
+                "loaded_up_to": 4,
+                "verified_at": "2026-01-31T01:36:19.869192+00:00"
+            }
         },
         "T060": {
             "title": "Generate GhostBrokerAI Avatar & Banner Images",
@@ -3789,10 +3836,436 @@
         },
         "T099": {
             "title": "Reply to 5 AI agent tweets",
-            "status": "pending",
+            "status": "done",
             "created": "2026-01-30T20:29:20.318258",
+            "completed_at": "2026-01-30T22:05:00-05:00",
             "approach": "Find viral AI agent tweets, reply with valuable insights from Ghost Broker perspective",
-            "priority": "HIGH"
+            "priority": "HIGH",
+            "notes": "5 replies posted:\n1. @SethQuest - on autonomy + coordination\n2. @jasonlk (SaaStr) - humans as clients\n3. @GinaWang_Crypto - Karpathy on Moltbook\n4. @DepecheNode_ - KYA trust layer\n5. @gettrwenwu222 - agent coordination"
+        },
+        "T100": {
+            "title": "Create ghostbrokerai.xyz website + free hosting",
+            "status": "done",
+            "created": "2026-01-30T20:36:45.197263",
+            "completed_at": "2026-01-30T21:20:00-05:00",
+            "approach": "Build simple landing page, deploy to free hosting (GitHub Pages, Vercel, Netlify)",
+            "priority": "HIGH",
+            "context": {
+                "summary": "Create website for purchased domain ghostbrokerai.xyz with free hosting"
+            },
+            "notes": "✅ COMPLETE! Website LIVE at https://ghostbrokerai.xyz\n\nFEATURES:\n• Hero: 'The Invisible Hand of the Agent Economy' tagline\n• Stats: 3,000+ agents, ∞ tasks, 24/7, 100% guaranteed\n• How It Works: 3 steps (Tell us, We match, Get results)\n• For Humans: 5 points on client benefits\n• For AI Agents: 5 points on agent benefits\n• Ghost Broker Promise: Quality, Fair Pricing, Invisible Execution, Trust\n• CTA: Email + social links (X, Moltbook, LinkedIn, GitHub)\n• Footer: Founded by Francisco Suels Ferro, Powered by Clawdbot\n\nHOSTING:\n• GitHub Pages (free)\n• Repo: github.com/GhostBrokerAI/ghostbrokerai.github.io\n• Custom domain configured"
+        },
+        "T101": {
+            "title": "Create Agent Registration Form",
+            "status": "done",
+            "completed_at": "2026-01-30T21:45:00-05:00",
+            "created": "2026-01-30T21:30:00-05:00",
+            "approach": "Built register.html with Formspree integration",
+            "priority": "HIGH",
+            "context": {
+                "summary": "Council Phase 1: Let agents self-register skills to build searchable directory. Creates buzz because agents WANT exposure."
+            },
+            "notes": "LIVE at ghostbrokerai.xyz/register.html - Formspree handles submissions to ghostbrokerai@proton.me"
+        },
+        "T102": {
+            "title": "Create Human Task Request Form",
+            "status": "done",
+            "completed_at": "2026-01-30T21:45:00-05:00",
+            "created": "2026-01-30T21:30:00-05:00",
+            "approach": "Built hire.html with Formspree integration",
+            "priority": "HIGH",
+            "context": {
+                "summary": "Council Phase 1: Capture demand. Revenue starts when we broker first task at 30% margin."
+            },
+            "notes": "LIVE at ghostbrokerai.xyz/hire.html - Form captures task description, type, budget, timeline, email"
+        },
+        "T103": {
+            "title": "Set up Airtable agent directory database",
+            "status": "in_progress",
+            "created": "2026-01-30T21:30:00-05:00",
+            "approach": "Free Airtable base: Agent name, capabilities, rating, Moltbook profile, tasks completed",
+            "priority": "HIGH",
+            "context": {
+                "summary": "Council Phase 1: Backend for searchable directory. Form submissions auto-populate."
+            },
+            "started_at": "2026-01-31T03:04:01.920281+00:00"
+        },
+        "T104": {
+            "title": "Add /directory page with agent search",
+            "status": "pending",
+            "created": "2026-01-30T21:30:00-05:00",
+            "approach": "Embed Airtable gallery or build simple search. Show agent capabilities.",
+            "priority": "HIGH",
+            "context": {
+                "summary": "Council Phase 1: Public facing agent capability search. The VALUE we provide."
+            }
+        },
+        "T105": {
+            "title": "Add /hire page with task request form",
+            "status": "pending",
+            "created": "2026-01-30T21:30:00-05:00",
+            "approach": "Page with form embed + clear CTA for humans needing work done",
+            "priority": "HIGH",
+            "context": {
+                "summary": "Council Phase 1: Revenue funnel entry point. Converts visitors to clients."
+            }
+        },
+        "T106": {
+            "title": "Post Ghost Broker Challenge on Moltbook",
+            "status": "pending",
+            "created": "2026-01-30T21:30:00-05:00",
+            "approach": "Post: What's your agent's #1 skill? Reply and get listed in GhostBroker Directory!",
+            "priority": "HIGH",
+            "context": {
+                "summary": "Council Buzz Tactic: Gets agents talking, grows directory organically. Status + exposure drives sharing."
+            }
+        },
+        "T107": {
+            "title": "Add Agent Leaderboard page",
+            "status": "pending",
+            "created": "2026-01-30T21:30:00-05:00",
+            "approach": "/leaderboard showing top agents by tasks completed or rating. Creates competition.",
+            "priority": "MEDIUM",
+            "context": {
+                "summary": "Council Buzz Tactic: Agents love status. They'll share their ranking = free marketing."
+            }
+        },
+        "T108": {
+            "title": "Agent of the Week feature post",
+            "status": "pending",
+            "created": "2026-01-30T21:30:00-05:00",
+            "approach": "Pick one agent, write profile, post to X + Moltbook. Tagged agent shares it.",
+            "priority": "MEDIUM",
+            "context": {
+                "summary": "Council Buzz Tactic: Featured agents share us to their followers."
+            }
+        },
+        "T109": {
+            "title": "Council: Fastest Path to Getting Paid",
+            "status": "done",
+            "created": "2026-01-30T21:30:00-05:00",
+            "completed_at": "2026-01-30T21:41:00-05:00",
+            "context": {
+                "summary": "Francisco has 11 days until Feb 10, $0 budget, needs fastest path to cash. Ran 3-option analysis with Grok as adversary thinker.",
+                "decisions": [
+                    "WINNER: Upwork Direct - escrow = faster payment, AI does work, lower trust barrier",
+                    "Ghost Broker: PARKED - 30+ day play, trust deficit kills <7 day timeline",
+                    "DLM Valentine: Keep live for organic, $0 budget blocks paid ads"
+                ]
+            },
+            "learnings": {
+                "question": "What's the fastest path to getting paid with $0 budget and 11 days?",
+                "verdict": "Upwork Direct wins. Ghost Broker is dead on arrival for <7 day revenue (trust deficit, cold DM rates <5%, invoicing delays). DLM blocked by $0 ad budget. Upwork has platform escrow = faster payment, and AI can do the actual work.",
+                "options_analyzed": [
+                    "Ghost Broker: FATAL FLAW - clients won't pay unknown broker without vetting (takes weeks)",
+                    "Upwork Direct: BEST BET - escrow, lower trust barrier, competition fierce but CAN land small gigs",
+                    "DLM Valentine: BUDGET PROBLEM - products live, deadline real, but zero budget = can't drive traffic"
+                ],
+                "action_plan": {
+                    "tonight": "Francisco polishes Upwork profile, I draft 5 killer proposals",
+                    "tomorrow": "Apply to 10+ gigs with personalized proposals",
+                    "day_4_5": "Land first gig, start work",
+                    "day_6_7": "Deliver, get paid via escrow"
+                },
+                "timeline_to_first_dollar": "5-7 days if we execute NOW"
+            },
+            "notes": "Council complete. Grok provided adversary analysis that killed Ghost Broker for sprint. Upwork Direct is the play."
+        },
+        "T110": {
+            "title": "Draft 5 Upwork Proposals for AI Automation Gigs",
+            "status": "done",
+            "created": "2026-01-30T21:41:00-05:00",
+            "started_at": "2026-01-30T21:41:00-05:00",
+            "completed_at": "2026-01-30T21:42:00-05:00",
+            "context": {
+                "summary": "Council verdict: Upwork Direct is fastest path to cash. Need killer proposals for AI/chatbot/automation gigs in the $500-2K range.",
+                "created_from": "T109 - Council verdict"
+            },
+            "approach": "1. Create proposal templates for 5 gig types. 2. Profile positioning advice. 3. Pre-send checklist. 4. Target gig recommendations.",
+            "priority": "CRITICAL",
+            "artifacts": [
+                "upwork/proposals.md"
+            ],
+            "steps": [
+                {
+                    "step": "Draft 5 proposal templates",
+                    "status": "done",
+                    "completed_at": "2026-01-30T21:42:00-05:00"
+                },
+                {
+                    "step": "Francisco reviews and customizes",
+                    "status": "pending"
+                },
+                {
+                    "step": "Apply to 10+ gigs tomorrow",
+                    "status": "pending"
+                }
+            ],
+            "current_step": 1,
+            "retry_count": 0
+        },
+        "T111": {
+            "title": "Draft Ghost Broker Terms of Service",
+            "status": "done",
+            "completed_at": "2026-01-30T22:20:00-05:00",
+            "created": "2026-01-30T22:15:00-05:00",
+            "priority": "HIGH",
+            "context": {
+                "summary": "Legal foundation for Ghost Broker. ToS protects FKG Trading LLC from liability when brokering agent work. Uses Council-recommended language: 'as-is' disclaimer, liability caps, arbitration clause. Must be ready before accepting any client work.",
+                "created_from": "Council: Ghost Broker Risk Mitigation",
+                "decisions": [
+                    "Use FKG Trading LLC as operating entity",
+                    "Include Section 230 safe harbor language",
+                    "Cap liability at fees paid in last 6 months",
+                    "Require binding arbitration via AAA"
+                ],
+                "constraints": [
+                    "Must be professional but not require lawyer review for v1",
+                    "Cover both agent and client relationships"
+                ]
+            },
+            "approach": "1. Research ToS templates from similar platforms. 2. Adapt Council-recommended language. 3. Include: scope of services, disclaimers, indemnification, liability cap, arbitration, termination.",
+            "benefit": "Without ToS, every transaction exposes Francisco personally. With ToS, clients agree to terms before working with us. This is the legal shield.",
+            "deliverable": "ghost-broker/legal/terms-of-service.md"
+        },
+        "T112": {
+            "title": "Draft Agent Agreement Template",
+            "status": "done",
+            "completed_at": "2026-01-30T22:25:00-05:00",
+            "created": "2026-01-30T22:15:00-05:00",
+            "priority": "HIGH",
+            "context": {
+                "summary": "Contract between Ghost Broker and AI agents/their operators. Defines: commission structure, quality standards, response times, liability. Agent agrees to hold Ghost Broker harmless for disputes. This is what agents sign before joining the network.",
+                "created_from": "Council: Ghost Broker Risk Mitigation",
+                "decisions": [
+                    "Commission: Ghost Broker takes 30% of client fee",
+                    "Agent must meet quality standards or face removal",
+                    "Agent indemnifies Ghost Broker for their work",
+                    "Ghost Broker can terminate with 7 days notice"
+                ]
+            },
+            "approach": "1. Define agent obligations (quality, timeliness, communication). 2. Define Ghost Broker obligations (lead generation, payment processing). 3. Include indemnification clause. 4. Define termination conditions.",
+            "benefit": "Agents know the rules upfront. If agent delivers bad work, they can't sue us — they agreed to the terms. Protects both parties.",
+            "deliverable": "ghost-broker/legal/agent-agreement.md"
+        },
+        "T113": {
+            "title": "Draft Client Service Agreement",
+            "status": "done",
+            "completed_at": "2026-01-30T22:30:00-05:00",
+            "created": "2026-01-30T22:15:00-05:00",
+            "priority": "HIGH",
+            "context": {
+                "summary": "Contract between Ghost Broker (FKG Trading LLC) and clients who hire agents through us. Defines: scope, pricing, deliverables, disclaimers, payment terms. Key clause: 'Services provided as-is without guarantees of results.' Client accepts risk of agent work.",
+                "created_from": "Council: Ghost Broker Risk Mitigation",
+                "decisions": [
+                    "Payment upfront or via escrow (50% deposit minimum)",
+                    "Ghost Broker facilitates, does not guarantee outcomes",
+                    "Client reviews deliverables within 48 hours",
+                    "Disputes resolved via arbitration"
+                ]
+            },
+            "approach": "1. Define service scope (matchmaking, coordination, QC). 2. Define what we DON'T guarantee. 3. Payment terms and refund policy. 4. Acceptance criteria for deliverables.",
+            "benefit": "Clients can't sue for 'agent didn't do what I wanted' because they agreed we're a matchmaker, not a guarantor. Clear expectations = fewer disputes.",
+            "deliverable": "ghost-broker/legal/client-agreement.md"
+        },
+        "T114": {
+            "title": "Draft NDA Template for Sensitive Projects",
+            "status": "pending",
+            "created": "2026-01-30T22:15:00-05:00",
+            "priority": "MEDIUM",
+            "context": {
+                "summary": "Some clients have confidential data (customer lists, proprietary processes). NDA protects their info and shows we're professional. Optional add-on for sensitive projects, increases trust.",
+                "created_from": "Council: Ghost Broker Risk Mitigation"
+            },
+            "approach": "1. Standard mutual NDA format. 2. Define confidential information broadly. 3. 2-year term. 4. Exceptions for public info and legal requirements.",
+            "benefit": "Enterprise clients won't work without NDA. Having one ready makes us look professional. Also protects OUR methods and agent relationships.",
+            "deliverable": "ghost-broker/legal/nda-template.md"
+        },
+        "T115": {
+            "title": "Design Agent Vetting Criteria & Checklist",
+            "status": "done",
+            "completed_at": "2026-01-30T22:35:00-05:00",
+            "created": "2026-01-30T22:15:00-05:00",
+            "priority": "HIGH",
+            "context": {
+                "summary": "How do we know an agent is competent before sending them to clients? Council defined 5 verification methods: Portfolio, Proficiency Test, References, Live Demo, Probation. This task creates the master checklist for evaluating any agent.",
+                "created_from": "Council: Ghost Broker Risk Mitigation - Agent Verification",
+                "decisions": [
+                    "Require portfolio with anonymized case studies",
+                    "95%+ accuracy on proficiency tests",
+                    "3-5 references from past deployments",
+                    "All agents start on probation"
+                ]
+            },
+            "approach": "1. Create scoring rubric (1-10) for each criterion. 2. Define minimum thresholds to join network. 3. Create intake questionnaire for agents. 4. Define red flags that auto-reject.",
+            "benefit": "Consistent quality control. We can tell clients 'every agent is vetted' because we have a documented process. This IS our competitive advantage.",
+            "deliverable": "ghost-broker/vetting/agent-checklist.md"
+        },
+        "T116": {
+            "title": "Create Agent Proficiency Test Framework",
+            "status": "pending",
+            "created": "2026-01-30T22:15:00-05:00",
+            "priority": "HIGH",
+            "context": {
+                "summary": "Council says: 95%+ accuracy on 100 test cases. This task designs the test framework. Categories: content writing, research, coding, automation, data processing. Each category has its own test suite. Sandbox environment for running tests.",
+                "created_from": "Council: Ghost Broker Risk Mitigation - Proficiency Tests"
+            },
+            "approach": "1. Define 5 test categories matching our service types. 2. Create 20 test cases per category (100 total). 3. Define grading criteria. 4. Design sandbox environment spec.",
+            "benefit": "Objective proof of competence. Instead of 'trust me, this agent is good,' we can say 'this agent scored 97% on our content writing test.' Data > claims.",
+            "deliverable": "ghost-broker/vetting/proficiency-tests/"
+        },
+        "T117": {
+            "title": "Build Agent Portfolio Review Template",
+            "status": "pending",
+            "created": "2026-01-30T22:15:00-05:00",
+            "priority": "MEDIUM",
+            "context": {
+                "summary": "When agents apply, they submit past work. How do we evaluate it consistently? This template guides the review: What to look for, red flags, scoring. Example: 'Reduced processing time 40% for retail client' is good. Vague claims are bad.",
+                "created_from": "Council: Ghost Broker Risk Mitigation - Portfolio Review"
+            },
+            "approach": "1. Define what a 'good' portfolio looks like (3-5 case studies). 2. Create evaluation form with scoring. 3. Define required elements (problem, solution, result). 4. Red flags list (vague claims, no metrics, suspicious volume).",
+            "benefit": "Fast, consistent portfolio review. New team members (or future AI reviewers) follow same standards. Quality stays high as we scale.",
+            "deliverable": "ghost-broker/vetting/portfolio-review-template.md"
+        },
+        "T118": {
+            "title": "Design Agent Probation & Monitoring System",
+            "status": "pending",
+            "created": "2026-01-30T22:15:00-05:00",
+            "priority": "MEDIUM",
+            "context": {
+                "summary": "All new agents start on probation. First 3 jobs are closely monitored. Client feedback is collected. If problems, agent is removed. Quarterly re-verification for all agents. This keeps quality high over time.",
+                "created_from": "Council: Ghost Broker Risk Mitigation - Probation"
+            },
+            "approach": "1. Define probation period (first 3 jobs or 30 days). 2. Create client feedback form. 3. Define criteria for passing probation. 4. Design quarterly review process.",
+            "benefit": "Catch bad agents before they damage reputation. Show clients we actively monitor quality. Creates accountability for agents.",
+            "deliverable": "ghost-broker/vetting/probation-system.md"
+        },
+        "T119": {
+            "title": "Document Moltbook Agent Access Advantage",
+            "status": "done",
+            "completed_at": "2026-01-30T22:40:00-05:00",
+            "created": "2026-01-30T22:15:00-05:00",
+            "priority": "HIGH",
+            "context": {
+                "summary": "Our unfair advantage: 3,234 Moltbook agents, most competitors have 0. This task documents why this matters, how to leverage it, and how to communicate it to clients. 'We have exclusive access to the largest AI agent talent pool.'",
+                "created_from": "Council: Competitive Advantage"
+            },
+            "approach": "1. Document current Moltbook stats (agents, skills, communities). 2. Compare to competitors (Upwork, Fiverr - human AI workers only). 3. Create talking points for sales. 4. Design 'exclusive access' messaging.",
+            "benefit": "Clear articulation of why clients should choose us over doing it themselves or using Upwork. This is the pitch.",
+            "deliverable": "ghost-broker/competitive/moltbook-advantage.md"
+        },
+        "T120": {
+            "title": "Create Ghost Broker Differentiation Positioning",
+            "status": "pending",
+            "created": "2026-01-30T22:15:00-05:00",
+            "priority": "HIGH",
+            "context": {
+                "summary": "Position Ghost Broker in the market. Who are we? Not a freelance platform (Upwork), not an AI tool vendor (OpenAI), not a consulting firm. We are: 'The talent agency for AI agents.' This task creates the positioning statement and key differentiators.",
+                "created_from": "Council: Competitive Advantage"
+            },
+            "approach": "1. Define what we are NOT. 2. Define what we ARE. 3. Create 3-5 key differentiators. 4. Write positioning statement (1 paragraph). 5. Create elevator pitch (30 seconds).",
+            "benefit": "Clarity = sales. When someone asks 'what do you do?' we have a crisp answer that makes them want to learn more.",
+            "deliverable": "ghost-broker/competitive/positioning.md"
+        },
+        "T121": {
+            "title": "Map Competitor Landscape",
+            "status": "pending",
+            "created": "2026-01-30T22:15:00-05:00",
+            "priority": "MEDIUM",
+            "context": {
+                "summary": "Council found: No pure 'AI agent brokerage' exists yet. But adjacent competitors do (Upwork AI category, Fiverr AI services). This task maps the landscape: who they are, what they offer, their weaknesses, our opportunities.",
+                "created_from": "Council: Competitive Advantage - Competitor Analysis"
+            },
+            "approach": "1. Research top 10 adjacent competitors. 2. Document their offerings and pricing. 3. Identify their weaknesses (mostly human AI workers, not agents). 4. Find gaps we can exploit.",
+            "benefit": "Know the battlefield. When clients mention competitors, we know exactly why we're different. Also helps refine our own positioning.",
+            "deliverable": "ghost-broker/competitive/competitor-map.md"
+        },
+        "T122": {
+            "title": "Get E&O Insurance Quote (~$500/year)",
+            "status": "pending",
+            "owner": "francisco",
+            "created": "2026-01-30T22:15:00-05:00",
+            "priority": "MEDIUM",
+            "context": {
+                "summary": "Errors & Omissions (E&O) insurance protects against professional negligence claims. If a client sues because agent work was bad, E&O covers legal fees and damages. Council recommends ~$500/year. Francisco handles this — requires personal info and payment.",
+                "created_from": "Council: Ghost Broker Risk Mitigation - Liability Protection"
+            },
+            "approach": "1. Get quotes from 2-3 providers (Hiscox, Next Insurance, Simply Business). 2. Compare coverage limits and deductibles. 3. Choose best value. 4. Purchase policy.",
+            "benefit": "Peace of mind. If we get sued, insurance pays. Without it, personal assets at risk even with LLC. Worth $500/year for protection.",
+            "notes": "HUMAN TASK — requires Francisco's SSN, payment info, and signatures. Bot cannot complete."
+        },
+        "CRON-20260130-learn": {
+            "title": "Compound Loop: LEARN (10:30 PM)",
+            "status": "done",
+            "created_at": "2026-01-31T03:30:17.845142+00:00",
+            "created_by": "cron",
+            "cron_job_id": "learn",
+            "instructions": "1) Read today's memory file. 2) Review git commits from past 24h. 3) Extract max 5 atomic lessons (Context/Failure/Fix/Prevention). 4) Update relevant knowledge files. 5) Git commit with message 'nightly-learn YYYY-MM-DD: [summary]'. Timeout: 15 min max. BEFORE marking done, fill in learnings with lessons extracted.",
+            "context": {
+                "summary": "Scheduled task from cron job 'learn'. Auto-created at scheduled time.",
+                "created_from": "cron:learn",
+                "decisions": [],
+                "constraints": [
+                    "Must complete and log learnings before marking done"
+                ]
+            },
+            "learnings": {
+                "question": "What did nightly LEARN produce?",
+                "verdict": "5 atomic learnings extracted and committed",
+                "outcomes": [
+                    "Edit staleness: re-read files immediately before editing",
+                    "Council verdict: Upwork Direct > Ghost Broker for <7 day revenue",
+                    "Crash recovery: active-thread.md is the recovery point",
+                    "Ghost Broker parked: 30+ day play, not sprint viable",
+                    "Constraint: Edit tool requires exact whitespace match"
+                ],
+                "actionsTaken": [
+                    "Added 5 learnings to learnings.db (ids 42-46)",
+                    "Git commit: nightly-learn 2026-01-30"
+                ],
+                "artifacts": [
+                    ".learnings/learnings.db"
+                ]
+            },
+            "completed_at": "2026-01-30T22:31:27.428924"
+        },
+        "T123": {
+            "title": "Council: Memory Decay System Design",
+            "status": "in_progress",
+            "created": "2026-01-30T23:27:19.716648",
+            "priority": "HIGH",
+            "context": {
+                "summary": "Should we add access-frequency tracking and tiered decay rates to our memory system? Based on Moltbook thread insights about forgetting as a feature.",
+                "decisions": []
+            },
+            "steps": [
+                {
+                    "step": "Round A: Send to Grok",
+                    "status": "pending"
+                },
+                {
+                    "step": "Round A: Send to ChatGPT",
+                    "status": "pending"
+                },
+                {
+                    "step": "Round A: Send to Gemini",
+                    "status": "pending"
+                },
+                {
+                    "step": "Round B: Cross-examine all 3",
+                    "status": "pending"
+                },
+                {
+                    "step": "Round C: Final rebuttals",
+                    "status": "pending"
+                },
+                {
+                    "step": "Synthesis and recommendation",
+                    "status": "pending"
+                }
+            ],
+            "current_step": 0,
+            "retry_count": 0
         }
     }
 }

@@ -1,28 +1,21 @@
 {
-  "version": 87,
-  "updated_at": "2026-01-31T03:15:00Z",
-  "current_task": {
-    "id": "T111",
-    "title": "Draft Ghost Broker Terms of Service",
-    "status": "in_progress"
+  "version": 89,
+  "updated_at": "2026-01-30T23:34:42.779755",
+  "current_task": "IDLE - Council T123 complete",
+  "status": "Council Memory Decay complete. Verdict: pin + recency sort (is_pinned DESC, last_accessed DESC). Ghost Broker PARKED per earlier Council.",
+  "context": "Ran 3-round Council on memory decay. Grok attacked all proposals. Gemini provided pragmatic 80% solution. Final verdict: simple two-column sort beats complex decay.",
+  "next_step": "Await Francisco direction or check bot_queue for next priority",
+  "council_verdict": {
+    "question": "Should we add access-frequency tracking and tiered decay?",
+    "answer": "Use pin + recency sort. Skip complex decay.",
+    "implementation": "ORDER BY is_pinned DESC, last_accessed DESC",
+    "effort": "1 hour",
+    "skip": [
+      "tiered decay",
+      "access counting",
+      "frequency weighting"
+    ]
   },
-  "context": "Francisco approved Ghost Broker foundation work using FKG Trading LLC. Created 12 new tasks: 4 contracts, 4 vetting, 3 competitive advantage, 1 insurance (human). Now drafting ToS.",
-  "next_step": "Draft Terms of Service with Council-recommended language",
-  "completed_today": [
-    "T081 - 20 Agent Outreach DMs created",
-    "T082 - 10 Client Outreach DMs created",
-    "T083 - Validation Tracking Spreadsheet created",
-    "First tweet posted on @GhostBrokerAI",
-    "ghostbrokerai.xyz domain purchased",
-    "T109 - Council: Fastest Path to Cash (Verdict: Upwork Direct)",
-    "T110 - 5 Upwork proposal templates",
-    "T099 - 5 engagement replies on AI agent tweets"
-  ],
-  "blockers": [],
-  "new_tasks_created": {
-    "contracts": ["T111 ToS", "T112 Agent Agreement", "T113 Client Agreement", "T114 NDA"],
-    "vetting": ["T115 Checklist", "T116 Proficiency Tests", "T117 Portfolio Review", "T118 Probation"],
-    "competitive": ["T119 Moltbook Advantage", "T120 Positioning", "T121 Competitor Map"],
-    "human": ["T122 E&O Insurance"]
-  }
+  "ghost_broker": "PARKED - 30+ day play, website deployed at ghostbrokerai.xyz",
+  "deadline": "10 days until Feb 10 Valentine cutoff"
 }
