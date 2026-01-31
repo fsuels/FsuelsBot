@@ -541,6 +541,43 @@ body {
 }
 
 /* Done Section */
+/* Know Me Game Section */
+.knowme-section {
+  background: rgba(13, 17, 23, 0.5);
+  border: 1px solid rgba(251,191,36,0.2);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+.knowme-content.collapsed { display: none; }
+.cat-btn {
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  color: #c9d1d9;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.cat-btn:hover {
+  background: rgba(139,92,246,0.2);
+  border-color: rgba(139,92,246,0.4);
+  color: #a78bfa;
+}
+.qa-history-item {
+  padding: 10px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+.qa-history-item .category { color: #a78bfa; font-size: 10px; text-transform: uppercase; }
+.qa-history-item .question { color: #c9d1d9; margin: 4px 0; }
+.qa-history-item .prediction { color: #fbbf24; font-size: 11px; }
+.qa-history-item .answer { color: #3fb950; font-size: 11px; margin-top: 4px; }
+.qa-history-item .score { color: #f472b6; font-size: 11px; }
+
 /* Predictions Section */
 .predictions-section {
   background: rgba(13, 17, 23, 0.5);
@@ -1061,6 +1098,60 @@ body {
       </div>
     </div>
     <div class="done-grid collapsed" id="doneTasks"></div>
+  </div>
+
+  <!-- Know Me Game -->
+  <div class="knowme-section" id="knowmeSection">
+    <div class="lane-header" onclick="toggleKnowMe()" style="cursor:pointer;">
+      <span class="lane-title">🎮 Know Me Game</span>
+      <span id="knowmeToggle" style="font-size:11px;color:#8b949e;">▼ Show</span>
+    </div>
+    <div class="knowme-content collapsed" id="knowmeContent">
+      <div style="padding:12px;background:rgba(139,92,246,0.08);border-radius:10px;margin-bottom:12px;">
+        <div style="font-size:12px;color:#c9d1d9;margin-bottom:10px;">Choose a category and I'll create a scenario:</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;" id="categoryButtons">
+          <button class="cat-btn" onclick="getScenario('decisions')">🧠 Decisions</button>
+          <button class="cat-btn" onclick="getScenario('values')">❤️ Values</button>
+          <button class="cat-btn" onclick="getScenario('reactions')">😤 Reactions</button>
+          <button class="cat-btn" onclick="getScenario('preferences')">🎯 Preferences</button>
+          <button class="cat-btn" onclick="getScenario('family')">👨‍👩‍👧‍👦 Family</button>
+          <button class="cat-btn" onclick="getScenario('business')">💼 Business</button>
+          <button class="cat-btn" onclick="getScenario('fun')">🎮 Fun</button>
+          <button class="cat-btn" onclick="getScenario('past')">📖 Past</button>
+          <button class="cat-btn" onclick="getScenario('future')">🔮 Future</button>
+        </div>
+      </div>
+      
+      <div id="currentScenario" style="display:none;padding:14px;background:rgba(0,0,0,0.3);border-radius:10px;margin-bottom:12px;">
+        <div style="font-size:10px;color:#a78bfa;text-transform:uppercase;margin-bottom:6px;">Current Scenario</div>
+        <div id="scenarioText" style="font-size:14px;color:#e6edf3;line-height:1.5;margin-bottom:10px;"></div>
+        <div id="botPrediction" style="font-size:12px;color:#fbbf24;margin-bottom:12px;padding:8px;background:rgba(251,191,36,0.1);border-radius:6px;"></div>
+        <div style="margin-bottom:10px;">
+          <div style="font-size:11px;color:#8b949e;margin-bottom:6px;">Your answer:</div>
+          <textarea id="userAnswer" placeholder="What would you actually do/say?" style="width:100%;padding:10px;font-size:13px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#c9d1d9;min-height:60px;resize:vertical;"></textarea>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+          <span style="font-size:11px;color:#8b949e;">Score my prediction:</span>
+          <div style="display:flex;gap:4px;">
+            <button class="score-btn rating" onclick="selectQAScore(1)">1</button>
+            <button class="score-btn rating" onclick="selectQAScore(2)">2</button>
+            <button class="score-btn rating" onclick="selectQAScore(3)">3</button>
+            <button class="score-btn rating" onclick="selectQAScore(4)">4</button>
+            <button class="score-btn rating" onclick="selectQAScore(5)">5</button>
+          </div>
+          <span id="selectedScore" style="font-size:12px;color:#a78bfa;"></span>
+        </div>
+        <button onclick="submitQAResponse()" style="width:100%;padding:10px;background:rgba(139,92,246,0.3);border:1px solid rgba(139,92,246,0.5);border-radius:6px;color:#fff;font-weight:600;cursor:pointer;">Submit & Next</button>
+      </div>
+      
+      <div style="padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <span style="font-size:12px;color:#8b949e;font-weight:600;">📜 Q&A History</span>
+          <span style="font-size:11px;color:#6e7681;" id="qaCount">0 rounds played</span>
+        </div>
+        <div id="qaHistory" style="max-height:200px;overflow-y:auto;"></div>
+      </div>
+    </div>
   </div>
 
   <!-- Predictions (Reinforcement Learning) -->
@@ -1660,6 +1751,118 @@ function toggleDone() {
   } else {
     grid.classList.add('collapsed');
     toggle.textContent = '▼ Show';
+  }
+}
+
+// === KNOW ME GAME ===
+let currentQAScore = null;
+let currentScenarioData = null;
+
+function toggleKnowMe() {
+  const content = document.getElementById('knowmeContent');
+  const toggle = document.getElementById('knowmeToggle');
+  if (content.classList.contains('collapsed')) {
+    content.classList.remove('collapsed');
+    toggle.textContent = '▲ Hide';
+    loadQAHistory();
+  } else {
+    content.classList.add('collapsed');
+    toggle.textContent = '▼ Show';
+  }
+}
+
+async function getScenario(category) {
+  document.getElementById('currentScenario').style.display = 'block';
+  document.getElementById('scenarioText').innerHTML = '<em>Loading scenario...</em>';
+  document.getElementById('botPrediction').innerHTML = '';
+  
+  try {
+    const resp = await fetch('/api/generate-scenario', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({category})
+    });
+    const data = await resp.json();
+    if (data.scenario) {
+      currentScenarioData = data;
+      document.getElementById('scenarioText').innerHTML = data.scenario;
+      document.getElementById('botPrediction').innerHTML = '🤖 <strong>My prediction:</strong> ' + data.prediction;
+    }
+  } catch (e) {
+    document.getElementById('scenarioText').innerHTML = '<em style="color:#f87171;">Failed to load scenario. Try again.</em>';
+  }
+}
+
+function selectQAScore(score) {
+  currentQAScore = score;
+  document.querySelectorAll('#currentScenario .score-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', i + 1 === score);
+  });
+  document.getElementById('selectedScore').textContent = score + '/5';
+}
+
+async function submitQAResponse() {
+  const answer = document.getElementById('userAnswer').value.trim();
+  if (!answer) { alert('Please enter your answer'); return; }
+  if (!currentQAScore) { alert('Please select a score 1-5'); return; }
+  if (!currentScenarioData) { alert('No scenario loaded'); return; }
+  
+  try {
+    const resp = await fetch('/api/submit-qa', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        category: currentScenarioData.category,
+        scenario: currentScenarioData.scenario,
+        prediction: currentScenarioData.prediction,
+        answer: answer,
+        score: currentQAScore
+      })
+    });
+    const result = await resp.json();
+    if (result.ok) {
+      // Reset form
+      document.getElementById('userAnswer').value = '';
+      currentQAScore = null;
+      document.querySelectorAll('#currentScenario .score-btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById('selectedScore').textContent = '';
+      document.getElementById('currentScenario').style.display = 'none';
+      loadQAHistory();
+    }
+  } catch (e) {
+    alert('Failed to submit. Try again.');
+  }
+}
+
+async function loadQAHistory() {
+  try {
+    const resp = await fetch('/api/qa-history?' + Date.now());
+    const data = await resp.json();
+    const entries = data.entries || [];
+    
+    document.getElementById('qaCount').textContent = entries.length + ' rounds played';
+    
+    if (entries.length === 0) {
+      document.getElementById('qaHistory').innerHTML = '<div style="color:#6e7681;font-size:11px;padding:8px;">No rounds yet. Pick a category above!</div>';
+      return;
+    }
+    
+    let html = '';
+    for (const e of entries.slice(0, 20)) {
+      const stars = '★'.repeat(e.score || 0) + '☆'.repeat(5 - (e.score || 0));
+      html += `
+        <div class="qa-history-item">
+          <div class="category">${e.category || 'general'}</div>
+          <div class="question">${e.scenario || ''}</div>
+          <div class="prediction">🤖 Predicted: ${e.prediction || ''}</div>
+          <div class="answer">✅ You said: ${e.answer || ''}</div>
+          <div class="score">Score: ${stars}</div>
+        </div>
+      `;
+    }
+    document.getElementById('qaHistory').innerHTML = html;
+  } catch (e) {
+    document.getElementById('qaHistory').innerHTML = '<div style="color:#f87171;">Failed to load history</div>';
   }
 }
 

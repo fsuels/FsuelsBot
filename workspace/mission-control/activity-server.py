@@ -1300,6 +1300,109 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": str(e)}).encode())
                 return
         
+        if path == '/api/generate-scenario':
+            # Generate a Know Me scenario
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            try:
+                data = json.loads(body) if body else {}
+            except:
+                data = {}
+            
+            category = data.get('category', 'general')
+            
+            # Scenario templates by category
+            scenarios = {
+                'decisions': [
+                    {"scenario": "You find a $100 bill on the ground at the gym. No one's around. What do you do?", "prediction": "You'd turn it in to the front desk - honesty matters to you."},
+                    {"scenario": "A client offers double your rate but wants you to work on something you find boring. Do you take it?", "prediction": "You'd take it - money is tight and practical needs come first."},
+                    {"scenario": "Giselle wants to skip tennis practice for a friend's party. Karina says no, Giselle asks you to override. What do you do?", "prediction": "You back Karina - you two stay united in front of the kids."},
+                ],
+                'values': [
+                    {"scenario": "What matters more: being respected or being liked?", "prediction": "Respected. You value competence and results over popularity."},
+                    {"scenario": "If you could only teach your daughters ONE life lesson, what would it be?", "prediction": "Work ethic and self-reliance - do things yourself, don't depend on others."},
+                    {"scenario": "Wealth vs Freedom vs Family time - rank them.", "prediction": "Family > Freedom > Wealth. But you see wealth as enabling the other two."},
+                ],
+                'reactions': [
+                    {"scenario": "Someone cuts you off in traffic. What's your reaction?", "prediction": "Brief frustration, maybe a comment, but you let it go quickly. Not worth the energy."},
+                    {"scenario": "I make the same mistake twice. How do you feel?", "prediction": "Disappointed but patient - as long as I show I'm learning and improving."},
+                    {"scenario": "A friend asks to borrow $500 and you know they might not pay it back. Your reaction?", "prediction": "You'd find a way to say no diplomatically, or only lend what you can afford to lose."},
+                ],
+                'preferences': [
+                    {"scenario": "Morning person or night owl?", "prediction": "Morning person - you hit the gym, get things done early."},
+                    {"scenario": "Beach vacation or mountain adventure?", "prediction": "Beach - you grew up in Venezuela near the coast, it's in your blood."},
+                    {"scenario": "Cook at home or eat out?", "prediction": "Eat out when possible - you'd rather spend time on business than cooking."},
+                ],
+                'family': [
+                    {"scenario": "Giselle comes home with a B+ when she usually gets A's. Your response?", "prediction": "You'd ask what happened, encourage her, but not make it a big deal. One grade doesn't define her."},
+                    {"scenario": "Amanda wants a pet. Karina says no. Amanda asks you. What do you say?", "prediction": "You side with Karina publicly, but might privately advocate for Amanda if you think it'd be good for her."},
+                    {"scenario": "It's your anniversary. Big fancy dinner or quiet night in?", "prediction": "Quiet night or simple dinner out - you're not flashy about romance."},
+                ],
+                'business': [
+                    {"scenario": "You can either make $1000 guaranteed or flip a coin for $3000 or nothing. Which do you pick?", "prediction": "The guaranteed $1000 - you've been burned before and prefer certainty now."},
+                    {"scenario": "An investor offers $50K for 30% of Ghost Broker. Do you take it?", "prediction": "No - you'd rather grow slow and own 100% than give up control."},
+                    {"scenario": "DLM gets a sudden spike in orders but you're deep in Ghost Broker work. What do you prioritize?", "prediction": "DLM - real revenue beats potential revenue. You handle what's paying first."},
+                ],
+                'fun': [
+                    {"scenario": "You can have dinner with anyone alive. Who?", "prediction": "Elon Musk - you admire builders who think big and execute."},
+                    {"scenario": "Superpower: flight or invisibility?", "prediction": "Invisibility - you value observing without being noticed."},
+                    {"scenario": "Last meal on Earth - what is it?", "prediction": "Something Venezuelan - arepas or pabellón criollo. Taste of home."},
+                ],
+                'past': [
+                    {"scenario": "What's a moment you're most proud of?", "prediction": "Building a business that hit $500K revenue on your own, with no employees."},
+                    {"scenario": "A decision you regret?", "prediction": "The crypto investment that cost you $150K. Still stings."},
+                    {"scenario": "Best advice you ever received?", "prediction": "Something your parents told you about self-reliance or working hard."},
+                ],
+                'future': [
+                    {"scenario": "Where do you see yourself in 5 years?", "prediction": "Multiple income streams running semi-automated, more time with family, financial stress gone."},
+                    {"scenario": "What's your biggest fear for your daughters?", "prediction": "That they won't develop the same work ethic and self-reliance you have."},
+                    {"scenario": "If Ghost Broker fails completely, what do you do next?", "prediction": "Dust off, learn the lesson, try something else. You don't stay down long."},
+                ],
+            }
+            
+            import random
+            cat_scenarios = scenarios.get(category, scenarios['fun'])
+            chosen = random.choice(cat_scenarios)
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({
+                "category": category,
+                "scenario": chosen["scenario"],
+                "prediction": chosen["prediction"]
+            }).encode())
+            return
+
+        if path == '/api/submit-qa':
+            # Save Q&A response
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            try:
+                data = json.loads(body) if body else {}
+            except:
+                data = {}
+            
+            qa_file = os.path.join(WORKSPACE_DIR, "memory", "francisco-qa.jsonl")
+            entry = {
+                "date": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                "time": datetime.now(timezone.utc).strftime("%H:%M:%S"),
+                "category": data.get('category'),
+                "scenario": data.get('scenario'),
+                "prediction": data.get('prediction'),
+                "answer": data.get('answer'),
+                "score": data.get('score')
+            }
+            
+            with open(qa_file, 'a', encoding='utf-8') as f:
+                f.write(json.dumps(entry) + '\n')
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps({"ok": True}).encode())
+            return
+
         if path == '/api/prediction-feedback':
             # Save written feedback for a prediction
             content_length = int(self.headers.get('Content-Length', 0))
@@ -1510,6 +1613,33 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
         # Strip query string for path matching
         path = self.path.split('?')[0]
         
+        if path == '/api/qa-history':
+            # Return Q&A game history
+            qa_file = os.path.join(WORKSPACE_DIR, "memory", "francisco-qa.jsonl")
+            try:
+                entries = []
+                if os.path.exists(qa_file):
+                    with open(qa_file, 'r', encoding='utf-8') as f:
+                        for line in f:
+                            line = line.strip()
+                            if line:
+                                entry = json.loads(line)
+                                if entry.get('type') != 'system':  # Skip system entries
+                                    entries.append(entry)
+                entries.reverse()
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.send_header('Cache-Control', 'no-cache')
+                self.end_headers()
+                self.wfile.write(json.dumps({"entries": entries}).encode())
+                return
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+                return
+
         if path == '/api/predictions-history':
             # Return predictions scoring history
             log_file = os.path.join(WORKSPACE_DIR, "memory", "predictions-log.jsonl")
