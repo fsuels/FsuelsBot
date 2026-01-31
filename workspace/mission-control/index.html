@@ -629,6 +629,22 @@ body {
 }
 .score-btn.wrong:hover { background: rgba(248,113,113,0.25); }
 .score-btn.wrong.active { background: rgba(248,113,113,0.4); }
+.predictions-history.collapsed { display: none; }
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 6px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+.history-item .date { color: #6e7681; min-width: 80px; }
+.history-item .pred-id { color: #a78bfa; font-weight: 600; min-width: 30px; }
+.history-item .score-correct { color: #3fb950; }
+.history-item .score-wrong { color: #f87171; }
+.history-item .note { color: #8b949e; flex: 1; }
 
 .done-section {
   background: rgba(13, 17, 23, 0.5);
@@ -1031,6 +1047,15 @@ body {
       <span id="predToggle" style="font-size:11px;color:#8b949e;">▼ Show</span>
     </div>
     <div class="predictions-grid collapsed" id="predictionsGrid"></div>
+    <div class="predictions-history collapsed" id="predictionsHistory">
+      <div style="margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <span style="font-size:12px;color:#8b949e;font-weight:600;">📜 Scoring History</span>
+          <button onclick="loadPredictionsHistory()" style="font-size:10px;padding:4px 8px;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);color:#a78bfa;border-radius:4px;cursor:pointer;">Refresh</button>
+        </div>
+        <div id="historyList" style="max-height:200px;overflow-y:auto;"></div>
+      </div>
+    </div>
   </div>
 
   <!-- Trash -->
@@ -1574,13 +1599,17 @@ let predictionsData = null;
 
 function togglePredictions() {
   const grid = document.getElementById('predictionsGrid');
+  const history = document.getElementById('predictionsHistory');
   const toggle = document.getElementById('predToggle');
   if (grid.classList.contains('collapsed')) {
     grid.classList.remove('collapsed');
+    history.classList.remove('collapsed');
     toggle.textContent = '▲ Hide';
     loadPredictions();
+    loadPredictionsHistory();
   } else {
     grid.classList.add('collapsed');
+    history.classList.add('collapsed');
     toggle.textContent = '▼ Show';
   }
 }
@@ -1656,9 +1685,49 @@ async function scorePrediction(id, score) {
       }
       predictionsData.stats = result.stats;
       renderPredictions();
+      loadPredictionsHistory(); // Refresh history
     }
   } catch (e) {
     console.error('Failed to score prediction:', e);
+  }
+}
+
+async function loadPredictionsHistory() {
+  try {
+    const resp = await fetch('/api/predictions-history?' + Date.now());
+    const data = await resp.json();
+    const entries = data.entries || [];
+    
+    const list = document.getElementById('historyList');
+    if (entries.length === 0) {
+      list.innerHTML = '<div style="color:#6e7681;font-size:11px;padding:8px;">No scores yet. Click ✓ or ✗ on predictions above!</div>';
+      return;
+    }
+    
+    let html = '';
+    for (const e of entries.slice(0, 50)) { // Show last 50
+      if (e.event === 'score') {
+        const scoreClass = e.score === 'correct' ? 'score-correct' : 'score-wrong';
+        const scoreIcon = e.score === 'correct' ? '✓' : '✗';
+        html += `
+          <div class="history-item">
+            <span class="date">${e.date} ${e.time || ''}</span>
+            <span class="pred-id">${e.prediction_id}</span>
+            <span class="${scoreClass}">${scoreIcon} ${e.score}</span>
+          </div>
+        `;
+      } else if (e.event === 'system_created') {
+        html += `
+          <div class="history-item">
+            <span class="date">${e.date}</span>
+            <span class="note">🚀 ${e.note || 'System created'}</span>
+          </div>
+        `;
+      }
+    }
+    list.innerHTML = html;
+  } catch (e) {
+    document.getElementById('historyList').innerHTML = '<div style="color:#f87171;">Failed to load history</div>';
   }
 }
 

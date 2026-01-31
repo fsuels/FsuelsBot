@@ -1403,6 +1403,32 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
         # Strip query string for path matching
         path = self.path.split('?')[0]
         
+        if path == '/api/predictions-history':
+            # Return predictions scoring history
+            log_file = os.path.join(WORKSPACE_DIR, "memory", "predictions-log.jsonl")
+            try:
+                entries = []
+                if os.path.exists(log_file):
+                    with open(log_file, 'r', encoding='utf-8') as f:
+                        for line in f:
+                            line = line.strip()
+                            if line:
+                                entries.append(json.loads(line))
+                # Return most recent first
+                entries.reverse()
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json; charset=utf-8')
+                self.send_header('Cache-Control', 'no-cache')
+                self.end_headers()
+                self.wfile.write(json.dumps({"entries": entries}).encode())
+                return
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+                return
+
         if path == '/api/predictions':
             # Return predictions for reinforcement learning display
             predictions_file = os.path.join(DASHBOARD_DIR, "predictions.json")
