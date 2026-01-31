@@ -1,6 +1,6 @@
 {
     "version": 100,
-    "updated_at": "2026-01-31T03:04:01.920297+00:00",
+    "updated_at": "2026-01-31T01:36:45.197316+00:00",
     "updated_by": "bot-heartbeat",
     "notes": "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
     "schema": {
@@ -67,9 +67,10 @@
     },
     "lanes": {
         "bot_current": [
-            "T103"
+            "T110"
         ],
         "bot_queue": [
+            "T103",
             "T104",
             "T105",
             "T106",
@@ -121,8 +122,6 @@
             "CRON-consolidation"
         ],
         "done_today": [
-            "T110",
-            "T099",
             "T109",
             "T101",
             "T102",
@@ -3866,14 +3865,13 @@
         },
         "T103": {
             "title": "Set up Airtable agent directory database",
-            "status": "in_progress",
+            "status": "pending",
             "created": "2026-01-30T21:30:00-05:00",
             "approach": "Free Airtable base: Agent name, capabilities, rating, Moltbook profile, tasks completed",
             "priority": "HIGH",
             "context": {
                 "summary": "Council Phase 1: Backend for searchable directory. Form submissions auto-populate."
-            },
-            "started_at": "2026-01-31T03:04:01.920281+00:00"
+            }
         },
         "T104": {
             "title": "Add /directory page with agent search",
@@ -3958,10 +3956,9 @@
         },
         "T110": {
             "title": "Draft 5 Upwork Proposals for AI Automation Gigs",
-            "status": "done",
+            "status": "in_progress",
             "created": "2026-01-30T21:41:00-05:00",
             "started_at": "2026-01-30T21:41:00-05:00",
-            "completed_at": "2026-01-30T21:42:00-05:00",
             "context": {
                 "summary": "Council verdict: Upwork Direct is fastest path to cash. Need killer proposals for AI/chatbot/automation gigs in the $500-2K range.",
                 "created_from": "T109 - Council verdict"

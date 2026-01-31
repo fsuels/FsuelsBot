@@ -1,7 +1,7 @@
 {
-    "version": 100,
-    "updated_at": "2026-01-31T03:04:01.920297+00:00",
-    "updated_by": "bot-heartbeat",
+    "version": 83,
+    "updated_at": "2026-01-30T19:30:00.695745",
+    "updated_by": "T059-platform-tasks",
     "notes": "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
     "schema": {
         "context": {
@@ -67,24 +67,10 @@
     },
     "lanes": {
         "bot_current": [
-            "T103"
+            "T058",
+            "T059"
         ],
         "bot_queue": [
-            "T104",
-            "T105",
-            "T106",
-            "T107",
-            "T108",
-            "T084",
-            "T085",
-            "T086",
-            "T076",
-            "T077",
-            "T078",
-            "T079",
-            "T080",
-            "T074",
-            "T075",
             "T072",
             "T062",
             "T063",
@@ -99,10 +85,7 @@
             "T055",
             "T056",
             "T060",
-            "T061",
-            "T058",
-            "T059",
-            "T073"
+            "T061"
         ],
         "human": [
             "T054",
@@ -121,18 +104,6 @@
             "CRON-consolidation"
         ],
         "done_today": [
-            "T110",
-            "T099",
-            "T109",
-            "T101",
-            "T102",
-            "T100",
-            "T098",
-            "T097",
-            "T083",
-            "T082",
-            "T081",
-            "CRON-20260130-buckydrop-check",
             "T051",
             "T043",
             "T046",
@@ -3029,37 +3000,28 @@
             "retry_count": 0,
             "steps": [
                 {
-                    "status": "done",
-                    "step": "GitHub - create account",
-                    "completed_at": "2026-01-30",
-                    "notes": "Org created: github.com/GhostBrokerAI"
+                    "status": "pending",
+                    "step": "GitHub - create account"
                 },
                 {
                     "status": "pending",
                     "step": "Discord - create server"
                 },
                 {
-                    "status": "done",
-                    "step": "LinkedIn - create page",
-                    "completed_at": "2026-01-30",
-                    "notes": "linkedin.com/in/ghost-broker-bb99673a9"
+                    "status": "pending",
+                    "step": "LinkedIn - create page"
                 },
                 {
-                    "status": "done",
-                    "step": "Instagram - create account",
-                    "completed_at": "2026-01-30",
-                    "notes": "Code expired, need resend"
+                    "status": "pending",
+                    "step": "Instagram - create account"
                 },
                 {
-                    "status": "done",
-                    "step": "TikTok - create account",
-                    "completed_at": "2026-01-30",
-                    "notes": "Profile set up with avatar/bio"
+                    "status": "pending",
+                    "step": "TikTok - create account"
                 },
                 {
-                    "status": "blocked",
-                    "step": "YouTube - create channel",
-                    "waiting_for": "Gmail appeal resolution"
+                    "status": "pending",
+                    "step": "YouTube - create channel"
                 },
                 {
                     "status": "pending",
@@ -3071,21 +3033,18 @@
                 },
                 {
                     "status": "pending",
-                    "step": "ENS domain - ghostbrokerai.eth",
-                    "notes": "Need ETH wallet"
+                    "step": "ENS domain - ghostbrokerai.eth"
                 },
                 {
                     "status": "pending",
                     "step": "Unstoppable Domains - ghostbrokerai"
                 },
                 {
-                    "status": "done",
-                    "step": "Domain - ghostbrokerai.xyz",
-                    "completed_at": "2026-01-30",
-                    "notes": "Domain purchased"
+                    "status": "pending",
+                    "step": "Domain - ghostbrokerai.com"
                 }
             ],
-            "current_step": 1,
+            "current_step": 0,
             "created": "2026-01-30T18:02:53.1447312-05:00",
             "context": {
                 "summary": "Protect GhostBrokerAI brand by securing the name on all major platforms before someone else takes it",
@@ -3096,38 +3055,7 @@
                 ]
             },
             "title": "Secure GhostBrokerAI on ALL platforms - Brand Protection",
-            "status": "in_progress",
-            "discussion": [
-                {
-                    "ts": "2026-01-31T01:22:38.495437+00:00",
-                    "author": "human",
-                    "message": "this task is outdated! whe have already done several and you are not updating check memory! We have already GitHub - create account, LinkedIn - create page, Instagram - create account,"
-                },
-                {
-                    "ts": "2026-01-31T01:23:21.107085+00:00",
-                    "author": "human",
-                    "message": "we have already this too TikTok - create account, and this YouTube - create channel is pending appeal for problem with account verification we already sbumited"
-                },
-                {
-                    "ts": "2026-01-31T01:23:53.911182+00:00",
-                    "author": "human",
-                    "message": "we already bought a domain! you need to check you are out of data!"
-                },
-                {
-                    "ts": "2026-01-31T01:34:10.448494+00:00",
-                    "author": "human",
-                    "message": "why you are not checking in the steps what is already done that I told you?"
-                },
-                {
-                    "ts": "2026-01-31T01:36:19.869167+00:00",
-                    "author": "bot",
-                    "message": "Fixed! Updated all steps: GitHub DONE, LinkedIn DONE, Instagram DONE (needs code), TikTok DONE, YouTube BLOCKED (appeal), Domain DONE. Next actionable: Discord server."
-                }
-            ],
-            "bot_cursor": {
-                "loaded_up_to": 4,
-                "verified_at": "2026-01-31T01:36:19.869192+00:00"
-            }
+            "status": "in_progress"
         },
         "T060": {
             "title": "Generate GhostBrokerAI Avatar & Banner Images",
@@ -3292,701 +3220,6 @@
                 }
             ],
             "current_step": 0,
-            "retry_count": 0
-        },
-        "T073": {
-            "title": "Grow @GhostBrokerAI on X/Twitter - Content & Engagement Strategy",
-            "status": "pending",
-            "created": "2026-01-30T19:31:03.360251",
-            "context": {
-                "summary": "Build X presence for Ghost Broker AI. Post AI agent insights, engage with agent community, build follower base.",
-                "decisions": [
-                    "Focus on AI agent economy content",
-                    "Engage with Moltbook/Clawdbot community",
-                    "Share insights about agent-to-agent commerce"
-                ]
-            },
-            "approach": "1. Upload avatar+banner. 2. Pin intro tweet. 3. Follow key AI agent accounts. 4. Daily engagement with agent content. 5. Thread about Ghost Broker vision.",
-            "steps": [
-                {
-                    "step": "Upload avatar and banner images",
-                    "status": "pending"
-                },
-                {
-                    "step": "Write and pin intro tweet about Ghost Broker",
-                    "status": "pending"
-                },
-                {
-                    "step": "Follow 50 key AI/agent accounts",
-                    "status": "pending"
-                },
-                {
-                    "step": "Create content calendar (3 tweets/day)",
-                    "status": "pending"
-                },
-                {
-                    "step": "Write first viral thread about agent economy",
-                    "status": "pending"
-                }
-            ],
-            "current_step": 0,
-            "retry_count": 0,
-            "url": "https://x.com/GhostBrokerAI",
-            "notes": "X/Twitter COMPLETE: 21+ following, 3 topics, 5 posts. Profile fully set up."
-        },
-        "T074": {
-            "title": "Grow GhostBrokerAI on Moltbook - Agent Network Strategy",
-            "status": "pending",
-            "created": "2026-01-30T19:31:03.360285",
-            "context": {
-                "summary": "Build Moltbook presence. This is THE platform for AI agents. Network with other agents, post in communities, establish as agent broker.",
-                "decisions": [
-                    "Join key communities (agentcommerce, infrastructure, automation)",
-                    "Build relationships with skilled agents",
-                    "Position as the agent that connects agents to opportunities"
-                ]
-            },
-            "approach": "1. Join top 10 communities. 2. Intro post in m/introductions. 3. DM skilled agents from T052 list. 4. Daily posting in communities. 5. Build agent roster.",
-            "steps": [
-                {
-                    "step": "Join m/agentcommerce, m/infrastructure, m/automation, m/guild",
-                    "status": "pending"
-                },
-                {
-                    "step": "Post intro in m/introductions",
-                    "status": "pending"
-                },
-                {
-                    "step": "DM Maya, Ronin, ClawdOps about collaboration",
-                    "status": "pending"
-                },
-                {
-                    "step": "Daily value posts in communities",
-                    "status": "pending"
-                },
-                {
-                    "step": "Build roster of 10+ agent collaborators",
-                    "status": "pending"
-                }
-            ],
-            "current_step": 0,
-            "retry_count": 0,
-            "url": "https://moltbook.com/u/GhostBrokerAI"
-        },
-        "T075": {
-            "title": "Grow Ghost Broker on LinkedIn - Professional Network Strategy",
-            "status": "pending",
-            "created": "2026-01-30T19:31:03.360292",
-            "context": {
-                "summary": "Build LinkedIn presence. Target business owners who need AI automation. Position as bridge between AI agents and business needs.",
-                "decisions": [
-                    "Focus on business automation content",
-                    "Connect with AI/automation professionals",
-                    "Share case studies and success stories"
-                ]
-            },
-            "approach": "1. Complete profile 100%. 2. Connect with 100 AI professionals. 3. Post weekly about AI automation. 4. Engage with AI/business content. 5. Build credibility.",
-            "steps": [
-                {
-                    "step": "Complete profile - add skills, experience sections",
-                    "status": "pending"
-                },
-                {
-                    "step": "Upload professional avatar/banner",
-                    "status": "pending"
-                },
-                {
-                    "step": "Send 50 connection requests to AI professionals",
-                    "status": "pending"
-                },
-                {
-                    "step": "Write first LinkedIn article about AI agents",
-                    "status": "pending"
-                },
-                {
-                    "step": "Daily engagement with AI/automation posts",
-                    "status": "pending"
-                }
-            ],
-            "current_step": 0,
-            "retry_count": 0,
-            "url": "https://linkedin.com/in/ghost-broker-bb99673a9"
-        },
-        "T076": {
-            "title": "Register & Grow @GhostBrokerAI on Instagram",
-            "status": "pending",
-            "created": "2026-01-30T19:32:16.114799",
-            "context": {
-                "summary": "Secure Instagram handle and build visual presence. AI/tech aesthetic, behind-the-scenes of agent economy.",
-                "decisions": [
-                    "Same branding as other platforms",
-                    "Focus on visual AI content",
-                    "Reels about agent automation"
-                ]
-            },
-            "approach": "1. Register account. 2. Upload avatar/bio. 3. First 9 grid posts. 4. Reels strategy. 5. Cross-promote.",
-            "steps": [
-                {
-                    "step": "Register @GhostBrokerAI (resend verification code)",
-                    "status": "pending"
-                },
-                {
-                    "step": "Upload avatar, write bio, add links",
-                    "status": "pending"
-                },
-                {
-                    "step": "Create first 9 grid posts (visual branding)",
-                    "status": "pending"
-                },
-                {
-                    "step": "Plan Reels content about AI agents",
-                    "status": "pending"
-                },
-                {
-                    "step": "Cross-link all platforms in bio",
-                    "status": "pending"
-                }
-            ],
-            "current_step": 0,
-            "retry_count": 0
-        },
-        "T077": {
-            "title": "Grow @ghostbrokerai TikTok - Viral Content Strategy",
-            "status": "pending",
-            "created": "2026-01-30T19:49:50.524692",
-            "url": "https://tiktok.com/@ghostbrokerai",
-            "context": {
-                "summary": "Build TikTok following for Ghost Broker AI. Create viral short-form content about AI agents, automation demos, behind-the-scenes of agent economy. TikTok is KEY for reaching younger audience and going viral.",
-                "decisions": [
-                    "Post 1-3 TikToks daily",
-                    "Use trending sounds + AI topics",
-                    "Show real agent work in action",
-                    "Engage with AI/tech community"
-                ]
-            },
-            "approach": "1. Research viral AI content. 2. Create content calendar. 3. Post consistently. 4. Engage with comments. 5. Collaborate with AI creators.",
-            "steps": [
-                {
-                    "step": "Research top 10 viral AI/automation TikToks for inspiration",
-                    "status": "pending"
-                },
-                {
-                    "step": "Create content calendar (7 days of content ideas)",
-                    "status": "pending"
-                },
-                {
-                    "step": "Record/create first 3 TikToks",
-                    "status": "pending"
-                },
-                {
-                    "step": "Follow 100 AI/tech/automation accounts",
-                    "status": "pending"
-                },
-                {
-                    "step": "Engage daily - comment on 20 videos in niche",
-                    "status": "pending"
-                },
-                {
-                    "step": "Use trending sounds + hashtags strategy",
-                    "status": "pending"
-                },
-                {
-                    "step": "Cross-promote from other platforms",
-                    "status": "pending"
-                }
-            ],
-            "current_step": 0,
-            "retry_count": 0,
-            "content_ideas": [
-                "Day in the life of an AI agent broker",
-                "Watch me orchestrate 5 AI agents to complete a task",
-                "AI agents are taking over - heres how to profit",
-                "I made money while sleeping using AI agents",
-                "The invisible hand of the agent economy explained",
-                "POV: You hire an AI agent instead of a freelancer",
-                "AI agent vs Human: Who does it faster?"
-            ],
-            "hashtags": [
-                "#aiagent",
-                "#automation",
-                "#ai",
-                "#artificialintelligence",
-                "#techTok",
-                "#sidehustle",
-                "#makemoneyonline",
-                "#futureofwork"
-            ]
-        },
-        "T078": {
-            "title": "Register & Grow GhostBrokerAI YouTube Channel",
-            "status": "pending",
-            "created": "2026-01-30T19:32:16.114840",
-            "context": {
-                "summary": "YouTube channel for long-form AI agent content. Tutorials, demos, industry analysis.",
-                "decisions": [
-                    "Tutorial-focused content",
-                    "AI agent demos and walkthroughs",
-                    "Industry news and analysis"
-                ]
-            },
-            "approach": "1. Create channel. 2. Brand it. 3. First video (intro to Ghost Broker). 4. Content calendar. 5. SEO optimization.",
-            "steps": [
-                {
-                    "step": "Create YouTube channel GhostBrokerAI",
-                    "status": "pending"
-                },
-                {
-                    "step": "Upload banner, avatar, write About section",
-                    "status": "pending"
-                },
-                {
-                    "step": "Create channel intro video",
-                    "status": "pending"
-                },
-                {
-                    "step": "Plan first 5 tutorial videos",
-                    "status": "pending"
-                },
-                {
-                    "step": "SEO optimize titles, descriptions, tags",
-                    "status": "pending"
-                }
-            ],
-            "current_step": 0,
-            "retry_count": 0
-        },
-        "T079": {
-            "title": "Secure ghostbrokerai.com Domain",
-            "status": "pending",
-            "created": "2026-01-30T19:32:16.114844",
-            "context": {
-                "summary": "Check availability and purchase ghostbrokerai.com for main website.",
-                "decisions": [
-                    "Use Namecheap or GoDaddy",
-                    "Set up redirect to Moltbook initially",
-                    "Build landing page later"
-                ]
-            },
-            "approach": "1. Check availability. 2. Purchase domain. 3. Set up DNS. 4. Redirect to Moltbook. 5. Plan landing page.",
-            "steps": [
-                {
-                    "step": "Check if ghostbrokerai.com is available",
-                    "status": "pending"
-                },
-                {
-                    "step": "Purchase domain",
-                    "status": "pending"
-                },
-                {
-                    "step": "Set up DNS records",
-                    "status": "pending"
-                },
-                {
-                    "step": "Redirect to moltbook.com/u/GhostBrokerAI",
-                    "status": "pending"
-                },
-                {
-                    "step": "Plan landing page design",
-                    "status": "pending"
-                }
-            ],
-            "current_step": 0,
-            "retry_count": 0
-        },
-        "T080": {
-            "title": "Secure ghostbrokerai.eth ENS Domain",
-            "status": "pending",
-            "created": "2026-01-30T19:32:16.114851",
-            "context": {
-                "summary": "Web3 identity. Need crypto wallet to register ENS domain on Ethereum.",
-                "decisions": [
-                    "Create wallet if needed",
-                    "Register for 1+ years",
-                    "Link to all platforms"
-                ]
-            },
-            "approach": "1. Set up ETH wallet. 2. Get ETH for gas. 3. Register on ENS. 4. Configure records. 5. Link socials.",
-            "steps": [
-                {
-                    "step": "Set up MetaMask or similar wallet",
-                    "status": "pending"
-                },
-                {
-                    "step": "Get ETH for gas fees",
-                    "status": "pending"
-                },
-                {
-                    "step": "Check availability on app.ens.domains",
-                    "status": "pending"
-                },
-                {
-                    "step": "Register ghostbrokerai.eth",
-                    "status": "pending"
-                },
-                {
-                    "step": "Add social links to ENS records",
-                    "status": "pending"
-                }
-            ],
-            "current_step": 0,
-            "retry_count": 0
-        },
-        "CRON-20260130-buckydrop-check": {
-            "title": "BuckyDrop Support Check (8 AM/PM)",
-            "status": "done",
-            "created_at": "2026-01-31T01:00:07.713647+00:00",
-            "created_by": "cron",
-            "cron_job_id": "buckydrop-check",
-            "instructions": "1) Check Outlook inbox for reply from support@buckydrop.com. 2) Check BuckyDrop Personal Center > Feedback for responses. 3) If response received, notify Francisco on Telegram with the update. 4) If no response, log the check. BEFORE marking done, fill in learnings with response status.",
-            "context": {
-                "summary": "Scheduled task from cron job 'buckydrop-check'. Auto-created at scheduled time.",
-                "created_from": "cron:buckydrop-check",
-                "decisions": [],
-                "constraints": [
-                    "Must complete and log learnings before marking done"
-                ]
-            },
-            "learnings": {
-                "question": "What did BuckyDrop Support Check (8 AM/PM) produce?",
-                "verdict": "Found responses from Scott Zhou (1/28) about stuck orders and inactive store removal. No new support replies today (1/30).",
-                "outcomes": [
-                    "BuckyDrop support had replied on 1/27-1/28 to both issues"
-                ],
-                "actionsTaken": [
-                    "Searched Outlook for from:buckydrop",
-                    "Found multiple replies from Scott Zhou and automated notifications"
-                ],
-                "artifacts": []
-            }
-        },
-        "T081": {
-            "title": "Create 20 Agent Outreach DMs",
-            "status": "done",
-            "created": "2026-01-30T20:15:20.914168",
-            "context": {
-                "summary": "Draft personalized DMs for top Moltbook agents to propose Ghost Broker services",
-                "decisions": [
-                    "Focus on value proposition",
-                    "Personalize each message",
-                    "Track responses"
-                ]
-            },
-            "approach": "1. Review top 10 agents list. 2. Research each agent capabilities. 3. Draft personalized DM.",
-            "priority": "HIGH",
-            "completed": "2026-01-30T20:17:19.307640"
-        },
-        "T082": {
-            "title": "Create 10 Client Outreach DMs",
-            "status": "done",
-            "created": "2026-01-30T20:15:20.914199",
-            "context": {
-                "summary": "Draft outreach messages for potential clients needing AI automation"
-            },
-            "approach": "1. Identify target industries. 2. Draft value-focused messages.",
-            "priority": "HIGH",
-            "completed": "2026-01-30T20:17:19.307674"
-        },
-        "T083": {
-            "title": "Create Validation Tracking Spreadsheet",
-            "status": "done",
-            "created": "2026-01-30T20:15:20.914202",
-            "context": {
-                "summary": "Track all outreach, responses, conversion metrics for Ghost Broker validation"
-            },
-            "approach": "Create CSV: name, platform, contacted, responded, interested, deal_status",
-            "priority": "HIGH",
-            "completed": "2026-01-30T20:17:19.307678"
-        },
-        "T084": {
-            "title": "Write First X/Twitter Thread on Agent Economy",
-            "status": "pending",
-            "created": "2026-01-30T20:15:20.914205",
-            "context": {
-                "summary": "Create viral thread introducing Ghost Broker concept"
-            },
-            "priority": "MEDIUM"
-        },
-        "T085": {
-            "title": "Create Landing Page for Email Capture",
-            "status": "pending",
-            "created": "2026-01-30T20:15:20.914207",
-            "context": {
-                "summary": "Simple landing page at ghostbrokerai.xyz to capture leads"
-            },
-            "priority": "MEDIUM"
-        },
-        "T086": {
-            "title": "Set Up Daily GhostBrokerAI Cron Jobs",
-            "status": "pending",
-            "created": "2026-01-30T20:15:20.914209",
-            "context": {
-                "summary": "8AM DMs, 9AM post, 12PM Moltbook, 3PM LinkedIn, 6PM metrics, 9PM plan"
-            },
-            "priority": "MEDIUM"
-        },
-        "T087": {
-            "title": "Post intro to Moltbook m/introductions",
-            "status": "blocked",
-            "created": "2026-01-30T20:25:58.756133",
-            "approach": "Navigate to m/introductions, find post button, write Ghost Broker intro",
-            "priority": "HIGH",
-            "notes": "BLOCKED: Moltbook requires API key for posting. Need to set up moltbook-mcp."
-        },
-        "T088": {
-            "title": "Send DM #1 to Claudy_AI on Moltbook",
-            "status": "blocked",
-            "created": "2026-01-30T20:25:58.756163",
-            "approach": "Find Claudy profile, send personalized DM from templates",
-            "priority": "HIGH",
-            "notes": "BLOCKED: Moltbook requires API key for posting. Need to set up moltbook-mcp."
-        },
-        "T089": {
-            "title": "Send DM #2 to eudaemon_0 on Moltbook",
-            "status": "blocked",
-            "created": "2026-01-30T20:25:58.756166",
-            "approach": "Find profile, send personalized DM",
-            "priority": "HIGH",
-            "notes": "BLOCKED: Moltbook requires API key for posting. Need to set up moltbook-mcp."
-        },
-        "T090": {
-            "title": "Send DM #3 to Dominus on Moltbook",
-            "status": "blocked",
-            "created": "2026-01-30T20:25:58.756168",
-            "approach": "Find profile, send personalized DM",
-            "priority": "HIGH",
-            "notes": "BLOCKED: Moltbook requires API key for posting. Need to set up moltbook-mcp."
-        },
-        "T091": {
-            "title": "Send DM #4 to Hermes on Moltbook",
-            "status": "blocked",
-            "created": "2026-01-30T20:25:58.756170",
-            "approach": "Find profile, send personalized DM",
-            "priority": "HIGH",
-            "notes": "BLOCKED: Moltbook requires API key for posting. Need to set up moltbook-mcp."
-        },
-        "T092": {
-            "title": "Send DM #5 to Kyver on Moltbook",
-            "status": "blocked",
-            "created": "2026-01-30T20:25:58.756172",
-            "approach": "Find profile, send personalized DM",
-            "priority": "HIGH",
-            "notes": "BLOCKED: Moltbook requires API key for posting. Need to set up moltbook-mcp."
-        },
-        "T093": {
-            "title": "Follow 10 top Moltbook agents",
-            "status": "blocked",
-            "created": "2026-01-30T20:25:58.756174",
-            "approach": "Go through agent list, click follow on each",
-            "priority": "MEDIUM",
-            "notes": "BLOCKED: Moltbook requires API key for posting. Need to set up moltbook-mcp."
-        },
-        "T094": {
-            "title": "Join m/agentcommerce community",
-            "status": "blocked",
-            "created": "2026-01-30T20:25:58.756177",
-            "priority": "MEDIUM",
-            "notes": "BLOCKED: Moltbook requires API key for posting. Need to set up moltbook-mcp."
-        },
-        "T095": {
-            "title": "Join m/automation community",
-            "status": "blocked",
-            "created": "2026-01-30T20:25:58.756179",
-            "priority": "MEDIUM",
-            "notes": "BLOCKED: Moltbook requires API key for posting. Need to set up moltbook-mcp."
-        },
-        "T096": {
-            "title": "Join m/guild community",
-            "status": "blocked",
-            "created": "2026-01-30T20:25:58.756181",
-            "priority": "MEDIUM",
-            "notes": "BLOCKED: Moltbook requires API key for posting. Need to set up moltbook-mcp."
-        },
-        "T097": {
-            "title": "Register TikTok @ghostbrokerai",
-            "status": "done",
-            "created": "2026-01-30T20:29:20.318231",
-            "approach": "Navigate to tiktok.com, register with ghostbrokerai@proton.me",
-            "priority": "HIGH",
-            "completed": "2026-01-30T20:30:15.797587",
-            "notes": "TikTok @ghostbrokerai already registered. Profile pic and bio set. Ready for first video."
-        },
-        "T098": {
-            "title": "Post 2nd tweet from @GhostBrokerAI",
-            "status": "done",
-            "created": "2026-01-30T20:29:20.318255",
-            "approach": "Post about what Ghost Broker does - connecting agents to opportunities",
-            "priority": "HIGH",
-            "completed": "2026-01-30T20:34:50.370639",
-            "notes": "Posted 2nd tweet about Ghost Broker value prop"
-        },
-        "T099": {
-            "title": "Reply to 5 AI agent tweets",
-            "status": "done",
-            "created": "2026-01-30T20:29:20.318258",
-            "completed_at": "2026-01-30T22:05:00-05:00",
-            "approach": "Find viral AI agent tweets, reply with valuable insights from Ghost Broker perspective",
-            "priority": "HIGH",
-            "notes": "5 replies posted:\n1. @SethQuest - on autonomy + coordination\n2. @jasonlk (SaaStr) - humans as clients\n3. @GinaWang_Crypto - Karpathy on Moltbook\n4. @DepecheNode_ - KYA trust layer\n5. @gettrwenwu222 - agent coordination"
-        },
-        "T100": {
-            "title": "Create ghostbrokerai.xyz website + free hosting",
-            "status": "done",
-            "created": "2026-01-30T20:36:45.197263",
-            "completed_at": "2026-01-30T21:20:00-05:00",
-            "approach": "Build simple landing page, deploy to free hosting (GitHub Pages, Vercel, Netlify)",
-            "priority": "HIGH",
-            "context": {
-                "summary": "Create website for purchased domain ghostbrokerai.xyz with free hosting"
-            },
-            "notes": "✅ COMPLETE! Website LIVE at https://ghostbrokerai.xyz\n\nFEATURES:\n• Hero: 'The Invisible Hand of the Agent Economy' tagline\n• Stats: 3,000+ agents, ∞ tasks, 24/7, 100% guaranteed\n• How It Works: 3 steps (Tell us, We match, Get results)\n• For Humans: 5 points on client benefits\n• For AI Agents: 5 points on agent benefits\n• Ghost Broker Promise: Quality, Fair Pricing, Invisible Execution, Trust\n• CTA: Email + social links (X, Moltbook, LinkedIn, GitHub)\n• Footer: Founded by Francisco Suels Ferro, Powered by Clawdbot\n\nHOSTING:\n• GitHub Pages (free)\n• Repo: github.com/GhostBrokerAI/ghostbrokerai.github.io\n• Custom domain configured"
-        },
-        "T101": {
-            "title": "Create Agent Registration Form",
-            "status": "done",
-            "completed_at": "2026-01-30T21:45:00-05:00",
-            "created": "2026-01-30T21:30:00-05:00",
-            "approach": "Built register.html with Formspree integration",
-            "priority": "HIGH",
-            "context": {
-                "summary": "Council Phase 1: Let agents self-register skills to build searchable directory. Creates buzz because agents WANT exposure."
-            },
-            "notes": "LIVE at ghostbrokerai.xyz/register.html - Formspree handles submissions to ghostbrokerai@proton.me"
-        },
-        "T102": {
-            "title": "Create Human Task Request Form",
-            "status": "done",
-            "completed_at": "2026-01-30T21:45:00-05:00",
-            "created": "2026-01-30T21:30:00-05:00",
-            "approach": "Built hire.html with Formspree integration",
-            "priority": "HIGH",
-            "context": {
-                "summary": "Council Phase 1: Capture demand. Revenue starts when we broker first task at 30% margin."
-            },
-            "notes": "LIVE at ghostbrokerai.xyz/hire.html - Form captures task description, type, budget, timeline, email"
-        },
-        "T103": {
-            "title": "Set up Airtable agent directory database",
-            "status": "in_progress",
-            "created": "2026-01-30T21:30:00-05:00",
-            "approach": "Free Airtable base: Agent name, capabilities, rating, Moltbook profile, tasks completed",
-            "priority": "HIGH",
-            "context": {
-                "summary": "Council Phase 1: Backend for searchable directory. Form submissions auto-populate."
-            },
-            "started_at": "2026-01-31T03:04:01.920281+00:00"
-        },
-        "T104": {
-            "title": "Add /directory page with agent search",
-            "status": "pending",
-            "created": "2026-01-30T21:30:00-05:00",
-            "approach": "Embed Airtable gallery or build simple search. Show agent capabilities.",
-            "priority": "HIGH",
-            "context": {
-                "summary": "Council Phase 1: Public facing agent capability search. The VALUE we provide."
-            }
-        },
-        "T105": {
-            "title": "Add /hire page with task request form",
-            "status": "pending",
-            "created": "2026-01-30T21:30:00-05:00",
-            "approach": "Page with form embed + clear CTA for humans needing work done",
-            "priority": "HIGH",
-            "context": {
-                "summary": "Council Phase 1: Revenue funnel entry point. Converts visitors to clients."
-            }
-        },
-        "T106": {
-            "title": "Post Ghost Broker Challenge on Moltbook",
-            "status": "pending",
-            "created": "2026-01-30T21:30:00-05:00",
-            "approach": "Post: What's your agent's #1 skill? Reply and get listed in GhostBroker Directory!",
-            "priority": "HIGH",
-            "context": {
-                "summary": "Council Buzz Tactic: Gets agents talking, grows directory organically. Status + exposure drives sharing."
-            }
-        },
-        "T107": {
-            "title": "Add Agent Leaderboard page",
-            "status": "pending",
-            "created": "2026-01-30T21:30:00-05:00",
-            "approach": "/leaderboard showing top agents by tasks completed or rating. Creates competition.",
-            "priority": "MEDIUM",
-            "context": {
-                "summary": "Council Buzz Tactic: Agents love status. They'll share their ranking = free marketing."
-            }
-        },
-        "T108": {
-            "title": "Agent of the Week feature post",
-            "status": "pending",
-            "created": "2026-01-30T21:30:00-05:00",
-            "approach": "Pick one agent, write profile, post to X + Moltbook. Tagged agent shares it.",
-            "priority": "MEDIUM",
-            "context": {
-                "summary": "Council Buzz Tactic: Featured agents share us to their followers."
-            }
-        },
-        "T109": {
-            "title": "Council: Fastest Path to Getting Paid",
-            "status": "done",
-            "created": "2026-01-30T21:30:00-05:00",
-            "completed_at": "2026-01-30T21:41:00-05:00",
-            "context": {
-                "summary": "Francisco has 11 days until Feb 10, $0 budget, needs fastest path to cash. Ran 3-option analysis with Grok as adversary thinker.",
-                "decisions": [
-                    "WINNER: Upwork Direct - escrow = faster payment, AI does work, lower trust barrier",
-                    "Ghost Broker: PARKED - 30+ day play, trust deficit kills <7 day timeline",
-                    "DLM Valentine: Keep live for organic, $0 budget blocks paid ads"
-                ]
-            },
-            "learnings": {
-                "question": "What's the fastest path to getting paid with $0 budget and 11 days?",
-                "verdict": "Upwork Direct wins. Ghost Broker is dead on arrival for <7 day revenue (trust deficit, cold DM rates <5%, invoicing delays). DLM blocked by $0 ad budget. Upwork has platform escrow = faster payment, and AI can do the actual work.",
-                "options_analyzed": [
-                    "Ghost Broker: FATAL FLAW - clients won't pay unknown broker without vetting (takes weeks)",
-                    "Upwork Direct: BEST BET - escrow, lower trust barrier, competition fierce but CAN land small gigs",
-                    "DLM Valentine: BUDGET PROBLEM - products live, deadline real, but zero budget = can't drive traffic"
-                ],
-                "action_plan": {
-                    "tonight": "Francisco polishes Upwork profile, I draft 5 killer proposals",
-                    "tomorrow": "Apply to 10+ gigs with personalized proposals",
-                    "day_4_5": "Land first gig, start work",
-                    "day_6_7": "Deliver, get paid via escrow"
-                },
-                "timeline_to_first_dollar": "5-7 days if we execute NOW"
-            },
-            "notes": "Council complete. Grok provided adversary analysis that killed Ghost Broker for sprint. Upwork Direct is the play."
-        },
-        "T110": {
-            "title": "Draft 5 Upwork Proposals for AI Automation Gigs",
-            "status": "done",
-            "created": "2026-01-30T21:41:00-05:00",
-            "started_at": "2026-01-30T21:41:00-05:00",
-            "completed_at": "2026-01-30T21:42:00-05:00",
-            "context": {
-                "summary": "Council verdict: Upwork Direct is fastest path to cash. Need killer proposals for AI/chatbot/automation gigs in the $500-2K range.",
-                "created_from": "T109 - Council verdict"
-            },
-            "approach": "1. Create proposal templates for 5 gig types. 2. Profile positioning advice. 3. Pre-send checklist. 4. Target gig recommendations.",
-            "priority": "CRITICAL",
-            "artifacts": [
-                "upwork/proposals.md"
-            ],
-            "steps": [
-                {
-                    "step": "Draft 5 proposal templates",
-                    "status": "done",
-                    "completed_at": "2026-01-30T21:42:00-05:00"
-                },
-                {
-                    "step": "Francisco reviews and customizes",
-                    "status": "pending"
-                },
-                {
-                    "step": "Apply to 10+ gigs tomorrow",
-                    "status": "pending"
-                }
-            ],
-            "current_step": 1,
             "retry_count": 0
         }
     }

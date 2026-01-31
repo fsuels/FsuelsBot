@@ -8,37 +8,68 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-01-30 17:25 EST | **Version:** 78
+**Last updated:** 2026-01-30 21:40 EST | **Version:** 85
 
-**Current task:** T057 - Register NexusAI on Moltbook
-**Status:** In Progress - Name Selected
-**Context:** Ghost Broker VALIDATED. NexusAI name chosen - available on BOTH X and Moltbook. Moltbook has grown to 38,794 agents (10x growth). Ready to register.
-**Next step:** Register NexusAI on Moltbook - guide Francisco through process or try API
+**Current task:** T109 - Council: Fastest Path to Getting Paid ✅ COMPLETE
+**Status:** Council delivered verdict - Upwork Direct is best bet for <7 day revenue
+**Context:** Francisco asked for Council on fastest path to cash. Grok adversary analysis complete. Ghost Broker has fatal flaw (trust deficit, 30+ day play). DLM blocked by $0 ad budget. Upwork Direct wins because escrow = faster payment, AI does actual work.
+**Next step:** Draft 5 Upwork proposals for AI automation gigs (pending Francisco confirmation)
+
+**🏆 COUNCIL VERDICT:**
+- **WINNER:** Upwork Direct (shortest path to payment)
+- **Ghost Broker:** PARKED - 30+ day play, not sprint
+- **DLM Valentine:** Keep products live for organic traffic
 
 **⏰ DEADLINE:** 11 days until Feb 10 order cutoff
 
 **📋 TASK BOARD:** `memory/tasks.json` — THE SOURCE OF TRUTH
 
-**🏷️ NAME SELECTED: NexusAI**
-- X: ✅ @NexusAI AVAILABLE ("This account doesn't exist")
-- Moltbook: ✅ Likely available (profile not found)
-- Why: "Nexus" = connection hub (perfect for broker), "AI" = clear identity
+**✅ REGISTRATIONS COMPLETE (6/10):**
+| Platform | Handle/Email | Status | URL |
+|----------|--------------|--------|-----|
+| ProtonMail | ghostbrokerai@proton.me | ✅ PHONE VERIFIED | - |
+| X/Twitter | @GhostBrokerAI | ✅ ACTIVE + 1st TWEET | https://x.com/GhostBrokerAI |
+| Moltbook | GhostBrokerAI | ✅ VERIFIED | https://moltbook.com/u/GhostBrokerAI |
+| LinkedIn | Ghost Broker | ✅ ACTIVE | linkedin.com/in/ghost-broker-bb99673a9 |
+| GitHub | GhostBrokerAI | ✅ ORG CREATED | https://github.com/GhostBrokerAI |
+| Domain | ghostbrokerai.xyz | ✅ PURCHASED | ghostbrokerai.xyz |
 
-**✅ VALIDATION SPRINT COMPLETE (Parallel sub-agents):**
-- T052 ✅ Moltbook: 38,794 agents (was 3,234), 10 skilled contacts, m/agentcommerce
-- T053 ✅ Upwork: 2,500+ AI jobs, $500-$2K typical, voice agents highest value
-- T054 ✅ Contact: DM system validated, consent-based, blocked on registration
+**📈 OUTREACH READY:**
+| Asset | Location | Status |
+|-------|----------|--------|
+| 20 Agent DM Templates | `ghost-broker/outreach/agent-dms.md` | ✅ READY |
+| 10 Client DM Templates | `ghost-broker/outreach/client-dms.md` | ✅ READY |
+| Validation Tracker | `ghost-broker/tracking/` | ✅ READY |
 
-**🎯 GHOST BROKER VERDICT: VALIDATED**
-- Infrastructure: ✅ Moltbook DM system built for agent collaboration
-- Market demand: ✅ 2,500+ jobs, $500-$2K price points
-- Agent workforce: ✅ 38,794 agents available, 10 skilled ones identified
-- Name: ✅ NexusAI selected and verified available
+**📊 30-DAY VALIDATION METRICS:**
+| Timeframe | Target | Current |
+|-----------|--------|---------|
+| Day 7 | 30 conversations | 0 |
+| Day 14 | 10 interested | 0 |
+| Day 21 | 1 deal in progress | 0 |
+| Day 30 | FIRST REVENUE | $0 |
 
-**💡 KEY INSIGHT:**
-Someone made $40K in 6 months with no coding - "businesses just want simple stuff to run by itself"
+**🔄 REMAINING REGISTRATIONS:**
+| Task | Platform | Status |
+|------|----------|--------|
+| T076 | Instagram | Code expired - resend needed |
+| T077 | TikTok | Ready to register |
+| T078 | YouTube | ⏸️ BLOCKED - Gmail appeal pending |
+| T080 | ghostbrokerai.eth | Need ETH wallet |
 
-**🔄 COMPACTION CHECKPOINT:** 17:25 EST - NexusAI name selected, ready to register
+**🖼️ IMAGES GENERATED:**
+- Avatar: `ghost-broker/images/avatar.png` (glowing ghost)
+- Banner: `ghost-broker/images/banner.png` (digital hands reaching)
+
+**📜 MISSION STATEMENT:** `ghost-broker/MISSION.md`
+> "The invisible hand of the agent economy."
+> We facilitate seamless collaboration between AI agents and human opportunities.
+
+**🔐 MASTER CREDENTIALS:** `ghost-broker/credentials.md`
+- Email: ghostbrokerai@proton.me
+- GitHub: F$uels15394600!
+
+**🔄 COMPACTION CHECKPOINT:** 21:40 EST - Council complete: Upwork Direct is fastest path to cash. Ghost Broker parked (30+ day play). 6/10 platforms done. Awaiting Francisco decision on Upwork proposals.
 
 **Standing rules:**
 - READ tasks.json at EVERY session start

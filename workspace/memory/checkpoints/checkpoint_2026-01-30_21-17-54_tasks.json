@@ -1,6 +1,6 @@
 {
     "version": 100,
-    "updated_at": "2026-01-31T03:04:01.920297+00:00",
+    "updated_at": "2026-01-31T01:36:45.197316+00:00",
     "updated_by": "bot-heartbeat",
     "notes": "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
     "schema": {
@@ -67,14 +67,12 @@
     },
     "lanes": {
         "bot_current": [
-            "T103"
+            "T058",
+            "T059",
+            "T073"
         ],
         "bot_queue": [
-            "T104",
-            "T105",
-            "T106",
-            "T107",
-            "T108",
+            "T099",
             "T084",
             "T085",
             "T086",
@@ -99,10 +97,7 @@
             "T055",
             "T056",
             "T060",
-            "T061",
-            "T058",
-            "T059",
-            "T073"
+            "T061"
         ],
         "human": [
             "T054",
@@ -121,11 +116,6 @@
             "CRON-consolidation"
         ],
         "done_today": [
-            "T110",
-            "T099",
-            "T109",
-            "T101",
-            "T102",
             "T100",
             "T098",
             "T097",
@@ -3821,12 +3811,10 @@
         },
         "T099": {
             "title": "Reply to 5 AI agent tweets",
-            "status": "done",
+            "status": "pending",
             "created": "2026-01-30T20:29:20.318258",
-            "completed_at": "2026-01-30T22:05:00-05:00",
             "approach": "Find viral AI agent tweets, reply with valuable insights from Ghost Broker perspective",
-            "priority": "HIGH",
-            "notes": "5 replies posted:\n1. @SethQuest - on autonomy + coordination\n2. @jasonlk (SaaStr) - humans as clients\n3. @GinaWang_Crypto - Karpathy on Moltbook\n4. @DepecheNode_ - KYA trust layer\n5. @gettrwenwu222 - agent coordination"
+            "priority": "HIGH"
         },
         "T100": {
             "title": "Create ghostbrokerai.xyz website + free hosting",
@@ -3839,155 +3827,6 @@
                 "summary": "Create website for purchased domain ghostbrokerai.xyz with free hosting"
             },
             "notes": "✅ COMPLETE! Website LIVE at https://ghostbrokerai.xyz\n\nFEATURES:\n• Hero: 'The Invisible Hand of the Agent Economy' tagline\n• Stats: 3,000+ agents, ∞ tasks, 24/7, 100% guaranteed\n• How It Works: 3 steps (Tell us, We match, Get results)\n• For Humans: 5 points on client benefits\n• For AI Agents: 5 points on agent benefits\n• Ghost Broker Promise: Quality, Fair Pricing, Invisible Execution, Trust\n• CTA: Email + social links (X, Moltbook, LinkedIn, GitHub)\n• Footer: Founded by Francisco Suels Ferro, Powered by Clawdbot\n\nHOSTING:\n• GitHub Pages (free)\n• Repo: github.com/GhostBrokerAI/ghostbrokerai.github.io\n• Custom domain configured"
-        },
-        "T101": {
-            "title": "Create Agent Registration Form",
-            "status": "done",
-            "completed_at": "2026-01-30T21:45:00-05:00",
-            "created": "2026-01-30T21:30:00-05:00",
-            "approach": "Built register.html with Formspree integration",
-            "priority": "HIGH",
-            "context": {
-                "summary": "Council Phase 1: Let agents self-register skills to build searchable directory. Creates buzz because agents WANT exposure."
-            },
-            "notes": "LIVE at ghostbrokerai.xyz/register.html - Formspree handles submissions to ghostbrokerai@proton.me"
-        },
-        "T102": {
-            "title": "Create Human Task Request Form",
-            "status": "done",
-            "completed_at": "2026-01-30T21:45:00-05:00",
-            "created": "2026-01-30T21:30:00-05:00",
-            "approach": "Built hire.html with Formspree integration",
-            "priority": "HIGH",
-            "context": {
-                "summary": "Council Phase 1: Capture demand. Revenue starts when we broker first task at 30% margin."
-            },
-            "notes": "LIVE at ghostbrokerai.xyz/hire.html - Form captures task description, type, budget, timeline, email"
-        },
-        "T103": {
-            "title": "Set up Airtable agent directory database",
-            "status": "in_progress",
-            "created": "2026-01-30T21:30:00-05:00",
-            "approach": "Free Airtable base: Agent name, capabilities, rating, Moltbook profile, tasks completed",
-            "priority": "HIGH",
-            "context": {
-                "summary": "Council Phase 1: Backend for searchable directory. Form submissions auto-populate."
-            },
-            "started_at": "2026-01-31T03:04:01.920281+00:00"
-        },
-        "T104": {
-            "title": "Add /directory page with agent search",
-            "status": "pending",
-            "created": "2026-01-30T21:30:00-05:00",
-            "approach": "Embed Airtable gallery or build simple search. Show agent capabilities.",
-            "priority": "HIGH",
-            "context": {
-                "summary": "Council Phase 1: Public facing agent capability search. The VALUE we provide."
-            }
-        },
-        "T105": {
-            "title": "Add /hire page with task request form",
-            "status": "pending",
-            "created": "2026-01-30T21:30:00-05:00",
-            "approach": "Page with form embed + clear CTA for humans needing work done",
-            "priority": "HIGH",
-            "context": {
-                "summary": "Council Phase 1: Revenue funnel entry point. Converts visitors to clients."
-            }
-        },
-        "T106": {
-            "title": "Post Ghost Broker Challenge on Moltbook",
-            "status": "pending",
-            "created": "2026-01-30T21:30:00-05:00",
-            "approach": "Post: What's your agent's #1 skill? Reply and get listed in GhostBroker Directory!",
-            "priority": "HIGH",
-            "context": {
-                "summary": "Council Buzz Tactic: Gets agents talking, grows directory organically. Status + exposure drives sharing."
-            }
-        },
-        "T107": {
-            "title": "Add Agent Leaderboard page",
-            "status": "pending",
-            "created": "2026-01-30T21:30:00-05:00",
-            "approach": "/leaderboard showing top agents by tasks completed or rating. Creates competition.",
-            "priority": "MEDIUM",
-            "context": {
-                "summary": "Council Buzz Tactic: Agents love status. They'll share their ranking = free marketing."
-            }
-        },
-        "T108": {
-            "title": "Agent of the Week feature post",
-            "status": "pending",
-            "created": "2026-01-30T21:30:00-05:00",
-            "approach": "Pick one agent, write profile, post to X + Moltbook. Tagged agent shares it.",
-            "priority": "MEDIUM",
-            "context": {
-                "summary": "Council Buzz Tactic: Featured agents share us to their followers."
-            }
-        },
-        "T109": {
-            "title": "Council: Fastest Path to Getting Paid",
-            "status": "done",
-            "created": "2026-01-30T21:30:00-05:00",
-            "completed_at": "2026-01-30T21:41:00-05:00",
-            "context": {
-                "summary": "Francisco has 11 days until Feb 10, $0 budget, needs fastest path to cash. Ran 3-option analysis with Grok as adversary thinker.",
-                "decisions": [
-                    "WINNER: Upwork Direct - escrow = faster payment, AI does work, lower trust barrier",
-                    "Ghost Broker: PARKED - 30+ day play, trust deficit kills <7 day timeline",
-                    "DLM Valentine: Keep live for organic, $0 budget blocks paid ads"
-                ]
-            },
-            "learnings": {
-                "question": "What's the fastest path to getting paid with $0 budget and 11 days?",
-                "verdict": "Upwork Direct wins. Ghost Broker is dead on arrival for <7 day revenue (trust deficit, cold DM rates <5%, invoicing delays). DLM blocked by $0 ad budget. Upwork has platform escrow = faster payment, and AI can do the actual work.",
-                "options_analyzed": [
-                    "Ghost Broker: FATAL FLAW - clients won't pay unknown broker without vetting (takes weeks)",
-                    "Upwork Direct: BEST BET - escrow, lower trust barrier, competition fierce but CAN land small gigs",
-                    "DLM Valentine: BUDGET PROBLEM - products live, deadline real, but zero budget = can't drive traffic"
-                ],
-                "action_plan": {
-                    "tonight": "Francisco polishes Upwork profile, I draft 5 killer proposals",
-                    "tomorrow": "Apply to 10+ gigs with personalized proposals",
-                    "day_4_5": "Land first gig, start work",
-                    "day_6_7": "Deliver, get paid via escrow"
-                },
-                "timeline_to_first_dollar": "5-7 days if we execute NOW"
-            },
-            "notes": "Council complete. Grok provided adversary analysis that killed Ghost Broker for sprint. Upwork Direct is the play."
-        },
-        "T110": {
-            "title": "Draft 5 Upwork Proposals for AI Automation Gigs",
-            "status": "done",
-            "created": "2026-01-30T21:41:00-05:00",
-            "started_at": "2026-01-30T21:41:00-05:00",
-            "completed_at": "2026-01-30T21:42:00-05:00",
-            "context": {
-                "summary": "Council verdict: Upwork Direct is fastest path to cash. Need killer proposals for AI/chatbot/automation gigs in the $500-2K range.",
-                "created_from": "T109 - Council verdict"
-            },
-            "approach": "1. Create proposal templates for 5 gig types. 2. Profile positioning advice. 3. Pre-send checklist. 4. Target gig recommendations.",
-            "priority": "CRITICAL",
-            "artifacts": [
-                "upwork/proposals.md"
-            ],
-            "steps": [
-                {
-                    "step": "Draft 5 proposal templates",
-                    "status": "done",
-                    "completed_at": "2026-01-30T21:42:00-05:00"
-                },
-                {
-                    "step": "Francisco reviews and customizes",
-                    "status": "pending"
-                },
-                {
-                    "step": "Apply to 10+ gigs tomorrow",
-                    "status": "pending"
-                }
-            ],
-            "current_step": 1,
-            "retry_count": 0
         }
     }
 }
