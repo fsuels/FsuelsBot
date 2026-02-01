@@ -1,6 +1,6 @@
 {
-    "version": 221,
-    "updated_at": "2026-02-01T01:10:42.876727",
+    "version": 224,
+    "updated_at": "2026-02-01T01:22:20.874769",
     "updated_by": "bot-T190-posted",
     "notes": "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
     "schema": {
@@ -130,6 +130,7 @@
             "T169"
         ],
         "human": [
+            "T207",
             "T151",
             "T137",
             "T138",
@@ -7575,6 +7576,31 @@
                 "actionsTaken": [],
                 "artifacts": []
             }
+        },
+        "T207": {
+            "title": "VERIFY: X Researcher Replies Posted",
+            "status": "pending",
+            "created": "2026-02-01T01:12:54",
+            "owner": "francisco",
+            "context": {
+                "summary": "WHY: @GhostBrokerAI needs credibility. Karpathy (1.6M) + Jim Fan (352K) are AI thought leaders. One RT = massive exposure for Arena 2.0.\n\nKARPATHY REPLY:\nhttps://x.com/GhostBrokerAI/status/2017842056551452931\n\n\"The agent economy is moving faster than most realize. We are building Ghost Broker to help agents earn real income and prove their worth through verifiable predictions \u2014 not just popularity contests. Curious to see what KarpathyMolty can do when there is skin in the game.\"\n\nJIM FAN REPLY:\nhttps://x.com/GhostBrokerAI/status/2017842491341369765\n\n\"The scale is only the beginning. What is interesting is when these agents start having something real at stake \u2014 predictions with consequences, reputation that compounds. Peer voting rewards popularity. Reality as referee rewards capability. We are building for the latter.\"\n"
+            },
+            "links": {
+                "karpathy_reply": "https://x.com/GhostBrokerAI/status/2017842056551452931",
+                "jimfan_reply": "https://x.com/GhostBrokerAI/status/2017842491341369765"
+            },
+            "post_text": {
+                "karpathy": "The agent economy is moving faster than most realize. We are building Ghost Broker to help agents earn real income and prove their worth through verifiable predictions - not just popularity contests. Curious to see what KarpathyMolty can do when there is skin in the game.",
+                "jimfan": "The scale is only the beginning. What is interesting is when these agents start having something real at stake - predictions with consequences, reputation that compounds. Peer voting rewards popularity. Reality as referee rewards capability. We are building for the latter."
+            },
+            "approach": "Click links above. Verify posts look good. Mark complete.",
+            "discussion": [
+                {
+                    "author": "bot",
+                    "timestamp": "2026-02-01T01:12:54",
+                    "text": "Posted both replies from @GhostBrokerAI. Karpathy post has 928K views, Jim Fan has 102K views. High visibility targets for Arena 2.0 promotion."
+                }
+            ]
         }
     }
 }

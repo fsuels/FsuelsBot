@@ -1300,6 +1300,12 @@ body {
           <button onclick="submitComment()" style="padding:10px 16px;background:#238636;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:500;">Send</button>
         </div>
       </div>
+      <!-- Action Buttons - shows for human tasks -->
+      <div class="modal-section" id="modalActionsSection" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);">
+        <button id="modalCompleteBtn" onclick="completeFromModal()" style="width:100%;padding:14px 20px;background:linear-gradient(135deg,#238636,#2ea043);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;">
+          ✅ Approve & Mark Complete
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -1442,6 +1448,7 @@ body {
 
 <script>
 let allTasks = {};  // Store tasks globally for modal access
+let allLanes = {};  // Store lanes globally for checking task ownership
 
 async function loadTaskBoard() {
   try {
@@ -1451,6 +1458,7 @@ async function loadTaskBoard() {
     const tasks = data.tasks || {};
     allTasks = tasks;  // Store for modal
     const lanes = data.lanes || {};
+    allLanes = lanes;  // Store for modal ownership check
     
     // Update last activity timestamp
     const lastActivityEl = document.getElementById('lastActivity');
@@ -2087,12 +2095,59 @@ function showTaskDetail(id) {
   // Store current task ID for comment submission
   window.currentTaskId = id;
 
+  // Show/hide action buttons based on task owner/lane and status
+  const actionsSection = document.getElementById('modalActionsSection');
+  const isHumanTask = task.owner === 'francisco' || (allLanes && allLanes.human && allLanes.human.includes(id));
+  const isNotDone = task.status !== 'done';
+  if (isHumanTask && isNotDone) {
+    actionsSection.style.display = 'block';
+  } else {
+    actionsSection.style.display = 'none';
+  }
+
   document.getElementById('taskModal').classList.add('active');
 }
 
 function closeModal(event) {
   if (event && event.target !== event.currentTarget) return;
   document.getElementById('taskModal').classList.remove('active');
+}
+
+async function completeFromModal() {
+  const taskId = window.currentTaskId;
+  if (!taskId) return;
+  
+  const btn = document.getElementById('modalCompleteBtn');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Completing...';
+  
+  try {
+    const response = await fetch('/api/complete-task', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ taskId })
+    });
+    
+    if (response.ok) {
+      btn.innerHTML = '✅ Done!';
+      btn.style.background = '#1a7f37';
+      showToast('Task marked complete!', 'success');
+      // Close modal and refresh after brief delay
+      setTimeout(() => {
+        closeModal();
+        loadTaskBoard();
+      }, 800);
+    } else {
+      const data = await response.json();
+      showToast(data.error || 'Failed to complete', 'error');
+      btn.innerHTML = '✅ Approve & Mark Complete';
+      btn.disabled = false;
+    }
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+    btn.innerHTML = '✅ Approve & Mark Complete';
+    btn.disabled = false;
+  }
 }
 
 async function submitComment() {
