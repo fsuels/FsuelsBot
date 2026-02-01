@@ -1262,6 +1262,10 @@ body {
         <div class="modal-label">💡 Context / Why This Exists</div>
         <div class="modal-content" id="modalContext"></div>
       </div>
+      <div class="modal-section" id="modalEpistemicSection" style="display:none;">
+        <div class="modal-label">🔬 Epistemic Status (Evidence & Verification)</div>
+        <div class="modal-content" id="modalEpistemic"></div>
+      </div>
       <div class="modal-section" id="modalStepsSection">
         <div class="modal-label">📋 Steps Progress</div>
         <div class="modal-content" id="modalSteps"></div>
@@ -1858,6 +1862,52 @@ function showTaskDetail(id) {
     contextSection.style.display = 'block';
   } else {
     contextSection.style.display = 'none';
+  }
+
+  // Epistemic Section (ROUND 2 - Show verification status, claims, evidence, outcome)
+  const epistemicSection = document.getElementById('modalEpistemicSection');
+  if (task.epistemic || task.outcome) {
+    let epiHtml = '';
+    
+    // Verification Status Badge
+    if (task.epistemic && task.epistemic.verification_status) {
+      const vs = task.epistemic.verification_status;
+      let badge = '🟡 CLAIMED', badgeColor = '#fbbf24';
+      if (vs === 'evidence_provided') { badge = '🔵 EVIDENCE PROVIDED'; badgeColor = '#60a5fa'; }
+      else if (vs === 'human_verified') { badge = '🟢 HUMAN VERIFIED'; badgeColor = '#4ade80'; }
+      else if (vs === 'automated_verified') { badge = '🟣 AUTO VERIFIED'; badgeColor = '#a78bfa'; }
+      epiHtml += `<div style="margin-bottom:12px;"><span style="background:rgba(${badgeColor === '#fbbf24' ? '251,191,36' : badgeColor === '#60a5fa' ? '96,165,250' : badgeColor === '#4ade80' ? '74,222,128' : '167,139,250'},0.2);color:${badgeColor};padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;">${badge}</span></div>`;
+    }
+    
+    // Claims vs Verified
+    if (task.epistemic && task.epistemic.claims) {
+      epiHtml += '<div style="margin-bottom:8px;"><strong style="color:#fbbf24;">📋 Claims:</strong><ul style="margin:4px 0 0 16px;font-size:12px;">';
+      task.epistemic.claims.forEach(c => { epiHtml += '<li>' + c + '</li>'; });
+      epiHtml += '</ul></div>';
+    }
+    if (task.epistemic && task.epistemic.verified && task.epistemic.verified.length > 0) {
+      epiHtml += '<div style="margin-bottom:8px;"><strong style="color:#4ade80;">✅ Verified:</strong><ul style="margin:4px 0 0 16px;font-size:12px;">';
+      task.epistemic.verified.forEach(v => { epiHtml += '<li>' + v + '</li>'; });
+      epiHtml += '</ul></div>';
+    }
+    
+    // Outcome
+    if (task.outcome) {
+      epiHtml += '<div style="margin-top:12px;padding:10px;background:rgba(96,165,250,0.1);border-radius:6px;border-left:3px solid #60a5fa;">';
+      if (task.outcome.intended_effect) epiHtml += '<div style="font-size:12px;"><strong>🎯 Intended:</strong> ' + task.outcome.intended_effect + '</div>';
+      if (task.outcome.success_metric) epiHtml += '<div style="font-size:12px;margin-top:4px;"><strong>📏 Metric:</strong> ' + task.outcome.success_metric + '</div>';
+      if (task.outcome.measured_effect) epiHtml += '<div style="font-size:12px;margin-top:4px;"><strong>📊 Measured:</strong> ' + task.outcome.measured_effect + '</div>';
+      if (task.outcome.success !== null && task.outcome.success !== undefined) {
+        const successIcon = task.outcome.success === true ? '✅' : task.outcome.success === 'partial' ? '⚠️' : '❌';
+        epiHtml += '<div style="font-size:12px;margin-top:4px;"><strong>Result:</strong> ' + successIcon + '</div>';
+      }
+      epiHtml += '</div>';
+    }
+    
+    document.getElementById('modalEpistemic').innerHTML = epiHtml;
+    epistemicSection.style.display = 'block';
+  } else {
+    epistemicSection.style.display = 'none';
   }
 
   // Steps Progress
