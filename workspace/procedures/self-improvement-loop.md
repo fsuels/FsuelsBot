@@ -19,6 +19,18 @@ status: active
 └─────────────────────────────────────┘
 ```
 
+## VERIFICATION GATE (Epistemic Check)
+
+Before marking ANY improvement complete:
+- [ ] Improvement has been IMPLEMENTED (not just planned)
+- [ ] Council has ACTUALLY been run (not claimed)
+- [ ] Questions were SENT to external AIs (evidence exists)
+- [ ] Grade is DOCUMENTED in council-sessions/
+
+**Fallacy to avoid:** Proof by assertion ("I improved it" without evidence)
+
+---
+
 ## Rules
 
 1. **No exit until Council confirms A+** on all components

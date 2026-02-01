@@ -95,6 +95,18 @@ Night shift is perfect for parallel sub-agents:
 
 ---
 
+## VERIFICATION GATE (Epistemic Check)
+
+Before starting night shift, verify:
+- [ ] I have READ this procedure (not assumed)
+- [ ] I have CHECKED the backlog (evidence: task IDs listed)
+- [ ] I have IDENTIFIED unblocked tasks (not guessing)
+- [ ] My plan is LOGGED (in state.json)
+
+**Fallacy to avoid:** Wishful thinking ("I'll be productive") without concrete plan.
+
+---
+
 ## Anti-Idle Rules
 
 1. **Heartbeat ≠ Permission to idle** — Heartbeats check infrastructure, then BACK TO WORK
