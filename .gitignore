@@ -71,3 +71,13 @@ USER.md
 
 # local tooling
 .serena/
+
+# Security - sensitive files
+*.pem
+*.key
+*.p12
+*.pfx
+*credentials*
+*secrets*
+.env.local
+.env.*.local
