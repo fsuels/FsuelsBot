@@ -80,6 +80,34 @@ After each session:
 }
 ```
 
+## Minority Opinion Tracking (ROUND 2 — Bandwagon Fallacy Prevention)
+
+**Problem:** When one AI disagrees with the majority, we often dismiss them. But minority opinions are sometimes RIGHT — we just didn't know it yet.
+
+**Solution:** Log minority dissents for retrospective review.
+
+**Minority Record Schema:**
+```json
+{
+  "ts": "2026-01-31T22:00:00Z",
+  "session": "council-xyz",
+  "minority_ai": "Grok",
+  "minority_position": "This approach will fail because X",
+  "majority_position": "This approach will work",
+  "verdict_followed": "majority",
+  "retrospective": null,
+  "was_minority_right": null
+}
+```
+
+**Retrospective Protocol:**
+1. After 7 days, review minority opinions from that week
+2. Check: Did the majority approach work? Did the minority concern materialize?
+3. Update `was_minority_right` field
+4. If minority was right: Log as learning, increase that AI's weight for similar topics
+
+**File:** `council-sessions/minority-opinions.jsonl`
+
 ## Synthesis Rules — No Voting, No Averaging
 
 **Final output is NOT "what most models say."**

@@ -4,6 +4,27 @@
 **Purpose:** Test "Memory as Reasoning" — does predicting Francisco's needs improve assistance?
 **Review Date:** 2026-02-07 (1 week)
 
+## 📊 Calibration Dashboard (ROUND 2)
+
+### Accuracy by Category
+| Category | Total | Correct | Accuracy | Notes |
+|----------|-------|---------|----------|-------|
+| Priority (P) | 5 | - | -% | What Francisco will prioritize |
+| Behavior (B) | 5 | - | -% | When/how he'll respond |
+| Decision (D) | 5 | - | -% | What he'll choose |
+| Technical (T) | 0 | - | -% | Will this code/system work |
+| Timeline (L) | 0 | - | -% | How long will X take |
+| Sales (S) | 0 | - | -% | Will this sell |
+
+### Confidence Calibration
+| Stated Confidence | Times Used | Times Correct | Actual Rate | Calibration Error |
+|-------------------|------------|---------------|-------------|-------------------|
+| HIGH (>80%) | - | - | -% | - |
+| MEDIUM (50-80%) | - | - | -% | - |
+| LOW (<50%) | - | - | -% | - |
+
+*Update this weekly from predictions-log.jsonl scoring*
+
 ---
 
 ## Active Predictions

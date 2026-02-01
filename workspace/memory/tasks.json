@@ -1,6 +1,6 @@
 {
-  "version": 211,
-  "updated_at": "2026-02-01T02:35:20.267Z",
+  "version": 212,
+  "updated_at": "2026-02-01T02:41:12.332Z",
   "updated_by": "cron-to-task",
   "notes": "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
   "schema": {
@@ -17,11 +17,26 @@
       },
       "reasoning": {
         "premises": "Array of logical premises leading to approach",
-        "assumptions": "Array of assumptions made (to be validated)",
+        "assumptions": "Array of EXPLICIT assumptions (to be validated) - REQUIRED",
         "fallacy_check": "Which fallacies were considered and ruled out"
       },
       "confidence": "0.0-1.0 confidence in successful completion",
       "verification_status": "claimed | evidence_provided | human_verified | automated_verified"
+    },
+    "outcome": {
+      "description": "ROUND 2: Track intended effect vs actual result (output ≠ outcome)",
+      "intended_effect": "What this task is supposed to ACHIEVE (not just do)",
+      "success_metric": "How we will MEASURE success (specific, measurable)",
+      "measured_effect": "Actual result after measurement (null until measured)",
+      "measurement_method": "How to measure (e.g., Shopify analytics, screenshot, user report)",
+      "measured_at": "ISO timestamp when outcome was measured",
+      "success": "true | false | partial | null (null = not yet measured)"
+    },
+    "calibration": {
+      "description": "ROUND 2: Track prediction accuracy for better confidence estimates",
+      "stated_confidence": "0.0-1.0 confidence stated BEFORE doing the task",
+      "actual_outcome": "success | partial | failure (filled AFTER completion)",
+      "calibration_error": "Difference between stated confidence and actual (0 = perfectly calibrated)"
     },
     "context": {
       "summary": "One-paragraph summary of why this task exists and key decisions",
@@ -141,6 +156,7 @@
       "CRON-consolidation"
     ],
     "done_today": [
+      "T203",
       "T201",
       "T200",
       "T199",
@@ -7341,6 +7357,34 @@
         "verified": [
           "Files modified and readable"
         ]
+      }
+    },
+    "T203": {
+      "title": "Epistemic Round 2: Outcome tracking + Calibration + Contradiction detection",
+      "status": "done",
+      "created": "2026-02-01T02:41:12.331Z",
+      "completed": "2026-02-01T02:41:12.332Z",
+      "context": {
+        "summary": "Deeper epistemic improvements: outcome vs output tracking, calibration dashboard, contradiction detection script, minority opinion logging for Council."
+      },
+      "epistemic": {
+        "verification_status": "evidence_provided",
+        "claims": [
+          "Added outcome schema",
+          "Added calibration schema",
+          "Created check-contradiction.py",
+          "Added minority opinion tracking to Council",
+          "Updated predictions.md with category dashboard"
+        ],
+        "verified": [
+          "Files exist and are readable"
+        ]
+      },
+      "outcome": {
+        "intended_effect": "Continuous epistemic improvement loop",
+        "success_metric": "All 6 Round 2 improvements implemented",
+        "measured_effect": "6/6 implemented",
+        "success": true
       }
     }
   }
