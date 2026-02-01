@@ -1,10 +1,10 @@
 {
-  "version": 144,
-  "updated_at": "2026-02-01T01:13:27.156144",
+  "version": 145,
+  "updated_at": "2026-02-01T02:45:00.000000",
   "current_task": "T174",
   "status": "in_progress",
-  "context": "Arena 2.0 Promotion - Steps 4-5 waiting on Francisco (DMs from @GhostBrokerAI, Discord post)",
-  "next_step": "Francisco sends DMs and Discord post, or delegates specific actions",
+  "context": "Arena 2.0 Promotion - Steps 4-5 waiting on Francisco. Active support thread: helping Francisco locate downloaded images on his PC.",
+  "next_step": "Francisco to specify which browser/app he downloaded from so I can locate the files. T174 waiting on human for DMs and Discord post.",
   "completed_this_session": [
     {
       "task": "T195",
@@ -24,12 +24,15 @@
     }
   ],
   "waiting_on_human": [
-    "T207: Verify X researcher replies posted",
-    "T174 Steps 4-5: Send DMs from @GhostBrokerAI, post on Moltbook Discord"
+    "T207: Verify X researcher replies posted (Karpathy + Jim Fan)",
+    "T174 Steps 4-5: Send DMs from @GhostBrokerAI, post on Moltbook Discord",
+    "Active: Francisco asked where his downloaded images are - awaiting response about which browser/app"
   ],
   "new_rules": [
-    "INSTANT ACK: React/respond immediately to Francisco messages",
-    "POST WORKFLOW: Post immediately -> Create verification task with full text + link in human queue"
+    "INSTANT ACK: Respond to Francisco's messages IMMEDIATELY, no delay",
+    "POST WORKFLOW: Post immediately -> Create verification task with full text + link in human queue",
+    "REACT FIRST: On every message from Francisco, react ⚡ immediately BEFORE processing",
+    "NO VANITY METRICS: Real improvements only, not commit counts or round numbers"
   ],
-  "compaction_checkpoint": "2026-02-01 01:13 EST"
+  "compaction_checkpoint": "2026-02-01 02:45 EST"
 }

@@ -2122,16 +2122,17 @@ async function completeFromModal() {
   btn.innerHTML = '⏳ Completing...';
   
   try {
-    const response = await fetch('/api/complete-task', {
+    // Use transfer-task to move from human to done_today
+    const response = await fetch('/api/transfer-task', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ taskId })
+      body: JSON.stringify({ taskId, fromLane: 'human', toLane: 'done_today' })
     });
     
     if (response.ok) {
       btn.innerHTML = '✅ Done!';
       btn.style.background = '#1a7f37';
-      showToast('Task marked complete!', 'success');
+      showToast('Task approved and completed!', 'success');
       // Close modal and refresh after brief delay
       setTimeout(() => {
         closeModal();

@@ -8,12 +8,12 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-02-01 01:14 EST | **Version:** 144
+**Last updated:** 2026-02-01 02:45 EST | **Version:** 145
 
 **Current task:** T174 - Arena 2.0 Promotion
 **Status:** in_progress
-**Context:** Steps 4-5 waiting on Francisco (DMs from @GhostBrokerAI, Discord post)
-**Next step:** Francisco sends DMs and Discord post, or delegates specific actions
+**Context:** Steps 4-5 waiting on Francisco. Active support thread: helping Francisco locate downloaded images on his PC.
+**Next step:** Francisco to specify which browser/app he downloaded from so I can locate the files. T174 waiting on human for DMs and Discord post.
 
 **✅ COMPLETED THIS SESSION:**
 | Task | Result |
@@ -31,10 +31,11 @@ This folder is home. Treat it that way.
 - T207: Verify X researcher replies posted (Karpathy + Jim Fan)
 - T174 Step 4: Send DMs from @GhostBrokerAI
 - T174 Step 5: Post on Moltbook Discord
+- Active: Francisco asked where his downloaded images are — awaiting which browser/app
 
 **📋 TASK BOARD:** `memory/tasks.json`
 
-**🔄 COMPACTION CHECKPOINT:** 2026-02-01 01:14 EST - T195/T181/T190/T180 complete. T174 waiting on human. New rules added.
+**🔄 COMPACTION CHECKPOINT:** 2026-02-01 02:45 EST - Pre-compaction flush. T174 waiting on human. Active support: locate downloaded images.
 
 **📌 NEW RULES THIS SESSION:**
 - **INSTANT ACK** — Respond to Francisco's messages IMMEDIATELY, no delay
@@ -43,6 +44,10 @@ This folder is home. Treat it that way.
 - **NO VANITY METRICS** — Real improvements only, not commit counts or round numbers
 
 **Standing rules:**
+- **DEPLOY_VERIFY GATE** — After ANY code change, verify it's LIVE before marking done (curl/fetch the live URL)
+- **HISTORY BEFORE STATUS** — Before answering "what's happening with T###", search session history FIRST, not just read the task card
+- **UPDATE IMMEDIATELY** — Task card updated IN THE SAME MOMENT as the work, not after
+- **SUBMODULE AWARENESS** — ghost-broker/website is a SUBMODULE. Must push BOTH repos: `cd website; git push` AND `cd ..; git add website; git push`
 - **REPEAT THE MOTTO** in every process, analysis, recommendation
 - READ tasks.json at EVERY session start
 - READ the plan BEFORE starting any task
