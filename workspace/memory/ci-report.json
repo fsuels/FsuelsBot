@@ -1,0 +1,24 @@
+﻿{
+    "checks":  {
+                   "schema":  "PASS",
+                   "constitution":  "PASS",
+                   "agents_state":  "PASS",
+                   "ledger":  "PASS",
+                   "todays_memory":  "PASS",
+                   "mission_control":  "PASS",
+                   "reconciliation":  "FIXED",
+                   "active_thread":  "PASS"
+               },
+    "errors":  [
+
+               ],
+    "warnings":  [
+                     "state.json regenerated from tasks.json (drift corrected)"
+                 ],
+    "rebuild_type":  "weekly",
+    "timestamp":  "2026-02-01T04:07:22.4720313-05:00",
+    "ledger_events":  102,
+    "events_jsonl":  316,
+    "status":  "HEALTHY",
+    "open_loops":  6
+}
