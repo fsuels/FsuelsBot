@@ -1,6 +1,6 @@
 {
-  "version": 208,
-  "updated_at": "2026-02-01T02:03:03.352Z",
+  "version": 210,
+  "updated_at": "2026-02-01T02:10:47.141Z",
   "updated_by": "cron-to-task",
   "notes": "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
   "schema": {
@@ -122,6 +122,7 @@
       "CRON-consolidation"
     ],
     "done_today": [
+      "T200",
       "T199",
       "T198",
       "T197",
@@ -7229,6 +7230,70 @@
       "artifacts": [
         "scripts/task-discussion-capture.py"
       ]
+    },
+    "T200": {
+      "title": "Apply Epistemic Discipline to ALL Procedures",
+      "status": "done",
+      "created": "2026-02-01T02:08:23.100Z",
+      "priority": "P0",
+      "context": {
+        "summary": "Systematic audit found: ALL procedures have good logic and evidence tracking, but NONE have explicit fallacy checks. The motto must be embedded in every procedure header. Fixes required for x-link-analysis, pricing, vendor-vetting, product-listing, browser.",
+        "decisions": [
+          "Add standard motto header to all procedures",
+          "Add fallacy check section to each",
+          "Add evidence verification steps where missing"
+        ]
+      },
+      "steps": [
+        {
+          "step": "Add motto header to x-link-analysis.md",
+          "status": "done",
+          "completed_at": "2026-02-01T02:10:47.141Z"
+        },
+        {
+          "step": "Add fallacy check to x-link-analysis.md",
+          "status": "done",
+          "completed_at": "2026-02-01T02:10:47.141Z"
+        },
+        {
+          "step": "Add motto header to pricing.md",
+          "status": "done",
+          "completed_at": "2026-02-01T02:10:47.141Z"
+        },
+        {
+          "step": "Add fallacy check to pricing.md",
+          "status": "done",
+          "completed_at": "2026-02-01T02:10:47.141Z"
+        },
+        {
+          "step": "Add motto header to vendor-vetting.md",
+          "status": "done",
+          "completed_at": "2026-02-01T02:10:47.141Z"
+        },
+        {
+          "step": "Add fallacy check to vendor-vetting.md",
+          "status": "done",
+          "completed_at": "2026-02-01T02:10:47.141Z"
+        },
+        {
+          "step": "Add motto header to product-listing.md",
+          "status": "done",
+          "completed_at": "2026-02-01T02:10:47.141Z"
+        },
+        {
+          "step": "Add fallacy check to product-listing.md",
+          "status": "done",
+          "completed_at": "2026-02-01T02:10:47.141Z"
+        },
+        {
+          "step": "Add motto header to browser.md",
+          "status": "done",
+          "completed_at": "2026-02-01T02:10:47.141Z"
+        }
+      ],
+      "current_step": 0,
+      "audit_source": "procedures/AUDIT-2026-01-31.md",
+      "completed_at": "2026-02-01T02:10:47.140Z"
     }
   }
 }

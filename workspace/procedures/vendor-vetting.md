@@ -1,13 +1,34 @@
 ---
-version: "1.0"
+version: "1.1"
 created: "2026-01-29"
-updated: "2026-01-29"
-verified: "2026-01-29"
+updated: "2026-01-31"
+verified: "2026-01-31"
 confidence: "high"
 type: "procedure"
 ---
 
 # 🏪 1688 Vendor Vetting Procedure
+
+## 🧭 EPISTEMIC DISCIPLINE (READ FIRST)
+
+```
+EVERY response I give
+EVERY analysis I make
+EVERY recommendation I offer
+EVERY claim I accept
+EVERY action I take
+        ↓
+   SOUND LOGIC
+ VERIFIED EVIDENCE
+   NO FALLACIES
+```
+
+### Before completing this procedure, verify:
+- [ ] Logic is sound (no gaps in reasoning)
+- [ ] Evidence is verified (not assumed)
+- [ ] Fallacies checked (see Evidence Verification below)
+
+---
 
 **Use this when evaluating ANY vendor on 1688.com before sourcing products.**
 
@@ -124,6 +145,27 @@ Good vendors respond quickly to inquiries. This indicates:
 - ⚠️ Copied descriptions from other listings
 - ⚠️ Store has many unrelated product categories (jack of all trades)
 - ⚠️ Reviews mention quality issues or shipping delays
+
+---
+
+---
+
+## 🔍 Evidence Verification (MANDATORY — Fallacy Prevention)
+
+Before trusting ANY vendor indicator, verify:
+- [ ] **Reviews are REAL** — check for copy-paste patterns (fake = same text repeated)
+- [ ] **Sales/review ratio is reasonable** — 1000 sales + 5 reviews = suspicious
+- [ ] **Badges verified** — understand what "诚信通" actually requires
+- [ ] **At least 2 independent indicators agree** — rating + sales + age
+- [ ] **Not Bandwagon fallacy** — not selecting because "others use this vendor"
+- [ ] **Not Appeal to Authority** — "Factory direct" label verified, not just claimed
+- [ ] **Photos are ACTUAL products** — not stock images or stolen from others
+
+### Red Flags for Fake Data:
+- All reviews have similar wording
+- Review dates clustered unnaturally
+- Sales jumped suddenly (bought reviews)
+- Store has unrelated product categories
 
 ---
 

@@ -1,5 +1,26 @@
 # X Link Analysis Procedure
 
+## 🧭 EPISTEMIC DISCIPLINE (READ FIRST)
+
+```
+EVERY response I give
+EVERY analysis I make
+EVERY recommendation I offer
+EVERY claim I accept
+EVERY action I take
+        ↓
+   SOUND LOGIC
+ VERIFIED EVIDENCE
+   NO FALLACIES
+```
+
+### Before completing this procedure, verify:
+- [ ] Logic is sound (no gaps in reasoning)
+- [ ] Evidence is verified (not assumed)
+- [ ] Fallacies checked (see list below)
+
+---
+
 **Trigger:** Francisco sends an X (Twitter) link
 
 ## Automatic Workflow
@@ -30,6 +51,18 @@ Answer these questions in the task card:
 3. **What can we LEARN and APPLY?**
 4. **What should we DISCARD and why?**
 5. **Are there specific techniques/approaches we should adopt?**
+
+### Step 4.5: FALLACY CHECK (MANDATORY)
+Before accepting ANY claim from the post, verify:
+- [ ] **Not Ad Hominem** — attacks argument, not person
+- [ ] **Not Bandwagon** — popularity ≠ truth ("everyone is doing X")
+- [ ] **Not False Cause** — correlation ≠ causation
+- [ ] **Not Appeal to Authority** — credentials ≠ correctness
+- [ ] **Not Hasty Generalization** — sufficient sample size
+- [ ] **Evidence provided** — not just claims/opinions
+- [ ] **Reproducible** — could we verify this independently?
+
+**If ANY fallacy detected:** Note it in `analysis.fallacies_detected` field and discount that claim.
 
 ### Step 5: Document the Logic Trail
 Task card must include:

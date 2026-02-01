@@ -1,14 +1,35 @@
 ---
-version: "2.0"
+version: "2.1"
 created: "2026-01-29"
-updated: "2026-01-29"
-verified: "2026-01-29"
+updated: "2026-01-31"
+verified: "2026-01-31"
 confidence: "high"
 type: "procedure"
 source: "council-sessions/2026-01-29-workflow-optimization-5round.md"
 ---
 
 # 📦 Product Listing Procedure v2.0 — Pipeline OS Lite
+
+## 🧭 EPISTEMIC DISCIPLINE (READ FIRST)
+
+```
+EVERY response I give
+EVERY analysis I make
+EVERY recommendation I offer
+EVERY claim I accept
+EVERY action I take
+        ↓
+   SOUND LOGIC
+ VERIFIED EVIDENCE
+   NO FALLACIES
+```
+
+### Before completing ANY gate, verify:
+- [ ] Logic is sound (no gaps in reasoning)
+- [ ] Evidence is verified (not assumed)
+- [ ] Fallacies checked (see Gate 1 for vendor fallacy check)
+
+---
 
 **Read this COMPLETELY before ANY product listing or sourcing task.**
 
@@ -329,7 +350,18 @@ Good products have:
 - Verify photos look current
 - **Avoid old listings**
 
-**Exit:** For each candidate: "Vendor [name]: [rating], [sales], 1-piece OK, 24-48hr delivery. Listing date: [date]. Product: [name], fits criteria."
+#### 1.4 Vendor Logic Check (MANDATORY — Fallacy Prevention)
+Before selecting ANY vendor, verify:
+- [ ] **Rating is ACTUAL** — not from fake/bought reviews
+- [ ] **"Factory direct" VERIFIED** — not just claimed
+- [ ] **Sales volume is REAL** — cross-check with review count
+- [ ] **Not Bandwagon** — not selecting because "others use this vendor"
+- [ ] **Not Appeal to Authority** — badges verified, not just trusted
+- [ ] **At least 2 indicators agree** — rating + sales + age align
+
+**If fallacy detected:** Document it, find different vendor.
+
+**Exit:** For each candidate: "Vendor [name]: [rating], [sales], 1-piece OK, 24-48hr delivery. Listing date: [date]. Product: [name], fits criteria. Fallacy check: PASSED."
 
 ---
 

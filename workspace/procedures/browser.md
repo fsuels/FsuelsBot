@@ -1,13 +1,34 @@
 ---
-version: "1.0"
+version: "1.1"
 created: "2026-01-29"
-updated: "2026-01-29"
-verified: "2026-01-29"
+updated: "2026-01-31"
+verified: "2026-01-31"
 confidence: "high"
 type: "procedure"
 ---
 
 # 🌐 Browser Procedure (MANDATORY)
+
+## 🧭 EPISTEMIC DISCIPLINE (READ FIRST)
+
+```
+EVERY response I give
+EVERY analysis I make
+EVERY recommendation I offer
+EVERY claim I accept
+EVERY action I take
+        ↓
+   SOUND LOGIC
+ VERIFIED EVIDENCE
+   NO FALLACIES
+```
+
+### Before completing this procedure, verify:
+- [ ] Logic is sound (no gaps in reasoning)
+- [ ] Evidence is verified (not assumed)
+- [ ] Actions are intentional (not grinding without purpose)
+
+---
 
 **Read this COMPLETELY before ANY browser action.**
 

@@ -1,13 +1,34 @@
 ---
-version: "1.0"
+version: "1.1"
 created: "2026-01-29"
-updated: "2026-01-29"
-verified: "2026-01-29"
+updated: "2026-01-31"
+verified: "2026-01-31"
 confidence: "high"
 type: "procedure"
 ---
 
 # 💰 Pricing Procedure (MANDATORY)
+
+## 🧭 EPISTEMIC DISCIPLINE (READ FIRST)
+
+```
+EVERY response I give
+EVERY analysis I make
+EVERY recommendation I offer
+EVERY claim I accept
+EVERY action I take
+        ↓
+   SOUND LOGIC
+ VERIFIED EVIDENCE
+   NO FALLACIES
+```
+
+### Before completing this procedure, verify:
+- [ ] Logic is sound (no gaps in reasoning)
+- [ ] Evidence is verified (not assumed)
+- [ ] Fallacies checked (see Pricing Logic Check below)
+
+---
 
 **Read this COMPLETELY before ANY price calculation.**
 
@@ -91,6 +112,15 @@ Minimum Price = Total Cost × 1.5  (adds 50% profit)
 IDEAL PRICE = Competitor average - $1 to $5 (undercut slightly)
 BUT NEVER below our 50% margin minimum
 ```
+
+### Pricing Logic Check (MANDATORY — Fallacy Prevention)
+Before setting final price, verify:
+- [ ] **Not Bandwagon** — not following competitors blindly (they may be wrong)
+- [ ] **Price justified by OUR costs** — not just "market rate"
+- [ ] **"Perceived value" backed by evidence** — not assumptions
+- [ ] **Not False Cause** — not assuming high price = high sales
+- [ ] **Competitor data is current** — not outdated prices
+- [ ] **Sample size sufficient** — checked 3+ competitors, not just 1
 
 ### Verification Gate (Competitor Check):
 > "Competitor check: [Product] sells for $[X]-$[Y] on [Amazon/Etsy]. Our cost is $[Z]. Setting price at $[P] (margin: [M]%)."
