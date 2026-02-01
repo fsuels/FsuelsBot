@@ -1,7 +1,7 @@
 {
-    "version": 219,
-    "updated_at": "2026-02-01T01:04:11.377648",
-    "updated_by": "bot-T181-completion",
+    "version": 221,
+    "updated_at": "2026-02-01T01:10:42.876727",
+    "updated_by": "bot-T190-posted",
     "notes": "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
     "schema": {
         "epistemic": {
@@ -101,8 +101,6 @@
     },
     "lanes": {
         "bot_current": [
-            "T190",
-            "T180",
             "T174"
         ],
         "bot_queue": [
@@ -155,6 +153,8 @@
             "CRON-consolidation"
         ],
         "done_today": [
+            "T180",
+            "T190",
             "T181",
             "T195",
             "CRON-20260131-ship",
@@ -6437,7 +6437,7 @@
                     "Fixed mobile overflow"
                 ]
             },
-            "status": "waiting_verification",
+            "status": "done",
             "steps": [
                 {
                     "step": "Rewrite hero section with expanded tagline",
@@ -6477,7 +6477,8 @@
                 {
                     "step": "Francisco verifies changes visible",
                     "waiting_for": "Browser cache clear",
-                    "status": "waiting"
+                    "status": "done",
+                    "completed_at": "2026-02-01T01:10:42.876714"
                 }
             ],
             "created": "2026-01-31T13:49:35.4842733-05:00",
@@ -6495,7 +6496,18 @@
                     "author": "bot",
                     "message": "Saw your comment! Mobile problem still exists - checking now and will fix properly. Going to browser to debug."
                 }
-            ]
+            ],
+            "completed_at": "2026-02-01T01:10:42.876685",
+            "epistemic": {
+                "claims": [
+                    "Homepage comprehensive rewrite is live"
+                ],
+                "verified": [
+                    "web_fetch confirmed content at ghostbrokerai.xyz"
+                ],
+                "verification_status": "evidence_provided",
+                "confidence": 1.0
+            }
         },
         "T181": {
             "approach": "Create page with 6 service packages, pricing, and hire CTA",
@@ -6603,7 +6615,7 @@
             "status": "done"
         },
         "T190": {
-            "current_step": 5,
+            "current_step": 6,
             "steps": [
                 {
                     "step": "Research AI researchers on X",
@@ -6641,12 +6653,14 @@
                 },
                 {
                     "step": "Francisco approves replies",
-                    "status": "waiting",
-                    "waiting_for": "Francisco approval of drafted replies"
+                    "status": "done",
+                    "waiting_for": "Francisco approval of drafted replies",
+                    "completed_at": "2026-02-01T01:09:01.122730"
                 },
                 {
                     "step": "Post from @GhostBrokerAI",
-                    "status": "pending"
+                    "status": "done",
+                    "completed_at": "2026-02-01T01:09:01.122734"
                 }
             ],
             "context": {
@@ -6664,7 +6678,7 @@
             },
             "retry_count": 0,
             "created": "2026-01-31T19:27:58.1589498-05:00",
-            "status": "in_progress",
+            "status": "done",
             "approach": "Research top AI researchers on X, read recent posts, draft and post replies connecting their work to Arena 2.0",
             "title": "GB: X Researcher Engagement Campaign",
             "priority": "P1",
@@ -6771,6 +6785,18 @@
                     "stats": "Already captured in analysis",
                     "posted": "Jan 30, 2026"
                 }
+            },
+            "completed_at": "2026-02-01T01:09:01.122691",
+            "epistemic": {
+                "claims": [
+                    "Posted replies to Karpathy and Jim Fan"
+                ],
+                "verified": [
+                    "Karpathy reply: https://x.com/GhostBrokerAI/status/2017842056551452931",
+                    "Jim Fan reply: https://x.com/GhostBrokerAI/status/2017842491341369765"
+                ],
+                "verification_status": "evidence_provided",
+                "confidence": 1.0
             }
         },
         "T191": {
