@@ -1314,6 +1314,15 @@ body {
   <div class="header">
     <h1><span class="live-dot" id="liveDot"></span> Mission Control</h1>
     <div style="display:flex;gap:10px;align-items:center;">
+      <!-- Task Search -->
+      <div style="position:relative;">
+        <input type="text" id="taskSearch" placeholder="🔍 T001..." 
+          style="width:90px;padding:6px 10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#e6edf3;font-size:12px;font-family:'SF Mono','Fira Code',monospace;transition:all 0.2s;"
+          onfocus="this.style.width='140px';this.style.borderColor='rgba(96,165,250,0.5)'"
+          onblur="if(!this.value)this.style.width='90px';this.style.borderColor='rgba(255,255,255,0.1)'"
+          onkeyup="handleTaskSearch(event)">
+        <div id="searchResults" style="display:none;position:absolute;top:100%;left:0;right:0;background:#161b22;border:1px solid rgba(96,165,250,0.3);border-radius:8px;margin-top:4px;max-height:200px;overflow-y:auto;z-index:100;box-shadow:0 8px 24px rgba(0,0,0,0.4);"></div>
+      </div>
       <span id="lastActivity" style="font-size:10px;color:#6e7681;">⏱ --</span>
       <button class="predictions-btn" onclick="openPredictionsModal()">🎮 Predictions <span id="predBadge" style="background:rgba(139,92,246,0.4);padding:2px 6px;border-radius:10px;font-size:10px;">0</span></button>
       <div class="status-badge working" id="globalStatus">WORKING</div>
@@ -1486,8 +1495,11 @@ async function loadTaskBoard() {
     const daysLeft = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24));
     document.getElementById('deadlineDays').textContent = daysLeft + ' days';
 
-    // Render Bot Current
-    const botCurrentIds = lanes.bot_current || [];
+    // Render Bot Current (handle both string and array formats)
+    let botCurrentIds = lanes.bot_current || [];
+    if (typeof botCurrentIds === 'string') {
+      botCurrentIds = botCurrentIds ? [botCurrentIds] : [];
+    }
     document.getElementById('botCurrentCount').textContent = botCurrentIds.length;
     document.getElementById('botCurrentTasks').innerHTML = botCurrentIds.map(id => {
       const t = tasks[id];
@@ -2933,6 +2945,135 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     closeModal();
     closeCronModal();
+    document.getElementById('searchResults').style.display = 'none';
+  }
+});
+
+// ==================== TASK SEARCH ====================
+function handleTaskSearch(event) {
+  const input = document.getElementById('taskSearch');
+  const resultsDiv = document.getElementById('searchResults');
+  const query = input.value.trim().toUpperCase();
+  
+  // Enter key = jump to first result
+  if (event.key === 'Enter' && query) {
+    const firstResult = resultsDiv.querySelector('.search-result-item');
+    if (firstResult) {
+      firstResult.click();
+      return;
+    }
+    // Try exact match
+    if (allTasks[query]) {
+      openModal(query);
+      input.value = '';
+      resultsDiv.style.display = 'none';
+      return;
+    }
+  }
+  
+  if (!query || query.length < 1) {
+    resultsDiv.style.display = 'none';
+    return;
+  }
+  
+  // Search through all tasks
+  const matches = [];
+  for (const [id, task] of Object.entries(allTasks)) {
+    const idMatch = id.toUpperCase().includes(query);
+    const titleMatch = task.title && task.title.toUpperCase().includes(query);
+    if (idMatch || titleMatch) {
+      // Find which lane this task is in
+      let lane = 'unknown';
+      for (const [laneName, ids] of Object.entries(allLanes)) {
+        if (Array.isArray(ids) && ids.includes(id)) {
+          lane = laneName;
+          break;
+        } else if (ids === id) {
+          lane = laneName;
+          break;
+        }
+      }
+      matches.push({ id, task, lane, idMatch });
+    }
+  }
+  
+  // Sort: exact ID matches first, then by ID
+  matches.sort((a, b) => {
+    if (a.id.toUpperCase() === query) return -1;
+    if (b.id.toUpperCase() === query) return 1;
+    if (a.idMatch && !b.idMatch) return -1;
+    if (!a.idMatch && b.idMatch) return 1;
+    return a.id.localeCompare(b.id);
+  });
+  
+  // Limit results
+  const limited = matches.slice(0, 8);
+  
+  if (limited.length === 0) {
+    resultsDiv.innerHTML = '<div style="padding:10px;color:#8b949e;font-size:11px;">No tasks found</div>';
+    resultsDiv.style.display = 'block';
+    return;
+  }
+  
+  // Render results
+  const laneColors = {
+    'bot_current': '#4ade80',
+    'bot_queue': '#fbbf24',
+    'human': '#60a5fa',
+    'done_today': '#3fb950',
+    'trash': '#6e7681'
+  };
+  const laneLabels = {
+    'bot_current': '🤖 Working',
+    'bot_queue': '📋 Queue',
+    'human': '👤 Human',
+    'done_today': '✅ Done',
+    'trash': '🗑 Trash'
+  };
+  
+  resultsDiv.innerHTML = limited.map(m => {
+    const color = laneColors[m.lane] || '#8b949e';
+    const label = laneLabels[m.lane] || m.lane;
+    const title = m.task.title.length > 35 ? m.task.title.substring(0, 35) + '...' : m.task.title;
+    return `
+      <div class="search-result-item" onclick="jumpToTask('${m.id}')" 
+        style="padding:10px 12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.06);transition:background 0.15s;"
+        onmouseover="this.style.background='rgba(96,165,250,0.1)'" 
+        onmouseout="this.style.background='transparent'">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-family:'SF Mono','Fira Code',monospace;color:#60a5fa;font-weight:700;font-size:13px;">${m.id}</span>
+          <span style="font-size:9px;color:${color};text-transform:uppercase;">${label}</span>
+        </div>
+        <div style="font-size:11px;color:#c9d1d9;margin-top:3px;">${title}</div>
+      </div>
+    `;
+  }).join('');
+  
+  if (matches.length > 8) {
+    resultsDiv.innerHTML += `<div style="padding:8px 12px;color:#6e7681;font-size:10px;text-align:center;">+${matches.length - 8} more results</div>`;
+  }
+  
+  resultsDiv.style.display = 'block';
+}
+
+function jumpToTask(taskId) {
+  const input = document.getElementById('taskSearch');
+  const resultsDiv = document.getElementById('searchResults');
+  
+  // Clear search
+  input.value = '';
+  input.style.width = '90px';
+  resultsDiv.style.display = 'none';
+  
+  // Open the task modal
+  openModal(taskId);
+}
+
+// Close search results when clicking outside
+document.addEventListener('click', (e) => {
+  const searchContainer = document.getElementById('taskSearch').parentElement;
+  if (!searchContainer.contains(e.target)) {
+    document.getElementById('searchResults').style.display = 'none';
   }
 });
 </script>
