@@ -47,7 +47,7 @@ foreach ($file in $filesToCheckpoint) {
 $allCheckpoints = Get-ChildItem -Path $checkpointDir -Filter "checkpoint_*" | Sort-Object LastWriteTime -Descending
 $checkpointGroups = $allCheckpoints | Group-Object { $_.Name -replace 'checkpoint_[\d_-]+_', '' }
 foreach ($group in $checkpointGroups) {
-    $toDelete = $group.Group | Select-Object -Skip 10
+    $toDelete = $group.Group | Select-Object -Skip 5
     foreach ($old in $toDelete) {
         Remove-Item $old.FullName -Force
     }

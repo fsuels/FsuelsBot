@@ -53,7 +53,7 @@ $results.checkpoint = "$saved files saved"
 # 4. Cleanup old checkpoints (keep last 10 per file)
 foreach ($file in $files) {
     $pattern = "checkpoint_*_$file"
-    $old = Get-ChildItem $checkpointDir -Filter $pattern | Sort-Object LastWriteTime -Descending | Select-Object -Skip 10
+    $old = Get-ChildItem $checkpointDir -Filter $pattern | Sort-Object LastWriteTime -Descending | Select-Object -Skip 5
     $old | Remove-Item -Force
 }
 
