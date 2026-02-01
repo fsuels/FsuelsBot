@@ -194,6 +194,25 @@ EVERY action I take
 - `waiting` — Blocked on external input (include `waiting_for`)
 - `blocked` — Failed repeatedly, needs human intervention
 
+### 🔬 VERIFICATION GATE (Before Marking Done)
+**BEFORE moving ANY task to done_today, I MUST:**
+1. **List claims** — What am I claiming I did? (add to `epistemic.claims[]`)
+2. **Provide evidence** — How can this be verified? (add to `epistemic.verified[]`)
+3. **Set status** — Choose honestly:
+   - `human_verified` — Francisco confirmed it works
+   - `evidence_provided` — Proof exists (screenshot, file, test output)
+   - `auto_verified` — Automated test passed
+   - `claimed` — No evidence yet (acceptable for minor tasks)
+
+**The motto applies to task completion too:**
+```
+EVERY task I complete → VERIFIED EVIDENCE
+```
+
+**If I can't provide evidence, I must either:**
+- Keep the task in progress until evidence exists, OR
+- Mark it `claimed` and be honest that it's unverified
+
 ### 🚨 CHAT → QUEUE PROTOCOL (MANDATORY)
 **If I say "I'll do X" or we identify something I need to do in chat:**
 1. **IMMEDIATELY** add it to `memory/tasks.json` before doing anything else
