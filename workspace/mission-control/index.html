@@ -307,6 +307,17 @@ body {
   font-family: 'SF Mono', 'Fira Code', monospace;
   letter-spacing: 0.02em;
   font-weight: 700;
+  cursor: pointer;
+  display: inline-block;
+  padding: 2px 6px;
+  margin-left: -6px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+.task-id:hover {
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+  text-decoration: underline;
 }
 .task-title-text {
   font-size: 13px;
@@ -921,9 +932,19 @@ body {
   flex: 1;
   cursor: pointer;
 }
+.scheduled-id { 
+  color: #60a5fa; 
+  font-size: 11px; 
+  font-family: 'SF Mono', 'Fira Code', monospace; 
+  font-weight: 700; 
+  margin-bottom: 2px;
+  cursor: pointer;
+}
+.scheduled-id:hover { text-decoration: underline; }
 .scheduled-title { color: #c9d1d9; margin-bottom: 3px; font-weight: 500; font-size: 12px; }
 .scheduled-time { color: #d4a574; font-size: 10px; margin-bottom: 2px; }
 .scheduled-next { color: #6e7681; font-size: 10px; }
+.scheduled-last { color: #8b949e; font-size: 9px; margin-top: 2px; }
 .scheduled-delete {
   padding: 3px 5px;
   font-size: 11px;
@@ -1173,6 +1194,22 @@ body {
       <button class="modal-close" onclick="closeModal()">&times;</button>
     </div>
     <div class="modal-body">
+      <!-- Epistemic Motto - Our Operating Principle -->
+      <div class="modal-section" style="background:linear-gradient(135deg, rgba(139,92,246,0.12) 0%, rgba(88,166,255,0.08) 100%);border:1px solid rgba(139,92,246,0.25);border-radius:10px;padding:14px;margin-bottom:16px;text-align:center;">
+        <div style="font-size:11px;color:#a78bfa;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;font-weight:600;">OUR OPERATING PRINCIPLE</div>
+        <div style="font-size:12px;color:#c9d1d9;line-height:1.6;">
+          EVERY response I give<br>
+          EVERY analysis I make<br>
+          EVERY recommendation I offer<br>
+          EVERY claim I accept<br>
+          EVERY action I take<br>
+          <span style="font-size:16px;color:#60a5fa;display:block;margin:6px 0;">↓</span>
+          <strong style="color:#3fb950;font-size:13px;">SOUND LOGIC</strong><br>
+          <strong style="color:#fbbf24;font-size:13px;">VERIFIED EVIDENCE</strong><br>
+          <strong style="color:#f472b6;font-size:13px;">NO FALLACIES</strong>
+        </div>
+      </div>
+      
       <div class="modal-section">
         <div class="modal-label">Status</div>
         <span class="modal-status" id="modalStatus">pending</span>
@@ -1438,22 +1475,8 @@ async function loadTaskBoard() {
       trashSection.style.display = 'none';
     }
 
-    // Render Scheduled (Cron Jobs)
-    const schedIds = lanes.scheduled || [];
-    document.getElementById('scheduledTasks').innerHTML = schedIds.map(id => {
-      const t = tasks[id];
-      if (!t) return '';
-      return `
-        <div class="scheduled-item">
-          <div class="scheduled-content" onclick="showCronDetail('${id}')">
-            <div class="scheduled-title">${t.title}</div>
-            <div class="scheduled-time">⏰ ${t.schedule || ''}</div>
-            <div class="scheduled-next">${t.nextRun ? 'Next: ' + new Date(t.nextRun).toLocaleString() : ''}</div>
-          </div>
-          <button class="delete-btn scheduled-delete" onclick="event.stopPropagation(); deleteCron('${id}', event)" title="Remove">✕</button>
-        </div>
-      `;
-    }).join('') || '<div style="color:#8b949e;">No scheduled tasks</div>';
+    // Render Scheduled (Cron Jobs) - fetch from actual Clawdbot cron system
+    loadCronJobs();
 
     document.getElementById('lastUpdate').textContent = 'Updated: ' + new Date().toLocaleTimeString();
 
@@ -1461,6 +1484,121 @@ async function loadTaskBoard() {
     console.error('Failed to load tasks:', e);
     document.getElementById('botCurrentTasks').innerHTML = '<div style="color:#f85149;">Failed to load tasks.json</div>';
   }
+}
+
+// Load actual cron jobs from Clawdbot gateway
+let allCronJobs = {}; // Store for modal access
+
+async function loadCronJobs() {
+  const container = document.getElementById('scheduledTasks');
+  try {
+    const resp = await fetch('/api/cron-jobs?' + Date.now());
+    const data = await resp.json();
+    
+    if (data.error && !data.jobs?.length) {
+      container.innerHTML = `<div style="color:#f85149;font-size:11px;">Error: ${data.error}</div>`;
+      return;
+    }
+    
+    const jobs = data.jobs || [];
+    if (jobs.length === 0) {
+      container.innerHTML = '<div style="color:#8b949e;">No cron jobs configured</div>';
+      return;
+    }
+    
+    // Store for modal access
+    jobs.forEach(j => { allCronJobs[j.id] = j; });
+    
+    // Format next run time nicely
+    function formatNextRun(nextRunMs) {
+      if (!nextRunMs) return 'Not scheduled';
+      const now = Date.now();
+      const diff = nextRunMs - now;
+      if (diff < 0) return 'Overdue';
+      if (diff < 3600000) return Math.round(diff / 60000) + ' min';
+      if (diff < 86400000) return Math.round(diff / 3600000) + ' hrs';
+      return new Date(nextRunMs).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    }
+    
+    // Format last run
+    function formatLastRun(lastRunMs, lastStatus) {
+      if (!lastRunMs) return '';
+      const status = lastStatus === 'ok' ? '✅' : '❌';
+      const date = new Date(lastRunMs);
+      return `<div class="scheduled-last">${status} Last: ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>`;
+    }
+    
+    container.innerHTML = jobs.filter(j => j.enabled).map(job => `
+      <div class="scheduled-item" onclick="showCronDetail('${job.id}')" title="${job.description || job.name}">
+        <div class="scheduled-content">
+          <div class="scheduled-id">${job.id}</div>
+          <div class="scheduled-title">${job.name}</div>
+          <div class="scheduled-time">⏰ ${job.schedule}</div>
+          <div class="scheduled-next">Next: ${formatNextRun(job.nextRunMs)}</div>
+          ${formatLastRun(job.lastRunMs, job.lastStatus)}
+        </div>
+        <button class="delete-btn scheduled-delete" onclick="event.stopPropagation(); deleteCronJob('${job.id}')" title="Delete">✕</button>
+      </div>
+    `).join('');
+    
+  } catch(e) {
+    console.error('Failed to load cron jobs:', e);
+    container.innerHTML = '<div style="color:#f85149;font-size:11px;">Failed to load cron jobs</div>';
+  }
+}
+
+// Show cron job detail modal
+function showCronDetail(id) {
+  const job = allCronJobs[id];
+  if (!job) return;
+  
+  document.getElementById('cronModalTitle').textContent = job.name;
+  document.getElementById('cronModalId').textContent = job.id;
+  document.getElementById('cronSummary').innerHTML = `
+    <p><strong>Description:</strong> ${job.description || 'No description'}</p>
+    <p><strong>What it does:</strong> ${job.payload || 'Not specified'}</p>
+  `;
+  document.getElementById('cronSchedule').value = job.schedule || '';
+  
+  // Set next run datetime
+  if (job.nextRunMs) {
+    const dt = new Date(job.nextRunMs);
+    document.getElementById('cronNextRun').value = dt.toISOString().slice(0, 16);
+  }
+  
+  // Show audit trail
+  let auditHtml = '<div class="modal-section"><div class="modal-label">📊 Audit Trail</div><div class="modal-content">';
+  if (job.lastRunMs) {
+    const lastDt = new Date(job.lastRunMs);
+    auditHtml += `<p>Last run: ${lastDt.toLocaleString()} — Status: ${job.lastStatus === 'ok' ? '✅ OK' : '❌ Failed'}</p>`;
+  } else {
+    auditHtml += '<p>Never run yet</p>';
+  }
+  auditHtml += '</div></div>';
+  
+  // Insert audit section before the save button
+  const saveSection = document.querySelector('#cronModal .modal-section:last-child');
+  let existingAudit = document.getElementById('cronAuditSection');
+  if (existingAudit) existingAudit.remove();
+  
+  const auditDiv = document.createElement('div');
+  auditDiv.id = 'cronAuditSection';
+  auditDiv.innerHTML = auditHtml;
+  saveSection.parentNode.insertBefore(auditDiv, saveSection);
+  
+  document.getElementById('cronModal').classList.add('active');
+}
+
+function closeCronModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('cronModal').classList.remove('active');
+}
+
+async function deleteCronJob(id) {
+  if (!confirm('Delete cron job ' + id + '? This cannot be undone.')) return;
+  
+  // TODO: Call API to delete cron job
+  alert('Delete functionality coming soon. For now, tell the bot to remove cron job ' + id);
 }
 
 function renderTask(id, task, statusClass, badge, queueInfo) {
@@ -1541,7 +1679,7 @@ function renderTask(id, task, statusClass, badge, queueInfo) {
 
   return `
     <div class="task-item ${statusClass}" onclick="showTaskDetail('${id}')">
-      <div class="task-id">${id}</div>
+      <div class="task-id" onclick="event.stopPropagation(); askAboutTask('${id}')" title="Click to ask about this task">${id}</div>
       <div class="task-title-text">${task.title}</div>
       <div class="task-meta">
         ${stepProgress}
@@ -1552,6 +1690,30 @@ function renderTask(id, task, statusClass, badge, queueInfo) {
       </div>
     </div>
   `;
+}
+
+// Ask the bot about a specific task - adds a comment to trigger bot response
+async function askAboutTask(taskId) {
+  const message = `What is happening with ${taskId}?`;
+  
+  try {
+    const response = await fetch('/api/task-comment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ taskId, message })
+    });
+    
+    if (response.ok) {
+      // Show quick feedback
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#3fb950;color:#fff;padding:12px 20px;border-radius:8px;z-index:9999;animation:fadeIn 0.3s';
+      toast.textContent = `✓ Asked about ${taskId} - check Telegram!`;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+  } catch (err) {
+    console.error('Failed to ask about task:', err);
+  }
 }
 
 function showTaskDetail(id) {

@@ -1,6 +1,6 @@
 {
-  "version": 205,
-  "updated_at": "2026-02-01T01:53:44.823Z",
+  "version": 196,
+  "updated_at": "2026-02-01T01:03:59.006348+00:00",
   "updated_by": "main-session",
   "notes": "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
   "schema": {
@@ -69,8 +69,7 @@
     "bot_current": [
       "T190",
       "T180",
-      "T174",
-      "T195"
+      "T174"
     ],
     "bot_queue": [
       "T188",
@@ -122,10 +121,6 @@
       "CRON-consolidation"
     ],
     "done_today": [
-      "T196",
-      "T194",
-      "T193",
-      "T192",
       "CRON-20260131-buckydrop-check",
       "T191",
       "T189",
@@ -6912,172 +6907,6 @@
       },
       "completed": "2026-01-31T19:46:43.731592",
       "reply_url": "https://x.com/GhostBrokerAI/status/2017761424773181764"
-    },
-    "T192": {
-      "title": "Mission Control: Clickable Task Numbers",
-      "status": "done",
-      "created": "2026-02-01T01:04:51.352895+00:00",
-      "priority": "P1",
-      "context": {
-        "summary": "Francisco wants task numbers in Mission Control to be clickable. Clicking sends a Telegram message asking the bot about that task status.",
-        "decisions": [
-          "Use Telegram deep link format",
-          "Message format: What is happening with T###?"
-        ]
-      },
-      "approach": "1) Find where task cards render in mission-control-server.js. 2) Wrap task ID in <a> with Telegram deep link. 3) Test clicking triggers message.",
-      "steps": [
-        {
-          "step": "Find task card HTML template",
-          "status": "done",
-          "completed_at": "2026-02-01T01:07:09.383803+00:00"
-        },
-        {
-          "step": "Add Telegram deep link to task number",
-          "status": "done",
-          "completed_at": "2026-02-01T01:07:09.383826+00:00",
-          "notes": "Added askAboutTask() function + hover styles"
-        },
-        {
-          "step": "Test click sends message",
-          "status": "done",
-          "completed_at": "2026-02-01T01:08:34.154032+00:00"
-        }
-      ],
-      "current_step": 2,
-      "completed_at": "2026-02-01T01:08:34.154070+00:00"
-    },
-    "T193": {
-      "title": "Mission Control: Show actual cron jobs with next run times",
-      "status": "done",
-      "created": "2026-02-01T01:12:33.928427+00:00",
-      "priority": "P1",
-      "context": {
-        "summary": "Francisco requested actual cron jobs visible in Mission Control with their next run times, instead of placeholder labels.",
-        "decisions": [
-          "Fetch from /api/cron-jobs endpoint",
-          "Show name + next run time",
-          "Replace static scheduled lane"
-        ]
-      },
-      "approach": "1) Add API endpoint to fetch cron jobs. 2) Update Scheduled section in Mission Control. 3) Show job name and next run time.",
-      "completed_at": "2026-02-01T01:15:15.549502+00:00"
-    },
-    "T194": {
-      "title": "Mission Control: Full Cron Job Management",
-      "status": "done",
-      "created": "2026-02-01T01:17:59.631135+00:00",
-      "priority": "P0",
-      "context": {
-        "summary": "Francisco requires: 1) Cron jobs have ID numbers (like C001), 2) Clickable to see full details, 3) Audit trail visible, 4) Edit/delete from card",
-        "constraints": [
-          "No hidden cron jobs",
-          "Full audit trail",
-          "Must match task card functionality"
-        ]
-      },
-      "steps": [
-        {
-          "step": "Add ID numbers to cron jobs (C001, C002...)",
-          "status": "done",
-          "completed_at": "2026-02-01T01:19:44.781202+00:00"
-        },
-        {
-          "step": "Create cron detail modal with full description",
-          "status": "done",
-          "completed_at": "2026-02-01T01:19:44.781229+00:00"
-        },
-        {
-          "step": "Add audit trail to cron modal",
-          "status": "done",
-          "completed_at": "2026-02-01T01:19:44.781234+00:00"
-        },
-        {
-          "step": "Add edit/delete buttons",
-          "status": "done",
-          "completed_at": "2026-02-01T01:19:44.781237+00:00",
-          "notes": "Delete shows confirmation, full API delete coming"
-        }
-      ],
-      "current_step": 4,
-      "completed_at": "2026-02-01T01:19:44.781245+00:00"
-    },
-    "T195": {
-      "title": "X Analysis: @pbteja1998 - AI Agent Squad Guide (Clawdbot)",
-      "status": "in_progress",
-      "created": "2026-02-01T01:20:00Z",
-      "priority": "P0",
-      "context": {
-        "summary": "Francisco shared viral guide on building multi-agent Mission Control using Clawdbot. 124K views, 876 likes. EXTREMELY relevant - validates our architecture.",
-        "source_url": "https://x.com/pbteja1998/status/2017662163540971756"
-      },
-      "analysis": {
-        "post_summary": "Complete guide to building 10-agent AI team using Clawdbot. Covers: SOUL.md for identity, AGENTS.md for operations, HEARTBEAT.md for periodic checks, shared Mission Control database, task workflows, notifications, daily standups.",
-        "author_credibility": "Bhanu Teja P - Founder of SiteGPT (AI chatbot for customer support). Previously exited Feather for $250K. Building SiteGPT from $10K to $1M ARR.",
-        "engagement": "124.7K views, 876 likes, 92 reposts, 2,860 bookmarks, 76 replies",
-        "relevance": "EXTREMELY HIGH - Uses exact same Clawdbot framework we use. His Mission Control = our Mission Control. His SOUL.md = our SOUL.md.",
-        "key_insights": [
-          "Staggered cron heartbeats (agents wake 2 min apart, not all at once)",
-          "WORKING.md for current task state (we use state.json + active-thread.md)",
-          "Thread subscriptions so agents auto-follow conversations",
-          "Daily standup cron at end of day summarizing all agent work",
-          "Cheaper models for heartbeat checks, expensive for creative work",
-          "Start with 2-3 agents, not 10"
-        ],
-        "what_we_already_have": [
-          "SOUL.md",
-          "AGENTS.md",
-          "HEARTBEAT.md",
-          "Mission Control dashboard",
-          "Cron jobs",
-          "Task board"
-        ],
-        "what_we_could_add": [
-          "Stagger cron jobs (currently some overlap)",
-          "Daily standup summary to Telegram",
-          "WORKING.md style current-task tracking",
-          "Thread subscriptions for task discussions"
-        ]
-      },
-      "audit_trail": {
-        "captured_at": "2026-02-01T01:20:00Z",
-        "source_url": "https://x.com/pbteja1998/status/2017662163540971756",
-        "author": "@pbteja1998",
-        "author_bio": "Founder SiteGPT, previously exited Feather for $250K"
-      }
-    },
-    "T196": {
-      "title": "Embed Epistemic Motto into All Task Cards",
-      "status": "done",
-      "created": "2026-02-01T01:53:44.822Z",
-      "priority": "P0",
-      "context": {
-        "summary": "Francisco requested our epistemic discipline motto be visible in EVERY task card. The motto (EVERY response/analysis/recommendation/claim/action → SOUND LOGIC, VERIFIED EVIDENCE, NO FALLACIES) must appear when clicking into any task.",
-        "decisions": [
-          "Motto displayed at TOP of every task detail modal",
-          "Added to SOUL.md as first thing to read each session",
-          "Created procedures/epistemic-motto.md as action plan"
-        ]
-      },
-      "steps": [
-        {
-          "step": "Create action plan document",
-          "status": "done",
-          "completed_at": "2026-02-01T01:53:44.823Z"
-        },
-        {
-          "step": "Add motto to Mission Control task modal",
-          "status": "done",
-          "completed_at": "2026-02-01T01:53:44.823Z"
-        },
-        {
-          "step": "Update SOUL.md with prominent motto",
-          "status": "done",
-          "completed_at": "2026-02-01T01:53:44.823Z"
-        }
-      ],
-      "current_step": 2,
-      "completed_at": "2026-02-01T01:53:44.823Z"
     }
   }
 }

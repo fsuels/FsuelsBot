@@ -1,0 +1,28 @@
+{
+  "version": 135,
+  "updated_at": "2026-02-01T01:12:00.695572+00:00",
+  "currentTask": {
+    "id": "T190",
+    "title": "GB: X Researcher Engagement Campaign",
+    "status": "in_progress",
+    "context": "Researching AI researchers on X. Found 3 HIGH-VALUE targets (Karpathy, Jim Fan, Buehler). Need to capture full posts and draft replies.",
+    "nextStep": "Capture Karpathy post full text, then Jim Fan, then draft replies for Francisco approval"
+  },
+  "completedThisSession": [
+    "T192 - Mission Control clickable task numbers",
+    "CRON-20260131-buckydrop-check - BuckyDrop replied! Scott assigned as account manager"
+  ],
+  "waitingOnHuman": [
+    "T180 - Safari cache clear to verify homepage",
+    "T174 Step 4 - Send DMs from @GhostBrokerAI",
+    "T174 Step 5 - Post on Moltbook Discord",
+    "BuckyDrop - Contact Scott (+86 158 2758 0519) to remove inactive store"
+  ],
+  "artifacts": [
+    "mission-control/index.html - added clickable task IDs with askAboutTask()"
+  ],
+  "rules": [
+    "Always prefix replies with [T###] when discussing tasks",
+    "Task ID clicks in Mission Control add discussion comment"
+  ]
+}

@@ -1,6 +1,6 @@
 {
-  "version": 205,
-  "updated_at": "2026-02-01T01:53:44.823Z",
+  "version": 204,
+  "updated_at": "2026-02-01T01:21:22.125595+00:00",
   "updated_by": "main-session",
   "notes": "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
   "schema": {
@@ -122,7 +122,6 @@
       "CRON-consolidation"
     ],
     "done_today": [
-      "T196",
       "T194",
       "T193",
       "T192",
@@ -7045,39 +7044,6 @@
         "author": "@pbteja1998",
         "author_bio": "Founder SiteGPT, previously exited Feather for $250K"
       }
-    },
-    "T196": {
-      "title": "Embed Epistemic Motto into All Task Cards",
-      "status": "done",
-      "created": "2026-02-01T01:53:44.822Z",
-      "priority": "P0",
-      "context": {
-        "summary": "Francisco requested our epistemic discipline motto be visible in EVERY task card. The motto (EVERY response/analysis/recommendation/claim/action → SOUND LOGIC, VERIFIED EVIDENCE, NO FALLACIES) must appear when clicking into any task.",
-        "decisions": [
-          "Motto displayed at TOP of every task detail modal",
-          "Added to SOUL.md as first thing to read each session",
-          "Created procedures/epistemic-motto.md as action plan"
-        ]
-      },
-      "steps": [
-        {
-          "step": "Create action plan document",
-          "status": "done",
-          "completed_at": "2026-02-01T01:53:44.823Z"
-        },
-        {
-          "step": "Add motto to Mission Control task modal",
-          "status": "done",
-          "completed_at": "2026-02-01T01:53:44.823Z"
-        },
-        {
-          "step": "Update SOUL.md with prominent motto",
-          "status": "done",
-          "completed_at": "2026-02-01T01:53:44.823Z"
-        }
-      ],
-      "current_step": 2,
-      "completed_at": "2026-02-01T01:53:44.823Z"
     }
   }
 }

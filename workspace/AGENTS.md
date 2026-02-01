@@ -8,33 +8,35 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-01-31 19:28 EST | **Version:** 134
+**Last updated:** 2026-01-31 20:12 EST | **Version:** 135
 
 **Current task:** T190 - GB: X Researcher Engagement Campaign
 **Status:** in_progress
-**Context:** Researching AI researchers on X per Francisco's request. Found 3 HIGH-VALUE targets with posts about multi-agent AI / @moltbook.
-**Next step:** Post replies from @GhostBrokerAI (awaiting Francisco approval)
+**Context:** Researching AI researchers on X. Found 3 HIGH-VALUE targets (Karpathy, Jim Fan, Buehler). Need to capture full posts and draft replies.
+**Next step:** Capture Karpathy post full text, then Jim Fan, then draft replies for Francisco approval
 
 **✅ COMPLETED THIS SESSION:**
 | Task | Result |
 |------|--------|
-| T174 Step 3 | ✅ Arena 2.0 infographic created + deployed |
-| Outreach Drafts | ✅ 10 builder DM templates ready |
-| Moltbook Draft | ✅ Discord announcement ready |
+| T192 | ✅ Mission Control clickable task numbers |
+| CRON-buckydrop | ✅ BuckyDrop replied! Scott assigned (+86 158 2758 0519) |
 
 **📁 ARTIFACTS:**
-- `ghost-broker/website/images/arena-2-infographic.png` — deployed to site
-- `ghost-broker/drafts/arena-2.0-outreach.md` — DM templates for 10 builders
-- `ghost-broker/drafts/moltbook-arena-announcement.md` — Discord post draft
+- `mission-control/index.html` — added clickable task IDs with askAboutTask()
 
 **⚠️ WAITING ON HUMAN:**
 - T180: Safari cache clear to verify homepage
 - T174 Step 4: Send DMs from @GhostBrokerAI
 - T174 Step 5: Post on Moltbook Discord
+- BuckyDrop: Contact Scott to remove inactive store + reauthorize app
 
-**📋 TASK BOARD:** `memory/tasks.json` — bot_current: 2 (T180, T174) | bot_queue: 22 | done_today: 90+
+**📋 TASK BOARD:** `memory/tasks.json` — bot_current: 3 (T190, T180, T174) | bot_queue: 24 | done_today: 92+
 
-**🔄 COMPACTION CHECKPOINT:** 19:08 EST - T174 infographic done. Outreach templates drafted. Human action needed.
+**🔄 COMPACTION CHECKPOINT:** 20:12 EST - T192 done. BuckyDrop check done. New rule: [T###] prefix required.
+
+**📌 NEW RULES THIS SESSION:**
+- Always prefix replies with `[T###]` when discussing tasks
+- Task ID clicks in Mission Control add discussion comment requesting status
 
 **Standing rules:**
 - READ tasks.json at EVERY session start

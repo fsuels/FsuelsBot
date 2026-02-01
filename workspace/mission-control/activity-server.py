@@ -1743,6 +1743,26 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
             self.wfile.write(json.dumps({"backlog": backlog}, indent=2, ensure_ascii=False).encode('utf-8'))
             return
         
+        if path == '/api/cron-jobs':
+            # Read cron jobs from cached file (updated periodically by bot)
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Cache-Control', 'no-cache')
+            self.end_headers()
+            
+            try:
+                cron_file = os.path.join(DASHBOARD_DIR, "cron-jobs.json")
+                if os.path.exists(cron_file):
+                    with open(cron_file, 'r', encoding='utf-8') as f:
+                        cron_data = json.load(f)
+                    self.wfile.write(json.dumps(cron_data, indent=2, ensure_ascii=False).encode('utf-8'))
+                else:
+                    self.wfile.write(json.dumps({"jobs": [], "error": "cron-jobs.json not found"}).encode('utf-8'))
+            except Exception as e:
+                self.wfile.write(json.dumps({"error": str(e), "jobs": []}).encode('utf-8'))
+            return
+        
         if path == '/api/tasks':
             self.send_response(200)
             self.send_header('Content-Type', 'application/json; charset=utf-8')

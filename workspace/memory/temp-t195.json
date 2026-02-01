@@ -1,0 +1,44 @@
+{
+  "title": "X Analysis: @pbteja1998 - AI Agent Squad Guide (Clawdbot)",
+  "status": "in_progress",
+  "created": "2026-02-01T01:20:00Z",
+  "priority": "P0",
+  "context": {
+    "summary": "Francisco shared viral guide on building multi-agent Mission Control using Clawdbot. 124K views, 876 likes. EXTREMELY relevant - validates our architecture.",
+    "source_url": "https://x.com/pbteja1998/status/2017662163540971756"
+  },
+  "analysis": {
+    "post_summary": "Complete guide to building 10-agent AI team using Clawdbot. Covers: SOUL.md for identity, AGENTS.md for operations, HEARTBEAT.md for periodic checks, shared Mission Control database, task workflows, notifications, daily standups.",
+    "author_credibility": "Bhanu Teja P - Founder of SiteGPT (AI chatbot for customer support). Previously exited Feather for $250K. Building SiteGPT from $10K to $1M ARR.",
+    "engagement": "124.7K views, 876 likes, 92 reposts, 2,860 bookmarks, 76 replies",
+    "relevance": "EXTREMELY HIGH - Uses exact same Clawdbot framework we use. His Mission Control = our Mission Control. His SOUL.md = our SOUL.md.",
+    "key_insights": [
+      "Staggered cron heartbeats (agents wake 2 min apart, not all at once)",
+      "WORKING.md for current task state (we use state.json + active-thread.md)",
+      "Thread subscriptions so agents auto-follow conversations",
+      "Daily standup cron at end of day summarizing all agent work",
+      "Cheaper models for heartbeat checks, expensive for creative work",
+      "Start with 2-3 agents, not 10"
+    ],
+    "what_we_already_have": [
+      "SOUL.md",
+      "AGENTS.md", 
+      "HEARTBEAT.md",
+      "Mission Control dashboard",
+      "Cron jobs",
+      "Task board"
+    ],
+    "what_we_could_add": [
+      "Stagger cron jobs (currently some overlap)",
+      "Daily standup summary to Telegram",
+      "WORKING.md style current-task tracking",
+      "Thread subscriptions for task discussions"
+    ]
+  },
+  "audit_trail": {
+    "captured_at": "2026-02-01T01:20:00Z",
+    "source_url": "https://x.com/pbteja1998/status/2017662163540971756",
+    "author": "@pbteja1998",
+    "author_bio": "Founder SiteGPT, previously exited Feather for $250K"
+  }
+}
