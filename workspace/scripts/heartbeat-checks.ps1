@@ -80,12 +80,13 @@ if (Test-Path $tasksFile) {
 }
 $results.pendingDiscussions = $pendingDiscussions
 
-# 7. ENFORCEMENT: Check for unverified completions (since 2026-01-31)
+# 7. ENFORCEMENT: Check for unverified completions (since verification system added ~21:00 2026-01-31)
 $unverifiedCount = 0
+$verificationCutoff = "2026-01-31T21:00:00"  # System added around 9 PM EST
 foreach ($id in $tasks.lanes.done_today) {
     $t = $tasks.tasks.$id
-    # Skip old tasks before verification system
-    if ($t.completed -and $t.completed -lt "2026-01-31") { continue }
+    # Skip tasks completed before verification system was added
+    if (-not $t.completed -or $t.completed -lt $verificationCutoff) { continue }
     # Check for missing verification
     if (-not $t.epistemic -or -not $t.epistemic.verification_status -or -not $t.epistemic.claims -or $t.epistemic.claims.Count -eq 0) {
         $unverifiedCount++
