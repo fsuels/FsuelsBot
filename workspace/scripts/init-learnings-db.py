@@ -37,6 +37,11 @@ CREATE TABLE IF NOT EXISTS learning (
     is_pinned INTEGER DEFAULT 0,
     is_active INTEGER DEFAULT 1,
     
+    -- Epistemic status (Council improvement 2026-01-31)
+    epistemic_status TEXT DEFAULT 'claimed' CHECK (epistemic_status IN ('claimed', 'evidence_provided', 'human_verified', 'automated_verified')),
+    evidence_path TEXT,
+    reasoning TEXT,
+    
     -- Timestamps
     created_at TEXT DEFAULT (datetime('now')),
     updated_at TEXT DEFAULT (datetime('now')),

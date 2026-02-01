@@ -295,6 +295,50 @@ body {
   background: linear-gradient(90deg, rgba(74, 222, 128, 0.04) 0%, rgba(22, 27, 34, 0.6) 100%);
 }
 .task-item.pending { border-color: rgba(255,255,255,0.05); }
+
+/* Epistemic Verification Status Badges */
+.verification-badge {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.verification-badge.claimed {
+  background: rgba(251, 191, 36, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+.verification-badge.evidence {
+  background: rgba(96, 165, 250, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.3);
+}
+.verification-badge.human-verified {
+  background: rgba(74, 222, 128, 0.15);
+  color: #4ade80;
+  border: 1px solid rgba(74, 222, 128, 0.3);
+}
+.verification-badge.automated {
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+/* Verification rate in header */
+.verification-rate {
+  font-size: 11px;
+  color: #8b949e;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 8px;
+}
+.verification-rate .rate-good { color: #4ade80; }
+.verification-rate .rate-warn { color: #fbbf24; }
+.verification-rate .rate-bad { color: #f87171; }
 .task-item.human-task { 
   border-color: rgba(96, 165, 250, 0.1);
   border-left: 2px solid rgba(96, 165, 250, 0.4);
@@ -1605,6 +1649,20 @@ function renderTask(id, task, statusClass, badge, queueInfo) {
   const planLink = task.plan ? `<span class="task-plan">📄 ${task.plan.split('/').pop()}</span>` : '';
   const estimate = task.estimate ? `<span class="task-estimate">⏱ ${task.estimate}</span>` : '';
 
+  // Epistemic verification status badge
+  let verificationBadge = '';
+  if (task.epistemic && task.epistemic.verification_status) {
+    const vstatus = task.epistemic.verification_status;
+    let vIcon = '🟡', vClass = 'claimed', vText = 'CLAIMED';
+    if (vstatus === 'evidence_provided') { vIcon = '🔵'; vClass = 'evidence'; vText = 'EVIDENCE'; }
+    else if (vstatus === 'human_verified') { vIcon = '🟢'; vClass = 'human-verified'; vText = 'VERIFIED'; }
+    else if (vstatus === 'automated_verified') { vIcon = '🟣'; vClass = 'automated'; vText = 'AUTO-OK'; }
+    verificationBadge = `<span class="verification-badge ${vClass}">${vIcon} ${vText}</span>`;
+  } else if (task.status === 'done') {
+    // Default: completed tasks without epistemic data are "claimed"
+    verificationBadge = `<span class="verification-badge claimed">🟡 CLAIMED</span>`;
+  }
+
   // Check for verification badge (human-completed task awaiting bot verification)
   let badgeHtml = '';
   if (task.needs_verification) {
@@ -1682,6 +1740,7 @@ function renderTask(id, task, statusClass, badge, queueInfo) {
       <div class="task-id" onclick="event.stopPropagation(); askAboutTask('${id}')" title="Click to ask about this task">${id}</div>
       <div class="task-title-text">${task.title}</div>
       <div class="task-meta">
+        ${verificationBadge}
         ${stepProgress}
         ${planLink}
         ${estimate}

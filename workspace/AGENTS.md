@@ -32,6 +32,12 @@ This folder is home. Treat it that way.
 
 **📋 TASK BOARD:** `memory/tasks.json` — bot_current: 3 (T190, T180, T174) | bot_queue: 24 | done_today: 92+
 
+**🔬 VERIFICATION RATE:** Run `scripts/verification-rate.ps1` to check epistemic health
+- 🟢 Human Verified = Francisco confirmed
+- 🔵 Evidence Provided = proof exists  
+- 🟣 Auto Verified = automated check passed
+- 🟡 Claimed = assertion only (unverified)
+
 **🔄 COMPACTION CHECKPOINT:** 20:12 EST - T192 done. BuckyDrop check done. New rule: [T###] prefix required.
 
 **📌 NEW RULES THIS SESSION:**

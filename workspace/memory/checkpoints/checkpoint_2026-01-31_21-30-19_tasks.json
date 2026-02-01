@@ -1,28 +1,9 @@
 {
-  "version": 211,
-  "updated_at": "2026-02-01T02:35:20.267Z",
+  "version": 210,
+  "updated_at": "2026-02-01T02:10:47.141Z",
   "updated_by": "cron-to-task",
   "notes": "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
   "schema": {
-    "epistemic": {
-      "description": "EPISTEMIC IMPROVEMENT: Track claims vs verified evidence (Council approved 2026-01-31)",
-      "claims": "Array of what the bot CLAIMS to have done",
-      "verified": "Array of what has EVIDENCE/PROOF",
-      "unverified": "Array of claims without evidence yet",
-      "evidence": {
-        "type": "screenshot | url | file | human_verified | automated",
-        "path": "Path to evidence file (e.g., evidence/T123-proof.png)",
-        "verified_by": "human | bot | automated | none",
-        "verified_at": "ISO timestamp of verification"
-      },
-      "reasoning": {
-        "premises": "Array of logical premises leading to approach",
-        "assumptions": "Array of assumptions made (to be validated)",
-        "fallacy_check": "Which fallacies were considered and ruled out"
-      },
-      "confidence": "0.0-1.0 confidence in successful completion",
-      "verification_status": "claimed | evidence_provided | human_verified | automated_verified"
-    },
     "context": {
       "summary": "One-paragraph summary of why this task exists and key decisions",
       "created_from": "EVT-YYYYMMDD-NNN (optional link to originating event)",
@@ -141,7 +122,6 @@
       "CRON-consolidation"
     ],
     "done_today": [
-      "T201",
       "T200",
       "T199",
       "T198",
@@ -7314,34 +7294,6 @@
       "current_step": 0,
       "audit_source": "procedures/AUDIT-2026-01-31.md",
       "completed_at": "2026-02-01T02:10:47.140Z"
-    },
-    "T201": {
-      "title": "Epistemic Improvements: Evidence + Verification System",
-      "status": "done",
-      "created": "2026-02-01T02:35:20.266Z",
-      "completed": "2026-02-01T02:35:20.267Z",
-      "context": {
-        "summary": "Applied epistemic principles to all systems. Added evidence/claims split to task schema, verification status badges to Mission Control, epistemic_status column to learnings.db, verification rate script.",
-        "decisions": [
-          "P0: tasks.json schema + Mission Control badges",
-          "P1: learnings.db columns",
-          "P2: AGENTS.md rate display"
-        ]
-      },
-      "approach": "Schema updates, CSS additions, database ALTER, PowerShell script",
-      "epistemic": {
-        "verification_status": "evidence_provided",
-        "claims": [
-          "Updated tasks.json schema",
-          "Updated Mission Control CSS",
-          "Updated learnings.db",
-          "Created verification-rate.ps1",
-          "Updated AGENTS.md"
-        ],
-        "verified": [
-          "Files modified and readable"
-        ]
-      }
     }
   }
 }
