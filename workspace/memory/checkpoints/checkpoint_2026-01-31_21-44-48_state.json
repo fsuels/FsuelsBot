@@ -1,0 +1,19 @@
+﻿{
+    "version":  138,
+    "deadline":  {
+
+                 },
+    "currentTask":  {
+                        "id":  "T190",
+                        "description":  "GB: X Researcher Engagement Campaign",
+                        "currentStep":  "Capture Karpathy post full text",
+                        "nextStep":  null,
+                        "context":  "",
+                        "status":  "in_progress"
+                    },
+    "lastUpdated":  "2026-01-31T21:30:56-05:00",
+    "standingRules":  {
+
+                      },
+    "taskBoard":  "memory/tasks.json"
+}

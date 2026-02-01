@@ -79,11 +79,32 @@ if (-not $Quiet) {
     }
 }
 
-# Append to error log (JSONL format)
-foreach ($err in $Errors) {
-    $json = $err | ConvertTo-Json -Compress
-    Add-Content -Path $ErrorLog -Value $json
+# IMPROVEMENT: Deduplicate before logging
+$NewErrors = 0
+$LastSeenFile = "C:\dev\FsuelsBot\workspace\memory\.last-error-check.json"
+$LastSeenLines = @()
+
+if (Test-Path $LastSeenFile) {
+    try {
+        $LastSeen = Get-Content $LastSeenFile -Raw | ConvertFrom-Json
+        $LastSeenLines = $LastSeen.lines
+    } catch {}
 }
 
-# Return error count for scripting
-return $Errors.Count
+foreach ($err in $Errors) {
+    # Skip if we've seen this exact error line before
+    $lineHash = [System.BitConverter]::ToString([System.Security.Cryptography.MD5]::Create().ComputeHash([System.Text.Encoding]::UTF8.GetBytes($err.line))).Replace("-","").Substring(0,16)
+    if ($LastSeenLines -contains $lineHash) { continue }
+    
+    $json = $err | ConvertTo-Json -Compress
+    Add-Content -Path $ErrorLog -Value $json
+    $LastSeenLines += $lineHash
+    $NewErrors++
+}
+
+# Save last seen (keep last 500 hashes)
+if ($LastSeenLines.Count -gt 500) { $LastSeenLines = $LastSeenLines[-500..-1] }
+@{ lines = $LastSeenLines; updated = (Get-Date).ToString("o") } | ConvertTo-Json | Set-Content $LastSeenFile
+
+# Return NEW error count for scripting
+return $NewErrors
