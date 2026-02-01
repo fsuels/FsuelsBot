@@ -38,12 +38,14 @@ This folder is home. Treat it that way.
 **🔄 COMPACTION CHECKPOINT:** 2026-02-01 02:45 EST - Pre-compaction flush. T174 waiting on human. Active support: locate downloaded images.
 
 **📌 NEW RULES THIS SESSION:**
+- **VERIFY BEFORE DONE** — For EVERY task: (1) Do the work, (2) VERIFY it actually worked (screenshot/test/check live), (3) ONLY THEN report done. Evidence or it didn't happen.
 - **INSTANT ACK** — Respond to Francisco's messages IMMEDIATELY, no delay
 - **POST WORKFLOW** — Post immediately → Create verification task with full text + link in human queue
 - **REACT FIRST** — On every message from Francisco, react ⚡ immediately BEFORE processing
 - **NO VANITY METRICS** — Real improvements only, not commit counts or round numbers
 
 **Standing rules:**
+- **🔴 VERIFY EVERY TASK** — Do the work → VERIFY it worked (screenshot/test/live check) → ONLY THEN claim done. No exceptions.
 - **DEPLOY_VERIFY GATE** — After ANY code change, verify it's LIVE before marking done (curl/fetch the live URL)
 - **HISTORY BEFORE STATUS** — Before answering "what's happening with T###", search session history FIRST, not just read the task card
 - **UPDATE IMMEDIATELY** — Task card updated IN THE SAME MOMENT as the work, not after
