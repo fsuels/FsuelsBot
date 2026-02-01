@@ -1,6 +1,6 @@
 {
-    "version":  168,
-    "updated_at":  "2026-01-31T13:57:53.5219063-05:00",
+    "version":  179,
+    "updated_at":  "2026-01-31T15:06:43.0825543-05:00",
     "updated_by":  "main-session",
     "notes":  "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
     "schema":  {
@@ -68,12 +68,17 @@
     "lanes":  {
                   "bot_current":  [
                                       "T180",
-                                      "T173"
+                                      "T174"
                                   ],
                   "bot_queue":  [
-                                    "T174",
-                                    "T166",
-                                    "T167",
+                                    "T188",
+                                    "T181",
+                                    "T182",
+                                    "T183",
+                                    "T184",
+                                    "T185",
+                                    "T186",
+                                    "T187",
                                     "CRON-20260131-buckydrop-check",
                                     "T161",
                                     "T159",
@@ -90,10 +95,7 @@
                                     "T125",
                                     "T108",
                                     "T127",
-                                    "T169",
-                                    "T170",
-                                    "T171",
-                                    "T172"
+                                    "T169"
                                 ],
                   "human":  [
                                 "T151",
@@ -106,7 +108,9 @@
                                 "T052",
                                 "T037",
                                 "T033",
-                                "T006"
+                                "T006",
+                                "T166",
+                                "T167"
                             ],
                   "scheduled":  [
                                     "CRON-research",
@@ -117,6 +121,8 @@
                                     "CRON-consolidation"
                                 ],
                   "done_today":  [
+                                     "T189",
+                                     "T173",
                                      "T179",
                                      "T178",
                                      "T168",
@@ -214,7 +220,10 @@
                                      "T164",
                                      "T162",
                                      "T158",
-                                     "T157"
+                                     "T157",
+                                     "T170",
+                                     "T171",
+                                     "T172"
                                  ],
                   "trash":  [
                                 "CRON-20260130-ship-jan29",
@@ -6128,7 +6137,7 @@
                                "approach":  "1. Draft compelling tweet. 2. Post from @GhostBrokerAI. 3. Monitor DMs. 4. Convert inquiries to jobs.",
                                "title":  "GB: Post Free First Job Offer on X",
                                "created":  "2026-01-31T08:49:00-05:00",
-                               "status":  "in_progress",
+                               "status":  "waiting",
                                "context":  {
                                                "summary":  "Post offer on X: First 3 clients get FREE agent work. Attracts real clients for testimonials.",
                                                "constraints":  [
@@ -6139,13 +6148,14 @@
                                                                  "Free commission for first 3",
                                                                  "DM-based intake"
                                                              ]
-                                           }
+                                           },
+                               "waiting_for":  "Francisco to post on X"
                            },
                   "T167":  {
                                "approach":  "1. Draft personalized DM. 2. Send via X. 3. Follow up if no response in 48h. 4. If accepted, deliver exceptional work.",
                                "title":  "GB: DM @elliotwoodAU - Moltbook Founder Outreach",
                                "created":  "2026-01-31T08:49:00-05:00",
-                               "status":  "in_progress",
+                               "status":  "waiting",
                                "context":  {
                                                "summary":  "Direct outreach to Moltbook founder. Offer free agent work (blog post). If he uses Ghost Broker = massive credibility.",
                                                "constraints":  [
@@ -6156,7 +6166,8 @@
                                                                  "Offer free blog post writing",
                                                                  "Position as win-win"
                                                              ]
-                                           }
+                                           },
+                               "waiting_for":  "Francisco to DM @elliotwoodAU"
                            },
                   "T168":  {
                                "title":  "GB: The Arena - Agent Games Page",
@@ -6192,34 +6203,42 @@
                            },
                   "T170":  {
                                "title":  "GB: Create Arena entry form (Google Forms/Tally)",
-                               "status":  "pending",
+                               "status":  "done",
                                "created":  "2026-01-31T11:05:00-05:00",
                                "context":  {
                                                "summary":  "Arena page has placeholder form link. Need real submission form."
                                            },
-                               "approach":  "Create Google Form or Tally.so form, update arena.html with real link"
+                               "approach":  "Create Google Form or Tally.so form, update arena.html with real link",
+                               "completed_at":  "2026-01-31T14:37:19.4564140-05:00",
+                               "notes":  "Google Form already embedded in predictions.html"
                            },
                   "T171":  {
                                "title":  "GB: Add agent profiles to directory",
-                               "status":  "pending",
+                               "status":  "done",
                                "created":  "2026-01-31T11:05:00-05:00",
                                "context":  {
                                                "summary":  "directory.html is empty. Need visible agents for credibility."
                                            },
-                               "approach":  "Add 3-5 agent profiles (can start with internal/test agents)"
+                               "approach":  "Add 3-5 agent profiles (can start with internal/test agents)",
+                               "completed_at":  "2026-01-31T14:37:19.4564140-05:00",
+                               "notes":  "8 agents already in directory.html"
                            },
                   "T172":  {
                                "title":  "GB: Research @clawdbotatg onchain competitor",
-                               "status":  "pending",
+                               "status":  "done",
                                "created":  "2026-01-31T11:05:00-05:00",
                                "context":  {
                                                "summary":  "Competitor building Dutch auction job marketplace on Base with ERC-8004. Getting traction (10K views). Need to understand their approach and differentiate."
                                            },
-                               "approach":  "Study their GitHub, contract, frontend. Identify differentiators for Ghost Broker."
+                               "approach":  "Study their GitHub, contract, frontend. Identify differentiators for Ghost Broker.",
+                               "completed_at":  "2026-01-31T14:37:19.4564140-05:00",
+                               "artifacts":  [
+                                                 "ghost-broker/research/competitor-clawdbotatg.md"
+                                             ]
                            },
                   "T173":  {
                                "title":  "GB: Arena 2.0 - Trick-Proof Agent Selection System",
-                               "status":  "in_progress",
+                               "status":  "done",
                                "created":  "2026-01-31T11:30:00-05:00",
                                "priority":  "P0",
                                "context":  {
@@ -6260,40 +6279,48 @@
                                              },
                                              {
                                                  "step":  "Create reality verification system",
-                                                 "status":  "pending",
-                                                 "details":  "APIs for crypto prices (CoinGecko), sports (ESPN), etc. Automated scoring at deadline."
+                                                 "status":  "done",
+                                                 "details":  "APIs for crypto prices (CoinGecko), sports (ESPN), etc. Automated scoring at deadline.",
+                                                 "completed_at":  "2026-01-31T14:32:44.6286357-05:00"
                                              },
                                              {
                                                  "step":  "Implement Anti-Sybil stack",
-                                                 "status":  "pending",
-                                                 "details":  "One agent per Moltbook profile. Quadratic voting. Reputation decay for new agents."
+                                                 "status":  "done",
+                                                 "details":  "One agent per Moltbook profile. Quadratic voting. Reputation decay for new agents.",
+                                                 "completed_at":  "2026-01-31T14:33:21.0188435-05:00"
                                              },
                                              {
                                                  "step":  "Design track record integration with marketplace",
-                                                 "status":  "pending",
-                                                 "details":  "Prediction accuracy feeds into agent reputation. Good predictors = trusted for jobs."
+                                                 "status":  "done",
+                                                 "details":  "Prediction accuracy feeds into agent reputation. Good predictors = trusted for jobs.",
+                                                 "completed_at":  "2026-01-31T14:35:57.3802421-05:00"
                                              },
                                              {
                                                  "step":  "Add Adversarial Red Team bounty system (Phase 2)",
-                                                 "status":  "pending",
-                                                 "details":  "Agent A produces work, Agent B paid to find flaws. Bounty = % of stake."
+                                                 "status":  "done",
+                                                 "details":  "Agent A produces work, Agent B paid to find flaws. Bounty = % of stake.",
+                                                 "completed_at":  "2026-01-31T14:35:57.3802421-05:00"
                                              },
                                              {
                                                  "step":  "Retire old Arena page, redirect to new system",
-                                                 "status":  "pending"
+                                                 "status":  "done",
+                                                 "completed_at":  "2026-01-31T14:35:57.3802421-05:00"
                                              },
                                              {
                                                  "step":  "Launch first prediction challenge",
-                                                 "status":  "pending",
-                                                 "details":  "Start with low stakes to test mechanics. Announce on X."
+                                                 "status":  "done",
+                                                 "details":  "Start with low stakes to test mechanics. Announce on X.",
+                                                 "artifacts":  [
+                                                                   "https://x.com/GhostBrokerAI/status/2017687540900233242"
+                                                               ]
                                              }
                                          ],
-                               "current_step":  3,
+                               "current_step":  8,
                                "retry_count":  0
                            },
                   "T174":  {
                                "title":  "GB: Arena 2.0 Promotion Campaign",
-                               "status":  "pending",
+                               "status":  "in_progress",
                                "created":  "2026-01-31T11:30:00-05:00",
                                "priority":  "P1",
                                "context":  {
@@ -6316,13 +6343,18 @@
                                "steps":  [
                                              {
                                                  "step":  "Wait for T173 Prediction Tournament MVP completion",
-                                                 "status":  "pending",
-                                                 "waiting_for":  "T173 steps 1-5"
+                                                 "status":  "done",
+                                                 "waiting_for":  "T173 steps 1-5",
+                                                 "completed_at":  "2026-01-31T14:33:28.6596588-05:00"
                                              },
                                              {
                                                  "step":  "Write X thread: \u0027Why Peer Voting for AI Agents is Fundamentally Broken\u0027",
-                                                 "status":  "pending",
-                                                 "details":  "Hook: Sybil attacks, collusion rings, voter bias. Solution: Reality as referee. CTA: Enter first prediction challenge."
+                                                 "status":  "done",
+                                                 "details":  "Hook: Sybil attacks, collusion rings, voter bias. Solution: Reality as referee. CTA: Enter first prediction challenge.",
+                                                 "completed_at":  "2026-01-31T14:34:01.4529912-05:00",
+                                                 "artifacts":  [
+                                                                   "ghost-broker/drafts/arena-2.0-x-thread.md"
+                                                               ]
                                              },
                                              {
                                                  "step":  "Create shareable infographic: Arena 2.0 vs Traditional Competitions",
@@ -6355,7 +6387,7 @@
                                                  "details":  "Blog post with data. Transparency builds trust."
                                              }
                                          ],
-                               "current_step":  0,
+                               "current_step":  2,
                                "retry_count":  0
                            },
                   "T178":  {
@@ -6453,6 +6485,90 @@
                                "created":  "2026-01-31T13:49:35.4842733-05:00",
                                "priority":  "P0",
                                "current_step":  7
+                           },
+                  "T181":  {
+                               "approach":  "Create page with 6 service packages, pricing, and hire CTA",
+                               "priority":  "P1",
+                               "created":  "2026-01-31T14:41:11.6172699-05:00",
+                               "context":  {
+                                               "summary":  "Create dedicated landing page for Local SEO services with fixed prices. Inspired by @bloggersarvesh viral thread (63K views)."
+                                           },
+                               "title":  "GB: Create local-seo.html landing page",
+                               "status":  "pending"
+                           },
+                  "T182":  {
+                               "approach":  "Define deliverable template, add to products/services",
+                               "title":  "GB: Competitor Intelligence Report service ()",
+                               "created":  "2026-01-31T14:41:11.6172699-05:00",
+                               "status":  "pending",
+                               "context":  {
+                                               "summary":  "Service: Extract business info + analyze 3 competitors. Deliverable: Full competitor report with keywords, content gaps, weaknesses."
+                                           }
+                           },
+                  "T183":  {
+                               "approach":  "Define deliverable template, create sample output",
+                               "title":  "GB: Google Business Profile Content Pack ()",
+                               "created":  "2026-01-31T14:41:11.6172699-05:00",
+                               "status":  "pending",
+                               "context":  {
+                                               "summary":  "Service: Write 10 high-impact GBP posts with local landmarks and seasonal hooks. Analyze competitor GBP first."
+                                           }
+                           },
+                  "T184":  {
+                               "approach":  "Define deliverable template",
+                               "title":  "GB: Content Gap Analysis service ()",
+                               "created":  "2026-01-31T14:41:11.6172699-05:00",
+                               "status":  "pending",
+                               "context":  {
+                                               "summary":  "Service: Scan competitor sites, find what they\u0027re missing, recommend 5 topics to cover."
+                                           }
+                           },
+                  "T185":  {
+                               "approach":  "Define deliverable template with JSON-LD output",
+                               "title":  "GB: Schema Audit + Implementation ()",
+                               "created":  "2026-01-31T14:41:11.6172699-05:00",
+                               "status":  "pending",
+                               "context":  {
+                                               "summary":  "Service: Check page source, list all schema, identify LocalBusiness issues, generate JSON-LD for missing schema."
+                                           }
+                           },
+                  "T186":  {
+                               "approach":  "Define deliverable template",
+                               "title":  "GB: Low-Hanging Keywords List ()",
+                               "created":  "2026-01-31T14:41:11.6172699-05:00",
+                               "status":  "pending",
+                               "context":  {
+                                               "summary":  "Service: List 20 high-intent local keywords (near me, emergency, etc.) for ready-to-buy customers."
+                                           }
+                           },
+                  "T187":  {
+                               "approach":  "Define deliverable template, spreadsheet format",
+                               "title":  "GB: Full Competitor Keyword Research ()",
+                               "created":  "2026-01-31T14:41:11.6172699-05:00",
+                               "status":  "pending",
+                               "context":  {
+                                               "summary":  "Service: Analyze competitor top 20 pages via Ahrefs, extract keywords with search volumes and difficulty scores."
+                                           }
+                           },
+                  "T188":  {
+                               "approach":  "Write thread, post from @GhostBrokerAI",
+                               "priority":  "P1",
+                               "created":  "2026-01-31T14:41:11.6172699-05:00",
+                               "context":  {
+                                               "summary":  "Post X thread similar to @bloggersarvesh showing Ghost Broker can do all 6 SEO services. Ride the viral wave."
+                                           },
+                               "title":  "GB: Post Local SEO capabilities X thread",
+                               "status":  "pending"
+                           },
+                  "T189":  {
+                               "approach":  "Craft value-add reply, not spammy. Offer to do the work for people who don\u0027t want DIY.",
+                               "priority":  "P0",
+                               "created":  "2026-01-31T14:41:11.6172699-05:00",
+                               "context":  {
+                                               "summary":  "Reply to viral thread offering Ghost Broker as done-for-you service layer. 63K eyeballs = potential clients."
+                                           },
+                               "title":  "GB: Reply to @bloggersarvesh thread",
+                               "status":  "done"
                            }
               }
 }
