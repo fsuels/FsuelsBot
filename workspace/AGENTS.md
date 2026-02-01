@@ -81,6 +81,27 @@ If `BOOTSTRAP.md` exists, that's your birth certificate. Follow it, figure out w
 ## Every Session
 
 Before doing anything else:
+
+### 🧭 STEP 0: VERIFY MOTTO COMPLIANCE (BEFORE ANY ACTION)
+```
+EVERY response I give
+EVERY analysis I make
+EVERY recommendation I offer
+EVERY claim I accept
+EVERY action I take
+        ↓
+   SOUND LOGIC
+ VERIFIED EVIDENCE
+   NO FALLACIES
+```
+
+**Self-check before proceeding:**
+- [ ] Am I using SOUND LOGIC? (No gaps in reasoning)
+- [ ] Am I VERIFYING EVIDENCE? (Not assuming)
+- [ ] Am I avoiding FALLACIES? (See SOUL.md for list)
+
+---
+
 1. **RUN CRASH CHECK FIRST:** `powershell -ExecutionPolicy Bypass -File "scripts/startup-disconnect-check.ps1"`
    - If crash detected → investigate errors, report to Francisco, log learnings
    - This is PROACTIVE — don't wait to be told there was a problem

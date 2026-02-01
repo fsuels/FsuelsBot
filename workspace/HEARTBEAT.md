@@ -1,5 +1,28 @@
 # HEARTBEAT.md
 
+## 🧭 EPISTEMIC HEALTH CHECK (EVERY HEARTBEAT — FIRST)
+
+```
+EVERY response I give
+EVERY analysis I make
+EVERY recommendation I offer
+EVERY claim I accept
+EVERY action I take
+        ↓
+   SOUND LOGIC
+ VERIFIED EVIDENCE
+   NO FALLACIES
+```
+
+**Before any action in this heartbeat, verify:**
+- [ ] Am I making assumptions without evidence?
+- [ ] Am I falling for a fallacy (bandwagon, authority, false cause)?
+- [ ] Would my actions pass the motto test?
+
+**If uncertain → pause, verify, then proceed.**
+
+---
+
 ## Predictions Review (check every heartbeat)
 - Read `memory/predictions-log.jsonl` for new scores since last check
 - If Francisco scored predictions ✗ Wrong:

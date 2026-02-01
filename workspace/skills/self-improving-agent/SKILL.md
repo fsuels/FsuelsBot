@@ -5,6 +5,27 @@ description: "Captures learnings, errors, and corrections to enable continuous i
 
 # Self-Improvement Skill
 
+## 🧭 EPISTEMIC DISCIPLINE
+
+```
+EVERY response I give
+EVERY analysis I make
+EVERY recommendation I offer
+EVERY claim I accept
+EVERY action I take
+        ↓
+   SOUND LOGIC
+ VERIFIED EVIDENCE
+   NO FALLACIES
+```
+
+**Before logging any learning, verify:**
+- [ ] SOUND LOGIC: Is this a real lesson or a one-off fluke?
+- [ ] VERIFIED EVIDENCE: Did I actually verify the cause of the error?
+- [ ] NO FALLACIES: Am I avoiding hasty generalization from one incident?
+
+---
+
 Log learnings and errors to markdown files for continuous improvement. Coding agents can later process these into fixes, and important learnings get promoted to project memory.
 
 ## Quick Reference

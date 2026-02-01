@@ -7,6 +7,27 @@ metadata: {"clawdbot":{"emoji":"🔬","requires":{"bins":["gemini"]}}}
 
 # Research Skill
 
+## 🧭 EPISTEMIC DISCIPLINE
+
+```
+EVERY response I give
+EVERY analysis I make
+EVERY recommendation I offer
+EVERY claim I accept
+EVERY action I take
+        ↓
+   SOUND LOGIC
+ VERIFIED EVIDENCE
+   NO FALLACIES
+```
+
+**Before using this skill, verify:**
+- [ ] SOUND LOGIC: Is the research question well-formed?
+- [ ] VERIFIED EVIDENCE: Will I verify sources, not just accept claims?
+- [ ] NO FALLACIES: Am I avoiding confirmation bias in research?
+
+---
+
 Conduct deep research on any topic using Gemini CLI via a spawned sub-agent. Uses your Google AI subscription instead of Claude tokens — perfect for long research tasks that would otherwise eat your Clawdbot usage.
 
 ## How It Works
