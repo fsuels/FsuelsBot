@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Agent Message",
+  "description": "Schema for inter-agent communication messages",
+  "type": "object",
+  "required": ["id", "timestamp", "from", "to", "type", "priority", "subject", "body", "status"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^MSG-[0-9]{8}-[0-9]{6}-[a-f0-9]{4}$",
+      "description": "Unique message ID: MSG-YYYYMMDD-HHMMSS-uuid"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp"
+    },
+    "from": {
+      "type": "string",
+      "pattern": "^agent:.+:.+",
+      "description": "Sender session ID (e.g., agent:main:main)"
+    },
+    "to": {
+      "type": "string",
+      "description": "Recipient session ID or human:francisco"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["handoff", "query", "response", "challenge", "escalation", "ack"],
+      "description": "Message type"
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["P0", "P1", "P2", "P3"],
+      "description": "Priority level"
+    },
+    "subject": {
+      "type": "string",
+      "maxLength": 200,
+      "description": "Brief description"
+    },
+    "body": {
+      "type": "object",
+      "description": "Message content (varies by type)"
+    },
+    "thread_id": {
+      "type": "string",
+      "description": "Optional thread for grouping related messages"
+    },
+    "reply_to": {
+      "type": "string",
+      "description": "Optional MSG-id this is responding to"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "read", "in_progress", "completed", "escalated"],
+      "description": "Current message status"
+    },
+    "ttl_hours": {
+      "type": "integer",
+      "default": 24,
+      "description": "Hours until auto-escalation if unprocessed"
+    }
+  }
+}

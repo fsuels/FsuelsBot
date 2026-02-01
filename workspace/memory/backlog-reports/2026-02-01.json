@@ -1,0 +1,32 @@
+{
+  "run_date": "2026-02-01",
+  "run_time": "2026-02-01T05:02:47.855945",
+  "sources_scanned": [
+    "website_audit",
+    "error_pattern",
+    "seasonal",
+    "content_gap",
+    "analytics",
+    "competitor"
+  ],
+  "opportunities_found": 2,
+  "tasks_created": 2,
+  "duplicates_skipped": 0,
+  "below_threshold": 0,
+  "tasks": [
+    {
+      "id": "T213",
+      "title": "Valentine's Day Campaign Prep (12 days out)",
+      "score": 18,
+      "source": "seasonal",
+      "agent_type": "marketing"
+    },
+    {
+      "id": "T214",
+      "title": "Fix Recurring Error: unknown",
+      "score": 15,
+      "source": "error_pattern",
+      "agent_type": "engineering"
+    }
+  ]
+}

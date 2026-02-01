@@ -1,0 +1,80 @@
+# Cron Jobs Configuration
+# Used by Clawdbot scheduled tasks system
+# 
+# Format:
+#   job_id:
+#     schedule: "cron expression"
+#     command: "script to run"
+#     description: "what this does"
+#     enabled: true/false
+
+backlog-generator:
+  schedule: "0 6 * * *"  # Daily at 6 AM EST
+  command: "python scripts/backlog-generator.py --scan-all"
+  description: "Scan all sources for opportunities and auto-generate task backlog"
+  enabled: true
+  window: daily
+  creates_tasks: true
+  sources:
+    - website_audit
+    - error_pattern
+    - seasonal
+    - content_gap
+    - analytics
+    - competitor
+
+research-brief:
+  schedule: "0 9 * * *"  # Daily at 9 AM EST
+  command: "python scripts/cron-to-task.py --job-id research --title 'AI Research Brief' --instructions 'Scan X feed, AI news, Claude/Anthropic updates. Deliver brief to Francisco.'"
+  description: "Daily AI research and news brief"
+  enabled: true
+  window: daily
+
+curiosity:
+  schedule: "0 14 * * *"  # Daily at 2 PM EST
+  command: "python scripts/cron-to-task.py --job-id curiosity --title 'Curiosity Hour' --instructions 'Explore something interesting: new tool, technique, or improvement opportunity.'"
+  description: "Daily curiosity/exploration time"
+  enabled: true
+  window: daily
+
+learn:
+  schedule: "0 16 * * *"  # Daily at 4 PM EST
+  command: "python scripts/cron-to-task.py --job-id learn --title 'Learning Review' --instructions 'Review .learnings/ for patterns, consolidate insights, update procedures if needed.'"
+  description: "Daily learning consolidation"
+  enabled: true
+  window: daily
+
+ship:
+  schedule: "0 20 * * *"  # Daily at 8 PM EST
+  command: "python scripts/cron-to-task.py --job-id ship --title 'Ship Check' --instructions 'Review bot_queue, execute safe overnight tasks, prepare for next day.'"
+  description: "Evening shipping/execution window"
+  enabled: true
+  window: daily
+
+backup:
+  schedule: "0 23 * * *"  # Daily at 11 PM EST
+  command: "cd C:\\dev\\FsuelsBot && git add -A && git commit -m 'auto-backup' && git push"
+  description: "Nightly git backup of workspace"
+  enabled: true
+  window: daily
+
+consolidation:
+  schedule: "0 5 * * *"  # Daily at 5 AM EST
+  command: "python scripts/cron-to-task.py --job-id consolidation --title 'Memory Consolidation' --instructions 'Regenerate recall/pack.md, prune old memory files, update indexes.'"
+  description: "Early morning memory consolidation"
+  enabled: true
+  window: daily
+
+index-rebuild:
+  schedule: "0 4 * * 0"  # Weekly on Sunday at 4 AM EST
+  command: "python scripts/cron-to-task.py --job-id index-rebuild --title 'Weekly Index Rebuild' --instructions 'Full rebuild of memory indexes, CI health check, open loop scan.'"
+  description: "Weekly index rebuild and health check"
+  enabled: true
+  window: weekly
+
+biweekly-council:
+  schedule: "0 10 1,15 * *"  # 1st and 15th of each month at 10 AM
+  command: "python scripts/cron-to-task.py --job-id biweekly-council --title 'Biweekly Council Review' --instructions 'Council session on system health, process improvements, and strategic direction.'"
+  description: "Biweekly strategic review with Council"
+  enabled: true
+  window: daily

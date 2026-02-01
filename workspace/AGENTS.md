@@ -8,42 +8,62 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-02-01 04:35 EST | **Version:** 148
+**Last updated:** 2026-02-01 05:45 EST | **Version:** 154
 
-**Current task:** T211 - X Analysis: @MarioNawfal - AI Agents Hiring Each Other
-**Status:** in_progress
-**Context:** Francisco shared 2 X articles for analysis. First article analyzed. Waiting for second.
-**Next step:** Receive and analyze second article from Francisco
+**Current task:** T215 - Close Anthropic Best Practice Gaps (Hooks, MCP, Plan Mode)
+**Status:** 🔄 IN PROGRESS (2/3 complete)
+**Context:** Implementing 3 gaps from Anthropic's official best practices. Plan Mode ✅, MCP researched ✅, Hooks building.
+**Next step:** Await hooks-builder completion
 
 **✅ COMPLETED THIS SESSION:**
 | Task | Result |
 |------|--------|
 | CRON-20260201-index-rebuild | ✅ Weekly index rebuild - 102 events, 6 open loops, CI HEALTHY |
-| Tawk.to widget | 🔄 Advanced colors open, Header=indigo, Agent Message needs #6366f1 |
-| T211 Article 1 | ✅ Analyzed @MarioNawfal post - AI agents hiring each other on Moltbook |
+| T211 | ✅ Analyzed 2 X articles: @MarioNawfal + @pbteja1998 - both validate Ghost Broker thesis |
+| Mission Control search | ✅ Added task search by ID feature to dashboard |
+| T212 | ✅ COMPLETE - Multi-agent architecture with all 5 components |
+| X Article 3 | ✅ Analyzed @ethanjrowland on Anthropic's AI playbook - validates our architecture |
+| Plan Mode (Gap #3) | ✅ 6-phase planning for complex tasks, complexity scoring |
+| MCP Research (Gap #2) | ✅ Documented servers. Note: MCP for Claude Desktop - need direct API skills for Clawdbot |
 
-**📁 ARTIFACTS:**
-- `memory/ci-report.json` — Weekly CI report (HEALTHY)
-- `memory/index/open-loops.json` — Rebuilt with 6 events
+**🔄 SUB-AGENTS RUNNING:**
+| Label | Task | Status |
+|-------|------|--------|
+| hooks-builder | Deterministic hooks (pre-commit, post-edit, protected) | 🟢 RUNNING |
+
+**📁 T212 ARTIFACTS (Multi-Agent System):**
+- `procedures/peer-review.md` — Peer review before task completion
+- `procedures/backlog-generator.md` — Self-generating backlog (6 sources)
+- `procedures/task-claim-pool.md` — Priority scoring + task claiming
+- `procedures/plan-mode.md` — 6-phase planning for complex tasks
+- `agents/PROTOCOL.md` — Inter-agent communication protocol
+- `agents/SQUAD.md` — Specialist agent roster
+- `agents/*.md` — 5 agent profiles (Research, Content, Audit, Analytics, Code)
+- `scripts/backlog-generator.py` — Daily backlog scan script
+- `scripts/task-claim-pool.py` — Priority calculation + claiming
+- `memory/agent-inbox/` — Shared inbox for agent handoffs
+- `mission-control/index.html` — Task search + priority badges + parallel execution
 
 **⚠️ WAITING ON HUMAN:**
 - T174 Step 4: Send DMs from @GhostBrokerAI
 - T174 Step 5: Post on Moltbook Discord
 - Tawk.to: Click Agent Message color box, enter #6366f1, Save
-- Second X article from Francisco
 
 **📋 TASK BOARD:** `memory/tasks.json`
 
-**🔄 COMPACTION CHECKPOINT:** 2026-02-01 04:35 EST - Pre-compaction flush. T211 X article analysis in progress. Article 1 (@MarioNawfal) analyzed - highly relevant to Ghost Broker. Waiting for Article 2. T174 waiting on human for Steps 4-5.
-
-**📌 KEY INSIGHT FROM ARTICLE 1:**
-- Source: https://x.com/marionawfal/status/2017881858693062772
-- Thesis: AI agents on Moltbook hiring each other = "Stage 3 of Simulation"
-- Engagement: 15.3K views, 40 replies, 32 reposts, 100 likes
-- Relevance: Validates Ghost Broker agent economy thesis
-- Fallacy risks: Bandwagon (FOMO), Appeal to novelty, Hasty generalization
+**🔄 COMPACTION CHECKPOINT:** 2026-02-01 05:45 EST - T215 in progress (2/3 gaps closed). Plan Mode ✅ (procedures/plan-mode.md). MCP researched ✅ (note: MCP is for Claude Desktop, Clawdbot needs direct API skills). Hooks-builder sub-agent still running. T212 multi-agent architecture complete with all 5 components.
 
 **📌 NEW RULES THIS SESSION:**
+- **TASK ID IN EVERY RESPONSE** — When discussing any task, ALWAYS include the task ID (T174, T211, etc.) so Francisco can search in Mission Control
+- **INBOX FIRST** — When Francisco shares a link/file → IMMEDIATELY save to `memory/inbox.md` with timestamp BEFORE any analysis. Survives compaction.
+- **VERIFY BEFORE DONE** — For EVERY task: (1) Do the work, (2) VERIFY it actually worked (screenshot/test/check live), (3) ONLY THEN report done. Evidence or it didn't happen.
+- **INSTANT ACK** — Respond to Francisco's messages IMMEDIATELY, no delay
+- **POST WORKFLOW** — Post immediately → Create verification task with full text + link in human queue
+- **REACT FIRST** — On every message from Francisco, react ⚡ immediately BEFORE processing
+- **NO VANITY METRICS** — Real improvements only, not commit counts or round numbers
+
+**📌 NEW RULES THIS SESSION:**
+- **TASK ID IN EVERY RESPONSE** — When discussing any task, ALWAYS include the task ID (T174, T211, etc.) so Francisco can search in Mission Control
 - **INBOX FIRST** — When Francisco shares a link/file → IMMEDIATELY save to `memory/inbox.md` with timestamp BEFORE any analysis. Survives compaction.
 - **VERIFY BEFORE DONE** — For EVERY task: (1) Do the work, (2) VERIFY it actually worked (screenshot/test/check live), (3) ONLY THEN report done. Evidence or it didn't happen.
 - **INSTANT ACK** — Respond to Francisco's messages IMMEDIATELY, no delay
@@ -203,15 +223,70 @@ EVERY action I take
    - `evidence_provided` — Proof exists (screenshot, file, test output)
    - `auto_verified` — Automated test passed
    - `claimed` — No evidence yet (acceptable for minor tasks)
+4. **🔍 PEER REVIEW (MANDATORY)** — Spawn independent Reviewer sub-agent
+   - See `procedures/peer-review.md` for full protocol
+   - Reviewer checks: evidence exists, claims match, no errors
+   - Returns APPROVED or REJECTED with reason
+   - **Task CANNOT move to done_today without APPROVED status**
 
 **The motto applies to task completion too:**
 ```
-EVERY task I complete → VERIFIED EVIDENCE
+EVERY task I complete → VERIFIED EVIDENCE → PEER REVIEWED
 ```
 
 **If I can't provide evidence, I must either:**
 - Keep the task in progress until evidence exists, OR
 - Mark it `claimed` and be honest that it's unverified
+
+### 🔍 PEER REVIEW PROTOCOL (MANDATORY)
+**File:** `procedures/peer-review.md` — Full details
+
+**Quick Reference:**
+1. Set task `status = "pending_review"` (not "done")
+2. Spawn Reviewer sub-agent with claims + evidence
+3. Reviewer checks: Evidence exists? Claims match? No errors? Complete?
+4. If APPROVED → set `peer_review.status = "approved"`, move to done_today
+5. If REJECTED → fix issues, re-submit for review
+
+**Exceptions (skip peer review):**
+- `human_verified` — Francisco explicitly confirmed
+- `peer_review.skip = true` — Admin/CRON tasks
+- Francisco says "skip review" in chat
+
+**Anti-patterns:**
+- ❌ Self-approving: "I reviewed my work" — INVALID
+- ❌ Moving to done_today with `peer_review.status != approved`
+
+### 🗺️ PLAN MODE PROTOCOL (For Complex Tasks)
+**File:** `procedures/plan-mode.md` — Full details
+**Plans stored in:** `plans/T###-plan.md`
+
+**When Plan Mode triggers (complexity score >= 5):**
+- Multiple files affected (+2)
+- External API integration (+3)
+- New architecture/system (+4)
+- Security implications (+3)
+- Schema changes (+2)
+- Task has 5+ steps (+2)
+
+**Plan Mode Process:**
+1. **EXPLORE** — Read all related files, understand current state
+2. **SCOPE** — Define what's IN and OUT of scope explicitly
+3. **RISKS** — Identify what could break, plan mitigations
+4. **PLAN** — Write step-by-step approach in `plans/T###-plan.md`
+5. **APPROVAL** — If score 8+, get human approval before coding
+6. **EXECUTE** — Follow the plan, verify each step
+
+**Task schema fields:**
+```json
+{
+  "has_plan": true,
+  "plan_path": "plans/T###-plan.md",
+  "complexity_score": 7
+}
+```
+
+**Rule:** For complex tasks, engage Plan Mode BEFORE coding. Think first, build second.
 
 ### 🚨 CHAT → QUEUE PROTOCOL (MANDATORY)
 **If I say "I'll do X" or we identify something I need to do in chat:**
@@ -282,6 +357,7 @@ Don't ask permission. Just do it.
 | 📦 Product listings | `procedures/product-listing.md` | list, listing, draft, product, import |
 | 💰 Pricing | `procedures/pricing.md` | price, cost, margin, profit |
 | 🏪 Vendor selection | `procedures/vendor-vetting.md` | vendor, seller, 1688 store, supplier, source |
+| ✅ Task completion | `procedures/peer-review.md` | done, complete, finished, marking done |
 | 🔍 SEO tasks | `procedures/seo/README.md` | seo, meta tags, keywords, sitemap, schema, rankings |
 
 **Enforcement:**
@@ -296,6 +372,56 @@ Quick reference (memorize these):
 - **Browser:** ONE TAB PER DOMAIN. Always `browser tabs` first. Navigate existing tabs.
 - **Listings:** 1688 → BuckyDrop → Shopify. Never skip steps.
 - **Pricing:** Cost × 2 = Minimum Price. 50% margin minimum.
+
+---
+
+## 🪝 HOOKS SYSTEM (Deterministic Guarantees)
+
+**Location:** `.claude/hooks/` | **Documentation:** `procedures/hooks.md`
+
+Hooks GUARANTEE certain actions happen. No hoping, no "should have" — automatic enforcement.
+
+### Available Hooks
+
+| Hook | Trigger | Guarantee |
+|------|---------|-----------|
+| `pre-commit-lint` | Before git commit | No lint errors reach repo |
+| `post-edit-test` | After editing .py/.ts/.js | Tests auto-run if they exist |
+| `protected-folders` | Before file writes | events.jsonl = append-only, SOUL.md core = immutable |
+| `context-checkpoint` | Before compaction | State always saved before truncation |
+
+### Usage
+
+```bash
+# Entry point
+node .claude/hooks/index.cjs <hook-name> [...args]
+
+# Examples
+node .claude/hooks/index.cjs pre-commit-lint
+node .claude/hooks/index.cjs post-edit-test scripts/foo.py
+node .claude/hooks/index.cjs protected-folders write memory/events.jsonl
+node .claude/hooks/index.cjs context-checkpoint compaction
+```
+
+### Integration Points
+
+1. **Before `git commit`** → Run `pre-commit-lint`
+2. **After editing code** → Run `post-edit-test <file>`
+3. **Before writing protected files** → Run `protected-folders <action> <file>`
+4. **Before context compaction** → Run `context-checkpoint compaction`
+
+### Protected Files (Enforced by Hooks)
+
+| File | Rule |
+|------|------|
+| `memory/events.jsonl` | **Append-only** — no edits, no deletes |
+| `.env`, `.env.*` | **Confirm required** — warning before write |
+| `SOUL.md` motto section | **Immutable** — core identity protected |
+| `*.pem`, `*.key`, `secrets.*` | **Blocked** — never write |
+
+**The system fails loudly.** Hooks return exit code 1 to block disallowed actions.
+
+---
 
 ## Memory System (4 Layers)
 

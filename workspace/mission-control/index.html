@@ -244,6 +244,30 @@ body {
   font-size: 14px;
   color: #60a5fa;
   font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.lane-count:hover {
+  background: rgba(96,165,250,0.4);
+  transform: scale(1.05);
+}
+.lane-tasks {
+  max-height: 600px;
+  overflow-y: auto;
+}
+.expand-hint {
+  text-align: center;
+  font-size: 12px;
+  color: #60a5fa;
+  padding: 10px;
+  cursor: pointer;
+  background: rgba(96,165,250,0.1);
+  border-radius: 8px;
+  margin-top: 8px;
+  transition: background 0.2s;
+}
+.expand-hint:hover {
+  background: rgba(96,165,250,0.2);
 }
 
 /* Bot Current - Soft Green */
@@ -1104,6 +1128,118 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+
+/* Parallel Execution Panel */
+.parallel-panel {
+  background: linear-gradient(135deg, rgba(139,92,246,0.08) 0%, rgba(13, 17, 23, 0.7) 100%);
+  border: 1px solid rgba(139,92,246,0.2);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+.parallel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.parallel-agents {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.agent-card {
+  background: rgba(22, 27, 34, 0.8);
+  border: 1px solid rgba(139,92,246,0.3);
+  border-radius: 10px;
+  padding: 12px 16px;
+  min-width: 200px;
+  flex: 1;
+  max-width: 300px;
+}
+.agent-card.active {
+  border-color: rgba(74, 222, 128, 0.5);
+  box-shadow: 0 0 12px rgba(74, 222, 128, 0.1);
+}
+.agent-card .agent-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e6edf3;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.agent-card .agent-task {
+  font-size: 12px;
+  color: #8b949e;
+}
+.agent-card .agent-task a {
+  color: #60a5fa;
+  text-decoration: none;
+}
+.agent-card .agent-time {
+  font-size: 10px;
+  color: #6e7681;
+  margin-top: 4px;
+}
+.parallel-details.collapsed { display: none; }
+.specialty-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.specialty-badge {
+  font-size: 10px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+.specialty-badge.research { background: rgba(96,165,250,0.15); color: #60a5fa; }
+.specialty-badge.content { background: rgba(251,191,36,0.15); color: #fbbf24; }
+.specialty-badge.audit { background: rgba(74,222,128,0.15); color: #4ade80; }
+.specialty-badge.analytics { background: rgba(167,139,250,0.15); color: #a78bfa; }
+.specialty-badge.code { background: rgba(248,113,113,0.15); color: #f87171; }
+.specialty-badge.general { background: rgba(139,148,158,0.15); color: #8b949e; }
+
+/* Priority Badges */
+.priority-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.priority-badge.P0 { background: rgba(248,113,113,0.3); color: #f87171; border: 1px solid rgba(248,113,113,0.5); animation: pulse-red 2s infinite; }
+.priority-badge.P1 { background: rgba(251,146,60,0.25); color: #fb923c; border: 1px solid rgba(251,146,60,0.4); }
+.priority-badge.P2 { background: rgba(251,191,36,0.2); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
+.priority-badge.P3 { background: rgba(139,148,158,0.15); color: #8b949e; }
+.priority-badge.P4 { background: rgba(75,85,99,0.15); color: #6b7280; }
+
+@keyframes pulse-red {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(248,113,113,0.4); }
+  50% { box-shadow: 0 0 8px 2px rgba(248,113,113,0.2); }
+}
+
+/* Claimed task indicator */
+.task-item.claimed {
+  border-left: 2px solid rgba(139,92,246,0.6);
+  background: linear-gradient(90deg, rgba(139,92,246,0.04) 0%, rgba(22, 27, 34, 0.6) 100%);
+}
+.claimed-badge {
+  font-size: 9px;
+  color: #a78bfa;
+  background: rgba(139,92,246,0.15);
+  padding: 2px 6px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
 </style>
 </head>
 <body>
@@ -1334,32 +1470,54 @@ body {
     <span class="deadline-days" id="deadlineDays">-- days</span>
   </div>
 
+  <!-- Parallel Execution Panel -->
+  <div class="parallel-panel" id="parallelPanel" style="display:none;">
+    <div class="parallel-header">
+      <span class="lane-title">🔄 Parallel Execution <span class="lane-count" id="activeAgentCount">0</span></span>
+      <span id="parallelToggle" style="cursor:pointer;font-size:11px;color:#8b949e;" onclick="toggleParallelDetails()">▼ Details</span>
+    </div>
+    <div class="parallel-agents" id="parallelAgents"></div>
+    <div class="parallel-details collapsed" id="parallelDetails">
+      <div class="specialty-legend">
+        <span class="specialty-badge research">🔬 Research</span>
+        <span class="specialty-badge content">✍️ Content</span>
+        <span class="specialty-badge audit">🔍 Audit</span>
+        <span class="specialty-badge analytics">📊 Analytics</span>
+        <span class="specialty-badge code">💻 Code</span>
+        <span class="specialty-badge general">🤖 General</span>
+      </div>
+    </div>
+  </div>
+
   <div class="task-board" id="taskBoard">
     <!-- Bot Current -->
     <div class="lane bot-current">
       <div class="lane-header">
         <span class="lane-title">🤖 Bot - Working Now</span>
-        <span class="lane-count" id="botCurrentCount">0</span>
+        <span class="lane-count" id="botCurrentCount" onclick="toggleLane('botCurrentTasks')" title="Click to expand/collapse">0</span>
       </div>
-      <div id="botCurrentTasks">Loading...</div>
+      <div id="botCurrentTasks" class="lane-tasks">Loading...</div>
+      <div class="expand-hint" onclick="toggleLane('botCurrentTasks')">▼ Click to see all</div>
     </div>
 
     <!-- Bot Queue -->
     <div class="lane bot-queue">
       <div class="lane-header">
         <span class="lane-title">📋 Bot - Queue</span>
-        <span class="lane-count" id="botQueueCount">0</span>
+        <span class="lane-count" id="botQueueCount" onclick="toggleLane('botQueueTasks')" title="Click to expand/collapse">0</span>
       </div>
-      <div id="botQueueTasks">Loading...</div>
+      <div id="botQueueTasks" class="lane-tasks">Loading...</div>
+      <div class="expand-hint" onclick="toggleLane('botQueueTasks')">▼ Click to see all 26</div>
     </div>
 
     <!-- Human Tasks -->
     <div class="lane human">
       <div class="lane-header">
         <span class="lane-title">👤 Francisco - Your Tasks</span>
-        <span class="lane-count" id="humanCount">0</span>
+        <span class="lane-count" id="humanCount" onclick="toggleLane('humanTasks')" title="Click to expand/collapse">0</span>
       </div>
-      <div id="humanTasks">Loading...</div>
+      <div id="humanTasks" class="lane-tasks">Loading...</div>
+      <div class="expand-hint" onclick="toggleLane('humanTasks')">▼ Click to see all</div>
     </div>
   </div>
 
@@ -1459,6 +1617,19 @@ body {
 let allTasks = {};  // Store tasks globally for modal access
 let allLanes = {};  // Store lanes globally for checking task ownership
 
+// Track lane expanded states
+const laneExpanded = {
+  botCurrentTasks: false,
+  botQueueTasks: false,
+  humanTasks: false
+};
+
+// Toggle lane expand/collapse and re-render
+function toggleLane(laneId) {
+  laneExpanded[laneId] = !laneExpanded[laneId];
+  loadTaskBoard(); // Re-render with new state
+}
+
 async function loadTaskBoard() {
   try {
     const resp = await fetch('/api/tasks?' + Date.now());
@@ -1501,11 +1672,24 @@ async function loadTaskBoard() {
       botCurrentIds = botCurrentIds ? [botCurrentIds] : [];
     }
     document.getElementById('botCurrentCount').textContent = botCurrentIds.length;
-    document.getElementById('botCurrentTasks').innerHTML = botCurrentIds.map(id => {
+    const botCurrentLimit = laneExpanded.botCurrentTasks ? botCurrentIds.length : 2;
+    const botCurrentVisible = botCurrentIds.slice(0, botCurrentLimit);
+    const botCurrentHidden = botCurrentIds.length - botCurrentLimit;
+    document.getElementById('botCurrentTasks').innerHTML = botCurrentVisible.map(id => {
       const t = tasks[id];
       if (!t) return '';
       return renderTask(id, t, 'in-progress');
     }).join('') || '<div style="color:#6e7681;font-size:12px;">No active task</div>';
+    // Update expand hint for bot current
+    const botCurrentHint = document.querySelector('#botCurrentTasks + .expand-hint');
+    if (botCurrentHint) {
+      if (laneExpanded.botCurrentTasks || botCurrentHidden <= 0) {
+        botCurrentHint.style.display = 'none';
+      } else {
+        botCurrentHint.textContent = '▼ Click to see ' + botCurrentHidden + ' more';
+        botCurrentHint.style.display = 'block';
+      }
+    }
 
     // Update global status badge
     const statusBadge = document.getElementById('globalStatus');
@@ -1520,20 +1704,46 @@ async function loadTaskBoard() {
     // Render Bot Queue
     const botQueueIds = lanes.bot_queue || [];
     document.getElementById('botQueueCount').textContent = botQueueIds.length;
-    document.getElementById('botQueueTasks').innerHTML = botQueueIds.map((id, idx) => {
+    const botQueueLimit = laneExpanded.botQueueTasks ? botQueueIds.length : 2;
+    const botQueueVisible = botQueueIds.slice(0, botQueueLimit);
+    const botQueueHidden = botQueueIds.length - botQueueLimit;
+    document.getElementById('botQueueTasks').innerHTML = botQueueVisible.map((id, idx) => {
       const t = tasks[id];
       if (!t) return '';
       return renderTask(id, t, 'pending', idx === 0 ? 'NEXT' : null, {index: idx, total: botQueueIds.length});
     }).join('') || '<div style="color:#8b949e;font-size:13px;">Queue empty 🎉</div>';
+    // Update expand hint for bot queue
+    const botQueueHint = document.querySelector('#botQueueTasks + .expand-hint');
+    if (botQueueHint) {
+      if (laneExpanded.botQueueTasks || botQueueHidden <= 0) {
+        botQueueHint.style.display = 'none';
+      } else {
+        botQueueHint.textContent = '▼ Click to see ' + botQueueHidden + ' more';
+        botQueueHint.style.display = 'block';
+      }
+    }
 
     // Render Human Tasks
     const humanIds = lanes.human || [];
     document.getElementById('humanCount').textContent = humanIds.length;
-    document.getElementById('humanTasks').innerHTML = humanIds.map(id => {
+    const humanLimit = laneExpanded.humanTasks ? humanIds.length : 2;
+    const humanVisible = humanIds.slice(0, humanLimit);
+    const humanHidden = humanIds.length - humanLimit;
+    document.getElementById('humanTasks').innerHTML = humanVisible.map(id => {
       const t = tasks[id];
       if (!t) return '';
       return renderTask(id, t, 'human-task');
     }).join('') || '<div style="color:#8b949e;font-size:13px;">All done! 🎉</div>';
+    // Update expand hint for human tasks
+    const humanHint = document.querySelector('#humanTasks + .expand-hint');
+    if (humanHint) {
+      if (laneExpanded.humanTasks || humanHidden <= 0) {
+        humanHint.style.display = 'none';
+      } else {
+        humanHint.textContent = '▼ Click to see ' + humanHidden + ' more';
+        humanHint.style.display = 'block';
+      }
+    }
 
     // Store lanes for filtering
     currentLanes = lanes;
@@ -1566,6 +1776,9 @@ async function loadTaskBoard() {
 
     // Render Scheduled (Cron Jobs) - fetch from actual Clawdbot cron system
     loadCronJobs();
+    
+    // Render Parallel Execution Panel
+    renderParallelExecution(data);
 
     document.getElementById('lastUpdate').textContent = 'Updated: ' + new Date().toLocaleTimeString();
 
@@ -1693,6 +1906,19 @@ async function deleteCronJob(id) {
 function renderTask(id, task, statusClass, badge, queueInfo) {
   const planLink = task.plan ? `<span class="task-plan">📄 ${task.plan.split('/').pop()}</span>` : '';
   const estimate = task.estimate ? `<span class="task-estimate">⏱ ${task.estimate}</span>` : '';
+  
+  // Priority and claim badges for pool system
+  const priorityBadge = getPriorityBadge(task);
+  const claimedBadge = getClaimedBadge(task);
+  const isClaimed = task.claimed_by && task.claimed_by.agent_id;
+  const claimedClass = isClaimed ? ' claimed' : '';
+  
+  // Required agent specialty badge
+  let specialtyBadge = '';
+  if (task.required_agent && task.required_agent !== 'general') {
+    const emoji = getSpecialtyEmoji(task.required_agent);
+    specialtyBadge = `<span class="specialty-badge ${task.required_agent}" style="font-size:9px;padding:2px 6px;">${emoji}</span>`;
+  }
 
   // Epistemic verification status badge
   let verificationBadge = '';
@@ -1781,10 +2007,13 @@ function renderTask(id, task, statusClass, badge, queueInfo) {
   }
 
   return `
-    <div class="task-item ${statusClass}" onclick="showTaskDetail('${id}')">
+    <div class="task-item ${statusClass}${claimedClass}" onclick="showTaskDetail('${id}')">
       <div class="task-id" onclick="event.stopPropagation(); askAboutTask('${id}')" title="Click to ask about this task">${id}</div>
       <div class="task-title-text">${task.title}</div>
       <div class="task-meta">
+        ${priorityBadge}
+        ${specialtyBadge}
+        ${claimedBadge}
         ${verificationBadge}
         ${stepProgress}
         ${planLink}
@@ -3076,6 +3305,105 @@ document.addEventListener('click', (e) => {
     document.getElementById('searchResults').style.display = 'none';
   }
 });
+
+// ==================== PARALLEL EXECUTION ====================
+function renderParallelExecution(data) {
+  const panel = document.getElementById('parallelPanel');
+  const agentsDiv = document.getElementById('parallelAgents');
+  const countEl = document.getElementById('activeAgentCount');
+  
+  if (!data.parallel_execution || !data.parallel_execution.active_agents || data.parallel_execution.active_agents.length === 0) {
+    panel.style.display = 'none';
+    return;
+  }
+  
+  panel.style.display = 'block';
+  const agents = data.parallel_execution.active_agents;
+  countEl.textContent = agents.length + '/' + (data.parallel_execution.max_concurrent || 5);
+  
+  const specialtyEmojis = {
+    'research': '🔬',
+    'content': '✍️',
+    'audit': '🔍',
+    'analytics': '📊',
+    'code': '💻',
+    'general': '🤖'
+  };
+  
+  agentsDiv.innerHTML = agents.map(agent => {
+    const task = data.tasks[agent.current_task];
+    const taskTitle = task ? task.title : 'Unknown task';
+    const emoji = specialtyEmojis[agent.specialty] || '🤖';
+    
+    // Calculate time since started
+    let timeText = '';
+    if (agent.started_at) {
+      const started = new Date(agent.started_at);
+      const mins = Math.floor((Date.now() - started) / 60000);
+      if (mins < 60) timeText = mins + 'm ago';
+      else timeText = Math.floor(mins / 60) + 'h ' + (mins % 60) + 'm';
+    }
+    
+    // Check if stale (last heartbeat > 5 min)
+    let staleWarning = '';
+    if (agent.last_heartbeat) {
+      const lastHb = new Date(agent.last_heartbeat);
+      const minsSinceHb = (Date.now() - lastHb) / 60000;
+      if (minsSinceHb > 5) {
+        staleWarning = '<span style="color:#fbbf24;font-size:9px;margin-left:6px;">⚠️ stale</span>';
+      }
+    }
+    
+    return `
+      <div class="agent-card active">
+        <div class="agent-name">${emoji} ${agent.agent_name} ${staleWarning}</div>
+        <div class="agent-task">
+          <a href="#" onclick="showTaskDetail('${agent.current_task}'); return false;">${agent.current_task}</a>: ${taskTitle.substring(0, 40)}${taskTitle.length > 40 ? '...' : ''}
+        </div>
+        <div class="agent-time">⏱ Started ${timeText}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function toggleParallelDetails() {
+  const details = document.getElementById('parallelDetails');
+  const toggle = document.getElementById('parallelToggle');
+  if (details.classList.contains('collapsed')) {
+    details.classList.remove('collapsed');
+    toggle.textContent = '▲ Hide';
+  } else {
+    details.classList.add('collapsed');
+    toggle.textContent = '▼ Details';
+  }
+}
+
+// Get specialty emoji for task display
+function getSpecialtyEmoji(specialty) {
+  const emojis = {
+    'research': '🔬',
+    'content': '✍️',
+    'audit': '🔍',
+    'analytics': '📊',
+    'code': '💻',
+    'general': '🤖'
+  };
+  return emojis[specialty] || '';
+}
+
+// Get priority badge HTML
+function getPriorityBadge(task) {
+  if (!task.priority || !task.priority.priority_level) return '';
+  const level = task.priority.priority_level;
+  return `<span class="priority-badge ${level}">${level}</span>`;
+}
+
+// Get claimed badge HTML
+function getClaimedBadge(task) {
+  if (!task.claimed_by || !task.claimed_by.agent_name) return '';
+  const emoji = getSpecialtyEmoji(task.claimed_by.specialty);
+  return `<span class="claimed-badge">${emoji} ${task.claimed_by.agent_name}</span>`;
+}
 </script>
 </body>
 </html>

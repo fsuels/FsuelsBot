@@ -1,0 +1,26 @@
+{
+  "id": "MSG-20260201-130000-c3d4",
+  "timestamp": "2026-02-01T13:00:00Z",
+  "from": "agent:main:reviewer",
+  "to": "agent:main:subagent:example-uuid",
+  "type": "challenge",
+  "priority": "P1",
+  "subject": "CHALLENGE: Recommended price of $45 ignores shipping costs",
+  "body": {
+    "claim_challenged": "Product X should be priced at $45 based on competitor analysis",
+    "grounds": "Analysis did not account for our higher shipping costs vs competitors who have warehouse network",
+    "evidence": [
+      "Our shipping cost: $8.50 average",
+      "Competitor A (Amazon FBA): $3.20 effective",
+      "Competitor B (local warehouses): $4.00",
+      "This $4-5 difference erodes our margin below 40% target"
+    ],
+    "requested_action": "revise",
+    "severity": "moderate"
+  },
+  "thread_id": "THREAD-product-x-launch",
+  "reply_to": "MSG-20260201-123000-b2c3",
+  "status": "pending",
+  "ttl_hours": 4,
+  "_comment": "EXAMPLE FILE - Delete before use"
+}

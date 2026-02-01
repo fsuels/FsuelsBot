@@ -1,0 +1,153 @@
+# MCP Server Configurations for Ghost Broker
+# Model Context Protocol servers connect AI assistants to external data sources
+# Last updated: 2026-02-01
+
+# ============================================================================
+# SHOPIFY MCP - dresslikemommy Store (LIVE ✅)
+# ============================================================================
+shopify:
+  name: "Shopify Store - dresslikemommy"
+  status: "available"
+  type: "python"  # Uses siddhantbajaj/shopify-mcp-server
+  
+  # Option 1: Community MCP Server (recommended - more features)
+  community_server:
+    repo: "https://github.com/siddhantbajaj/shopify-mcp-server"
+    install: |
+      git clone https://github.com/siddhantbajaj/shopify-mcp-server.git
+      cd shopify-mcp-server
+      uv venv && .venv\Scripts\activate
+      uv pip install -e .
+    run: "python -m shopify_mcp_server.server"
+    
+  # Required credentials (store in .env)
+  credentials:
+    SHOPIFY_SHOP_URL: "dresslikemommy-com.myshopify.com"
+    SHOPIFY_API_KEY: "${SHOPIFY_API_KEY}"        # From Shopify Partners
+    SHOPIFY_PASSWORD: "${SHOPIFY_PASSWORD}"       # API password
+    SHOPIFY_ACCESS_TOKEN: "${SHOPIFY_ACCESS_TOKEN}"  # Admin API token
+    
+  # Available tools
+  tools:
+    - name: "get-product-list"
+      description: "List products with optional limit"
+      params: { limit: 10 }
+      
+    - name: "get-customer-list"
+      description: "List customers with order history"
+      params: { limit: 10 }
+      
+  # Getting credentials:
+  # 1. Go to Shopify Admin > Settings > Apps > Develop apps
+  # 2. Create a new app (or use existing)
+  # 3. Configure Admin API scopes: read_products, read_orders, read_customers
+  # 4. Install the app and copy the Admin API access token
+  
+  notes: |
+    The community server is basic but works. For full e-commerce AI features,
+    consider Shopify's official Storefront MCP (requires app development).
+    Official docs: https://shopify.dev/docs/apps/build/storefront-mcp
+
+# ============================================================================
+# SUPABASE MCP - Ghost Broker Backend (READY WHEN T151 COMPLETES)
+# ============================================================================
+supabase:
+  name: "Supabase - Ghost Broker Database"
+  status: "pending"  # Waiting for T151 backend completion
+  type: "http"  # Official hosted MCP server
+  
+  # Official Supabase MCP Server (simplest option)
+  official_server:
+    url: "https://mcp.supabase.com/mcp"
+    docs: "https://supabase.com/docs/guides/getting-started/mcp"
+    repo: "https://github.com/supabase-community/supabase-mcp"
+    
+  # MCP client configuration (add to your MCP client config)
+  config:
+    mcpServers:
+      supabase:
+        type: "http"
+        url: "https://mcp.supabase.com/mcp?project_ref=${SUPABASE_PROJECT_REF}&read_only=true"
+        # For CI/automated environments, add:
+        # headers:
+        #   Authorization: "Bearer ${SUPABASE_ACCESS_TOKEN}"
+        
+  # Available tool groups
+  feature_groups:
+    - database: "list_tables, execute_sql, apply_migration"
+    - debugging: "get_logs, get_postgres_config"
+    - development: "generate_types"
+    - docs: "search_docs"
+    - functions: "list_edge_functions, deploy_edge_function"
+    - storage: "list_buckets, list_objects"
+    - branching: "create_branch, merge_branch (paid plans)"
+    
+  # Security recommendations
+  security:
+    - "Use read_only=true for production data"
+    - "Always scope to specific project_ref"
+    - "Never use MCP with production data"
+    - "Use branching for safe development"
+    
+  # Getting credentials:
+  # 1. Browser-based: MCP client auto-redirects to Supabase login
+  # 2. CI/Token: Create PAT at https://supabase.com/dashboard/account/tokens
+  # 3. Find project_ref in Project Settings > General > Project ID
+
+# ============================================================================
+# GOOGLE ANALYTICS MCP - Traffic & Conversions
+# ============================================================================
+google_analytics:
+  name: "Google Analytics 4 - dresslikemommy"
+  status: "available"
+  type: "node"  # Official Google MCP server
+  
+  # Official Google Analytics MCP Server
+  official_server:
+    repo: "https://github.com/googleanalytics/google-analytics-mcp"
+    docs: "https://developers.google.com/analytics/devguides/MCP"
+    tutorial: "https://youtu.be/nS8HLdwmVlY"
+    
+  # Installation
+  install: |
+    git clone https://github.com/googleanalytics/google-analytics-mcp.git
+    cd google-analytics-mcp
+    npm install
+    
+  # Required credentials
+  credentials:
+    GA4_PROPERTY_ID: "${GA4_PROPERTY_ID}"  # Your GA4 property ID
+    # OAuth setup required - see docs for service account or user auth
+    
+  # Sample queries the MCP can answer
+  sample_queries:
+    - "How many users did I have yesterday?"
+    - "What were my top selling products yesterday?"
+    - "What's my conversion rate this week vs last week?"
+    - "Which traffic sources drive the most revenue?"
+    - "Help me create a data-driven marketing plan with $5k/month budget"
+    
+  notes: |
+    Requires Google Cloud project with Analytics Data API enabled.
+    Can use service account or OAuth for authentication.
+    Works best with Gemini but compatible with Claude/other LLMs.
+
+# ============================================================================
+# USAGE NOTES
+# ============================================================================
+# 
+# Priority Order:
+# 1. Shopify MCP - LIVE NOW, enables order/product queries
+# 2. Google Analytics MCP - Traffic insights for dresslikemommy
+# 3. Supabase MCP - When Ghost Broker backend is ready
+#
+# Security Rules:
+# - NEVER commit credentials to git
+# - Use environment variables for all secrets
+# - Prefer read-only modes when possible
+# - Scope to specific projects/properties
+#
+# For Clawdbot integration:
+# MCP servers would need to be integrated into Clawdbot's skill system.
+# Current architecture uses direct API calls rather than MCP.
+# Consider MCP for future Claude Code / Cursor integrations.

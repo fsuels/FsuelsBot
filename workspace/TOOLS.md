@@ -63,6 +63,9 @@
 ## Browser Best Practices
 ⚠️ **MANDATORY: Read `procedures/browser.md` before ANY browser action!**
 
+### 🎯 ALWAYS KEEP OPEN (Non-negotiable)
+- **Tab 1: Mission Control** — http://localhost:8765 — NEVER close this tab
+
 ### Speed Reality Check (Learned 2026-01-29)
 **Bot is SLOWER than human for visual/browser tasks.**
 - Bot: screenshot → process → action → wait → repeat = 5-15 sec/step

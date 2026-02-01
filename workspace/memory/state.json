@@ -1,45 +1,36 @@
 {
-  "version": 148,
-  "updated_at": "2026-02-01T04:35:00.000000",
+  "version": 154,
+  "updated_at": "2026-02-01T05:45:00.000Z",
   "updated_by": "bot",
   "current_task": {
-    "id": "T211",
-    "title": "X Analysis: @MarioNawfal - AI Agents Hiring Each Other",
+    "id": "T215",
+    "title": "Close Anthropic Best Practice Gaps (Hooks, MCP, Plan Mode)",
     "status": "in_progress",
-    "context": "Francisco shared 2 X articles for analysis. First article analyzed (Mario Nawfal - AI agents hiring each other on Moltbook, Stage 3 of simulation). Waiting for second article.",
-    "next_step": "Receive and analyze second article from Francisco"
+    "context": "Implementing 3 gaps from Anthropic's official best practices. Plan Mode ✅, MCP researched ✅, Hooks building. Mission Control always-open rule enforced.",
+    "next_step": "Await hooks-builder completion"
   },
   "completed_this_session": [
-    {
-      "task": "CRON-20260201-index-rebuild",
-      "result": "Weekly index rebuild - 102 events, 6 open loops, CI HEALTHY"
-    },
-    {
-      "task": "Tawk.to widget",
-      "result": "Opened Advanced colors, Header is indigo, Agent Message still green - gave Francisco instructions"
-    },
-    {
-      "task": "T211 Article 1 Analysis",
-      "result": "Analyzed @MarioNawfal post on AI agents hiring each other. Highly relevant to Ghost Broker. Security angle validates positioning."
-    }
+    {"task": "CRON-20260201-index-rebuild", "result": "Weekly index rebuild - 102 events, 6 open loops, CI HEALTHY"},
+    {"task": "T211", "result": "Analyzed 2 X articles: @MarioNawfal + @pbteja1998 - both validate Ghost Broker thesis"},
+    {"task": "Mission Control search", "result": "Added task search by ID feature to dashboard"},
+    {"task": "T212", "result": "COMPLETE - Multi-agent architecture with all 5 components"},
+    {"task": "X Article 3", "result": "Analyzed @ethanjrowland on Anthropic's AI playbook - validates our architecture"},
+    {"task": "Plan Mode (Gap #3)", "result": "6-phase planning for complex tasks, complexity scoring"},
+    {"task": "MCP Research (Gap #2)", "result": "Documented Shopify/Supabase/GA servers. Note: MCP for Claude Desktop, not Clawdbot - need direct API skills"}
   ],
   "waiting_on_human": [
     "T174 Step 4: Send DMs from @GhostBrokerAI",
     "T174 Step 5: Post on Moltbook Discord",
-    "Tawk.to: Click Agent Message color box, enter #6366f1, Save",
-    "Second X article from Francisco"
+    "Tawk.to: Click Agent Message color box, enter #6366f1, Save"
   ],
-  "artifacts": [
-    "memory/ci-report.json - Weekly CI report",
-    "memory/index/open-loops.json - Rebuilt with 6 events"
+  "sub_agents_running": [
+    {"label": "hooks-builder", "task": "Deterministic hooks (pre-commit, post-edit, protected folders)"}
   ],
-  "key_insights": {
-    "article_1": {
-      "source": "https://x.com/marionawfal/status/2017881858693062772",
-      "thesis": "AI agents on Moltbook hiring each other = Stage 3 of Simulation",
-      "engagement": "15.3K views, 40 replies, 32 reposts, 100 likes",
-      "relevance": "Validates Ghost Broker agent economy thesis",
-      "fallacy_risks": ["Bandwagon (FOMO)", "Appeal to novelty", "Hasty generalization"]
-    }
-  }
+  "browser_rule": "Mission Control (localhost:8765) ALWAYS open in Tab 1 - NEVER close",
+  "key_rules": [
+    "TASK ID IN EVERY RESPONSE",
+    "NO HUMAN TIME LIMITS - machine speed",
+    "MISSION CONTROL ALWAYS OPEN in Tab 1",
+    "INBOX FIRST before analysis"
+  ]
 }

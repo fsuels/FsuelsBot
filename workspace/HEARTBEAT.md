@@ -118,6 +118,35 @@ Run: `powershell -ExecutionPolicy Bypass -File "C:\dev\FsuelsBot\workspace\scrip
 - If found: respond in discussion + send Telegram notification with [TaskID] prefix
 - Example: "[T041] Hello! Responding to your card comment..."
 
+### 🎯 Backlog Generation Check (DAILY)
+**Procedure:** `procedures/backlog-generator.md`
+**Script:** `python scripts/backlog-generator.py`
+
+**Daily at 6 AM (via cron), verify:**
+- Check `memory/backlog-reports/YYYY-MM-DD.json` for today's run
+- If no report exists, run: `python scripts/backlog-generator.py --scan-all`
+
+**Heartbeat quick checks (supplement cron):**
+1. **Seasonal urgency** — Any events <7 days out without prep task?
+   - If yes: `python scripts/backlog-generator.py --source seasonal`
+2. **Error patterns** — 3+ similar errors today?
+   - If yes: `python scripts/backlog-generator.py --source error_pattern`
+3. **High-scoring opportunities** — Any in reports with score ≥15 not yet executed?
+   - If yes: Prioritize in bot_current
+
+**Sources scanned by backlog generator:**
+- `website_audit` — SEO issues, broken links, missing meta
+- `error_pattern` — Recurring errors in logs
+- `seasonal` — Upcoming holidays/events (30-day lookahead)
+- `content_gap` — Collections/products needing copy
+- `analytics` — Traffic/conversion alerts
+- `competitor` — Competitor changes detected
+
+**Output:** Tasks auto-created in `tasks.json` bot_queue with:
+- `auto_generated: true` tag
+- `agent_type` for specialist routing
+- Full `context.summary` and `evidence`
+
 ## Complete Requests (Task Verification)
 - Check `memory/complete-requests/` for pending verification files
 - For each request file (e.g., `T006.json`):

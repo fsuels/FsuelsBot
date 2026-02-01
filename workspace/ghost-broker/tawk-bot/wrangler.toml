@@ -1,0 +1,10 @@
+name = "ghost-broker-chat"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+[vars]
+# Set these in Cloudflare dashboard or via wrangler secret
+
+# Required secrets (set via: wrangler secret put SECRET_NAME)
+# ANTHROPIC_API_KEY = "your-anthropic-api-key"
+# TAWK_API_KEY = "your-tawk-api-key"

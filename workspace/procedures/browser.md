@@ -34,6 +34,17 @@ EVERY action I take
 
 ---
 
+## 🎯 ALWAYS KEEP OPEN (Non-Negotiable)
+
+**Tab 1: Mission Control** — `http://localhost:8765`
+
+This tab must ALWAYS be open. NEVER close it. Every session:
+1. Check if Mission Control is open
+2. If not, open it FIRST before any other action
+3. When navigating for tasks, use OTHER tabs — never replace Mission Control
+
+---
+
 ## Pre-Flight Checklist
 
 Before touching the browser, complete these:

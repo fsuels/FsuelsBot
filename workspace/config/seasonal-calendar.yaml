@@ -1,0 +1,275 @@
+# Seasonal Calendar for DressLikeMommy
+# Used by backlog-generator to auto-create campaign prep tasks
+#
+# Each event has:
+#   - name: Event name
+#   - date: Fixed date (month, day) or "dynamic" for calculated dates
+#   - prep_days: How many days before to start preparation
+#   - agent_type: Which specialist handles this
+#   - priority: 1-5 (5 = highest)
+#   - products: Relevant product categories
+
+events:
+  valentines_day:
+    name: "Valentine's Day"
+    date: [2, 14]
+    prep_days: 14
+    agent_type: marketing
+    priority: 5
+    description: "Matching family outfits for Valentine's, heart themes"
+    products:
+      - hearts
+      - red
+      - pink
+      - love
+    tasks:
+      - Create/update Valentine's collection
+      - Add urgency messaging (Order by Feb 10)
+      - Homepage banner update
+      - Email campaign
+      - Social posts
+
+  easter:
+    name: "Easter"
+    date: [4, 20]  # 2026 Easter date
+    prep_days: 21
+    agent_type: marketing
+    priority: 4
+    description: "Spring family matching, pastel colors"
+    products:
+      - spring
+      - pastel
+      - bunny
+      - floral
+    tasks:
+      - Easter collection curation
+      - Spring product push
+      - Pastel color filter
+      - Family photo opportunity angle
+
+  mothers_day:
+    name: "Mother's Day"
+    date: [5, 10]  # 2nd Sunday of May 2026
+    prep_days: 21
+    agent_type: marketing
+    priority: 5
+    description: "Mommy & Me outfits highlighted"
+    products:
+      - mommy-me
+      - matching-dresses
+      - mother-daughter
+    tasks:
+      - Mommy & Me landing page
+      - Gift guide angle
+      - Urgency messaging
+      - Email to past customers
+
+  fathers_day:
+    name: "Father's Day"
+    date: [6, 21]  # 3rd Sunday of June 2026
+    prep_days: 21
+    agent_type: marketing
+    priority: 3
+    description: "Daddy & Me matching options"
+    products:
+      - daddy-me
+      - matching-shirts
+      - father-son
+    tasks:
+      - Daddy & Me collection
+      - Men's sizing availability check
+      - Gift angle marketing
+
+  fourth_of_july:
+    name: "4th of July"
+    date: [7, 4]
+    prep_days: 14
+    agent_type: marketing
+    priority: 3
+    description: "Patriotic family matching"
+    products:
+      - patriotic
+      - red-white-blue
+      - stars
+      - usa
+    tasks:
+      - Patriotic collection
+      - Summer family photo angle
+      - BBQ/outdoor styling
+
+  back_to_school:
+    name: "Back to School"
+    date: [8, 1]  # Campaign starts Aug 1
+    prep_days: 30
+    agent_type: marketing
+    priority: 4
+    description: "First day outfits, sibling matching"
+    products:
+      - school
+      - sibling
+      - uniform-adjacent
+    tasks:
+      - Back to School landing page
+      - Sibling matching highlight
+      - First day photo angle
+      - Parent-teacher meeting outfits
+
+  halloween:
+    name: "Halloween"
+    date: [10, 31]
+    prep_days: 30
+    agent_type: marketing
+    priority: 4
+    description: "Family costume coordination, spooky matching"
+    products:
+      - halloween
+      - costume
+      - spooky
+      - orange-black
+    tasks:
+      - Halloween collection
+      - Family costume ideas content
+      - Themed product bundles
+      - Social media costume inspiration
+
+  thanksgiving:
+    name: "Thanksgiving"
+    date: [11, 27]  # 4th Thursday of November 2026
+    prep_days: 21
+    agent_type: marketing
+    priority: 4
+    description: "Family photo outfits, fall colors"
+    products:
+      - fall
+      - thanksgiving
+      - sweater
+      - plaid
+    tasks:
+      - Thanksgiving collection
+      - Family photo styling guide
+      - Fall color coordination
+      - Cozy matching sets
+
+  black_friday:
+    name: "Black Friday"
+    date: [11, 28]
+    prep_days: 30
+    agent_type: marketing
+    priority: 5
+    description: "Major sales event"
+    products:
+      - all  # Site-wide
+    tasks:
+      - Sale strategy planning
+      - Discount tiers setup
+      - Email sequence preparation
+      - Homepage takeover
+      - Ad creative preparation
+
+  cyber_monday:
+    name: "Cyber Monday"
+    date: [12, 1]
+    prep_days: 30
+    agent_type: marketing
+    priority: 5
+    description: "Online-focused sale continuation"
+    products:
+      - all
+    tasks:
+      - Online-exclusive deals
+      - Flash sale mechanics
+      - Extended shipping deadlines
+      - Cart abandonment push
+
+  christmas:
+    name: "Christmas"
+    date: [12, 25]
+    prep_days: 45
+    agent_type: marketing
+    priority: 5
+    description: "Peak season - matching PJs, holiday outfits"
+    products:
+      - christmas
+      - holiday
+      - pajamas
+      - red-green
+      - festive
+    tasks:
+      - Christmas collection (start early Nov)
+      - Matching PJ sets highlight
+      - Holiday family photo guide
+      - Gift wrapping option
+      - Shipping deadline urgency
+      - Last-minute gift guide
+      - Post-Christmas sale prep
+
+  new_years:
+    name: "New Year's"
+    date: [1, 1]
+    prep_days: 14
+    agent_type: marketing
+    priority: 3
+    description: "New year family photo, sparkle themes"
+    products:
+      - sparkle
+      - glitter
+      - party
+      - gold-silver
+    tasks:
+      - New Year collection
+      - Resolution/fresh start angle
+      - Winter clearance prep
+
+# Recurring Monthly Events
+recurring:
+  first_of_month:
+    name: "Monthly Content Refresh"
+    day: 1
+    agent_type: content
+    tasks:
+      - Review and refresh homepage
+      - Update featured collections
+      - Check for stale content
+
+  mid_month_analytics:
+    name: "Mid-Month Analytics Review"
+    day: 15
+    agent_type: analytics
+    tasks:
+      - Review MTD performance
+      - Identify trending products
+      - Check conversion funnel
+
+# Season Transitions
+transitions:
+  winter_to_spring:
+    trigger_month: 2  # February
+    description: "Transition to spring collection"
+    tasks:
+      - Feature spring arrivals
+      - Clear winter inventory
+      - Update color palette in marketing
+
+  spring_to_summer:
+    trigger_month: 5  # May
+    description: "Transition to summer collection"
+    tasks:
+      - Summer styles highlight
+      - Vacation matching family outfits
+      - Outdoor/beach themes
+
+  summer_to_fall:
+    trigger_month: 8  # August
+    description: "Transition to fall collection"
+    tasks:
+      - Fall colors introduction
+      - Back to school parallel
+      - Cozy sweater weather angle
+
+  fall_to_winter:
+    trigger_month: 11  # November
+    description: "Transition to winter/holiday"
+    tasks:
+      - Holiday collection launch
+      - Gift guide creation
+      - Warm weather gear highlight

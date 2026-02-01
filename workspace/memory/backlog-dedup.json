@@ -1,0 +1,16 @@
+{
+  "_comment": "Deduplication keys for backlog generator. Auto-managed.",
+  "_created": "2026-02-01",
+  "4d68054a61b8a2ba": {
+    "created_at": "2026-02-01T10:02:47.852484+00:00",
+    "task_id": "T213",
+    "source": "seasonal",
+    "key": "seasonal:Valentine's Day:2026"
+  },
+  "2257a02f1d251713": {
+    "created_at": "2026-02-01T10:02:47.852549+00:00",
+    "task_id": "T214",
+    "source": "error_pattern",
+    "key": "unknown:no-context"
+  }
+}

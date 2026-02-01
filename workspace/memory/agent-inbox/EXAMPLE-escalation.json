@@ -1,0 +1,36 @@
+{
+  "id": "MSG-20260201-140000-e5f6",
+  "timestamp": "2026-02-01T14:00:00Z",
+  "from": "agent:main:main",
+  "to": "human:francisco",
+  "type": "escalation",
+  "priority": "P1",
+  "subject": "ESCALATION: Pricing disagreement for Product X - need your decision",
+  "body": {
+    "reason": "Two rounds of debate without resolution. Both positions have merit.",
+    "positions": [
+      {
+        "agent": "agent:main:subagent:pricing",
+        "position": "Price at $45 to match market and drive volume",
+        "evidence": "3 of 5 competitors at $42-48 range. Volume play wins long-term."
+      },
+      {
+        "agent": "agent:main:reviewer",
+        "position": "Price at $52 to maintain margin given our shipping costs",
+        "evidence": "Our shipping is $4-5 higher. $45 yields only 32% margin vs 40% target."
+      }
+    ],
+    "debate_log": [
+      "MSG-20260201-123000-b2c3",
+      "MSG-20260201-130000-c3d4",
+      "MSG-20260201-133000-d4e5",
+      "MSG-20260201-135000-e5f6"
+    ],
+    "recommended_action": "Consider $49 as middle ground, or decide based on Q1 priority (margin vs volume)",
+    "deadline": "2026-02-02T00:00:00Z"
+  },
+  "thread_id": "THREAD-product-x-launch",
+  "status": "pending",
+  "ttl_hours": 12,
+  "_comment": "EXAMPLE FILE - Delete before use"
+}
