@@ -2964,7 +2964,7 @@ function handleTaskSearch(event) {
     }
     // Try exact match
     if (allTasks[query]) {
-      openModal(query);
+      showTaskDetail(query);
       input.value = '';
       resultsDiv.style.display = 'none';
       return;
@@ -3066,7 +3066,7 @@ function jumpToTask(taskId) {
   resultsDiv.style.display = 'none';
   
   // Open the task modal
-  openModal(taskId);
+  showTaskDetail(taskId);
 }
 
 // Close search results when clicking outside
