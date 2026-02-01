@@ -90,3 +90,5 @@ face-swap/*.png
 workspace/mission-control/archive/
 
 workspace/memory/checkpoints/
+
+workspace/memory/error-log-archive*.jsonl
