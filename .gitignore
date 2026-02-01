@@ -94,3 +94,6 @@ workspace/memory/checkpoints/
 workspace/memory/error-log-archive*.jsonl
 
 __pycache__/
+
+workspace/memory/.hmac-key
+workspace/memory/.last-error-check.json
