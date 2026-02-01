@@ -81,3 +81,5 @@ USER.md
 *secrets*
 .env.local
 .env.*.local
+
+mission-control/archive/
