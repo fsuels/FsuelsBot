@@ -1302,8 +1302,9 @@ body {
 
 <div class="container">
   <div class="header">
-    <h1><span class="live-dot"></span> Mission Control</h1>
+    <h1><span class="live-dot" id="liveDot"></span> Mission Control</h1>
     <div style="display:flex;gap:10px;align-items:center;">
+      <span id="lastActivity" style="font-size:10px;color:#6e7681;">⏱ --</span>
       <button class="predictions-btn" onclick="openPredictionsModal()">🎮 Predictions <span id="predBadge" style="background:rgba(139,92,246,0.4);padding:2px 6px;border-radius:10px;font-size:10px;">0</span></button>
       <div class="status-badge working" id="globalStatus">WORKING</div>
     </div>
@@ -1446,6 +1447,26 @@ async function loadTaskBoard() {
     const tasks = data.tasks || {};
     allTasks = tasks;  // Store for modal
     const lanes = data.lanes || {};
+    
+    // Update last activity timestamp
+    const lastActivityEl = document.getElementById('lastActivity');
+    if (data.updated_at) {
+      const lastUpdate = new Date(data.updated_at);
+      const now = new Date();
+      const diffSec = Math.floor((now - lastUpdate) / 1000);
+      let timeAgo;
+      if (diffSec < 60) timeAgo = diffSec + 's ago';
+      else if (diffSec < 3600) timeAgo = Math.floor(diffSec/60) + 'm ago';
+      else timeAgo = Math.floor(diffSec/3600) + 'h ago';
+      lastActivityEl.textContent = '⏱ ' + timeAgo;
+      lastActivityEl.title = 'Last state update: ' + lastUpdate.toLocaleString();
+      // Visual indicator if stale (>5min)
+      if (diffSec > 300) {
+        lastActivityEl.style.color = '#fbbf24';
+      } else {
+        lastActivityEl.style.color = '#4ade80';
+      }
+    }
 
     // Calculate deadline
     const deadline = new Date('2026-02-10');

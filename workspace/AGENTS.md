@@ -43,6 +43,7 @@ This folder is home. Treat it that way.
 **📌 NEW RULES THIS SESSION:**
 - Always prefix replies with `[T###]` when discussing tasks
 - Task ID clicks in Mission Control add discussion comment requesting status
+- **REACT FIRST** — On every message from Francisco, react ⚡ immediately BEFORE processing (shows I got it)
 
 **Standing rules:**
 - **REPEAT THE MOTTO** in every process, analysis, recommendation
