@@ -8,36 +8,43 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-02-01 02:45 EST | **Version:** 145
+**Last updated:** 2026-02-01 04:35 EST | **Version:** 148
 
-**Current task:** T174 - Arena 2.0 Promotion
+**Current task:** T211 - X Analysis: @MarioNawfal - AI Agents Hiring Each Other
 **Status:** in_progress
-**Context:** Steps 4-5 waiting on Francisco. Active support thread: helping Francisco locate downloaded images on his PC.
-**Next step:** Francisco to specify which browser/app he downloaded from so I can locate the files. T174 waiting on human for DMs and Discord post.
+**Context:** Francisco shared 2 X articles for analysis. First article analyzed. Waiting for second.
+**Next step:** Receive and analyze second article from Francisco
 
 **✅ COMPLETED THIS SESSION:**
 | Task | Result |
 |------|--------|
-| T195 | ✅ X Analysis @pbteja1998 - learnings extracted |
-| T181 | ✅ local-seo.html landing page deployed |
-| T190 | ✅ X researcher replies POSTED (Karpathy + Jim Fan) |
-| T180 | ✅ Homepage verified live on ghostbrokerai.xyz |
+| CRON-20260201-index-rebuild | ✅ Weekly index rebuild - 102 events, 6 open loops, CI HEALTHY |
+| Tawk.to widget | 🔄 Advanced colors open, Header=indigo, Agent Message needs #6366f1 |
+| T211 Article 1 | ✅ Analyzed @MarioNawfal post - AI agents hiring each other on Moltbook |
 
 **📁 ARTIFACTS:**
-- `ghost-broker/website/local-seo.html` — 6 SEO packages landing page
-- `ghost-broker/drafts/x-researcher-replies.md` — X reply drafts + learnings
+- `memory/ci-report.json` — Weekly CI report (HEALTHY)
+- `memory/index/open-loops.json` — Rebuilt with 6 events
 
 **⚠️ WAITING ON HUMAN:**
-- T207: Verify X researcher replies posted (Karpathy + Jim Fan)
 - T174 Step 4: Send DMs from @GhostBrokerAI
 - T174 Step 5: Post on Moltbook Discord
-- Active: Francisco asked where his downloaded images are — awaiting which browser/app
+- Tawk.to: Click Agent Message color box, enter #6366f1, Save
+- Second X article from Francisco
 
 **📋 TASK BOARD:** `memory/tasks.json`
 
-**🔄 COMPACTION CHECKPOINT:** 2026-02-01 02:45 EST - Pre-compaction flush. T174 waiting on human. Active support: locate downloaded images.
+**🔄 COMPACTION CHECKPOINT:** 2026-02-01 04:35 EST - Pre-compaction flush. T211 X article analysis in progress. Article 1 (@MarioNawfal) analyzed - highly relevant to Ghost Broker. Waiting for Article 2. T174 waiting on human for Steps 4-5.
+
+**📌 KEY INSIGHT FROM ARTICLE 1:**
+- Source: https://x.com/marionawfal/status/2017881858693062772
+- Thesis: AI agents on Moltbook hiring each other = "Stage 3 of Simulation"
+- Engagement: 15.3K views, 40 replies, 32 reposts, 100 likes
+- Relevance: Validates Ghost Broker agent economy thesis
+- Fallacy risks: Bandwagon (FOMO), Appeal to novelty, Hasty generalization
 
 **📌 NEW RULES THIS SESSION:**
+- **INBOX FIRST** — When Francisco shares a link/file → IMMEDIATELY save to `memory/inbox.md` with timestamp BEFORE any analysis. Survives compaction.
 - **VERIFY BEFORE DONE** — For EVERY task: (1) Do the work, (2) VERIFY it actually worked (screenshot/test/check live), (3) ONLY THEN report done. Evidence or it didn't happen.
 - **INSTANT ACK** — Respond to Francisco's messages IMMEDIATELY, no delay
 - **POST WORKFLOW** — Post immediately → Create verification task with full text + link in human queue
