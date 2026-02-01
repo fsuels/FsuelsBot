@@ -80,6 +80,19 @@ if (Test-Path $tasksFile) {
 }
 $results.pendingDiscussions = $pendingDiscussions
 
+# 7. ENFORCEMENT: Check for unverified completions (since 2026-01-31)
+$unverifiedCount = 0
+foreach ($id in $tasks.lanes.done_today) {
+    $t = $tasks.tasks.$id
+    # Skip old tasks before verification system
+    if ($t.completed -and $t.completed -lt "2026-01-31") { continue }
+    # Check for missing verification
+    if (-not $t.epistemic -or -not $t.epistemic.verification_status -or -not $t.epistemic.claims -or $t.epistemic.claims.Count -eq 0) {
+        $unverifiedCount++
+    }
+}
+$results.unverifiedCompletions = $unverifiedCount
+
 # Output
 if (-not $Quiet) {
     Write-Host "=== Heartbeat Checks ===" -ForegroundColor Cyan

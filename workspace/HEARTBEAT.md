@@ -53,6 +53,11 @@ This single script performs ALL of the following in ~700ms (vs 3s+ for individua
 
 Returns JSON with results: `{"healthState":"updated","missionControl":"running",...}`
 
+**ENFORCEMENT CHECK INCLUDED:**
+- `unverifiedCompletions` — Tasks completed without verification (since 2026-01-31)
+- If > 0: **STOP AND FIX** — Add epistemic fields before continuing
+- This MUST be zero. No exceptions.
+
 ## Disconnect Investigation Protocol (ALARM — not optional)
 **Every disconnect is an alarm. Treat it seriously.**
 1. **Immediately** check terminal output for errors
