@@ -39,6 +39,7 @@ This folder is home. Treat it that way.
 - Task ID clicks in Mission Control add discussion comment requesting status
 
 **Standing rules:**
+- **REPEAT THE MOTTO** in every process, analysis, recommendation
 - READ tasks.json at EVERY session start
 - READ the plan BEFORE starting any task
 - UPDATE tasks.json BEFORE reporting work
