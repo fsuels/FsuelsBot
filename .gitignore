@@ -97,3 +97,6 @@ __pycache__/
 
 workspace/memory/.hmac-key
 workspace/memory/.last-error-check.json
+
+workspace/memory/*-credentials.json
+workspace/config/*-credentials.json
