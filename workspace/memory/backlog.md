@@ -137,4 +137,56 @@
 
 ---
 
-*Last updated: 2026-01-29 01:36 EST*
+*Last updated: 2026-01-31 21:00 EST*
+
+---
+
+## 🧠 CURIOSITY ENGINE PROPOSALS (2026-01-31 9PM)
+
+```
+EVERY response I give
+EVERY analysis I make
+EVERY recommendation I offer
+        ↓
+   SOUND LOGIC
+ VERIFIED EVIDENCE
+   NO FALLACIES
+```
+
+### Proposal 1: Valentine Pajama Collection Gap
+**TPS Score: 15** (Time: 3 × Priority: 5 × Scope: 1)
+
+**EVIDENCE:** Competitor Sparkle In Pink has 4+ Valentine's pajama lines (candy hearts, lipstick kiss, smiley hearts, waffle knit). Web search shows this is a trending category.
+
+**LOGIC:** Pajamas = repeat purchase + family photos + social sharing. DLM has dresses but NO Valentine pajamas.
+
+**PROPOSAL:** Add 2-3 Valentine pajama sets to BuckyDrop ASAP. Target: heart prints, pink/red, soft fabric.
+
+**NOT RECOMMENDED:** Creating new product category (stays within mommy-and-me niche).
+
+---
+
+### Proposal 2: Sweater/Cardigan Gap
+**TPS Score: 12** (Time: 3 × Priority: 4 × Scope: 1)
+
+**EVIDENCE:** Sparkle In Pink features cream heart sweaters, pink pearl cardigans. February = cold weather. Current DLM Valentine products are mostly dresses.
+
+**LOGIC:** Cardigans layer over existing products = upsell opportunity. Practical for February weather.
+
+**PROPOSAL:** Add 1-2 heart-themed cardigans to Valentine collection.
+
+---
+
+### Proposal 3: Valentine Collection Navigation Fix
+**TPS Score: 20** (Time: 2 × Priority: 5 × Scope: 2)
+
+**EVIDENCE:** T033 shows Valentine link NOT in main navigation. Competitors have dedicated `/collections/valentines` prominently linked.
+
+**LOGIC:** If customers can't find Valentine products, they can't buy them. SEO value from dedicated URL.
+
+**PROPOSAL:** This is already in T033 Step 3 — Francisco needs to add Valentine link to main menu. ESCALATE this as CRITICAL before Feb 10 cutoff.
+
+---
+
+### Anomaly Detected: 10 Days Until Order Cutoff
+**Feb 10 shipping deadline = 10 days away.** Valentine tasks should be TOP priority over Ghost Broker until collection is live and visible.

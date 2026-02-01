@@ -1,0 +1,34 @@
+{
+  "version": 137,
+  "updated_at": "2026-02-01T01:52:00.000000+00:00",
+  "currentTask": {
+    "id": "T196",
+    "title": "Embed Epistemic Motto into All Task Cards",
+    "status": "done",
+    "context": "Francisco requested our operating principle be visible in EVERY task card. The motto filters all work through SOUND LOGIC, VERIFIED EVIDENCE, NO FALLACIES.",
+    "nextStep": "DONE - motto now in all task cards + SOUL.md"
+  },
+  "completedThisSession": [
+    "T196 - Epistemic motto embedded in all task cards",
+    "T192 - Mission Control clickable task numbers",
+    "CRON-20260131-buckydrop-check - BuckyDrop replied! Scott assigned",
+    "Analyzed 4 X posts for Ghost Broker intel",
+    "Followed @techNmak from @GhostBrokerAI"
+  ],
+  "waitingOnHuman": [
+    "T180 - Safari cache clear to verify homepage",
+    "T174 Step 4 - Send DMs from @GhostBrokerAI",
+    "T174 Step 5 - Post on Moltbook Discord",
+    "BuckyDrop - Contact Scott (+86 158 2758 0519) to remove inactive store",
+    "Ghost Broker website deploy (still the blocker)"
+  ],
+  "artifacts": [
+    "mission-control/index.html - added clickable task IDs",
+    "memory/active-thread.md - X research session summary"
+  ],
+  "rules": [
+    "Always prefix replies with [T###] when discussing tasks",
+    "DON'T exploit Moltbook breach for outreach (Francisco decision)",
+    "Be the calm alternative, not the vulture"
+  ]
+}
