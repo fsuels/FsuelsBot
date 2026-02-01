@@ -1,4 +1,5 @@
----
+﻿---
+updated: 2026-01-29
 version: "1.0"
 created: "2026-01-29"
 updated: "2026-01-29"
@@ -11,16 +12,16 @@ type: "knowledge"
 Generated: 2026-01-29
 Total items: 48
 
-## 🔴 CRITICAL (must review immediately)
+## ðŸ”´ CRITICAL (must review immediately)
 *None*
 
-## 🟠 STALE (priority review)
+## ðŸŸ  STALE (priority review)
 *None*
 
-## ⚠️ WARNING (review this week)
+## âš ï¸ WARNING (review this week)
 *None*
 
-## ✅ Recently Verified
+## âœ… Recently Verified
 - competitor-valentine-insights.md (2026-01-29)
 - design-audit-2026-01-29.md (2026-01-29)
 - dlm-turnaround-actions.md (2026-01-29)

@@ -1,4 +1,5 @@
----
+﻿---
+updated: 2026-01-29
 version: "1.0"
 created: "2026-01-29"
 updated: "2026-01-29"
@@ -23,9 +24,9 @@ Mobile LCP of 12.2s is **catastrophic**:
 - **We're nearly 5x the "Poor" threshold**
 
 This kills:
-- 📉 SEO rankings (Core Web Vital)
-- 💸 Conversion rates (53% abandon if >3s)
-- 😤 User experience
+- ðŸ“‰ SEO rankings (Core Web Vital)
+- ðŸ’¸ Conversion rates (53% abandon if >3s)
+- ðŸ˜¤ User experience
 
 ---
 
@@ -182,3 +183,4 @@ Add to theme.liquid head:
 - [Shopify Speed Guide](https://help.shopify.com/en/manual/online-store/store-speed)
 - [Google Core Web Vitals](https://web.dev/vitals/)
 - [Dawn Theme Speed Tips](https://bemeapps.com/blogs/how-to-reduce-lcp-on-mobile-with-the-dawn-theme-in-shopify/)
+

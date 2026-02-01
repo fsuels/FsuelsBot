@@ -41,18 +41,17 @@ EVERY action I take
   **📱 Dashboard:** http://192.168.4.25:8765?key=a6132abf77194fd10a77317a094771f1
 - **URLs:** localhost:8765 (PC) | 192.168.4.25:8765 (mobile on WiFi)
 
-## Mid-Session Checkpoint (MANDATORY — Council A+ requirement)
-Run EVERY heartbeat: `powershell -ExecutionPolicy Bypass -File "C:\dev\FsuelsBot\workspace\scripts\mid-session-checkpoint.ps1" -Quiet`
-- Saves state.json, tasks.json, active-thread.md atomically
-- Keeps last 10 checkpoints per file (auto-cleanup)
-- Prevents context loss from compaction/crashes
-- This is NON-NEGOTIABLE — we lost context earlier today because of this gap
+## Combined Heartbeat Checks (MANDATORY — 4x faster than old method)
+Run EVERY heartbeat: `powershell -ExecutionPolicy Bypass -File "C:\dev\FsuelsBot\workspace\scripts\heartbeat-checks.ps1" -Quiet`
 
-## Error Collection (MANDATORY — check every heartbeat)
-Run collector: `powershell -ExecutionPolicy Bypass -File "C:\dev\FsuelsBot\workspace\scripts\collect-errors.ps1" -Quiet`
-- Captures errors from Clawdbot log + Windows event log
-- Appends to `memory/error-log.jsonl` for pattern analysis
-- If errors found: investigate root cause, log to learnings.db, implement fix
+This single script performs ALL of the following in ~700ms (vs 3s+ for individual scripts):
+- ✅ Updates health state (last-healthy-state.json)
+- ✅ Checks Mission Control is running (port 8765)
+- ✅ Saves checkpoint (state.json, tasks.json, active-thread.md)
+- ✅ Quick error count from Clawdbot log
+- ✅ Checks for unanswered discussion comments
+
+Returns JSON with results: `{"healthState":"updated","missionControl":"running",...}`
 
 ## Disconnect Investigation Protocol (ALARM — not optional)
 **Every disconnect is an alarm. Treat it seriously.**

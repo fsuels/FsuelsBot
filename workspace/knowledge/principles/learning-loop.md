@@ -1,4 +1,5 @@
----
+﻿---
+updated: 2026-01-29
 version: "1.0"
 created: "2026-01-28"
 updated: "2026-01-28"
@@ -13,9 +14,9 @@ confidence: "medium"
 
 ## Rule
 The system must get smarter over time, not just execute tasks. Every cycle should produce:
-- **Reusable artifacts** — templates, SOPs, improved prompts (artifact-pipeline.md)
-- **Updated instructions** — nightly loop reviews last 24h and updates its own rules
-- **Tracked improvements** — "learning metrics" alongside performance metrics
+- **Reusable artifacts** â€” templates, SOPs, improved prompts (artifact-pipeline.md)
+- **Updated instructions** â€” nightly loop reviews last 24h and updates its own rules
+- **Tracked improvements** â€” "learning metrics" alongside performance metrics
 
 ## Learning Metrics (tracked weekly)
 - Templates reused (artifact leverage ratio)
@@ -24,7 +25,8 @@ The system must get smarter over time, not just execute tasks. Every cycle shoul
 - Time-to-verify trend (are outputs getting easier to review?)
 
 ## Enforcement
-- Weekly "learning audit" during heartbeat — what did the system learn this week?
+- Weekly "learning audit" during heartbeat â€” what did the system learn this week?
 - Nightly instruction-update loop extracts learnings from last 24h
-- NOT per-task checking (that's noise) — weekly rhythm
+- NOT per-task checking (that's noise) â€” weekly rhythm
 - Artifacts rated on reusability at creation time
+

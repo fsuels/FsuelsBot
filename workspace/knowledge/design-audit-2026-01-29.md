@@ -1,4 +1,5 @@
----
+﻿---
+updated: 2026-01-29
 version: "1.0"
 created: "2026-01-29"
 updated: "2026-01-29"
@@ -28,24 +29,24 @@ DressLikeMommy.com has a functional e-commerce site but **lacks visual impact an
 - No hero banner or visual hook above the fold
 - Goes directly into category listings (Mommy & Me, Family Matching, etc.)
 - Category images are extremely faded/washed out (possible CSS or lazy-loading issue)
-- Trust signals only in small announcement bar ("Free Shipping · Best Prices · Top Quality · Secure Checkout")
+- Trust signals only in small announcement bar ("Free Shipping Â· Best Prices Â· Top Quality Â· Secure Checkout")
 - No featured products shown
 - No customer testimonials or social proof
 - No prominent CTA button
 
 **Above-the-Fold Issues:**
-- ❌ No emotional hook (lifestyle imagery showing happy families)
-- ❌ No clear value proposition beyond generic "matching outfits"
-- ❌ No compelling CTA ("Shop Valentine's Day Matching" etc.)
-- ❌ Category thumbnails barely visible (faded to near-white)
+- âŒ No emotional hook (lifestyle imagery showing happy families)
+- âŒ No clear value proposition beyond generic "matching outfits"
+- âŒ No compelling CTA ("Shop Valentine's Day Matching" etc.)
+- âŒ Category thumbnails barely visible (faded to near-white)
 
 **PatPat Comparison:**
-- ✅ Full-width hero with family lifestyle photo at beach
-- ✅ Clear headline: "Matching That Travels Well"
-- ✅ "Best Sellers" section with star ratings
-- ✅ "Why everyone loves PatPat" testimonials
-- ✅ User-generated content ("Spotted on PatPat Families")
-- ✅ Loyalty rewards program prominent
+- âœ… Full-width hero with family lifestyle photo at beach
+- âœ… Clear headline: "Matching That Travels Well"
+- âœ… "Best Sellers" section with star ratings
+- âœ… "Why everyone loves PatPat" testimonials
+- âœ… User-generated content ("Spotted on PatPat Families")
+- âœ… Loyalty rewards program prominent
 
 ### 2. Collection Pages (Valentine's Day)
 
@@ -56,10 +57,10 @@ DressLikeMommy.com has a functional e-commerce site but **lacks visual impact an
 - Products only show after extensive scroll
 
 **Issues:**
-- ❌ SEO text wall dominates (good for Google, bad for users)
-- ❌ Products hidden below fold - visitors may bounce thinking collection is empty
-- ❌ No collection banner image
-- ❌ Product count ("4 products") hidden in small text
+- âŒ SEO text wall dominates (good for Google, bad for users)
+- âŒ Products hidden below fold - visitors may bounce thinking collection is empty
+- âŒ No collection banner image
+- âŒ Product count ("4 products") hidden in small text
 
 **Recommendations:**
 - Move SEO text to accordion/expandable section OR bottom of page
@@ -70,20 +71,20 @@ DressLikeMommy.com has a functional e-commerce site but **lacks visual impact an
 
 **Current State:**
 - Clean layout with product images on left, details on right
-- "91 sold - High demand product" badge ✅
-- "Only 9 left" urgency text ✅
-- Shop Pay installment option shown ✅
-- Free shipping worldwide with delivery estimate ✅
-- Detailed size chart ✅
+- "91 sold - High demand product" badge âœ…
+- "Only 9 left" urgency text âœ…
+- Shop Pay installment option shown âœ…
+- Free shipping worldwide with delivery estimate âœ…
+- Detailed size chart âœ…
 - Return policy and security sections (expandable)
 
 **Missing/Issues:**
-- ❌ No customer reviews section
-- ❌ No "You may also like" recommendations
-- ❌ Product images are flat (white background) - no lifestyle photos showing the outfit worn
-- ❌ Only one color option visible
-- ❌ No size guide link near size selector
-- ❌ No "Complete the Look" cross-sells
+- âŒ No customer reviews section
+- âŒ No "You may also like" recommendations
+- âŒ Product images are flat (white background) - no lifestyle photos showing the outfit worn
+- âŒ Only one color option visible
+- âŒ No size guide link near size selector
+- âŒ No "Complete the Look" cross-sells
 
 ### 4. Cart (Not Captured)
 
@@ -95,28 +96,28 @@ DressLikeMommy.com has a functional e-commerce site but **lacks visual impact an
 
 | Element | DressLikeMommy | PatPat | Bailey's Blossoms |
 |---------|----------------|--------|-------------------|
-| Hero Banner | ❌ None | ✅ Full-width lifestyle | ✅ Yes |
-| Lifestyle Photos | ❌ Minimal | ✅ Extensive | ✅ Yes |
-| Customer Reviews | ❌ None visible | ✅ Star ratings | ✅ Yes |
-| Trust Badges | ⚠️ Text only | ✅ Icons + text | ✅ Yes |
-| Email Popup/Discount | ❌ No | ✅ 15% off popup | ✅ Yes |
-| Loyalty Program | ❌ No | ✅ PatPat Rewards | ✅ Yes |
-| UGC/Social Proof | ❌ No | ✅ Instagram feed | ✅ Yes |
-| Mobile Optimization | ⚠️ Unknown | ✅ App available | ✅ Good |
-| Product Recommendations | ❌ No | ✅ Yes | ✅ Yes |
-| Size Guide | ✅ Table in description | ✅ Interactive | ✅ Yes |
+| Hero Banner | âŒ None | âœ… Full-width lifestyle | âœ… Yes |
+| Lifestyle Photos | âŒ Minimal | âœ… Extensive | âœ… Yes |
+| Customer Reviews | âŒ None visible | âœ… Star ratings | âœ… Yes |
+| Trust Badges | âš ï¸ Text only | âœ… Icons + text | âœ… Yes |
+| Email Popup/Discount | âŒ No | âœ… 15% off popup | âœ… Yes |
+| Loyalty Program | âŒ No | âœ… PatPat Rewards | âœ… Yes |
+| UGC/Social Proof | âŒ No | âœ… Instagram feed | âœ… Yes |
+| Mobile Optimization | âš ï¸ Unknown | âœ… App available | âœ… Good |
+| Product Recommendations | âŒ No | âœ… Yes | âœ… Yes |
+| Size Guide | âœ… Table in description | âœ… Interactive | âœ… Yes |
 
 ---
 
 ## Critical Issues (Must Fix)
 
-### 1. **Homepage Image Loading Problem** 🔴
+### 1. **Homepage Image Loading Problem** ðŸ”´
 Category images are nearly invisible (opacity issue or lazy load failure). This is breaking the site's visual appeal. **Fix immediately.**
 
-### 2. **Collection Pages Bury Products** 🔴
+### 2. **Collection Pages Bury Products** ðŸ”´
 SEO text takes entire above-fold area. Visitors see no products and may bounce. **Move text below products or into accordion.**
 
-### 3. **No Social Proof** 🔴
+### 3. **No Social Proof** ðŸ”´
 No reviews, no testimonials, no Instagram feed, no "X customers bought this." Kills trust and conversions.
 
 ---
@@ -151,13 +152,13 @@ No reviews, no testimonials, no Instagram feed, no "X customers bought this." Ki
 
 ## Top 5 Priorities
 
-### 🥇 1. Fix Homepage Images (URGENT)
+### ðŸ¥‡ 1. Fix Homepage Images (URGENT)
 The faded/invisible category images make the site look broken. Check theme settings or CSS for opacity issues.
 
-### 🥈 2. Add Hero Banner to Homepage
-Create a lifestyle banner showing a happy family in matching outfits. Add a clear CTA: "Shop Valentine's Matching 💕"
+### ðŸ¥ˆ 2. Add Hero Banner to Homepage
+Create a lifestyle banner showing a happy family in matching outfits. Add a clear CTA: "Shop Valentine's Matching ðŸ’•"
 
-### 🥉 3. Move Collection SEO Text Below Products
+### ðŸ¥‰ 3. Move Collection SEO Text Below Products
 Products must be visible above the fold. SEO text can go in an accordion or at page bottom.
 
 ### 4. Install Review App
@@ -173,33 +174,33 @@ Enable "You may also like" on product pages. Shopify has this built-in; just nee
 ### Proposed Homepage Layout
 
 ```
-┌────────────────────────────────────────────────────┐
-│ 🚚 FREE SHIPPING ON ALL ORDERS │ ❤️ Valentine's Sale │  <- Rotating announcement
-├────────────────────────────────────────────────────┤
-│ [Logo]     SHOP  MOMMY&ME  DADDY&ME  FAMILY  SALE │  <- Simplified nav
-├────────────────────────────────────────────────────┤
-│                                                    │
-│   [HERO BANNER - Family in matching outfits]       │
-│   "Match Your Mini-Me This Valentine's Day"        │
-│           [SHOP VALENTINE'S COLLECTION →]          │
-│                                                    │
-├────────────────────────────────────────────────────┤
-│  ★ BEST SELLERS                                    │
-│  [Product] [Product] [Product] [Product]           │
-│  ⭐4.9     ⭐4.8     ⭐4.7     ⭐4.9               │
-│  $24.99   $19.99   $16.99   $29.99               │
-├────────────────────────────────────────────────────┤
-│  🛒 SHOP BY CATEGORY                               │
-│  [Mommy&Me] [Family] [Daddy&Me] [Couples]          │
-├────────────────────────────────────────────────────┤
-│  💬 WHAT FAMILIES ARE SAYING                       │
-│  "Cutest matching outfits!" - Sarah M. ⭐⭐⭐⭐⭐     │
-│  "Fast shipping, great quality" - Mike P. ⭐⭐⭐⭐⭐   │
-├────────────────────────────────────────────────────┤
-│  📸 #DRESSLIKEMOMMY - [Instagram Grid]             │
-├────────────────────────────────────────────────────┤
-│  [Footer with trust badges, policies, etc.]        │
-└────────────────────────────────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ ðŸšš FREE SHIPPING ON ALL ORDERS â”‚ â¤ï¸ Valentine's Sale â”‚  <- Rotating announcement
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚ [Logo]     SHOP  MOMMY&ME  DADDY&ME  FAMILY  SALE â”‚  <- Simplified nav
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚                                                    â”‚
+â”‚   [HERO BANNER - Family in matching outfits]       â”‚
+â”‚   "Match Your Mini-Me This Valentine's Day"        â”‚
+â”‚           [SHOP VALENTINE'S COLLECTION â†’]          â”‚
+â”‚                                                    â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚  â˜… BEST SELLERS                                    â”‚
+â”‚  [Product] [Product] [Product] [Product]           â”‚
+â”‚  â­4.9     â­4.8     â­4.7     â­4.9               â”‚
+â”‚  $24.99   $19.99   $16.99   $29.99               â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚  ðŸ›’ SHOP BY CATEGORY                               â”‚
+â”‚  [Mommy&Me] [Family] [Daddy&Me] [Couples]          â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚  ðŸ’¬ WHAT FAMILIES ARE SAYING                       â”‚
+â”‚  "Cutest matching outfits!" - Sarah M. â­â­â­â­â­     â”‚
+â”‚  "Fast shipping, great quality" - Mike P. â­â­â­â­â­   â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚  ðŸ“¸ #DRESSLIKEMOMMY - [Instagram Grid]             â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚  [Footer with trust badges, policies, etc.]        â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 ### Proposed Product Page Additions
@@ -208,30 +209,30 @@ Enable "You may also like" on product pages. Shopify has this built-in; just nee
 Current: [Images] [Title, Price, Add to Cart]
 
 Add below Add to Cart:
-┌─────────────────────────────┐
-│ ✅ Free Shipping            │
-│ 🔄 Easy 30-Day Returns      │
-│ 🔒 Secure Checkout          │
-└─────────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ âœ… Free Shipping            â”‚
+â”‚ ðŸ”„ Easy 30-Day Returns      â”‚
+â”‚ ðŸ”’ Secure Checkout          â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 
 Add below description:
-┌─────────────────────────────┐
-│ ⭐⭐⭐⭐⭐ 4.8 (47 reviews)     │
-│ "My daughter and I get      │
-│ compliments everywhere!"    │
-│ - Jessica T.                │
-│ [Read all reviews →]        │
-└─────────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ â­â­â­â­â­ 4.8 (47 reviews)     â”‚
+â”‚ "My daughter and I get      â”‚
+â”‚ compliments everywhere!"    â”‚
+â”‚ - Jessica T.                â”‚
+â”‚ [Read all reviews â†’]        â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 
 Add at page bottom:
-┌─────────────────────────────┐
-│ 💕 Complete the Look        │
-│ [Matching shoes] [Headbands]│
-└─────────────────────────────┘
-┌─────────────────────────────┐
-│ 👀 You May Also Like        │
-│ [Product] [Product] [Prod]  │
-└─────────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ ðŸ’• Complete the Look        â”‚
+â”‚ [Matching shoes] [Headbands]â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ ðŸ‘€ You May Also Like        â”‚
+â”‚ [Product] [Product] [Prod]  â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 ---
@@ -257,3 +258,4 @@ Add at page bottom:
 ---
 
 *Audit complete. Questions? Ask Claude.*
+

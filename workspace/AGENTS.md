@@ -8,28 +8,31 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-01-31 21:47 EST | **Version:** 138
+**Last updated:** 2026-01-31 21:52 EST | **Version:** 142
 
-**Current task:** T190 - GB: X Researcher Engagement Campaign
+**Current task:** T206 - Self-Improvement Loop (Epistemic + Performance)
 **Status:** in_progress
-**Context:** Researching AI researchers on X. Found 3 HIGH-VALUE targets (Karpathy, Jim Fan, Buehler). Need to capture full posts and draft replies.
-**Next step:** Capture Karpathy post full text, then Jim Fan, then draft replies for Francisco approval
+**Context:** Francisco asked me to self-improve using epistemic principles. 6 rounds complete with major wins.
+**Next step:** Continue improvement loop or resume T190 X research
 
 **✅ COMPLETED THIS SESSION:**
 | Task | Result |
 |------|--------|
+| T206 | ✅ 75% smaller tasks.json, verification gates, AGENTS sync |
 | T205 | ✅ Epistemic section in task modal |
 | T204 | ✅ Self-audit: 4x faster heartbeat, cleaned temp scripts |
-| T203 | ✅ Round 2: Outcome tracking, calibration, contradiction detection |
+| T203 | ✅ Outcome tracking, calibration, contradiction detection |
 | T202 | ✅ React-first protocol, live status in header |
 | T201 | ✅ Evidence/verification system |
 | T192 | ✅ Mission Control clickable task numbers |
 
 **📁 ARTIFACTS:**
 - `scripts/heartbeat-checks.ps1` — Combined heartbeat (4x faster)
+- `scripts/archive-old-tasks.ps1` — Task bloat reduction
 - `scripts/check-contradiction.py` — Contradiction detection
 - `scripts/verification-rate.ps1` — Verification health check
 - `mission-control/index.html` — Epistemic section, verification badges
+- `council-sessions/T029-approach-full.md` — Extracted 1.5MB Council text
 
 **⚠️ WAITING ON HUMAN:**
 - T180: Safari cache clear to verify homepage
@@ -37,7 +40,7 @@ This folder is home. Treat it that way.
 - T174 Step 5: Post on Moltbook Discord
 - BuckyDrop: Contact Scott to remove inactive store + reauthorize app
 
-**📋 TASK BOARD:** `memory/tasks.json` — bot_current: 3 (T190, T180, T174) | bot_queue: 24 | done_today: 92+
+**📋 TASK BOARD:** `memory/tasks.json` — bot_current: 3 (T190, T180, T174) | bot_queue: 24 | done_today: 95+
 
 **🔬 VERIFICATION RATE:** Run `scripts/verification-rate.ps1` to check epistemic health
 - 🟢 Human Verified = Francisco confirmed
@@ -45,12 +48,13 @@ This folder is home. Treat it that way.
 - 🟣 Auto Verified = automated check passed
 - 🟡 Claimed = assertion only (unverified)
 
-**🔄 COMPACTION CHECKPOINT:** 20:12 EST - T192 done. BuckyDrop check done. New rule: [T###] prefix required.
+**🔄 COMPACTION CHECKPOINT:** 21:52 EST - Self-improvement loop Rounds 1-6 complete. Major performance + epistemic wins.
 
 **📌 NEW RULES THIS SESSION:**
 - Always prefix replies with `[T###]` when discussing tasks
 - Task ID clicks in Mission Control add discussion comment requesting status
-- **REACT FIRST** — On every message from Francisco, react ⚡ immediately BEFORE processing (shows I got it)
+- **REACT FIRST** — On every message from Francisco, react ⚡ immediately BEFORE processing
+- **SELF-IMPROVEMENT LOOP** — Apply epistemic principles to my own code, find inefficiencies, fix them
 
 **Standing rules:**
 - **REPEAT THE MOTTO** in every process, analysis, recommendation

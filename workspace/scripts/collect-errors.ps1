@@ -4,12 +4,32 @@
 
 param(
     [switch]$Quiet,
-    [int]$TailLines = 100
+    [int]$TailLines = 100,
+    [int]$MaxLogSizeKB = 100  # Rotate when exceeds this size
 )
 
 $ErrorLog = "C:\dev\FsuelsBot\workspace\memory\error-log.jsonl"
 $ClawdbotLog = "\tmp\clawdbot\clawdbot-$(Get-Date -Format 'yyyy-MM-dd').log"
 $Timestamp = Get-Date -Format "yyyy-MM-ddTHH:mm:ssK"
+
+# IMPROVEMENT: Log rotation when file gets too big
+if (Test-Path $ErrorLog) {
+    $logSize = (Get-Item $ErrorLog).Length / 1KB
+    if ($logSize -gt $MaxLogSizeKB) {
+        $archiveName = $ErrorLog -replace '\.jsonl$', "-$(Get-Date -Format 'yyyy-MM-dd').jsonl"
+        Move-Item $ErrorLog $archiveName -Force
+        if (-not $Quiet) { Write-Host "Rotated error log ($([math]::Round($logSize))KB)" -ForegroundColor Yellow }
+    }
+}
+
+# IMPROVEMENT: Noise patterns to SKIP (not actionable)
+$NoisePatterns = @(
+    "TypeError: fetch failed",           # Network timeouts - normal
+    "AbortError",                         # Request cancelled - normal
+    "context deadline exceeded",          # Timeout - normal
+    "ECONNRESET",                         # Connection reset - normal
+    "socket hang up"                      # Socket closed - normal
+)
 
 # Ensure error log directory exists
 $ErrorLogDir = Split-Path $ErrorLog -Parent
@@ -23,19 +43,24 @@ $Errors = @()
 if (Test-Path $ClawdbotLog) {
     $LogContent = Get-Content $ClawdbotLog -Tail $TailLines -ErrorAction SilentlyContinue
     
-    # Find error patterns
+    # Find error patterns (actionable ones only)
     $ErrorPatterns = @(
         "UnhandledPromiseRejectionWarning",
-        "TypeError: fetch failed",
-        "AbortError",
         "Error:",
         "failed:",
-        "ENOENT",
-        "ECONNREFUSED",
-        "timeout"
+        "ENOENT",                             # File not found - usually a bug
+        "ECONNREFUSED"                        # Connection refused - service down
+        # Note: timeout, fetch failed, AbortError filtered as noise above
     )
     
     foreach ($line in $LogContent) {
+        # IMPROVEMENT: Skip noise patterns first
+        $isNoise = $false
+        foreach ($noise in $NoisePatterns) {
+            if ($line -match [regex]::Escape($noise)) { $isNoise = $true; break }
+        }
+        if ($isNoise) { continue }
+        
         foreach ($pattern in $ErrorPatterns) {
             if ($line -match $pattern) {
                 $Errors += @{

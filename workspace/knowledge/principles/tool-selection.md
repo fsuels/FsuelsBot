@@ -1,4 +1,5 @@
----
+﻿---
+updated: 2026-01-29
 version: "1.0"
 created: "2026-01-28"
 updated: "2026-01-28"
@@ -9,7 +10,7 @@ confidence: "medium"
 # Principle: Tool & Service Selection
 *Priority: P1*
 *Established: 2026-01-26*
-*Source: USER.md — Francisco's values*
+*Source: USER.md â€” Francisco's values*
 
 ## Rule
 When choosing tools, services, or platforms, prefer:
@@ -26,3 +27,4 @@ Francisco values open source and believes in community-driven development. He's 
 - If an open source tool is significantly worse, the proprietary option can be considered
 - Francisco must approve any paid tool regardless
 - Existing paid subscriptions (Claude, X, ChatGPT) are grandfathered in
+

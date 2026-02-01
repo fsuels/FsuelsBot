@@ -1,4 +1,5 @@
----
+﻿---
+updated: 2026-01-29
 version: "1.0"
 created: "2026-01-28"
 updated: "2026-01-28"
@@ -61,7 +62,7 @@ Every function returns **structured artifacts**, not essays. JSON, checklists, d
   "implementation_steps": ["step1", "step2", "..."]
 }
 ```
-**Max tokens:** 800 (full debate produces more, but verdict summary ≤800)
+**Max tokens:** 800 (full debate produces more, but verdict summary â‰¤800)
 **Reusable artifact:** Saved to council-sessions/ for future reference
 
 ### PromptWork()
@@ -95,7 +96,7 @@ Every function returns **structured artifacts**, not essays. JSON, checklists, d
 }
 ```
 **Max tokens:** 300
-**Reusable artifact:** Improvement patterns → knowledge/insights/
+**Reusable artifact:** Improvement patterns â†’ knowledge/insights/
 
 ### Research Loop (Deep Dive)
 **Input:** Research area or trigger event
@@ -111,12 +112,13 @@ Every function returns **structured artifacts**, not essays. JSON, checklists, d
 }
 ```
 **Max tokens:** 400 (briefs), 800 (deep dives)
-**Reusable artifact:** Key findings → knowledge/insights/
+**Reusable artifact:** Key findings â†’ knowledge/insights/
 
 ## Rules
 
 1. **No essays.** If output isn't structured, it's wrong.
 2. **Token counts enforced.** Agent must self-report token count.
 3. **Expansion on request only.** Start compressed, expand if Francisco asks.
-4. **Every good output → artifact.** If written well once, template it.
+4. **Every good output â†’ artifact.** If written well once, template it.
 5. **Artifacts go to workspace.** Templates in knowledge/, scripts in mission-control/ or workspace root.
+

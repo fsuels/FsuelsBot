@@ -1,4 +1,5 @@
----
+﻿---
+updated: 2026-01-29
 version: "1.0"
 created: "2026-01-28"
 updated: "2026-01-28"
@@ -10,7 +11,7 @@ confidence: "medium"
 *Source: Elon 5-Step Council + 4-Thinker Council (2026-01-28)*
 *Replaces: autonomy-tiers.md + action-safety-tiers.md*
 
-## Three Tiers — No Exceptions
+## Three Tiers â€” No Exceptions
 
 | Tier | Actions | Examples |
 |------|---------|----------|
@@ -20,10 +21,11 @@ confidence: "medium"
 
 ## Safety Gates for Nightly Ship Phase
 ALL must be true before autonomous execution:
-1. **Reversible** — one-click rollback exists
-2. **Blast radius < 5%** — affects <5% of traffic or is sandboxed
-3. **KPI guardrail** — predefined metric cannot drop
-4. **Output size** — human review ≤ 5 minutes
-5. **Score ≥ 0.8** — passed 4-layer scoring cascade
+1. **Reversible** â€” one-click rollback exists
+2. **Blast radius < 5%** â€” affects <5% of traffic or is sandboxed
+3. **KPI guardrail** â€” predefined metric cannot drop
+4. **Output size** â€” human review â‰¤ 5 minutes
+5. **Score â‰¥ 0.8** â€” passed 4-layer scoring cascade
 
-If ANY gate fails → queue for morning review, do not execute.
+If ANY gate fails â†’ queue for morning review, do not execute.
+

@@ -1,4 +1,5 @@
----
+﻿---
+updated: 2026-01-29
 version: "1.0"
 created: "2026-01-29"
 updated: "2026-01-29"
@@ -39,14 +40,14 @@ Google's Core Web Vitals are critical ranking signals. These are the **2026 thre
 
 | Metric | Good | Needs Improvement | Poor |
 |--------|------|-------------------|------|
-| **LCP** (Largest Contentful Paint) | ≤ 2.5 seconds | 2.5s - 4.0s | > 4.0s |
-| **INP** (Interaction to Next Paint) | ≤ 200ms | 200ms - 500ms | > 500ms |
-| **CLS** (Cumulative Layout Shift) | ≤ 0.1 | 0.1 - 0.25 | > 0.25 |
+| **LCP** (Largest Contentful Paint) | â‰¤ 2.5 seconds | 2.5s - 4.0s | > 4.0s |
+| **INP** (Interaction to Next Paint) | â‰¤ 200ms | 200ms - 500ms | > 500ms |
+| **CLS** (Cumulative Layout Shift) | â‰¤ 0.1 | 0.1 - 0.25 | > 0.25 |
 
 **Note:** Some sources indicate stricter 2025/2026 targets emerging:
-- LCP: ≤ 2.0 seconds (previously 2.5s)
-- FID: ≤ 80 milliseconds (previously 100ms)
-- CLS: ≤ 0.08 (previously 0.1)
+- LCP: â‰¤ 2.0 seconds (previously 2.5s)
+- FID: â‰¤ 80 milliseconds (previously 100ms)
+- CLS: â‰¤ 0.08 (previously 0.1)
 
 **Goal:** At least **75% of page visits** must meet "Good" thresholds.
 
@@ -62,28 +63,28 @@ Your store's 12.2-second LCP is **critically poor** (nearly 5x the acceptable li
 
 #### Image Optimization (Primary Cause)
 ```
-✅ Compress all images to < 100KB for above-fold content
-✅ Use WebP format (30% smaller than JPEG)
-✅ Add width/height attributes to prevent layout shift
-✅ Implement native lazy loading for below-fold images
-✅ Preload hero/banner images with <link rel="preload">
+âœ… Compress all images to < 100KB for above-fold content
+âœ… Use WebP format (30% smaller than JPEG)
+âœ… Add width/height attributes to prevent layout shift
+âœ… Implement native lazy loading for below-fold images
+âœ… Preload hero/banner images with <link rel="preload">
 ```
 
 #### Code & Script Optimization
 ```
-✅ Defer non-critical JavaScript
-✅ Minimize app installations (each app = more scripts)
-✅ Remove unused CSS
-✅ Use system fonts or preload custom fonts
-✅ Enable browser caching via Shopify CDN
+âœ… Defer non-critical JavaScript
+âœ… Minimize app installations (each app = more scripts)
+âœ… Remove unused CSS
+âœ… Use system fonts or preload custom fonts
+âœ… Enable browser caching via Shopify CDN
 ```
 
 #### Server & Theme
 ```
-✅ Use Shopify's built-in CDN (automatic)
-✅ Choose a lightweight, speed-optimized theme (Dawn, Sense)
-✅ Minimize liquid loops and complex queries
-✅ Reduce redirect chains
+âœ… Use Shopify's built-in CDN (automatic)
+âœ… Choose a lightweight, speed-optimized theme (Dawn, Sense)
+âœ… Minimize liquid loops and complex queries
+âœ… Reduce redirect chains
 ```
 
 ### 1.3 Mobile-First Indexing Requirements
@@ -92,15 +93,15 @@ Google uses **mobile-first indexing** exclusively. Your mobile site IS your site
 
 **Mobile-First Checklist:**
 ```
-□ Mobile and desktop have identical content
-□ Structured data present on mobile version
-□ Meta robots tags identical across versions
-□ Images/videos accessible on mobile
-□ Mobile page loads in < 3 seconds on 3G
-□ Touch targets at least 48x48 pixels
-□ Font size minimum 16px for body text
-□ No horizontal scrolling required
-□ Viewport meta tag configured correctly
+â–¡ Mobile and desktop have identical content
+â–¡ Structured data present on mobile version
+â–¡ Meta robots tags identical across versions
+â–¡ Images/videos accessible on mobile
+â–¡ Mobile page loads in < 3 seconds on 3G
+â–¡ Touch targets at least 48x48 pixels
+â–¡ Font size minimum 16px for body text
+â–¡ No horizontal scrolling required
+â–¡ Viewport meta tag configured correctly
 ```
 
 **Viewport Tag (must be in theme.liquid):**
@@ -119,10 +120,10 @@ Shopify enforces specific URL patterns:
 
 **Best Practices:**
 ```
-✅ Keep handles short and descriptive
-✅ Use hyphens, not underscores
-✅ Include primary keyword in handle
-✅ Avoid changing URLs after publishing (creates redirects)
+âœ… Keep handles short and descriptive
+âœ… Use hyphens, not underscores
+âœ… Include primary keyword in handle
+âœ… Avoid changing URLs after publishing (creates redirects)
 
 Examples:
 BAD:  /products/mommy-and-me-matching-pink-floral-summer-dress-set-2024
@@ -139,7 +140,7 @@ Shopify auto-generates robots.txt. Key blocked paths:
 - `/collections/*+*` (combined collection URLs)
 
 **Custom additions via Shopify Admin:**
-Settings → Search engine optimization → robots.txt.liquid
+Settings â†’ Search engine optimization â†’ robots.txt.liquid
 
 #### XML Sitemap
 Shopify auto-generates at `yourstore.com/sitemap.xml`
@@ -230,12 +231,12 @@ Shopify themes often include basic product schema. You need **complete JSON-LD**
 
 #### Additional Schema Types for E-commerce
 ```
-✅ Organization schema (on homepage)
-✅ BreadcrumbList (on all pages)
-✅ FAQPage (on product pages with FAQs)
-✅ CollectionPage (for collections)
-✅ LocalBusiness (if you have physical presence)
-✅ WebSite with SearchAction (for sitelinks search box)
+âœ… Organization schema (on homepage)
+âœ… BreadcrumbList (on all pages)
+âœ… FAQPage (on product pages with FAQs)
+âœ… CollectionPage (for collections)
+âœ… LocalBusiness (if you have physical presence)
+âœ… WebSite with SearchAction (for sitelinks search box)
 ```
 
 ### 1.6 Crawlability Best Practices
@@ -254,12 +255,12 @@ Shopify adds canonical tags automatically. Verify:
 #### Internal Link Architecture
 ```
 Homepage
-├── Main Collections (linked from nav)
-│   ├── Individual Products
-│   └── Sub-collections
-├── Blog
-│   └── Blog Posts (link to relevant products)
-└── Info Pages (About, Contact, FAQ)
+â”œâ”€â”€ Main Collections (linked from nav)
+â”‚   â”œâ”€â”€ Individual Products
+â”‚   â””â”€â”€ Sub-collections
+â”œâ”€â”€ Blog
+â”‚   â””â”€â”€ Blog Posts (link to relevant products)
+â””â”€â”€ Info Pages (About, Contact, FAQ)
 ```
 
 **Every page should be reachable within 3 clicks from homepage.**
@@ -299,13 +300,13 @@ Characters: 52
 
 **Title Tag Checklist:**
 ```
-□ Primary keyword within first 60 characters
-□ Keyword placed as close to beginning as possible
-□ Brand name included (end preferred)
-□ No keyword stuffing
-□ Unique for every product
-□ Compelling/click-worthy
-□ Matches search intent
+â–¡ Primary keyword within first 60 characters
+â–¡ Keyword placed as close to beginning as possible
+â–¡ Brand name included (end preferred)
+â–¡ No keyword stuffing
+â–¡ Unique for every product
+â–¡ Compelling/click-worthy
+â–¡ Matches search intent
 ```
 
 ### 2.2 Meta Description Templates
@@ -317,7 +318,7 @@ Characters: 52
 [Benefit statement]. [Product details]. [Call to action]. [Trust signal]
 
 Example:
-Create precious memories with matching mommy & me outfits! Pink floral dress set with free US shipping. Shop now for adorable mother-daughter styles. ⭐ 4.8/5
+Create precious memories with matching mommy & me outfits! Pink floral dress set with free US shipping. Shop now for adorable mother-daughter styles. â­ 4.8/5
 
 Characters: 158
 ```
@@ -344,13 +345,13 @@ Characters: 147
 
 **Meta Description Checklist:**
 ```
-□ 150-160 characters (aim for 155)
-□ Include primary keyword naturally
-□ Clear call to action
-□ Unique for every page
-□ Compelling value proposition
-□ Include emojis sparingly (✓, ⭐, 💕) for visibility
-□ Match the actual page content
+â–¡ 150-160 characters (aim for 155)
+â–¡ Include primary keyword naturally
+â–¡ Clear call to action
+â–¡ Unique for every page
+â–¡ Compelling value proposition
+â–¡ Include emojis sparingly (âœ“, â­, ðŸ’•) for visibility
+â–¡ Match the actual page content
 ```
 
 ### 2.3 Product Description Optimization
@@ -367,10 +368,10 @@ matching dresses. The perfect outfit for Mother's Day, family photos,
 or any special occasion.
 
 **FEATURES + BENEFITS** (bullet points with keywords)
-• **Soft Cotton Blend** - Comfortable all-day wear for both mom and daughter
-• **Matching Design** - Identical pink floral pattern for coordinated looks
-• **Easy Care** - Machine washable, no special treatment needed
-• **True to Size** - Mom sizes S-XXL, Daughter sizes 2T-10
+â€¢ **Soft Cotton Blend** - Comfortable all-day wear for both mom and daughter
+â€¢ **Matching Design** - Identical pink floral pattern for coordinated looks
+â€¢ **Easy Care** - Machine washable, no special treatment needed
+â€¢ **True to Size** - Mom sizes S-XXL, Daughter sizes 2T-10
 
 **DETAILED DESCRIPTION** (2-3 paragraphs, 150-300 words)
 [Include secondary keywords naturally: "mother daughter outfits," 
@@ -381,14 +382,14 @@ Mom: [Size chart]
 Daughter: [Size chart]
 
 **MATERIALS & CARE** (builds trust)
-• 95% Cotton, 5% Spandex
-• Machine wash cold, tumble dry low
-• Imported
+â€¢ 95% Cotton, 5% Spandex
+â€¢ Machine wash cold, tumble dry low
+â€¢ Imported
 
 **SHIPPING & RETURNS** (reduces friction)
-• Free US shipping on orders $50+
-• 30-day easy returns
-• Ships within 1-3 business days
+â€¢ Free US shipping on orders $50+
+â€¢ 30-day easy returns
+â€¢ Ships within 1-3 business days
 ```
 
 **Word Count Target:** 300-500 words per product description
@@ -399,23 +400,23 @@ Daughter: [Size chart]
 
 **Examples:**
 ```
-✅ "Dress Like Mommy matching mother daughter pink floral dress set"
-✅ "mommy and me matching outfit pink roses summer dress"
-✅ "mother daughter coordinating dresses for family photos"
+âœ… "Dress Like Mommy matching mother daughter pink floral dress set"
+âœ… "mommy and me matching outfit pink roses summer dress"
+âœ… "mother daughter coordinating dresses for family photos"
 
-❌ "IMG_4532.jpg"
-❌ "product-image-1"
-❌ "pink dress pink dress pink dress mommy daughter pink"
+âŒ "IMG_4532.jpg"
+âŒ "product-image-1"
+âŒ "pink dress pink dress pink dress mommy daughter pink"
 ```
 
 **Alt Text Guidelines:**
 ```
-□ 125 characters maximum (screen reader friendly)
-□ Include primary keyword naturally
-□ Describe the actual image content
-□ Be specific (color, style, occasion)
-□ Different alt text for each image of same product
-□ Use for all product images (main + gallery)
+â–¡ 125 characters maximum (screen reader friendly)
+â–¡ Include primary keyword naturally
+â–¡ Describe the actual image content
+â–¡ Be specific (color, style, occasion)
+â–¡ Different alt text for each image of same product
+â–¡ Use for all product images (main + gallery)
 ```
 
 ### 2.5 URL Structure Best Practices
@@ -432,18 +433,18 @@ Components:
 
 **Handle Best Practices:**
 ```
-✅ 3-5 words maximum
-✅ Primary keyword included
-✅ Hyphens between words
-✅ Lowercase only
-✅ No special characters
-✅ No dates or years (evergreen)
+âœ… 3-5 words maximum
+âœ… Primary keyword included
+âœ… Hyphens between words
+âœ… Lowercase only
+âœ… No special characters
+âœ… No dates or years (evergreen)
 
 Examples:
-✅ /products/mommy-me-pink-dress
-✅ /products/matching-mother-daughter-outfit
-❌ /products/adorable-cute-matching-mommy-and-me-pink-floral-summer-dress-2024
-❌ /products/SKU12345
+âœ… /products/mommy-me-pink-dress
+âœ… /products/matching-mother-daughter-outfit
+âŒ /products/adorable-cute-matching-mommy-and-me-pink-floral-summer-dress-2024
+âŒ /products/SKU12345
 ```
 
 ### 2.6 Internal Linking for E-commerce
@@ -479,11 +480,11 @@ Examples:
 
 **Internal Linking Rules:**
 ```
-□ Every product links to its collection
-□ Every product has related products
-□ Use descriptive anchor text (not "click here")
-□ Link to high-value pages from multiple locations
-□ Orphan pages = 0 (every page has at least 1 internal link)
+â–¡ Every product links to its collection
+â–¡ Every product has related products
+â–¡ Use descriptive anchor text (not "click here")
+â–¡ Link to high-value pages from multiple locations
+â–¡ Orphan pages = 0 (every page has at least 1 internal link)
 ```
 
 ---
@@ -515,9 +516,9 @@ mother-daughter outfit is designed with attention to detail and
 made from soft, comfortable fabrics.
 
 **Shop by Occasion:**
-• [Wedding Guest Dresses]
-• [Holiday Matching Outfits]
-• [Casual Everyday Matching]
+â€¢ [Wedding Guest Dresses]
+â€¢ [Holiday Matching Outfits]
+â€¢ [Casual Everyday Matching]
 
 Free shipping on orders over $50. Easy 30-day returns.
 ```
@@ -553,7 +554,7 @@ Faceted navigation (filters) can create **crawl budget waste** and **duplicate c
 **SEO Rules for Faceted Navigation:**
 ```
 1. CANONICAL: All filtered URLs should canonical to main collection
-   /collections/dresses?color=pink → canonical to /collections/dresses
+   /collections/dresses?color=pink â†’ canonical to /collections/dresses
 
 2. NOINDEX: Add noindex to filtered pages via meta robots or robots.txt
    Disallow: /collections/*?*
@@ -573,10 +574,10 @@ Shopify paginates collections (default: 24 products per page).
 
 **Best Practice:**
 ```
-✅ Use rel="next" and rel="prev" (if theme supports)
-✅ OR canonical all pages to page 1
-✅ OR use "Load More" / infinite scroll with proper implementation
-✅ Ensure all products are in sitemap regardless of pagination
+âœ… Use rel="next" and rel="prev" (if theme supports)
+âœ… OR canonical all pages to page 1
+âœ… OR use "Load More" / infinite scroll with proper implementation
+âœ… Ensure all products are in sitemap regardless of pagination
 ```
 
 **Implementation Check:**
@@ -637,10 +638,10 @@ Build **topical authority** with hub-and-spoke content structure.
 ```
 
 **Internal Linking Structure:**
-- Pillar → All spokes
-- Spokes → Pillar
-- Spokes → Related spokes
-- All content → Relevant product collections
+- Pillar â†’ All spokes
+- Spokes â†’ Pillar
+- Spokes â†’ Related spokes
+- All content â†’ Relevant product collections
 
 ### 4.3 Buyer Intent Keywords
 
@@ -806,7 +807,7 @@ Shopify automatically serves WebP via their CDN when:
 Shopify CDN automatically converts to WebP for supported browsers.
 
 **Verify WebP Delivery:**
-1. Open Chrome DevTools → Network tab
+1. Open Chrome DevTools â†’ Network tab
 2. Filter by "Img"
 3. Check "Type" column for "webp"
 
@@ -819,10 +820,10 @@ Shopify CDN automatically converts to WebP for supported browsers.
 
 **Rules:**
 ```
-✅ Lazy load below-fold images
-✅ Do NOT lazy load above-fold/hero images
-✅ Always include width and height attributes
-✅ Use loading="eager" for LCP image
+âœ… Lazy load below-fold images
+âœ… Do NOT lazy load above-fold/hero images
+âœ… Always include width and height attributes
+âœ… Use loading="eager" for LCP image
 ```
 
 **Shopify Liquid Implementation:**
@@ -933,14 +934,14 @@ Pinterest is a **visual search engine** - critical for fashion/clothing.
 
 **Pinterest SEO Checklist:**
 ```
-□ Business account (required for analytics)
-□ Claim your website (get attribution)
-□ Enable Rich Pins for products
-□ Keyword-optimized profile name and bio
-□ Boards named after target keywords
-□ Pin descriptions include keywords
-□ Consistent pinning schedule (5-10 pins/day)
-□ Link all pins to your website
+â–¡ Business account (required for analytics)
+â–¡ Claim your website (get attribution)
+â–¡ Enable Rich Pins for products
+â–¡ Keyword-optimized profile name and bio
+â–¡ Boards named after target keywords
+â–¡ Pin descriptions include keywords
+â–¡ Consistent pinning schedule (5-10 pins/day)
+â–¡ Link all pins to your website
 ```
 
 **Pin Description Formula:**
@@ -950,7 +951,7 @@ Pinterest is a **visual search engine** - critical for fashion/clothing.
 Example:
 "Adorable mommy and me matching dresses perfect for family photos and 
 special occasions. Pink floral design in comfortable cotton. Shop the 
-look at dresslikemommy.com 💕 #mommyandme #matchingoutfits #motherdaughter"
+look at dresslikemommy.com ðŸ’• #mommyandme #matchingoutfits #motherdaughter"
 ```
 
 **Board Strategy:**
@@ -1001,22 +1002,22 @@ Create boards for:
 
 **Free with Shopify:**
 ```
-✅ Auto-generated sitemap.xml
-✅ Auto-generated robots.txt
-✅ Canonical tags (automatic)
-✅ SSL certificates (HTTPS)
-✅ Mobile-responsive themes
-✅ CDN for fast image delivery
-✅ 301 redirect management
-✅ Meta title/description editing
-✅ URL handle customization
-✅ Alt text for images
+âœ… Auto-generated sitemap.xml
+âœ… Auto-generated robots.txt
+âœ… Canonical tags (automatic)
+âœ… SSL certificates (HTTPS)
+âœ… Mobile-responsive themes
+âœ… CDN for fast image delivery
+âœ… 301 redirect management
+âœ… Meta title/description editing
+âœ… URL handle customization
+âœ… Alt text for images
 ```
 
 **Access via:**
-- Product/page editor → "Search engine listing preview"
-- Online Store → Navigation → URL Redirects
-- Settings → Domains
+- Product/page editor â†’ "Search engine listing preview"
+- Online Store â†’ Navigation â†’ URL Redirects
+- Settings â†’ Domains
 
 ### 8.4 Theme SEO Considerations
 
@@ -1027,14 +1028,14 @@ Create boards for:
 
 **Theme SEO Checklist:**
 ```
-□ Mobile-first responsive design
-□ Fast loading (< 3s)
-□ Clean HTML structure (proper H1, H2, etc.)
-□ Schema markup included
-□ Lazy loading for images
-□ No render-blocking scripts
-□ Breadcrumb navigation
-□ Social sharing buttons
+â–¡ Mobile-first responsive design
+â–¡ Fast loading (< 3s)
+â–¡ Clean HTML structure (proper H1, H2, etc.)
+â–¡ Schema markup included
+â–¡ Lazy loading for images
+â–¡ No render-blocking scripts
+â–¡ Breadcrumb navigation
+â–¡ Social sharing buttons
 ```
 
 ---
@@ -1141,115 +1142,115 @@ Google's AI-powered search shows AI-generated summaries **above traditional resu
 **Run First - These Block Everything Else:**
 
 ```
-□ HTTPS enabled (check all pages)
-□ www/non-www redirect configured
-□ Sitemap.xml accessible and submitted to GSC
-□ Robots.txt allows important pages
-□ No noindex on important pages
-□ No broken internal links (404s)
-□ Mobile-friendly (Google Mobile-Friendly Test)
-□ Core Web Vitals passing (PageSpeed Insights)
-  □ LCP < 2.5s
-  □ INP < 200ms
-  □ CLS < 0.1
-□ No duplicate content issues
-□ Canonical tags correct
-□ Hreflang tags correct (if international)
+â–¡ HTTPS enabled (check all pages)
+â–¡ www/non-www redirect configured
+â–¡ Sitemap.xml accessible and submitted to GSC
+â–¡ Robots.txt allows important pages
+â–¡ No noindex on important pages
+â–¡ No broken internal links (404s)
+â–¡ Mobile-friendly (Google Mobile-Friendly Test)
+â–¡ Core Web Vitals passing (PageSpeed Insights)
+  â–¡ LCP < 2.5s
+  â–¡ INP < 200ms
+  â–¡ CLS < 0.1
+â–¡ No duplicate content issues
+â–¡ Canonical tags correct
+â–¡ Hreflang tags correct (if international)
 ```
 
 ### 10.2 On-Page SEO Audit (Priority 2)
 
 **Product Pages:**
 ```
-□ Unique title tag (50-60 chars)
-□ Unique meta description (150-160 chars)
-□ H1 tag contains primary keyword
-□ Product description 300+ words
-□ All images have alt text
-□ URL handle is clean and keyword-rich
-□ Internal links to related products
-□ Internal links to collection
-□ Schema markup (Product) verified
-□ Customer reviews present
+â–¡ Unique title tag (50-60 chars)
+â–¡ Unique meta description (150-160 chars)
+â–¡ H1 tag contains primary keyword
+â–¡ Product description 300+ words
+â–¡ All images have alt text
+â–¡ URL handle is clean and keyword-rich
+â–¡ Internal links to related products
+â–¡ Internal links to collection
+â–¡ Schema markup (Product) verified
+â–¡ Customer reviews present
 ```
 
 **Collection Pages:**
 ```
-□ Unique title tag
-□ Unique meta description
-□ H1 tag with category keyword
-□ Collection description (above and below products)
-□ Breadcrumb navigation
-□ Proper pagination handling
-□ Faceted navigation SEO-friendly
+â–¡ Unique title tag
+â–¡ Unique meta description
+â–¡ H1 tag with category keyword
+â–¡ Collection description (above and below products)
+â–¡ Breadcrumb navigation
+â–¡ Proper pagination handling
+â–¡ Faceted navigation SEO-friendly
 ```
 
 **Blog Posts:**
 ```
-□ Title tag optimized
-□ Meta description written
-□ H1 matches title
-□ Subheadings (H2, H3) used
-□ Internal links to products
-□ Internal links to other posts
-□ Images with alt text
-□ 1000+ words for pillar content
-□ Author attribution
+â–¡ Title tag optimized
+â–¡ Meta description written
+â–¡ H1 matches title
+â–¡ Subheadings (H2, H3) used
+â–¡ Internal links to products
+â–¡ Internal links to other posts
+â–¡ Images with alt text
+â–¡ 1000+ words for pillar content
+â–¡ Author attribution
 ```
 
 ### 10.3 Content Audit (Priority 3)
 
 ```
-□ Homepage has clear value proposition
-□ About page tells brand story
-□ Contact page complete
-□ FAQ page with schema
-□ Shipping/returns pages complete
-□ Blog posts for top keywords
-□ Content clusters established
-□ No thin content (< 300 words)
-□ No duplicate content
-□ Old content updated (if > 1 year)
+â–¡ Homepage has clear value proposition
+â–¡ About page tells brand story
+â–¡ Contact page complete
+â–¡ FAQ page with schema
+â–¡ Shipping/returns pages complete
+â–¡ Blog posts for top keywords
+â–¡ Content clusters established
+â–¡ No thin content (< 300 words)
+â–¡ No duplicate content
+â–¡ Old content updated (if > 1 year)
 ```
 
 ### 10.4 Link & Authority Audit (Priority 4)
 
 ```
-□ Google Business Profile (if applicable)
-□ Social profiles claimed and linked
-□ Domain authority baseline measured
-□ Backlink profile analyzed
-□ Toxic links disavowed (if needed)
-□ Internal linking optimized
-□ Broken external links fixed
-□ Competitor backlink analysis done
-□ Link building campaign planned
+â–¡ Google Business Profile (if applicable)
+â–¡ Social profiles claimed and linked
+â–¡ Domain authority baseline measured
+â–¡ Backlink profile analyzed
+â–¡ Toxic links disavowed (if needed)
+â–¡ Internal linking optimized
+â–¡ Broken external links fixed
+â–¡ Competitor backlink analysis done
+â–¡ Link building campaign planned
 ```
 
 ### 10.5 Tools for SEO Monitoring
 
 **Free Tools:**
 ```
-✅ Google Search Console (indexing, performance, errors)
-✅ Google Analytics 4 (traffic, conversions)
-✅ Google PageSpeed Insights (Core Web Vitals)
-✅ Bing Webmaster Tools (Bing-specific insights)
-✅ Google Rich Results Test (schema validation)
-✅ Screaming Frog SEO Spider (free up to 500 URLs)
+âœ… Google Search Console (indexing, performance, errors)
+âœ… Google Analytics 4 (traffic, conversions)
+âœ… Google PageSpeed Insights (Core Web Vitals)
+âœ… Bing Webmaster Tools (Bing-specific insights)
+âœ… Google Rich Results Test (schema validation)
+âœ… Screaming Frog SEO Spider (free up to 500 URLs)
 ```
 
 **Paid Tools (Recommended):**
 ```
-✅ Ahrefs or SEMrush ($99+/mo) - keyword research, backlinks, audits
-✅ Screaming Frog (£199/yr) - full site crawls
-✅ Surfer SEO ($59/mo) - content optimization
+âœ… Ahrefs or SEMrush ($99+/mo) - keyword research, backlinks, audits
+âœ… Screaming Frog (Â£199/yr) - full site crawls
+âœ… Surfer SEO ($59/mo) - content optimization
 ```
 
 **Shopify-Specific:**
 ```
-✅ Shopify Analytics (built-in)
-✅ Search Console integration (in Shopify)
-✅ Plug in SEO app (free audits)
+âœ… Shopify Analytics (built-in)
+âœ… Search Console integration (in Shopify)
+âœ… Plug in SEO app (free audits)
 ```
 
 ---
@@ -1268,9 +1269,9 @@ Google's AI-powered search shows AI-generated summaries **above traditional resu
 ### Core Web Vitals Targets
 | Metric | Target | Measurement |
 |--------|--------|-------------|
-| LCP | ≤ 2.5s | Largest image/text block |
-| INP | ≤ 200ms | Interaction response |
-| CLS | ≤ 0.1 | Visual stability |
+| LCP | â‰¤ 2.5s | Largest image/text block |
+| INP | â‰¤ 200ms | Interaction response |
+| CLS | â‰¤ 0.1 | Visual stability |
 
 ### Image Specifications
 | Type | Max Size | Format |
@@ -1293,7 +1294,7 @@ Google's AI-powered search shows AI-generated summaries **above traditional resu
 ## 12. Implementation Priority Order
 
 **Phase 1: Critical Fixes (Week 1-2)**
-1. Fix LCP issue (12.2s → under 2.5s)
+1. Fix LCP issue (12.2s â†’ under 2.5s)
 2. Add missing meta titles/descriptions
 3. Submit sitemap to Google Search Console
 4. Fix any crawl errors
@@ -1342,3 +1343,4 @@ Google's AI-powered search shows AI-generated summaries **above traditional resu
 *Created: January 29, 2026*  
 *Last Updated: January 29, 2026*  
 *Source: Web research + industry best practices*
+

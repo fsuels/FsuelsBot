@@ -1,4 +1,5 @@
----
+﻿---
+updated: 2026-01-29
 version: "1.0"
 created: "2026-01-28"
 updated: "2026-01-28"
@@ -40,3 +41,4 @@ confidence: "medium"
 - Safe freely: Read files, search web, work within workspace
 - Ask first: Send emails/tweets/posts, anything that leaves the machine, anything uncertain
 - `trash` > `rm` (recoverable beats gone forever)
+

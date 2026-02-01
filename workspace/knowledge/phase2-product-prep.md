@@ -1,3 +1,7 @@
+﻿---
+updated: 2026-01-29
+---
+
 # Phase 2 Product Prep - Valentine Import Batch
 
 **Created:** 2026-01-29 23:35 EST
@@ -10,13 +14,13 @@
 
 | # | 1688 ID | Status | BuckyDrop | Pricing | SEO |
 |---|---------|--------|-----------|---------|-----|
-| 1 | 853944666153 | ✅ Added | ✅ Product List | ✅ Done | ⏳ Pending |
-| 2 | 969885791145 | ⏳ Pending | ❌ | ❌ | ❌ |
-| 3 | 934291597297 | ⏳ Pending | ❌ | ❌ | ❌ |
-| 4 | 979076019926 | ⏳ Pending | ❌ | ❌ | ❌ |
-| 5 | 862560576658 | ⏳ Pending | ❌ | ❌ | ❌ |
-| 6 | 980618496327 | ⏳ Pending | ❌ | ❌ | ❌ |
-| 7 | 971972174266 | ⏳ Pending | ❌ | ❌ | ❌ |
+| 1 | 853944666153 | âœ… Added | âœ… Product List | âœ… Done | â³ Pending |
+| 2 | 969885791145 | â³ Pending | âŒ | âŒ | âŒ |
+| 3 | 934291597297 | â³ Pending | âŒ | âŒ | âŒ |
+| 4 | 979076019926 | â³ Pending | âŒ | âŒ | âŒ |
+| 5 | 862560576658 | â³ Pending | âŒ | âŒ | âŒ |
+| 6 | 980618496327 | â³ Pending | âŒ | âŒ | âŒ |
+| 7 | 971972174266 | â³ Pending | âŒ | âŒ | âŒ |
 
 ---
 
@@ -24,38 +28,38 @@
 
 **1688 URL:** https://detail.1688.com/offer/853944666153.html
 
-### Pricing Calculation ✅
+### Pricing Calculation âœ…
 | Component | CNY | USD |
 |-----------|-----|-----|
-| Product price | ¥63-99 | $8.86-13.92 |
-| Domestic Shipping | ¥5 | $0.70 |
-| Platform Fee | ¥5.5 | $0.77 |
-| Value-Added Services | ¥13.1 | $1.84 |
-| **Base Total** | ~¥86.6 | ~$12.18 |
-| Int'l Shipping (est.) | ~¥50 | ~$7.00 |
-| **TOTAL COST** | ~¥136 | ~$19.18 |
+| Product price | Â¥63-99 | $8.86-13.92 |
+| Domestic Shipping | Â¥5 | $0.70 |
+| Platform Fee | Â¥5.5 | $0.77 |
+| Value-Added Services | Â¥13.1 | $1.84 |
+| **Base Total** | ~Â¥86.6 | ~$12.18 |
+| Int'l Shipping (est.) | ~Â¥50 | ~$7.00 |
+| **TOTAL COST** | ~Â¥136 | ~$19.18 |
 
-**Minimum Price (×1.5):** $28.77 → **$29.99**
+**Minimum Price (Ã—1.5):** $28.77 â†’ **$29.99**
 **Suggested Price:** $34.99-39.99 (pending competitor check)
 
-⚠️ **Note:** Min order is 2 units
+âš ï¸ **Note:** Min order is 2 units
 
 ### SEO Title (Draft)
 `Wool Lamb Matching Family Sweatshirt - Mommy and Me | DLM`
-(56 chars ✅)
+(56 chars âœ…)
 
 ### SEO Description (Draft)
 ```
 Match in cozy style with this **Wool Lamb Family Matching Sweatshirt**! Perfect for Valentine's Day photos and chilly weather cuddles.
 
 **Why You'll Love It:**
-- 💕 Soft wool blend fabric - cozy and warm
-- 💕 Adorable lamb design kids love
-- 💕 Family sizes: Mom S-XXL, Kids 2T-10Y, Dad M-3XL
-- 💕 Machine washable, easy care
+- ðŸ’• Soft wool blend fabric - cozy and warm
+- ðŸ’• Adorable lamb design kids love
+- ðŸ’• Family sizes: Mom S-XXL, Kids 2T-10Y, Dad M-3XL
+- ðŸ’• Machine washable, easy care
 
 **Perfect for:**
-- Valentine's Day matching photos 💝
+- Valentine's Day matching photos ðŸ’
 - Winter family outings
 - Cozy at-home moments
 - Gift for new moms
@@ -80,14 +84,14 @@ Fill in after BuckyDrop import:
 #### Pricing
 | Component | CNY | USD |
 |-----------|-----|-----|
-| Product price | ¥ | $ |
-| Domestic Shipping | ¥ | $ |
-| Platform Fee | ¥5.5 | $0.77 |
-| Value-Added | ¥ | $ |
-| Int'l Shipping | ¥ | $ |
-| **TOTAL COST** | ¥ | $ |
+| Product price | Â¥ | $ |
+| Domestic Shipping | Â¥ | $ |
+| Platform Fee | Â¥5.5 | $0.77 |
+| Value-Added | Â¥ | $ |
+| Int'l Shipping | Â¥ | $ |
+| **TOTAL COST** | Â¥ | $ |
 
-Min Price (×1.5): $____
+Min Price (Ã—1.5): $____
 Suggested Price: $____
 
 #### Competitor Check
@@ -137,7 +141,7 @@ For Valentine products, use these patterns:
 **Competitive Positioning for DLM:**
 - **Budget items ($11-15):** Match or undercut by $1-2
 - **Mid-range ($16-25):** Price at $24.99-29.99 with free shipping angle
-- **Premium ($26-35):** Price at $29.99-39.99 — emphasize quality + free shipping
+- **Premium ($26-35):** Price at $29.99-39.99 â€” emphasize quality + free shipping
 
 **Our advantage:** Free shipping included. Most Walmart items show "From $X" + shipping.
 
@@ -168,8 +172,8 @@ For Valentine products, use these patterns:
 Add to ALL Valentine product descriptions:
 
 ```
-⏰ **Valentine's Deadline:** Order by Feb 10 for guaranteed Valentine's Day delivery!
-💝 Free shipping on all orders.
+â° **Valentine's Deadline:** Order by Feb 10 for guaranteed Valentine's Day delivery!
+ðŸ’ Free shipping on all orders.
 ```
 
 ---
@@ -186,3 +190,4 @@ Add to ALL Valentine product descriptions:
 ---
 
 *This document prepared while Council session runs. Ready for immediate use once imports complete.*
+

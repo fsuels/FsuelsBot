@@ -1,4 +1,5 @@
----
+﻿---
+updated: 2026-01-29
 version: "1.0"
 created: "2026-01-28"
 updated: "2026-01-28"
@@ -13,7 +14,7 @@ confidence: "medium"
 ## Task Priority Score (TPS)
 
 ```
-TPS = (Revenue Impact × Confidence) ÷ (Human Minutes × Reversibility Risk)
+TPS = (Revenue Impact Ã— Confidence) Ã· (Human Minutes Ã— Reversibility Risk)
 ```
 
 | Factor | Scale | Description |
@@ -25,12 +26,13 @@ TPS = (Revenue Impact × Confidence) ÷ (Human Minutes × Reversibility Risk)
 
 ## Rules
 - Agent ALWAYS picks highest TPS
-- TPS < 0.5 → do not execute autonomously
-- Nightly ship phase only executes TPS ≥ 1.5
-- If task doesn't map to goal hierarchy → DELETE IT
+- TPS < 0.5 â†’ do not execute autonomously
+- Nightly ship phase only executes TPS â‰¥ 1.5
+- If task doesn't map to goal hierarchy â†’ DELETE IT
 - Auto-delete tasks stagnant > 3 days from bottom 20%
 
 ## Priority Override
-1. **Unblock distribution** (GMC, ad channels) — always first
-2. **Time-bound revenue** (Valentine's, seasonal) — second
-3. **Everything else** — scored by TPS
+1. **Unblock distribution** (GMC, ad channels) â€” always first
+2. **Time-bound revenue** (Valentine's, seasonal) â€” second
+3. **Everything else** â€” scored by TPS
+

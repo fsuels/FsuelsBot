@@ -1,4 +1,5 @@
----
+﻿---
+updated: 2026-01-29
 version: "1.0"
 created: "2026-01-28"
 updated: "2026-01-28"
@@ -6,18 +7,18 @@ verified: "2026-01-28"
 confidence: "medium"
 ---
 
-# Goal Hierarchy — Dress Like Mommy
+# Goal Hierarchy â€” Dress Like Mommy
 *Source: 4-Thinker Council (2026-01-28)*
-*Rule: If a task doesn't map to this tree → DELETE IT*
+*Rule: If a task doesn't map to this tree â†’ DELETE IT*
 
 ## Level 0: Business Objective
-**DLM sustainably profitable (≥20% net margin)**
+**DLM sustainably profitable (â‰¥20% net margin)**
 
 ## Level 1: Strategic Levers
-- ↑ AOV (Average Order Value)
-- ↑ CVR (Conversion Rate)
-- ↓ CAC (Customer Acquisition Cost)
-- ↓ Ops Time (Manual work per order)
+- â†‘ AOV (Average Order Value)
+- â†‘ CVR (Conversion Rate)
+- â†“ CAC (Customer Acquisition Cost)
+- â†“ Ops Time (Manual work per order)
 
 ## Level 2: System Goals
 - Faster product iteration (more listings, better quality)
@@ -28,7 +29,7 @@ confidence: "medium"
 ## Level 3: Weekly Outcomes
 - +1 winning product added/improved
 - +1 conversion improvement shipped
-- −1 manual workflow automated or eliminated
+- âˆ’1 manual workflow automated or eliminated
 - Research: 1 actionable competitive insight
 
 ## Level 4: Daily Tasks
@@ -37,8 +38,9 @@ confidence: "medium"
 - One system improvement (prompt, rubric, or process)
 
 ## Current Priority Stack (Jan 2026)
-1. **Unblock GMC** — distribution is blocked, nothing else matters until ads work
-2. **Valentine's Day** — 17 days, seasonal revenue window closing
-3. **Store trust** — ScamAdviser score, reviews, social proof
-4. **Product catalog** — descriptions, SEO, collections
-5. **System improvement** — compound loop, personas, scoring
+1. **Unblock GMC** â€” distribution is blocked, nothing else matters until ads work
+2. **Valentine's Day** â€” 17 days, seasonal revenue window closing
+3. **Store trust** â€” ScamAdviser score, reviews, social proof
+4. **Product catalog** â€” descriptions, SEO, collections
+5. **System improvement** â€” compound loop, personas, scoring
+

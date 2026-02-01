@@ -1,4 +1,5 @@
----
+﻿---
+updated: 2026-01-29
 version: "1.0"
 created: "2026-01-28"
 updated: "2026-01-28"
@@ -8,7 +9,7 @@ confidence: "medium"
 
 # Anti-Disconnect Protocol (P0)
 **Source:** Francisco directive, 2026-01-28
-**Status:** PERMANENT — never violate
+**Status:** PERMANENT â€” never violate
 
 ## Problem
 Session compaction + tool errors = lost context + silence = frustrated Francisco.
@@ -18,7 +19,7 @@ Session compaction + tool errors = lost context + silence = frustrated Francisco
 ### 1. Write Before You Work
 Before ANY multi-step browser/tool work:
 - Update `memory/active-thread.md` with what you're about to do
-- This is your crash recovery file — if session dies, next session reads this
+- This is your crash recovery file â€” if session dies, next session reads this
 
 ### 2. Ping Every 5 Minutes
 During long work sessions, send a brief Telegram message:
@@ -53,9 +54,10 @@ For Shopify and complex SPAs:
 - Use `compact=true` + `maxChars` on snapshots
 - Use `evaluate` for targeted data extraction
 - Never take full page snapshots of Shopify admin
-- One snapshot costs 50K+ chars — budget accordingly
+- One snapshot costs 50K+ chars â€” budget accordingly
 
 ### 8. Save State Continuously
 - After EVERY successful edit: update active-thread.md
 - After EVERY save on Shopify: log what was saved
 - After EVERY error: log the lesson
+

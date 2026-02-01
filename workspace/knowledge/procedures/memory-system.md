@@ -1,4 +1,5 @@
----
+﻿---
+updated: 2026-01-29
 version: "1.0"
 created: "2026-01-28"
 updated: "2026-01-28"
@@ -6,9 +7,9 @@ verified: "2026-01-28"
 confidence: "medium"
 ---
 
-# Memory System — Complete Architecture
+# Memory System â€” Complete Architecture
 
-*Version 1.0 — 2026-01-28*
+*Version 1.0 â€” 2026-01-28*
 *Council-approved*
 
 ## Philosophy
@@ -32,7 +33,7 @@ The goal is not perfect recall. The goal is **fail-safe design** where:
 - Only Francisco can modify
 
 ### Layer 2: State Injection (Auto-Context)
-**Files:** `state.json` → `AGENTS.md` (render)
+**Files:** `state.json` â†’ `AGENTS.md` (render)
 - Current task, status, context, next step
 - Auto-injected into every response via AGENTS.md
 - Survives any context compaction
@@ -45,9 +46,9 @@ The goal is not perfect recall. The goal is **fail-safe design** where:
 
 ### Layer 4: Knowledge Base (Accumulated Wisdom)
 **Folders:**
-- `knowledge/` — Entities, procedures, principles, insights
-- `.learnings/` — Mistakes, corrections, discoveries, patterns
-- `incidents/` — Tracked failures with postmortems
+- `knowledge/` â€” Entities, procedures, principles, insights
+- `.learnings/` â€” Mistakes, corrections, discoveries, patterns
+- `incidents/` â€” Tracked failures with postmortems
 
 ### Layer 5: Workflows (Executable Processes)
 **Folder:** `workflows/`
@@ -61,13 +62,13 @@ The goal is not perfect recall. The goal is **fail-safe design** where:
 
 ```
 Action/Event
-    ↓
+    â†“
 Update state.json (authoritative)
-    ↓
+    â†“
 Append to events.jsonl (audit)
-    ↓
+    â†“
 Re-render AGENTS.md CURRENT STATE
-    ↓
+    â†“
 State visible in next turn
 ```
 
@@ -100,51 +101,51 @@ State visible in next turn
 
 ```
 workspace/
-├── CONSTITUTION.md      # Inviolable rules
-├── AGENTS.md            # Operating procedures + state render
-├── SOUL.md              # Identity and values
-├── USER.md              # About Francisco
-├── BOOT.md              # Startup tasks
-├── HEARTBEAT.md         # Periodic checks
-│
-├── memory/
-│   ├── state.json       # Current state (authoritative)
-│   ├── events.jsonl     # Audit trail (append-only)
-│   ├── active-thread.md # Current work description
-│   └── YYYY-MM-DD.md    # Daily logs
-│
-├── knowledge/
-│   ├── entities/        # People, companies, projects
-│   ├── procedures/      # How-to guides
-│   ├── principles/      # Standing rules
-│   └── insights/        # Learned patterns
-│
-├── .learnings/
-│   ├── mistakes/        # What went wrong
-│   ├── corrections/     # When Francisco corrects me
-│   ├── discoveries/     # New techniques
-│   └── patterns/        # Recurring situations
-│
-├── incidents/
-│   └── INC-*.md         # Tracked failures
-│
-├── workflows/
-│   ├── active.json      # Currently running workflows
-│   └── *.yml            # Workflow definitions
-│
-└── tests/
-    ├── scenarios/       # Test cases
-    └── validators/      # Check scripts
+â”œâ”€â”€ CONSTITUTION.md      # Inviolable rules
+â”œâ”€â”€ AGENTS.md            # Operating procedures + state render
+â”œâ”€â”€ SOUL.md              # Identity and values
+â”œâ”€â”€ USER.md              # About Francisco
+â”œâ”€â”€ BOOT.md              # Startup tasks
+â”œâ”€â”€ HEARTBEAT.md         # Periodic checks
+â”‚
+â”œâ”€â”€ memory/
+â”‚   â”œâ”€â”€ state.json       # Current state (authoritative)
+â”‚   â”œâ”€â”€ events.jsonl     # Audit trail (append-only)
+â”‚   â”œâ”€â”€ active-thread.md # Current work description
+â”‚   â””â”€â”€ YYYY-MM-DD.md    # Daily logs
+â”‚
+â”œâ”€â”€ knowledge/
+â”‚   â”œâ”€â”€ entities/        # People, companies, projects
+â”‚   â”œâ”€â”€ procedures/      # How-to guides
+â”‚   â”œâ”€â”€ principles/      # Standing rules
+â”‚   â””â”€â”€ insights/        # Learned patterns
+â”‚
+â”œâ”€â”€ .learnings/
+â”‚   â”œâ”€â”€ mistakes/        # What went wrong
+â”‚   â”œâ”€â”€ corrections/     # When Francisco corrects me
+â”‚   â”œâ”€â”€ discoveries/     # New techniques
+â”‚   â””â”€â”€ patterns/        # Recurring situations
+â”‚
+â”œâ”€â”€ incidents/
+â”‚   â””â”€â”€ INC-*.md         # Tracked failures
+â”‚
+â”œâ”€â”€ workflows/
+â”‚   â”œâ”€â”€ active.json      # Currently running workflows
+â”‚   â””â”€â”€ *.yml            # Workflow definitions
+â”‚
+â””â”€â”€ tests/
+    â”œâ”€â”€ scenarios/       # Test cases
+    â””â”€â”€ validators/      # Check scripts
 ```
 
 ---
 
 ## Enforcement Mechanisms
 
-1. **Pre-action validation** — Check CONSTITUTION.md before risky actions
-2. **Heartbeat checks** — Validate infrastructure every poll
-3. **Regression tests** — Catch repeated mistakes
-4. **Council review** — Memory changes need multi-AI approval
+1. **Pre-action validation** â€” Check CONSTITUTION.md before risky actions
+2. **Heartbeat checks** â€” Validate infrastructure every poll
+3. **Regression tests** â€” Catch repeated mistakes
+4. **Council review** â€” Memory changes need multi-AI approval
 
 ---
 
@@ -159,3 +160,4 @@ workspace/
 ---
 
 *This document is the authoritative reference for the memory system architecture.*
+

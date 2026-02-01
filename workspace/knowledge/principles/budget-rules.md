@@ -1,4 +1,5 @@
----
+﻿---
+updated: 2026-01-29
 version: "1.0"
 created: "2026-01-28"
 updated: "2026-01-28"
@@ -15,11 +16,11 @@ confidence: "medium"
 **$0 extra spending allowed.** All AI services must use existing flat-rate subscriptions. Never add any paid service, API key, or subscription without Francisco's explicit approval.
 
 ## Current Subscriptions (Fixed Cost)
-- Claude Max — $100/month flat (Opus 4.5 + Sonnet unlimited)
-- X/Grok — included in X subscription
-- ChatGPT Pro — flat subscription
-- Open Arena — free
-- Gemini CLI — free (Google OAuth)
+- Claude Max â€” $100/month flat (Opus 4.5 + Sonnet unlimited)
+- X/Grok â€” included in X subscription
+- ChatGPT Pro â€” flat subscription
+- Open Arena â€” free
+- Gemini CLI â€” free (Google OAuth)
 
 ## Rationale
 Francisco lost ~$150K in crypto and is cash-constrained. Every dollar counts. The system must generate revenue, not consume it. The existing subscriptions provide unlimited AI access at zero marginal cost.
@@ -28,3 +29,4 @@ Francisco lost ~$150K in crypto and is cash-constrained. Every dollar counts. Th
 - Only Francisco can authorize new spending
 - Must be explicitly approved (not implied)
 - Even free trials that convert to paid are not allowed without approval
+

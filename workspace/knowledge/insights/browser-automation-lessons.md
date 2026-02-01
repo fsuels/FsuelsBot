@@ -1,4 +1,5 @@
----
+﻿---
+updated: 2026-01-29
 version: "1.0"
 created: "2026-01-28"
 updated: "2026-01-28"
@@ -21,10 +22,10 @@ confidence: "medium"
 
 ### 3. PowerShell Syntax
 **Wrong:** `cd dir && grep` or `cmd1 || cmd2`
-**Right:** `cd dir; findstr` — PowerShell uses `;` not `&&`
+**Right:** `cd dir; findstr` â€” PowerShell uses `;` not `&&`
 
 ### 4. Alicdn Image Fetching
-**Wrong:** Direct `image` tool fetch of `cbu01.alicdn.com` URLs — 403 Forbidden
+**Wrong:** Direct `image` tool fetch of `cbu01.alicdn.com` URLs â€” 403 Forbidden
 **Right:** Use `browser screenshot` of the 1688 page, or download via browser `evaluate`
 
 ### 5. React Input Values
@@ -33,9 +34,10 @@ confidence: "medium"
 **Also:** Press Enter via `KeyboardEvent` for group price application
 
 ### 6. Token Conservation
-**Problem:** Full Shopify page snapshots burn 50K+ tokens → context loss
+**Problem:** Full Shopify page snapshots burn 50K+ tokens â†’ context loss
 **Solution:** Use `compact=true`, `element` selectors, `maxChars` limits
 **Always:** Use `evaluate` for targeted data extraction instead of full snapshots
 
 ### 7. Progress Pings
 **Rule:** Send a brief progress update to Francisco every 5-10 minutes during long work sessions. Never go silent for 30+ minutes.
+

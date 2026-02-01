@@ -1,4 +1,5 @@
----
+﻿---
+updated: 2026-01-29
 version: "1.0"
 created: "2026-01-29"
 updated: "2026-01-29"
@@ -7,12 +8,12 @@ confidence: "medium"
 ---
 
 # Nightly Compound Loop
-*Source: 4-Thinker Council — Musk + Karpathy + Hassabis + Carson synthesis (2026-01-28)*
+*Source: 4-Thinker Council â€” Musk + Karpathy + Hassabis + Carson synthesis (2026-01-28)*
 
 ## Schedule
-- **9:00 PM** — Curiosity Engine (explore anomalies, feed discoveries into backlog)
-- **10:30 PM** — Phase 1: LEARN (review, extract, update instructions)
-- **11:00 PM** — Phase 2: SHIP (pick top task, execute, score, commit draft)
+- **9:00 PM** â€” Curiosity Engine (explore anomalies, feed discoveries into backlog)
+- **10:30 PM** â€” Phase 1: LEARN (review, extract, update instructions)
+- **11:00 PM** â€” Phase 2: SHIP (pick top task, execute, score, commit draft)
 
 ## Phase 1: LEARN (10:30 PM)
 **Model:** Sonnet (cheap, fast)
@@ -31,16 +32,16 @@ confidence: "medium"
    ```
 5. Update relevant knowledge files with new lessons
 6. Update persona prompts if domain-specific learnings found
-7. Run self-test: check last 7 days of task scores — new instructions must not regress
+7. Run self-test: check last 7 days of task scores â€” new instructions must not regress
 8. Commit with tag `nightly-learn`
 
 ## Phase 2: SHIP (11:00 PM)
 **Model:** Sonnet (Opus fallback for complex tasks)
 **Duration:** ~30 min
 **Steps:**
-0. **PREFLIGHT GATE (MANDATORY):** Run `scripts/preflight-check.ps1` — verifies AGENTS.md and pack.md are fresh. If preflight fails, HALT and alert. This ensures agent reads fresh instructions before any autonomous work. (Added 2026-01-29 per Council A-/B+ recommendation)
-0b. **ELIGIBILITY CHECK (MANDATORY):** Run `scripts/check-overnight-eligibility.ps1 -TaskCategory [category]` — verifies task is safe for autonomous execution. See `config/overnight-eligibility.yaml` for rules. FORBIDDEN categories: financial, publishing, deletions, external_comms, database, credentials. (Added 2026-01-29 per Council A+ recommendation)
-1. Read `backlog.md` — all pending tasks
+0. **PREFLIGHT GATE (MANDATORY):** Run `scripts/preflight-check.ps1` â€” verifies AGENTS.md and pack.md are fresh. If preflight fails, HALT and alert. This ensures agent reads fresh instructions before any autonomous work. (Added 2026-01-29 per Council A-/B+ recommendation)
+0b. **ELIGIBILITY CHECK (MANDATORY):** Run `scripts/check-overnight-eligibility.ps1 -TaskCategory [category]` â€” verifies task is safe for autonomous execution. See `config/overnight-eligibility.yaml` for rules. FORBIDDEN categories: financial, publishing, deletions, external_comms, database, credentials. (Added 2026-01-29 per Council A+ recommendation)
+1. Read `backlog.md` â€” all pending tasks
 2. Score each using TPS formula
 3. Pick highest TPS task that passes ALL safety gates (eligibility + see execution-boundaries.md)
 4. Identify correct persona for the task
@@ -50,7 +51,7 @@ confidence: "medium"
    - Layer 2: Heuristic (readability, CTA presence, pricing patterns)
    - Layer 3: Sonnet critic with frozen rubric
    - Layer 4: Compare vs top 20% historical outputs
-7. If score ≥ 0.8: save as draft, commit with tag `nightly-ship`
+7. If score â‰¥ 0.8: save as draft, commit with tag `nightly-ship`
 8. If score < 0.8: log failure, extract learning, try next task
 9. Produce morning report for Francisco:
    - What was learned (Phase 1)
@@ -62,34 +63,35 @@ confidence: "medium"
 **Triggers:** Runs nightly before compound loop
 **Model:** Sonnet
 **Explores:**
-- Anomalies: metrics deviating >2σ (conversion drops, refund spikes, traffic changes)
+- Anomalies: metrics deviating >2Ïƒ (conversion drops, refund spikes, traffic changes)
 - Deltas: what changed in last 7 days (platform updates, competitor moves)
 - Tooling: new Shopify automations, cheaper approaches, faster methods
 **FORBIDDEN:** New product categories, new traffic channels, brand pivots
-**Output:** Max 3 proposals added to backlog.md — NEVER direct actions
+**Output:** Max 3 proposals added to backlog.md â€” NEVER direct actions
 
 ## Morning Report Format
 ```
-🌅 OVERNIGHT REPORT — [DATE]
+ðŸŒ… OVERNIGHT REPORT â€” [DATE]
 
-📚 LEARNED:
+ðŸ“š LEARNED:
 - [lesson 1]
 - [lesson 2]
 
-🚀 SHIPPED:
+ðŸš€ SHIPPED:
 - [task]: [what was done] | Score: X/10 | Status: draft/committed
 
-👀 NEEDS YOUR REVIEW:
+ðŸ‘€ NEEDS YOUR REVIEW:
 - [item needing approval]
 
-📋 NEXT UP (top 3 by TPS):
-1. [task] — TPS: X.X
-2. [task] — TPS: X.X
-3. [task] — TPS: X.X
+ðŸ“‹ NEXT UP (top 3 by TPS):
+1. [task] â€” TPS: X.X
+2. [task] â€” TPS: X.X
+3. [task] â€” TPS: X.X
 ```
 
 ## Circuit Breakers
-- If Phase 1 self-test shows regression → HALT Phase 2, alert Francisco
-- If Phase 2 scores < 0.5 on 3 consecutive tasks → HALT, log pattern, alert
-- If any safety gate fails → skip task, try next
+- If Phase 1 self-test shows regression â†’ HALT Phase 2, alert Francisco
+- If Phase 2 scores < 0.5 on 3 consecutive tasks â†’ HALT, log pattern, alert
+- If any safety gate fails â†’ skip task, try next
 - Hard timeout: 45 min total (both phases). If exceeded, commit what's done and stop.
+

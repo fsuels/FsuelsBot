@@ -1,4 +1,5 @@
----
+﻿---
+updated: 2026-01-29
 version: "1.0"
 created: "2026-01-28"
 updated: "2026-01-28"
@@ -9,7 +10,7 @@ confidence: "medium"
 # Procedure: Memory CI Test Harness
 *Created: 2026-01-28*
 *Source: Council Round 4 Debate (unanimous consensus)*
-*Priority: P0 — This is the ONE thing standing between A- and A*
+*Priority: P0 â€” This is the ONE thing standing between A- and A*
 
 ## Overview
 
@@ -50,13 +51,13 @@ The Memory CI is a validation suite that runs after every weekly rebuild (and ca
 ### 5. Pack Contracts
 - All pinned invariants (P0 constraints, mantra) appear in `recall/pack.md`
 - Pack is under 3,000 words (excluding pinned content)
-- Section order matches spec (P0 → MANTRA → OPEN COMMITMENTS → ...)
+- Section order matches spec (P0 â†’ MANTRA â†’ OPEN COMMITMENTS â†’ ...)
 - Every open commitment in ledger appears in pack's OPEN COMMITMENTS section
 
 ### 6. Golden Snapshots (Regression Testing)
 - Maintain `memory/ci-golden/` directory with known-good snapshots:
-  - `golden-pack.md` — reference pack from last known-good state
-  - `golden-integrity.json` — reference integrity report
+  - `golden-pack.md` â€” reference pack from last known-good state
+  - `golden-integrity.json` â€” reference integrity report
 - Compare current output to golden; flag significant divergence
 - Update golden after intentional changes are verified
 
@@ -139,3 +140,4 @@ python scripts/memory-ci.py --full --threshold-pack-delta 50
 - New failure modes should be added to CI as they're discovered.
 - False positives are acceptable initially; tune thresholds over time.
 - This is the bridge from A- to A. Take it seriously.
+

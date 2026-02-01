@@ -1,4 +1,5 @@
----
+﻿---
+updated: 2026-01-29
 version: "1.0"
 created: "2026-01-28"
 updated: "2026-01-28"
@@ -9,7 +10,7 @@ confidence: "medium"
 # Procedure: Daily Improvement Pipeline
 *Created: 2026-01-28*
 *Source: Francisco directive via Telegram*
-*Priority: P0 — This is how we continuously improve*
+*Priority: P0 â€” This is how we continuously improve*
 
 ## Overview
 
@@ -19,18 +20,18 @@ Every day after the AI research brief, we run improvement opportunities through 
 
 ```
 Daily Research Brief
-        ↓
+        â†“
    Identify Opportunities
-        ↓
+        â†“
    Council Review (2 rounds, max 6)
-        ↓
-   Approved? → Add to approved-improvements.md
-        ↓
+        â†“
+   Approved? â†’ Add to approved-improvements.md
+        â†“
    Overnight Cron picks from approved list
-        ↓
+        â†“
    Implement ONE at a time
-        ↓
-   Verify it works → Next improvement
+        â†“
+   Verify it works â†’ Next improvement
 ```
 
 ## Step 1: Daily Research Brief (9 AM)
@@ -48,7 +49,7 @@ The existing daily research brief identifies improvement opportunities from:
 
 Run each identified opportunity through the Council:
 
-**Minimum 2 rounds, maximum 6 rounds** (adaptive — continue if real debate happening)
+**Minimum 2 rounds, maximum 6 rounds** (adaptive â€” continue if real debate happening)
 
 **Question format:**
 "I identified this potential improvement from today's research: [IMPROVEMENT]. 
@@ -63,7 +64,7 @@ Questions:
 
 Give me your honest assessment, not just agreement."
 
-**Debate protocol applies:** Cross-examination (A→B→C), aim for understanding, discover better solutions.
+**Debate protocol applies:** Cross-examination (Aâ†’Bâ†’C), aim for understanding, discover better solutions.
 
 **Approval criteria:** All 3 AIs agree it's worth doing.
 
@@ -102,7 +103,7 @@ The existing overnight-self-improvement cron **ONLY picks from the approved queu
 - If fails: Note the failure, move back to Ready with "[needs-review]" flag
 - Document in overnight-builds/YYYY-MM-DD.md
 
-**The cron CANNOT invent improvements** — only implements what Council already approved.
+**The cron CANNOT invent improvements** â€” only implements what Council already approved.
 
 ## Step 5: Verification
 
@@ -123,7 +124,8 @@ Modified to: Read approved-improvements.md, pick top item, implement, verify.
 
 ## Notes
 
-- **One at a time** — Never batch multiple improvements. Verify each works before starting next.
-- **Council is the gatekeeper** — No improvement gets implemented without 2+ rounds of Council approval.
-- **Small scope** — Overnight builds should be 15-30 min max. Larger improvements need Francisco's direct approval.
-- **Transparency** — All approved improvements are visible in the queue. Francisco can reorder or veto.
+- **One at a time** â€” Never batch multiple improvements. Verify each works before starting next.
+- **Council is the gatekeeper** â€” No improvement gets implemented without 2+ rounds of Council approval.
+- **Small scope** â€” Overnight builds should be 15-30 min max. Larger improvements need Francisco's direct approval.
+- **Transparency** â€” All approved improvements are visible in the queue. Francisco can reorder or veto.
+

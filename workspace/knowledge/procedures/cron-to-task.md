@@ -1,3 +1,7 @@
+﻿---
+updated: 2026-01-30
+---
+
 # Cron-to-Task System
 
 **Purpose:** Every cron job creates a traceable task card in Mission Control.
@@ -5,10 +9,10 @@
 ## Why This Exists
 
 Old broken system:
-- Cron fires → sends message → message lost if bot idle → no trace of what happened
+- Cron fires â†’ sends message â†’ message lost if bot idle â†’ no trace of what happened
 
 New system:
-- Cron fires → creates task in bot_queue → bot executes → learnings captured → full traceability
+- Cron fires â†’ creates task in bot_queue â†’ bot executes â†’ learnings captured â†’ full traceability
 
 ## How It Works
 
@@ -89,3 +93,4 @@ python scripts/cron-to-task.py --job-id "research-brief" --title "Daily AI Resea
 - [ ] compound-learn (10:30 PM)
 - [ ] compound-ship (11 PM)
 - [ ] daily-github-backup (11:45 PM)
+

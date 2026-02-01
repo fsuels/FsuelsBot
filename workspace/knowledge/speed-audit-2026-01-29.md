@@ -1,4 +1,5 @@
----
+﻿---
+updated: 2026-01-29
 version: "1.0"
 created: "2026-01-29"
 updated: "2026-01-29"
@@ -17,10 +18,10 @@ confidence: "medium"
 
 | Metric | Mobile | Desktop | Target |
 |--------|--------|---------|--------|
-| **Performance Score** | 54 ⚠️ | 71 ⚠️ | 90+ |
-| **Accessibility** | 97 ✅ | 97 ✅ | 90+ |
-| **Best Practices** | 92 ✅ | 92 ✅ | 90+ |
-| **SEO** | 100 ✅ | 100 ✅ | 90+ |
+| **Performance Score** | 54 âš ï¸ | 71 âš ï¸ | 90+ |
+| **Accessibility** | 97 âœ… | 97 âœ… | 90+ |
+| **Best Practices** | 92 âœ… | 92 âœ… | 90+ |
+| **SEO** | 100 âœ… | 100 âœ… | 90+ |
 
 **Verdict:** Mobile performance is the critical issue. Desktop is acceptable but has layout shift problems.
 
@@ -31,26 +32,26 @@ confidence: "medium"
 ### Mobile (Moto G Power, Slow 4G)
 | Metric | Value | Rating | Target |
 |--------|-------|--------|--------|
-| First Contentful Paint (FCP) | 2.7s | ⚠️ Needs Improvement | < 1.8s |
-| Largest Contentful Paint (LCP) | **12.2s** | 🔴 POOR | < 2.5s |
-| Total Blocking Time (TBT) | 430ms | ⚠️ Needs Improvement | < 200ms |
-| Cumulative Layout Shift (CLS) | 0.067 | ✅ Good | < 0.1 |
-| Speed Index (SI) | 5.8s | ⚠️ Needs Improvement | < 3.4s |
+| First Contentful Paint (FCP) | 2.7s | âš ï¸ Needs Improvement | < 1.8s |
+| Largest Contentful Paint (LCP) | **12.2s** | ðŸ”´ POOR | < 2.5s |
+| Total Blocking Time (TBT) | 430ms | âš ï¸ Needs Improvement | < 200ms |
+| Cumulative Layout Shift (CLS) | 0.067 | âœ… Good | < 0.1 |
+| Speed Index (SI) | 5.8s | âš ï¸ Needs Improvement | < 3.4s |
 
 ### Desktop (Custom throttling)
 | Metric | Value | Rating | Target |
 |--------|-------|--------|--------|
-| First Contentful Paint (FCP) | 0.4s | ✅ Good | < 1.8s |
-| Largest Contentful Paint (LCP) | 1.2s | ✅ Good | < 2.5s |
-| Total Blocking Time (TBT) | 150ms | ✅ Good | < 200ms |
-| Cumulative Layout Shift (CLS) | **0.463** | 🔴 POOR | < 0.1 |
-| Speed Index (SI) | 1.8s | ✅ Good | < 3.4s |
+| First Contentful Paint (FCP) | 0.4s | âœ… Good | < 1.8s |
+| Largest Contentful Paint (LCP) | 1.2s | âœ… Good | < 2.5s |
+| Total Blocking Time (TBT) | 150ms | âœ… Good | < 200ms |
+| Cumulative Layout Shift (CLS) | **0.463** | ðŸ”´ POOR | < 0.1 |
+| Speed Index (SI) | 1.8s | âœ… Good | < 3.4s |
 
 ---
 
 ## Key Issues Identified
 
-### 🔴 Critical Issues
+### ðŸ”´ Critical Issues
 
 #### 1. Mobile LCP is Catastrophic (12.2s)
 - **Impact:** 10x slower than target
@@ -62,7 +63,7 @@ confidence: "medium"
 - **Likely cause:** Images without explicit width/height, late-loading fonts, dynamic content injection
 - **Solution:** Add explicit dimensions to all images, preload critical fonts, reserve space for dynamic elements
 
-### ⚠️ Major Issues
+### âš ï¸ Major Issues
 
 #### 3. Enormous Network Payload (~3MB)
 - Mobile: 3,129 KiB total
@@ -89,7 +90,7 @@ confidence: "medium"
 - **Impact:** Delays first paint
 - **Solution:** Inline critical CSS, defer non-critical stylesheets
 
-### ℹ️ Minor Issues
+### â„¹ï¸ Minor Issues
 
 #### 7. Inefficient Cache Lifetimes
 - ~125 KiB of resources have short cache TTLs
@@ -137,10 +138,10 @@ confidence: "medium"
 
 ## Recommended Actions for Francisco
 
-### 🔴 Priority 1: Fix Mobile LCP (Biggest Impact)
+### ðŸ”´ Priority 1: Fix Mobile LCP (Biggest Impact)
 
 1. **Check hero image settings in theme customizer:**
-   - Online Store → Themes → Customize → Homepage
+   - Online Store â†’ Themes â†’ Customize â†’ Homepage
    - Look for hero/banner section settings
    - Enable responsive images if available
    - Consider smaller/optimized hero for mobile
@@ -150,7 +151,7 @@ confidence: "medium"
    - Target: Desktop 1920px max, Mobile 768px max
    - Use TinyPNG or similar before upload
 
-### 🔴 Priority 2: Fix Desktop CLS
+### ðŸ”´ Priority 2: Fix Desktop CLS
 
 1. **Add explicit dimensions to images:**
    - In theme settings, ensure images have width/height attributes
@@ -161,7 +162,7 @@ confidence: "medium"
    - Note what elements "jump" around
    - Usually: images, fonts, dynamic content blocks
 
-### ⚠️ Priority 3: Reduce Payload
+### âš ï¸ Priority 3: Reduce Payload
 
 1. **Review Judge.me settings:**
    - Check if loading minimal widget vs full suite
@@ -174,7 +175,7 @@ confidence: "medium"
    - Disable animations if excessive
    - Review number of products shown per page (fewer = faster)
 
-### ℹ️ Priority 4: Caching & Other
+### â„¹ï¸ Priority 4: Caching & Other
 
 1. **Browser caching is mostly controlled by Shopify CDN** - limited control here
 2. **Consider lazy loading for product galleries** - check theme settings
@@ -194,9 +195,9 @@ confidence: "medium"
 ## Re-Test Schedule
 
 Recommend re-testing after changes:
-1. After hero image optimization → Check LCP
-2. After layout shift fixes → Check CLS
-3. After app review → Check payload size
+1. After hero image optimization â†’ Check LCP
+2. After layout shift fixes â†’ Check CLS
+3. After app review â†’ Check payload size
 
 Target: Get mobile performance to 70+ and desktop to 85+
 
@@ -208,3 +209,4 @@ Target: Get mobile performance to 70+ and desktop to 85+
 - Test date: Jan 29, 2026, 1:16 AM EST
 - Lighthouse version: 13.0.1
 - Chrome version: HeadlessChromium 137.0.7151.119
+

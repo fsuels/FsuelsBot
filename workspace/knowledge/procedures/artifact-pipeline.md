@@ -1,4 +1,5 @@
----
+﻿---
+updated: 2026-01-29
 version: "1.0"
 created: "2026-01-28"
 updated: "2026-01-28"
@@ -29,10 +30,10 @@ confidence: "medium"
 ## When to Create an Artifact
 
 ### Automatic (Pressure Loop checks)
-- Same type of task done 3+ times → template it
-- Same question asked 2+ times → SOP it
-- Same error hit 2+ times → checklist to prevent it
-- Sub-agent output was excellent → save as reference example
+- Same type of task done 3+ times â†’ template it
+- Same question asked 2+ times â†’ SOP it
+- Same error hit 2+ times â†’ checklist to prevent it
+- Sub-agent output was excellent â†’ save as reference example
 
 ### Manual (Orchestrator decides)
 - Francisco asks for something that will recur
@@ -51,32 +52,32 @@ confidence: "medium"
 
 ```
 Task output produced
-    → Pressure Loop reviews: "Is this reusable?"
-    → If YES: extract artifact, save to knowledge/
-    → Log creation in ledger (type: "artifact")
-    → Future similar tasks: check knowledge/ first
-    → If template exists: use it, don't start from scratch
-    → Pressure Loop: "Is this template still accurate?"
-    → If NO: update or retire
+    â†’ Pressure Loop reviews: "Is this reusable?"
+    â†’ If YES: extract artifact, save to knowledge/
+    â†’ Log creation in ledger (type: "artifact")
+    â†’ Future similar tasks: check knowledge/ first
+    â†’ If template exists: use it, don't start from scratch
+    â†’ Pressure Loop: "Is this template still accurate?"
+    â†’ If NO: update or retire
 ```
 
 ## Directory Structure
 
 ```
 knowledge/
-├── templates/          # Reusable output templates
-│   ├── product-description.md
-│   ├── tweet-formulas.md
-│   ├── email-templates.md
-│   └── research-brief.md
-├── procedures/         # How-to guides (SOPs, checklists)
-│   ├── dispatch-scoring.md
-│   ├── event-triggers.md
-│   ├── autonomy-tiers.md
-│   └── ...
-├── principles/         # Standing rules and constraints
-├── insights/           # Learned patterns and wisdom
-└── entities/           # People, companies, accounts
+â”œâ”€â”€ templates/          # Reusable output templates
+â”‚   â”œâ”€â”€ product-description.md
+â”‚   â”œâ”€â”€ tweet-formulas.md
+â”‚   â”œâ”€â”€ email-templates.md
+â”‚   â””â”€â”€ research-brief.md
+â”œâ”€â”€ procedures/         # How-to guides (SOPs, checklists)
+â”‚   â”œâ”€â”€ dispatch-scoring.md
+â”‚   â”œâ”€â”€ event-triggers.md
+â”‚   â”œâ”€â”€ autonomy-tiers.md
+â”‚   â””â”€â”€ ...
+â”œâ”€â”€ principles/         # Standing rules and constraints
+â”œâ”€â”€ insights/           # Learned patterns and wisdom
+â””â”€â”€ entities/           # People, companies, accounts
 ```
 
 ## Metrics
@@ -85,4 +86,5 @@ Track in monthly review:
 - **Artifacts created** this month
 - **Artifacts reused** (how many times a template was used)
 - **Time saved** (estimated reduction in task completion time)
-- **Stale artifacts** (not used in 60+ days — review or retire)
+- **Stale artifacts** (not used in 60+ days â€” review or retire)
+

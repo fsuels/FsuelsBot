@@ -1,4 +1,5 @@
----
+﻿---
+updated: 2026-01-29
 version: "1.0"
 created: "2026-01-29"
 updated: "2026-01-29"
@@ -28,7 +29,7 @@ When a vendor passes the 5-Point Check (score 6+) AND we successfully receive qu
 ```
 ## [Store Name in Chinese] ([English translation if known])
 - **URL:** https://shop.1688.com/...
-- **Rating:** X.X ⭐
+- **Rating:** X.X â­
 - **Score:** X/10
 - **Specialty:** [mommy-me sets, pajamas, dresses, etc.]
 - **Quality notes:** [observations about fabric, sizing accuracy, photos vs reality]
@@ -49,7 +50,7 @@ When a vendor passes the 5-Point Check (score 6+) AND we successfully receive qu
 ```
 ## [Store Name]
 - **URL:** [link]
-- **Issue:** [what went wrong — non-delivery, quality, etc.]
+- **Issue:** [what went wrong â€” non-delivery, quality, etc.]
 - **Date:** YYYY-MM-DD
 - **Action:** BLACKLISTED
 ```
@@ -58,6 +59,7 @@ When a vendor passes the 5-Point Check (score 6+) AND we successfully receive qu
 
 ## Notes
 
-- Vendors can change over time — re-verify if 6+ months since last order
+- Vendors can change over time â€” re-verify if 6+ months since last order
 - "Trusted" means they delivered quality on at least 1 order
 - Still run basic checks even on trusted vendors (stock availability, etc.)
+

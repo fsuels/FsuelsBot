@@ -1,4 +1,5 @@
----
+﻿---
+updated: 2026-01-29
 version: "1.0"
 created: "2026-01-29"
 updated: "2026-01-29"
@@ -20,28 +21,28 @@ Before ANY action on DLM, ask:
 
 > "Does this directly increase sales or revenue?"
 
-- **YES** → Do it
-- **NO** → Why are we doing it? Reconsider.
-- **INDIRECTLY** → How many steps to revenue? Prefer direct impact.
+- **YES** â†’ Do it
+- **NO** â†’ Why are we doing it? Reconsider.
+- **INDIRECTLY** â†’ How many steps to revenue? Prefer direct impact.
 
 ---
 
 ## Priority Stack
 
-1. **Revenue-generating activities** — Listings, pricing, promotions, conversion
-2. **Traffic-generating activities** — SEO, marketing, ads, social
-3. **Trust-building activities** — Reviews, site quality, customer service
-4. **Infrastructure** — Only when it unblocks the above
+1. **Revenue-generating activities** â€” Listings, pricing, promotions, conversion
+2. **Traffic-generating activities** â€” SEO, marketing, ads, social
+3. **Trust-building activities** â€” Reviews, site quality, customer service
+4. **Infrastructure** â€” Only when it unblocks the above
 
 ---
 
 ## Anti-Patterns (Avoid)
 
-❌ Perfecting things that don't drive sales
-❌ Analysis paralysis — ship and iterate
-❌ Spending time on low-traffic pages
-❌ Features nobody asked for
-❌ "Nice to have" over "need to have"
+âŒ Perfecting things that don't drive sales
+âŒ Analysis paralysis â€” ship and iterate
+âŒ Spending time on low-traffic pages
+âŒ Features nobody asked for
+âŒ "Nice to have" over "need to have"
 
 ---
 
@@ -57,3 +58,4 @@ Do that first.
 
 *Documented: 2026-01-29 01:10 EST*
 *Source: Francisco's direct instruction*
+

@@ -1,4 +1,5 @@
----
+﻿---
+updated: 2026-01-29
 version: "1.0"
 created: "2026-01-29"
 updated: "2026-01-29"
@@ -10,14 +11,14 @@ confidence: "medium"
 
 **Created:** 2026-01-29
 **Source:** Council Session (ChatGPT + Claude Opus Synthesis)
-**Priority:** IMMEDIATE — Valentine's Day is NOW
+**Priority:** IMMEDIATE â€” Valentine's Day is NOW
 
 ---
 
-## 🎯 NORTH STAR
+## ðŸŽ¯ NORTH STAR
 Increase sales and make money. Everything else is secondary.
 
-## 🔥 PHASE 1: QUICK WINS (Days 1-3)
+## ðŸ”¥ PHASE 1: QUICK WINS (Days 1-3)
 
 ### Action 1: Valentine's Day Urgency Campaign
 **Why:** We're IN the Valentine's window. This is the moment.
@@ -29,26 +30,26 @@ Increase sales and make money. Everything else is secondary.
 **Impact:** VERY HIGH | **Effort:** 2 hours
 
 ### Action 2: Homepage Hero Overhaul
-**Why:** Hero decides if you get any sales — most stores fail here.
+**Why:** Hero decides if you get any sales â€” most stores fail here.
 **Steps:**
-1. New headline: "Make Valentine's Day Unforgettable — Matching Outfits for You & Your Little One"
+1. New headline: "Make Valentine's Day Unforgettable â€” Matching Outfits for You & Your Little One"
 2. Subheadline: "Soft, photo-ready outfits moms love. Sizes newborn to XL."
 3. Primary CTA: "Shop Valentine's Collection"
 4. Use emotional mom+daughter image (not studio-generic)
 **Impact:** HIGH | **Effort:** 2 hours
 
 ### Action 3: Trust Strip Implementation
-**Why:** Moms are risk-averse — trust signals reduce hesitation.
+**Why:** Moms are risk-averse â€” trust signals reduce hesitation.
 **Steps:**
 1. Add strip below hero with:
-   - ⭐ "4.8/5 from Happy Moms"
-   - 🚚 "Free Shipping $50+"
-   - ↩️ "Easy 30-Day Returns"
-   - 🔒 "Secure Checkout"
+   - â­ "4.8/5 from Happy Moms"
+   - ðŸšš "Free Shipping $50+"
+   - â†©ï¸ "Easy 30-Day Returns"
+   - ðŸ”’ "Secure Checkout"
 **Impact:** HIGH | **Effort:** 30 minutes
 
 ### Action 4: Product Cull (Ruthless)
-**Why:** More products ≠ more sales. Weak products poison perceived quality.
+**Why:** More products â‰  more sales. Weak products poison perceived quality.
 **Steps:**
 1. Hide/archive bottom 50% of products by conversion
 2. Create "Valentine's Collection" with ONLY 8-12 best matching sets
@@ -67,7 +68,7 @@ Increase sales and make money. Everything else is secondary.
 
 ---
 
-## 📈 PHASE 2: PRODUCT OPTIMIZATION (Days 4-7)
+## ðŸ“ˆ PHASE 2: PRODUCT OPTIMIZATION (Days 4-7)
 
 ### Action 6: Product Page Overhaul
 **Why:** People buy CERTAINTY, not products.
@@ -83,7 +84,7 @@ Increase sales and make money. Everything else is secondary.
 **Impact:** HIGH | **Effort:** 4-6 hours
 
 ### Action 7: Mobile Speed Audit
-**Why:** 80%+ traffic is mobile — slow = dead.
+**Why:** 80%+ traffic is mobile â€” slow = dead.
 **Steps:**
 1. Run PageSpeed Insights for mobile score
 2. Compress all images (TinyPNG or Shopify auto)
@@ -103,7 +104,7 @@ Increase sales and make money. Everything else is secondary.
 
 ---
 
-## 🚀 PHASE 3: GROWTH (Week 2+)
+## ðŸš€ PHASE 3: GROWTH (Week 2+)
 
 ### Action 9: UGC Content Creation
 **Why:** Raw, authentic content converts better than polished ads.
@@ -126,7 +127,7 @@ Increase sales and make money. Everything else is secondary.
 
 ---
 
-## ⏱️ IMPLEMENTATION TIMELINE
+## â±ï¸ IMPLEMENTATION TIMELINE
 
 | Day | Actions | Est. Time |
 |-----|---------|-----------|
@@ -140,7 +141,7 @@ Increase sales and make money. Everything else is secondary.
 
 ---
 
-## 📊 SUCCESS METRICS
+## ðŸ“Š SUCCESS METRICS
 
 Track these daily after implementation:
 
@@ -153,7 +154,7 @@ Track these daily after implementation:
 
 ---
 
-## ❌ DO NOT DO
+## âŒ DO NOT DO
 
 1. Don't add more products (cull instead)
 2. Don't run multiple ad platforms simultaneously
@@ -163,7 +164,7 @@ Track these daily after implementation:
 
 ---
 
-## 🔑 KEY INSIGHT
+## ðŸ”‘ KEY INSIGHT
 
 **The store didn't fail because of traffic. It failed because focus, clarity, and conviction were lost.**
 
@@ -174,3 +175,4 @@ A mommy-and-me store can do 7-8 figures if:
 - It creates urgency (calendar moments)
 
 **RIGHT NOW = VALENTINE'S DAY. This is the moment. Execute.**
+
