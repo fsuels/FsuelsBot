@@ -84,9 +84,9 @@ USER.md
 
 mission-control/archive/
 
-face-swap/*.jpg
-face-swap/*.jpeg
-face-swap/*.png
+workspace/face-swap/*.jpg
+workspace/face-swap/*.jpeg
+workspace/face-swap/*.png
 workspace/mission-control/archive/
 
 workspace/memory/checkpoints/
