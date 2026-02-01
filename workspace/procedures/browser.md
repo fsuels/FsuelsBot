@@ -75,3 +75,61 @@ BEFORE: browser tabs → check for domain → decide action
 DURING: navigate existing OR open ONE new  
 AFTER:  close unneeded tabs → verify ≤ 4 remain
 ```
+
+---
+
+## 🚨 FALLBACK RULE: 2-Strike Automation Failure (T198)
+
+**If browser automation fails TWICE on the same action → STOP GRINDING.**
+
+### The Rule
+1. First failure → Retry with fresh snapshot
+2. Second failure → STOP. Generate human instructions instead.
+
+### When to Use Fallback
+- Timeout errors (locator.fill, locator.click)
+- Element not found after snapshot
+- Cross-origin iframe issues
+- Any repeated error on same action
+
+### Human Instructions Template
+
+When fallback triggers, provide:
+
+```
+🖱️ MANUAL ACTION NEEDED
+
+**What to do:**
+1. [Step-by-step instructions]
+2. [Include exact text to type/click]
+3. [Include expected result]
+
+**Why bot failed:**
+[Brief explanation]
+
+**URL:** [current page URL]
+```
+
+### Example Fallback
+
+```
+🖱️ MANUAL ACTION NEEDED
+
+**What to do:**
+1. Go to Shopify Admin → Online Store → Navigation
+2. Click "Main menu"
+3. Click "Add menu item"
+4. Title: "Valentine's Day" 
+5. Link: Select "Collections" → "Valentine's Day"
+6. Click "Save"
+
+**Why bot failed:**
+Shopify iframe blocked automation (cross-origin)
+
+**URL:** https://admin.shopify.com/store/dresslikemommy-com/menus
+```
+
+### Speed Reality Check
+- Bot: screenshot → process → action → wait → repeat = 5-15 sec/step
+- Human: look → click = 1 second
+- **For quick edits, human is FASTER. Don't be stubborn.**

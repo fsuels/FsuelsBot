@@ -1,6 +1,6 @@
 {
-  "version": 206,
-  "updated_at": "2026-02-01T02:00:12.513480+00:00",
+  "version": 208,
+  "updated_at": "2026-02-01T02:03:03.352Z",
   "updated_by": "cron-to-task",
   "notes": "Version 6: Added step-tracking per Council recommendation (A grade). Each task can have steps[] array with current_step index. Bot executes ONE step at a time, persists BEFORE responding.",
   "schema": {
@@ -122,6 +122,9 @@
       "CRON-consolidation"
     ],
     "done_today": [
+      "T199",
+      "T198",
+      "T197",
       "CRON-20260131-curiosity",
       "T196",
       "T194",
@@ -7105,6 +7108,127 @@
         ]
       },
       "completed_at": "2026-02-01T02:01:19.889Z"
+    },
+    "T197": {
+      "title": "Auto-save every 5 tool calls (context loss prevention)",
+      "status": "done",
+      "created": "2026-02-01T02:02:03.237Z",
+      "priority": "P1",
+      "context": {
+        "summary": "Prevent context loss from truncation/crashes by auto-saving state.json, tasks.json, and active-thread.md every 5 tool calls. Currently only saves on heartbeat checkpoints.",
+        "decisions": [
+          "Use tool call counter in session",
+          "Save same files as mid-session-checkpoint.ps1",
+          "Silent operation (no user notification)"
+        ]
+      },
+      "approach": "1) Create auto-save-hook.ps1 script. 2) Track tool call count in session state. 3) Trigger checkpoint every 5 calls. 4) Test with simulated high-activity session.",
+      "steps": [
+        {
+          "step": "Create auto-save-hook.ps1",
+          "status": "done",
+          "completed_at": "2026-02-01T02:03:03.352Z"
+        },
+        {
+          "step": "Add tool call counter logic",
+          "status": "done",
+          "completed_at": "2026-02-01T02:03:03.352Z"
+        },
+        {
+          "step": "Integrate with existing checkpoint system",
+          "status": "done",
+          "completed_at": "2026-02-01T02:03:03.352Z"
+        },
+        {
+          "step": "Test and verify",
+          "status": "done",
+          "completed_at": "2026-02-01T02:03:03.352Z"
+        }
+      ],
+      "current_step": 0,
+      "completed_at": "2026-02-01T02:03:03.351Z",
+      "artifacts": [
+        "scripts/auto-save-hook.ps1"
+      ]
+    },
+    "T198": {
+      "title": "Browser fallback procedure (2x fail → human instructions)",
+      "status": "done",
+      "created": "2026-02-01T02:02:03.238Z",
+      "priority": "P1",
+      "context": {
+        "summary": "When browser automation fails twice on same action, stop grinding and give human clear instructions instead. Prevents wasted time on unreliable automation.",
+        "decisions": [
+          "Track failure count per action",
+          "After 2 failures, generate human-readable instructions",
+          "Include screenshots and step-by-step guide"
+        ]
+      },
+      "approach": "1) Update procedures/browser.md with fallback rule. 2) Create instruction template for common actions. 3) Add failure counter pattern to browser workflow.",
+      "steps": [
+        {
+          "step": "Update procedures/browser.md with 2-strike rule",
+          "status": "done",
+          "completed_at": "2026-02-01T02:03:03.352Z"
+        },
+        {
+          "step": "Create human instruction templates",
+          "status": "done",
+          "completed_at": "2026-02-01T02:03:03.352Z"
+        },
+        {
+          "step": "Document common fallback scenarios",
+          "status": "done",
+          "completed_at": "2026-02-01T02:03:03.352Z"
+        }
+      ],
+      "current_step": 0,
+      "completed_at": "2026-02-01T02:03:03.352Z",
+      "artifacts": [
+        "procedures/browser.md (updated with fallback rule)"
+      ]
+    },
+    "T199": {
+      "title": "Task discussion auto-capture (T### mention → log to discussion)",
+      "status": "done",
+      "created": "2026-02-01T02:02:03.238Z",
+      "priority": "P1",
+      "context": {
+        "summary": "When I mention a task ID (T###) in chat, automatically log that exchange to the task discussion field. Ensures all task-related conversation is preserved in the card, not lost to chat truncation.",
+        "decisions": [
+          "Detect T### pattern in my responses",
+          "Append to task.discussion array",
+          "Include both human message and my response"
+        ]
+      },
+      "approach": "1) Create regex pattern for T### detection. 2) Build auto-append function for discussions. 3) Integrate into response workflow. 4) Test with sample task mentions.",
+      "steps": [
+        {
+          "step": "Create T### detection pattern",
+          "status": "done",
+          "completed_at": "2026-02-01T02:03:03.352Z"
+        },
+        {
+          "step": "Build discussion append function",
+          "status": "done",
+          "completed_at": "2026-02-01T02:03:03.352Z"
+        },
+        {
+          "step": "Add to response workflow",
+          "status": "done",
+          "completed_at": "2026-02-01T02:03:03.352Z"
+        },
+        {
+          "step": "Test with sample mentions",
+          "status": "done",
+          "completed_at": "2026-02-01T02:03:03.352Z"
+        }
+      ],
+      "current_step": 0,
+      "completed_at": "2026-02-01T02:03:03.352Z",
+      "artifacts": [
+        "scripts/task-discussion-capture.py"
+      ]
     }
   }
 }
