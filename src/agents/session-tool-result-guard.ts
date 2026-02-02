@@ -3,6 +3,7 @@ import type { SessionManager } from "@mariozechner/pi-coding-agent";
 
 import { makeMissingToolResult } from "./session-transcript-repair.js";
 import { emitSessionTranscriptUpdate } from "../sessions/transcript-events.js";
+import { DEFAULT_SESSION_TASK_ID, normalizeTaskId } from "../sessions/task-context.js";
 
 type ToolCall = { id: string; name?: string };
 
@@ -49,6 +50,11 @@ export function installSessionToolResultGuard(
      * Defaults to true.
      */
     allowSyntheticToolResults?: boolean;
+    /**
+     * Resolve active task id for transcript update events.
+     * Defaults to "default" when omitted.
+     */
+    resolveTaskId?: () => string | undefined;
   },
 ): {
   flushPendingToolResults: () => void;
@@ -122,7 +128,8 @@ export function installSessionToolResultGuard(
       sessionManager as { getSessionFile?: () => string | null }
     ).getSessionFile?.();
     if (sessionFile) {
-      emitSessionTranscriptUpdate(sessionFile);
+      const taskId = normalizeTaskId(opts?.resolveTaskId?.()) ?? DEFAULT_SESSION_TASK_ID;
+      emitSessionTranscriptUpdate({ sessionFile, taskId });
     }
 
     if (toolCalls.length > 0) {

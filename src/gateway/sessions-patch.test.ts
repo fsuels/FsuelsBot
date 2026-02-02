@@ -85,4 +85,34 @@ describe("gateway sessions patch", () => {
     expect(res.entry.authProfileOverrideSource).toBeUndefined();
     expect(res.entry.authProfileOverrideCompactionCount).toBeUndefined();
   });
+
+  test("switches active task and keeps per-task compaction state", async () => {
+    const store: Record<string, SessionEntry> = {
+      "agent:main:main": {
+        sessionId: "sess",
+        updatedAt: 1,
+        activeTaskId: "task-a",
+        compactionCount: 4,
+        taskStateById: {
+          "task-a": { updatedAt: 1, compactionCount: 4, totalTokens: 90 },
+        },
+      } as SessionEntry,
+    };
+    const res = await applySessionsPatchToStore({
+      cfg: {} as MoltbotConfig,
+      store,
+      storeKey: "agent:main:main",
+      patch: { activeTaskId: "task-b", activeTaskTitle: "Task B", activeTaskStatus: "paused" },
+    });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.entry.activeTaskId).toBe("task-b");
+    expect(res.entry.activeTaskTitle).toBe("Task B");
+    expect(res.entry.compactionCount).toBe(0);
+    expect(res.entry.taskStateById?.["task-a"]?.compactionCount).toBe(4);
+    expect(res.entry.taskStateById?.["task-b"]?.compactionCount).toBeUndefined();
+    expect(res.entry.taskStateById?.["task-b"]?.status).toBe("paused");
+    expect(res.entry.lastTaskSwitch?.fromTaskId).toBe("task-a");
+    expect(res.entry.lastTaskSwitch?.toTaskId).toBe("task-b");
+  });
 });

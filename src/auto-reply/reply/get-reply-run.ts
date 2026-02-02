@@ -17,6 +17,8 @@ import {
 import { logVerbose } from "../../globals.js";
 import { clearCommandLane, getQueueSize } from "../../process/command-queue.js";
 import { normalizeMainKey } from "../../routing/session-key.js";
+import { DEFAULT_SESSION_TASK_ID, resolveSessionTaskView } from "../../sessions/task-context.js";
+import { listConstraintPinsForInjection } from "../../memory/pins.js";
 import { isReasoningTagProvider } from "../../utils/provider-utils.js";
 import { hasControlCommand } from "../command-detection.js";
 import { buildInboundMediaNote } from "../media-note.js";
@@ -41,6 +43,7 @@ import { buildGroupIntro } from "./groups.js";
 import type { createModelSelectionState } from "./model-selection.js";
 import { resolveQueueSettings } from "./queue.js";
 import { ensureSkillSnapshot, prependSystemEvents } from "./session-updates.js";
+import { inferTaskHintFromMessage } from "./task-hints.js";
 import type { TypingController } from "./typing.js";
 import { resolveTypingMode } from "./typing-mode.js";
 
@@ -349,6 +352,42 @@ export async function runPreparedReply(
     isNewSession,
   });
   const authProfileIdSource = sessionEntry?.authProfileOverrideSource;
+  const activeTask = resolveSessionTaskView({ entry: sessionEntry });
+  const inferredTaskHint =
+    activeTask.taskId === DEFAULT_SESSION_TASK_ID
+      ? inferTaskHintFromMessage({
+          entry: sessionEntry,
+          message: rawBodyTrimmed || baseBodyTrimmed,
+        })
+      : null;
+  const effectiveTask = inferredTaskHint
+    ? resolveSessionTaskView({ entry: sessionEntry, taskId: inferredTaskHint.taskId })
+    : activeTask;
+  const taskHintSystemPrompt = inferredTaskHint
+    ? `Task hint (not persisted): treat this request as task "${effectiveTask.taskId}" for retrieval and memory lookup. Ask for explicit confirmation before persisting a task switch.`
+    : "";
+  let constraintSystemPrompt = "";
+  try {
+    const constraintPins = await listConstraintPinsForInjection({
+      workspaceDir,
+      taskId: effectiveTask.taskId,
+    });
+    if (constraintPins.length > 0) {
+      const lines = constraintPins.slice(0, 20).map((pin) => {
+        const scope = pin.scope === "task" && pin.taskId ? ` (task:${pin.taskId})` : "";
+        return `- ${pin.text}${scope}`;
+      });
+      constraintSystemPrompt = [
+        "Pinned constraints (must be followed unless user explicitly overrides):",
+        ...lines,
+      ].join("\n");
+    }
+  } catch (err) {
+    logVerbose(`failed to load constraint pins: ${String(err)}`);
+  }
+  const runExtraSystemPrompt = [extraSystemPrompt, taskHintSystemPrompt, constraintSystemPrompt]
+    .filter(Boolean)
+    .join("\n\n");
   const followupRun = {
     prompt: queuedBody,
     messageId: sessionCtx.MessageSidFull ?? sessionCtx.MessageSid,
@@ -365,6 +404,8 @@ export async function runPreparedReply(
       agentDir,
       sessionId: sessionIdFinal,
       sessionKey,
+      taskId: effectiveTask.taskId,
+      taskTitle: effectiveTask.title,
       messageProvider: sessionCtx.Provider?.trim().toLowerCase() || undefined,
       agentAccountId: sessionCtx.AccountId,
       groupId: resolveGroupSessionKey(sessionCtx)?.id ?? undefined,
@@ -395,7 +436,7 @@ export async function runPreparedReply(
       timeoutMs,
       blockReplyBreak: resolvedBlockStreamingBreak,
       ownerNumbers: command.ownerList.length > 0 ? command.ownerList : undefined,
-      extraSystemPrompt: extraSystemPrompt || undefined,
+      extraSystemPrompt: runExtraSystemPrompt || undefined,
       ...(isReasoningTagProvider(provider) ? { enforceFinalTag: true } : {}),
     },
   };

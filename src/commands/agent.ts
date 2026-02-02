@@ -50,6 +50,7 @@ import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { applyVerboseOverride } from "../sessions/level-overrides.js";
 import { resolveSendPolicy } from "../sessions/send-policy.js";
+import { resolveSessionTaskView } from "../sessions/task-context.js";
 import { applyModelOverrideToSessionEntry } from "../sessions/model-overrides.js";
 import { clearSessionAuthProfileOverride } from "../agents/auth-profiles/session-override.js";
 import { resolveMessageChannel } from "../utils/message-channel.js";
@@ -175,10 +176,12 @@ export async function agentCommand(
       (agentCfg?.thinkingDefault as ThinkLevel | undefined);
     const resolvedVerboseLevel =
       verboseOverride ?? persistedVerbose ?? (agentCfg?.verboseDefault as VerboseLevel | undefined);
+    const activeTask = resolveSessionTaskView({ entry: sessionEntry });
 
     if (sessionKey) {
       registerAgentRunContext(runId, {
         sessionKey,
+        taskId: activeTask.taskId,
         verboseLevel: resolvedVerboseLevel,
       });
     }
@@ -410,6 +413,8 @@ export async function agentCommand(
           return runEmbeddedPiAgent({
             sessionId,
             sessionKey,
+            taskId: activeTask.taskId,
+            taskTitle: activeTask.title,
             messageChannel,
             agentAccountId: runContext.accountId,
             messageTo: opts.replyTo ?? opts.to,

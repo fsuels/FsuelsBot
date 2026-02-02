@@ -388,6 +388,67 @@ function buildChatCommands(): ChatCommandDefinition[] {
       argsMenu: "auto",
     }),
     defineChatCommand({
+      key: "task",
+      description: "Show/switch task context and lifecycle state.",
+      textAlias: "/task",
+      scope: "text",
+      acceptsArgs: true,
+      category: "session",
+      args: [
+        {
+          name: "action",
+          description: "show | list | set | active | paused | completed | archived | done",
+          type: "string",
+        },
+        {
+          name: "value",
+          description: "Task id/title when using set",
+          type: "string",
+          captureRemaining: true,
+        },
+      ],
+      argsParsing: "none",
+    }),
+    defineChatCommand({
+      key: "pin",
+      description: "Pin durable memory (fact, preference, constraint, temporary).",
+      textAlias: "/pin",
+      scope: "text",
+      acceptsArgs: true,
+      category: "management",
+      args: [
+        {
+          name: "action",
+          description: "list | remove | fact | preference | constraint | temporary",
+          type: "string",
+        },
+        {
+          name: "value",
+          description: "Pin text or pin id",
+          type: "string",
+          captureRemaining: true,
+        },
+      ],
+      argsParsing: "none",
+    }),
+    defineChatCommand({
+      key: "forget",
+      description: "Forget memory entries by text/task/entity/date filters.",
+      textAlias: "/forget",
+      scope: "text",
+      acceptsArgs: true,
+      category: "management",
+      args: [
+        {
+          name: "query",
+          description: "text or flags: --task --entity --before",
+          type: "string",
+          captureRemaining: true,
+        },
+      ],
+      argsParsing: "none",
+    }),
+    defineChatCommand({
       key: "reset",
       nativeName: "reset",
       description: "Reset the current session.",

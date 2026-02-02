@@ -20,6 +20,7 @@ import { applyVerboseOverride, parseVerboseOverride } from "../sessions/level-ov
 import { normalizeSendPolicy } from "../sessions/send-policy.js";
 import { parseSessionLabel } from "../sessions/session-label.js";
 import { applyModelOverrideToSessionEntry } from "../sessions/model-overrides.js";
+import { applySessionTaskUpdate, resolveSessionTaskId } from "../sessions/task-context.js";
 import {
   ErrorCodes,
   type ErrorShape,
@@ -66,7 +67,7 @@ export async function applySessionsPatchToStore(params: {
   const now = Date.now();
 
   const existing = store[storeKey];
-  const next: SessionEntry = existing
+  let next: SessionEntry = existing
     ? {
         ...existing,
         updatedAt: Math.max(existing.updatedAt ?? 0, now),
@@ -267,6 +268,52 @@ export async function applySessionsPatchToStore(params: {
         },
       });
     }
+  }
+
+  if ("activeTaskId" in patch || "activeTaskTitle" in patch || "activeTaskStatus" in patch) {
+    let nextTaskId = resolveSessionTaskId({ entry: next });
+    if ("activeTaskId" in patch) {
+      const raw = patch.activeTaskId;
+      if (raw === null) {
+        nextTaskId = resolveSessionTaskId({ fallbackTaskId: undefined });
+      } else if (raw !== undefined) {
+        const trimmed = String(raw).trim();
+        if (!trimmed) return invalid("invalid activeTaskId: empty");
+        nextTaskId = trimmed;
+      }
+    }
+    const update: Parameters<typeof applySessionTaskUpdate>[1] = {
+      taskId: nextTaskId,
+      updatedAt: now,
+      source: "sessions.patch",
+    };
+    if ("activeTaskTitle" in patch) {
+      const raw = patch.activeTaskTitle;
+      if (raw === null) update.title = null;
+      else if (raw !== undefined) {
+        const trimmed = String(raw).trim();
+        if (!trimmed) return invalid("invalid activeTaskTitle: empty");
+        update.title = trimmed;
+      }
+    }
+    if ("activeTaskStatus" in patch) {
+      const raw = patch.activeTaskStatus;
+      if (raw === null) {
+        update.status = null;
+      } else if (raw !== undefined) {
+        const normalized = String(raw).trim().toLowerCase();
+        if (
+          normalized !== "active" &&
+          normalized !== "paused" &&
+          normalized !== "completed" &&
+          normalized !== "archived"
+        ) {
+          return invalid('invalid activeTaskStatus (use "active"|"paused"|"completed"|"archived")');
+        }
+        update.status = normalized;
+      }
+    }
+    next = applySessionTaskUpdate(next, update);
   }
 
   if (next.thinkingLevel === "xhigh") {

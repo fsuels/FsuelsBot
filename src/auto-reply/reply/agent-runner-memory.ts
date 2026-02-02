@@ -12,6 +12,10 @@ import {
 } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
 import { registerAgentRunContext } from "../../infra/agent-events.js";
+import {
+  applySessionTaskUpdate,
+  resolveSessionTaskView,
+} from "../../sessions/task-context.js";
 import type { TemplateContext } from "../templating.js";
 import type { VerboseLevel } from "../thinking.js";
 import type { GetReplyOptions } from "../types.js";
@@ -58,9 +62,21 @@ export async function runMemoryFlushIfNeeded(params: {
     !params.isHeartbeat &&
     !isCliProvider(params.followupRun.run.provider, params.cfg) &&
     shouldRunMemoryFlush({
-      entry:
-        params.sessionEntry ??
-        (params.sessionKey ? params.sessionStore?.[params.sessionKey] : undefined),
+      entry: (() => {
+        const sourceEntry =
+          params.sessionEntry ??
+          (params.sessionKey ? params.sessionStore?.[params.sessionKey] : undefined);
+        if (!sourceEntry) return undefined;
+        const taskView = resolveSessionTaskView({
+          entry: sourceEntry,
+          taskId: params.followupRun.run.taskId,
+        });
+        return {
+          totalTokens: taskView.totalTokens ?? sourceEntry.totalTokens,
+          compactionCount: taskView.compactionCount,
+          memoryFlushCompactionCount: taskView.memoryFlushCompactionCount,
+        };
+      })(),
       contextWindowTokens: resolveMemoryFlushContextWindowTokens({
         modelId: params.followupRun.run.model ?? params.defaultModel,
         agentCfgContextTokens: params.agentCfgContextTokens,
@@ -77,6 +93,7 @@ export async function runMemoryFlushIfNeeded(params: {
   if (params.sessionKey) {
     registerAgentRunContext(flushRunId, {
       sessionKey: params.sessionKey,
+      taskId: params.followupRun.run.taskId,
       verboseLevel: params.resolvedVerboseLevel,
     });
   }
@@ -105,6 +122,8 @@ export async function runMemoryFlushIfNeeded(params: {
         return runEmbeddedPiAgent({
           sessionId: params.followupRun.run.sessionId,
           sessionKey: params.sessionKey,
+          taskId: params.followupRun.run.taskId,
+          taskTitle: params.followupRun.run.taskTitle,
           messageProvider: params.sessionCtx.Provider?.trim().toLowerCase() || undefined,
           agentAccountId: params.sessionCtx.AccountId,
           messageTo: params.sessionCtx.OriginatingTo ?? params.sessionCtx.To,
@@ -153,15 +172,18 @@ export async function runMemoryFlushIfNeeded(params: {
         });
       },
     });
-    let memoryFlushCompactionCount =
-      activeSessionEntry?.compactionCount ??
-      (params.sessionKey ? activeSessionStore?.[params.sessionKey]?.compactionCount : 0) ??
-      0;
+    const activeTask = resolveSessionTaskView({
+      entry:
+        activeSessionEntry ?? (params.sessionKey ? activeSessionStore?.[params.sessionKey] : undefined),
+      taskId: params.followupRun.run.taskId,
+    });
+    let memoryFlushCompactionCount = activeTask.compactionCount;
     if (memoryCompactionCompleted) {
       const nextCount = await incrementCompactionCount({
         sessionEntry: activeSessionEntry,
         sessionStore: activeSessionStore,
         sessionKey: params.sessionKey,
+        taskId: params.followupRun.run.taskId,
         storePath: params.storePath,
       });
       if (typeof nextCount === "number") {
@@ -173,10 +195,20 @@ export async function runMemoryFlushIfNeeded(params: {
         const updatedEntry = await updateSessionStoreEntry({
           storePath: params.storePath,
           sessionKey: params.sessionKey,
-          update: async () => ({
-            memoryFlushAt: Date.now(),
-            memoryFlushCompactionCount,
-          }),
+          update: async (entry) => {
+            const taskUpdate: Parameters<typeof applySessionTaskUpdate>[1] = {
+              taskId: params.followupRun.run.taskId,
+              memoryFlushAt: Date.now(),
+              memoryFlushCompactionCount,
+              updatedAt: Date.now(),
+              source: "memory-flush",
+            };
+            if (params.followupRun.run.taskTitle !== undefined) {
+              taskUpdate.title = params.followupRun.run.taskTitle;
+            }
+            const next = applySessionTaskUpdate(entry, taskUpdate);
+            return next;
+          },
         });
         if (updatedEntry) {
           activeSessionEntry = updatedEntry;

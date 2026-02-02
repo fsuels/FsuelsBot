@@ -2,10 +2,10 @@ import { setCliSessionId } from "../../agents/cli-session.js";
 import { hasNonzeroUsage, type NormalizedUsage } from "../../agents/usage.js";
 import {
   type SessionSystemPromptReport,
-  type SessionEntry,
   updateSessionStoreEntry,
 } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
+import { applySessionTaskUpdate, resolveSessionTaskId } from "../../sessions/task-context.js";
 
 export async function persistSessionUsageUpdate(params: {
   storePath?: string;
@@ -32,10 +32,18 @@ export async function persistSessionUsageUpdate(params: {
           const output = params.usage?.output ?? 0;
           const promptTokens =
             input + (params.usage?.cacheRead ?? 0) + (params.usage?.cacheWrite ?? 0);
-          const patch: Partial<SessionEntry> = {
+          const totalTokens = promptTokens > 0 ? promptTokens : (params.usage?.total ?? input);
+          let nextEntry = applySessionTaskUpdate(entry, {
+            taskId: resolveSessionTaskId({ entry }),
+            totalTokens,
+            updatedAt: Date.now(),
+            source: "usage",
+          });
+          nextEntry = {
+            ...nextEntry,
             inputTokens: input,
             outputTokens: output,
-            totalTokens: promptTokens > 0 ? promptTokens : (params.usage?.total ?? input),
+            totalTokens,
             modelProvider: params.providerUsed ?? entry.modelProvider,
             model: params.modelUsed ?? entry.model,
             contextTokens: params.contextTokensUsed ?? entry.contextTokens,
@@ -44,15 +52,9 @@ export async function persistSessionUsageUpdate(params: {
           };
           const cliProvider = params.providerUsed ?? entry.modelProvider;
           if (params.cliSessionId && cliProvider) {
-            const nextEntry = { ...entry, ...patch };
             setCliSessionId(nextEntry, cliProvider, params.cliSessionId);
-            return {
-              ...patch,
-              cliSessionIds: nextEntry.cliSessionIds,
-              claudeCliSessionId: nextEntry.claudeCliSessionId,
-            };
           }
-          return patch;
+          return nextEntry;
         },
       });
     } catch (err) {
@@ -67,7 +69,13 @@ export async function persistSessionUsageUpdate(params: {
         storePath,
         sessionKey,
         update: async (entry) => {
-          const patch: Partial<SessionEntry> = {
+          let nextEntry = applySessionTaskUpdate(entry, {
+            taskId: resolveSessionTaskId({ entry }),
+            updatedAt: Date.now(),
+            source: "usage",
+          });
+          nextEntry = {
+            ...nextEntry,
             modelProvider: params.providerUsed ?? entry.modelProvider,
             model: params.modelUsed ?? entry.model,
             contextTokens: params.contextTokensUsed ?? entry.contextTokens,
@@ -76,15 +84,9 @@ export async function persistSessionUsageUpdate(params: {
           };
           const cliProvider = params.providerUsed ?? entry.modelProvider;
           if (params.cliSessionId && cliProvider) {
-            const nextEntry = { ...entry, ...patch };
             setCliSessionId(nextEntry, cliProvider, params.cliSessionId);
-            return {
-              ...patch,
-              cliSessionIds: nextEntry.cliSessionIds,
-              claudeCliSessionId: nextEntry.claudeCliSessionId,
-            };
           }
-          return patch;
+          return nextEntry;
         },
       });
     } catch (err) {

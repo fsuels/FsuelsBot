@@ -33,6 +33,7 @@ import { stripMentions, stripStructuralPrefixes } from "./mentions.js";
 import { formatInboundBodyWithSenderMeta } from "./inbound-sender-meta.js";
 import { normalizeInboundTextNewlines } from "./inbound-text.js";
 import { normalizeSessionDeliveryFields } from "../../utils/delivery-context.js";
+import { applySessionTaskUpdate, resolveSessionTaskId } from "../../sessions/task-context.js";
 
 export type SessionInitResult = {
   sessionCtx: TemplateContext;
@@ -323,10 +324,21 @@ export async function initSessionState(params: {
       ctx.MessageThreadId,
     );
   }
+  const activeTaskId = resolveSessionTaskId({ entry: sessionEntry });
+  sessionEntry = applySessionTaskUpdate(sessionEntry, {
+    taskId: activeTaskId,
+    updatedAt: sessionEntry.updatedAt,
+    source: isNewSession ? "session-init" : "session-resume",
+  });
   if (isNewSession) {
-    sessionEntry.compactionCount = 0;
-    sessionEntry.memoryFlushCompactionCount = undefined;
-    sessionEntry.memoryFlushAt = undefined;
+    sessionEntry = applySessionTaskUpdate(sessionEntry, {
+      taskId: activeTaskId,
+      compactionCount: 0,
+      memoryFlushCompactionCount: undefined,
+      memoryFlushAt: undefined,
+      updatedAt: sessionEntry.updatedAt,
+      source: "session-reset",
+    });
   }
   // Preserve per-session overrides while resetting compaction state on /new.
   sessionStore[sessionKey] = { ...sessionStore[sessionKey], ...sessionEntry };

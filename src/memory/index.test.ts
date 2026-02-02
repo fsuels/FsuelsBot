@@ -46,6 +46,8 @@ describe("memory index", () => {
     workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-mem-"));
     indexPath = path.join(workspaceDir, "index.sqlite");
     await fs.mkdir(path.join(workspaceDir, "memory"));
+    await fs.mkdir(path.join(workspaceDir, "memory", "tasks"), { recursive: true });
+    await fs.mkdir(path.join(workspaceDir, "memory", "global"), { recursive: true });
     await fs.writeFile(
       path.join(workspaceDir, "memory", "2026-01-12.md"),
       "# Log\nAlpha memory line.\nZebra memory line.\nAnother line.",
@@ -95,6 +97,136 @@ describe("memory index", () => {
         }),
       ]),
     );
+  });
+
+  it("uses task namespace filters before ranking and does not mix task memories", async () => {
+    await fs.writeFile(
+      path.join(workspaceDir, "memory", "tasks", "task-a.md"),
+      "Task A alpha details.",
+    );
+    await fs.writeFile(
+      path.join(workspaceDir, "memory", "tasks", "task-b.md"),
+      "Task B alpha details.",
+    );
+    const cfg = {
+      agents: {
+        defaults: {
+          workspace: workspaceDir,
+          memorySearch: {
+            provider: "openai",
+            model: "mock-embed",
+            store: { path: indexPath, vector: { enabled: false } },
+            sync: { watch: false, onSessionStart: false, onSearch: true },
+            query: { minScore: 0 },
+          },
+        },
+        list: [{ id: "main", default: true }],
+      },
+    };
+    const result = await getMemorySearchManager({ cfg, agentId: "main" });
+    expect(result.manager).not.toBeNull();
+    if (!result.manager) throw new Error("manager missing");
+    manager = result.manager;
+    await manager.sync({ force: true });
+
+    const scoped = await manager.search("alpha", {
+      taskId: "task-a",
+      namespace: "task",
+      globalFallback: false,
+      maxResults: 10,
+      minScore: 0,
+    });
+    expect(scoped.length).toBeGreaterThan(0);
+    const paths = scoped.map((entry) => entry.path);
+    expect(paths).toContain("memory/tasks/task-a.md");
+    expect(paths.some((entry) => entry.includes("memory/tasks/task-b.md"))).toBe(false);
+  });
+
+  it("falls back to global namespace when task-scoped retrieval has no matches", async () => {
+    await fs.writeFile(path.join(workspaceDir, "memory", "tasks", "task-a.md"), "Alpha task memory.");
+    const cfg = {
+      agents: {
+        defaults: {
+          workspace: workspaceDir,
+          memorySearch: {
+            provider: "openai",
+            model: "mock-embed",
+            store: { path: indexPath, vector: { enabled: false } },
+            sync: { watch: false, onSessionStart: false, onSearch: true },
+            query: { minScore: 0 },
+          },
+        },
+        list: [{ id: "main", default: true }],
+      },
+    };
+    const result = await getMemorySearchManager({ cfg, agentId: "main" });
+    expect(result.manager).not.toBeNull();
+    if (!result.manager) throw new Error("manager missing");
+    manager = result.manager;
+    await manager.sync({ force: true });
+
+    const fallback = await manager.search("beta", {
+      taskId: "task-missing",
+      namespace: "auto",
+      maxResults: 10,
+      minScore: 0,
+    });
+    expect(fallback.length).toBeGreaterThan(0);
+    expect(fallback.some((entry) => entry.path.startsWith("memory/tasks/"))).toBe(false);
+  });
+
+  it("attaches provenance metadata for task files and pin files", async () => {
+    await fs.writeFile(
+      path.join(workspaceDir, "memory", "tasks", "task-a.md"),
+      "Task A alpha item.",
+      "utf-8",
+    );
+    await fs.writeFile(
+      path.join(workspaceDir, "memory", "global", "pins.md"),
+      "## Constraints\n- [constraint] Always include tests.",
+      "utf-8",
+    );
+    const cfg = {
+      agents: {
+        defaults: {
+          workspace: workspaceDir,
+          memorySearch: {
+            provider: "openai",
+            model: "mock-embed",
+            store: { path: indexPath, vector: { enabled: false } },
+            sync: { watch: false, onSessionStart: false, onSearch: true },
+            query: { minScore: 0 },
+          },
+        },
+        list: [{ id: "main", default: true }],
+      },
+    };
+    const result = await getMemorySearchManager({ cfg, agentId: "main" });
+    expect(result.manager).not.toBeNull();
+    if (!result.manager) throw new Error("manager missing");
+    manager = result.manager;
+    await manager.sync({ force: true });
+
+    const taskResults = await manager.search("alpha", {
+      taskId: "task-a",
+      namespace: "task",
+      globalFallback: false,
+      maxResults: 5,
+      minScore: 0,
+    });
+    const taskHit = taskResults.find((entry) => entry.path === "memory/tasks/task-a.md");
+    expect(taskHit?.provenance?.source).toBe("task-file");
+    expect(taskHit?.provenance?.taskId).toBe("task-a");
+    expect(typeof taskHit?.provenance?.timestampMs).toBe("number");
+
+    const pinResults = await manager.search("constraint", {
+      namespace: "global",
+      maxResults: 5,
+      minScore: 0,
+    });
+    const pinHit = pinResults.find((entry) => entry.path === "memory/global/pins.md");
+    expect(pinHit?.provenance?.source).toBe("pin");
+    expect(pinHit?.provenance?.pinType).toBe("constraint");
   });
 
   it("reindexes when the embedding model changes", async () => {

@@ -39,7 +39,7 @@ function buildMemorySection(params: { isMinimal: boolean; availableTools: Set<st
   }
   return [
     "## Memory Recall",
-    "Before answering anything about prior work, decisions, dates, people, preferences, or todos: run memory_search on MEMORY.md + memory/*.md; then use memory_get to pull only the needed lines. If low confidence after search, say you checked.",
+    "Before answering anything about prior work, decisions, dates, people, preferences, or todos: run memory_search with task-aware filtering first (task namespace -> global fallback), then use memory_get for only the needed lines. If low confidence after search, say you checked.",
     "",
   ];
 }

@@ -9,7 +9,10 @@ export const DEFAULT_MEMORY_FLUSH_SOFT_TOKENS = 4000;
 
 export const DEFAULT_MEMORY_FLUSH_PROMPT = [
   "Pre-compaction memory flush.",
-  "Store durable memories now (use memory/YYYY-MM-DD.md; create memory/ if needed).",
+  "Store task-local durable memory in memory/tasks/<taskId>.md.",
+  "Store cross-task durable memory in memory/global/*.md.",
+  "Use deterministic merge rules: Goal/Current state replace; Decisions append + dedupe; Open questions append (mark resolved with RESOLVED:); Next actions replace snapshot; Key entities merge by stable key; Pinned items are immutable unless explicitly unpinned.",
+  "Pins must be typed: fact | preference | constraint | temporary (expire stale temporary pins).",
   `If nothing to store, reply with ${SILENT_REPLY_TOKEN}.`,
 ].join(" ");
 

@@ -40,6 +40,12 @@ import {
   normalizeRelPath,
   parseEmbedding,
 } from "./internal.js";
+import {
+  classifyMemoryPath,
+  normalizeMemoryTaskId,
+  resolveTaskMemoryDirPath,
+  resolveTaskMemoryFilePath,
+} from "./namespaces.js";
 import { bm25RankToScore, buildFtsQuery, mergeHybridResults } from "./hybrid.js";
 import { searchKeyword, searchVector } from "./manager-search.js";
 import { ensureMemoryIndexSchema } from "./memory-schema.js";
@@ -55,7 +61,25 @@ export type MemorySearchResult = {
   score: number;
   snippet: string;
   source: MemorySource;
+  provenance?: {
+    source: "transcript" | "task-file" | "global-file" | "legacy-file" | "pin";
+    sourcePath: string;
+    timestampMs?: number;
+    explicit: boolean;
+    inferred: boolean;
+    taskId?: string;
+    pinType?: "fact" | "preference" | "constraint" | "temporary";
+  };
 };
+
+export type MemorySearchNamespaceMode = "auto" | "any" | "task" | "global";
+
+type SearchStage = {
+  scope: "any" | "task" | "global";
+  taskId?: string;
+};
+
+type SqlPathFilter = { sql: string; params: string[] };
 
 type MemoryIndexMeta = {
   model: string;
@@ -264,6 +288,9 @@ export class MemoryIndexManager {
       maxResults?: number;
       minScore?: number;
       sessionKey?: string;
+      taskId?: string;
+      namespace?: MemorySearchNamespaceMode;
+      globalFallback?: boolean;
     },
   ): Promise<MemorySearchResult[]> {
     void this.warmSession(opts?.sessionKey);
@@ -276,40 +303,38 @@ export class MemoryIndexManager {
     if (!cleaned) return [];
     const minScore = opts?.minScore ?? this.settings.query.minScore;
     const maxResults = opts?.maxResults ?? this.settings.query.maxResults;
-    const hybrid = this.settings.query.hybrid;
-    const candidates = Math.min(
-      200,
-      Math.max(1, Math.floor(maxResults * hybrid.candidateMultiplier)),
-    );
-
-    const keywordResults = hybrid.enabled
-      ? await this.searchKeyword(cleaned, candidates).catch(() => [])
-      : [];
-
     const queryVec = await this.embedQueryWithTimeout(cleaned);
-    const hasVector = queryVec.some((v) => v !== 0);
-    const vectorResults = hasVector
-      ? await this.searchVector(queryVec, candidates).catch(() => [])
-      : [];
-
-    if (!hybrid.enabled) {
-      return vectorResults.filter((entry) => entry.score >= minScore).slice(0, maxResults);
-    }
-
-    const merged = this.mergeHybridResults({
-      vector: vectorResults,
-      keyword: keywordResults,
-      vectorWeight: hybrid.vectorWeight,
-      textWeight: hybrid.textWeight,
+    const stages = this.resolveSearchStages({
+      taskId: opts?.taskId,
+      namespace: opts?.namespace,
+      globalFallback: opts?.globalFallback,
     });
-
-    return merged.filter((entry) => entry.score >= minScore).slice(0, maxResults);
+    const stitched: MemorySearchResult[] = [];
+    const seen = new Set<string>();
+    for (const stage of stages) {
+      if (stitched.length >= maxResults) break;
+      const stageResults = await this.searchScoped(cleaned, queryVec, stage, maxResults, minScore);
+      for (const entry of stageResults) {
+        const key = `${entry.source}:${entry.path}:${entry.startLine}:${entry.endLine}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        stitched.push(entry);
+        if (stitched.length >= maxResults) break;
+      }
+    }
+    return stitched.slice(0, maxResults);
   }
 
   private async searchVector(
     queryVec: number[],
     limit: number,
-  ): Promise<Array<MemorySearchResult & { id: string }>> {
+    filters?: {
+      sourceFilterVec?: { sql: string; params: MemorySource[] };
+      sourceFilterChunks?: { sql: string; params: MemorySource[] };
+      pathFilterVec?: SqlPathFilter;
+      pathFilterChunks?: SqlPathFilter;
+    },
+  ): Promise<Array<MemorySearchResult & { id: string; provenanceTs?: number }>> {
     const results = await searchVector({
       db: this.db,
       vectorTable: VECTOR_TABLE,
@@ -318,10 +343,12 @@ export class MemoryIndexManager {
       limit,
       snippetMaxChars: SNIPPET_MAX_CHARS,
       ensureVectorReady: async (dimensions) => await this.ensureVectorReady(dimensions),
-      sourceFilterVec: this.buildSourceFilter("c"),
-      sourceFilterChunks: this.buildSourceFilter(),
+      sourceFilterVec: filters?.sourceFilterVec ?? this.buildSourceFilter(undefined, "c"),
+      sourceFilterChunks: filters?.sourceFilterChunks ?? this.buildSourceFilter(),
+      pathFilterVec: filters?.pathFilterVec,
+      pathFilterChunks: filters?.pathFilterChunks,
     });
-    return results.map((entry) => entry as MemorySearchResult & { id: string });
+    return results.map((entry) => entry as MemorySearchResult & { id: string; provenanceTs?: number });
   }
 
   private buildFtsQuery(raw: string): string | null {
@@ -331,9 +358,13 @@ export class MemoryIndexManager {
   private async searchKeyword(
     query: string,
     limit: number,
-  ): Promise<Array<MemorySearchResult & { id: string; textScore: number }>> {
+    filters?: {
+      sourceFilter?: { sql: string; params: MemorySource[] };
+      pathFilter?: SqlPathFilter;
+    },
+  ): Promise<Array<MemorySearchResult & { id: string; textScore: number; provenanceTs?: number }>> {
     if (!this.fts.enabled || !this.fts.available) return [];
-    const sourceFilter = this.buildSourceFilter();
+    const sourceFilter = filters?.sourceFilter ?? this.buildSourceFilter(undefined, FTS_TABLE);
     const results = await searchKeyword({
       db: this.db,
       ftsTable: FTS_TABLE,
@@ -342,18 +373,21 @@ export class MemoryIndexManager {
       limit,
       snippetMaxChars: SNIPPET_MAX_CHARS,
       sourceFilter,
+      pathFilter: filters?.pathFilter,
       buildFtsQuery: (raw) => this.buildFtsQuery(raw),
       bm25RankToScore,
     });
-    return results.map((entry) => entry as MemorySearchResult & { id: string; textScore: number });
+    return results.map(
+      (entry) => entry as MemorySearchResult & { id: string; textScore: number; provenanceTs?: number },
+    );
   }
 
   private mergeHybridResults(params: {
-    vector: Array<MemorySearchResult & { id: string }>;
-    keyword: Array<MemorySearchResult & { id: string; textScore: number }>;
+    vector: Array<MemorySearchResult & { id: string; provenanceTs?: number }>;
+    keyword: Array<MemorySearchResult & { id: string; textScore: number; provenanceTs?: number }>;
     vectorWeight: number;
     textWeight: number;
-  }): MemorySearchResult[] {
+  }): Array<MemorySearchResult & { provenanceTs?: number }> {
     const merged = mergeHybridResults({
       vector: params.vector.map((r) => ({
         id: r.id,
@@ -363,6 +397,7 @@ export class MemoryIndexManager {
         source: r.source,
         snippet: r.snippet,
         vectorScore: r.score,
+        provenanceTs: r.provenanceTs,
       })),
       keyword: params.keyword.map((r) => ({
         id: r.id,
@@ -372,11 +407,137 @@ export class MemoryIndexManager {
         source: r.source,
         snippet: r.snippet,
         textScore: r.textScore,
+        provenanceTs: r.provenanceTs,
       })),
       vectorWeight: params.vectorWeight,
       textWeight: params.textWeight,
     });
-    return merged.map((entry) => entry as MemorySearchResult);
+    return merged.map((entry) => entry as MemorySearchResult & { provenanceTs?: number });
+  }
+
+  private resolveSearchStages(params: {
+    taskId?: string;
+    namespace?: MemorySearchNamespaceMode;
+    globalFallback?: boolean;
+  }): SearchStage[] {
+    const requested = params.namespace ?? "auto";
+    const taskId = normalizeMemoryTaskId(params.taskId);
+    if (requested === "any") return [{ scope: "any" }];
+    if (requested === "global") return [{ scope: "global" }];
+    if (requested === "task") {
+      if (!taskId) return [{ scope: "global" }];
+      if (params.globalFallback) return [{ scope: "task", taskId }, { scope: "global" }];
+      return [{ scope: "task", taskId }];
+    }
+    if (!taskId) return [{ scope: "any" }];
+    const globalFallback = params.globalFallback ?? true;
+    return globalFallback ? [{ scope: "task", taskId }, { scope: "global" }] : [{ scope: "task", taskId }];
+  }
+
+  private async searchScoped(
+    query: string,
+    queryVec: number[],
+    stage: SearchStage,
+    maxResults: number,
+    minScore: number,
+  ): Promise<MemorySearchResult[]> {
+    const sourceFilterChunks = this.buildSourceFilter(
+      stage.scope === "any" ? undefined : (["memory"] as MemorySource[]),
+    );
+    const sourceFilterVec = this.buildSourceFilter(
+      stage.scope === "any" ? undefined : (["memory"] as MemorySource[]),
+      "c",
+    );
+    const sourceFilterKeyword = this.buildSourceFilter(
+      stage.scope === "any" ? undefined : (["memory"] as MemorySource[]),
+      FTS_TABLE,
+    );
+    // filter -> rank -> stitch: hard path/source filters first, then score/rank, then merge.
+    const pathFilterChunks = this.buildPathFilter(stage);
+    const pathFilterVec = this.buildPathFilter(stage, "c");
+    const pathFilterKeyword = this.buildPathFilter(stage, FTS_TABLE);
+    const hybrid = this.settings.query.hybrid;
+    const candidates = Math.min(
+      200,
+      Math.max(1, Math.floor(maxResults * hybrid.candidateMultiplier)),
+    );
+    const keywordResults =
+      hybrid.enabled && sourceFilterKeyword.params.length > 0
+        ? await this.searchKeyword(query, candidates, {
+            sourceFilter: sourceFilterKeyword,
+            pathFilter: pathFilterKeyword,
+          }).catch(() => [])
+        : [];
+    const hasVector = queryVec.some((v) => v !== 0);
+    const vectorResults =
+      hasVector && sourceFilterChunks.params.length > 0
+        ? await this.searchVector(queryVec, candidates, {
+            sourceFilterVec,
+            sourceFilterChunks,
+            pathFilterVec,
+            pathFilterChunks,
+          }).catch(() => [])
+        : [];
+    if (!hybrid.enabled) {
+      const filtered = vectorResults.filter((entry) => entry.score >= minScore).slice(0, maxResults);
+      return filtered.map((entry) => this.withProvenance(entry));
+    }
+    const merged = this.mergeHybridResults({
+      vector: vectorResults,
+      keyword: keywordResults,
+      vectorWeight: hybrid.vectorWeight,
+      textWeight: hybrid.textWeight,
+    });
+    return merged
+      .filter((entry) => entry.score >= minScore)
+      .slice(0, maxResults)
+      .map((entry) => this.withProvenance(entry));
+  }
+
+  private detectPinType(snippet: string): "fact" | "preference" | "constraint" | "temporary" | undefined {
+    const lowered = snippet.toLowerCase();
+    if (/\[(fact)\]/.test(lowered)) return "fact";
+    if (/\[(preference)\]/.test(lowered)) return "preference";
+    if (/\[(constraint)\]/.test(lowered)) return "constraint";
+    if (/\[(temporary)\]/.test(lowered)) return "temporary";
+    return undefined;
+  }
+
+  private withProvenance(
+    entry: MemorySearchResult & { provenanceTs?: number },
+  ): MemorySearchResult {
+    if (entry.source === "sessions") {
+      return {
+        ...entry,
+        provenance: {
+          source: "transcript",
+          sourcePath: entry.path,
+          timestampMs: entry.provenanceTs,
+          explicit: true,
+          inferred: false,
+        },
+      };
+    }
+    const classified = classifyMemoryPath(entry.path);
+    const source = (() => {
+      if (entry.path.endsWith("/pins.md") || entry.path === "memory/global/pins.md") return "pin" as const;
+      if (classified.namespace === "task") return "task-file" as const;
+      if (classified.namespace === "global") return "global-file" as const;
+      if (classified.namespace === "legacy") return "legacy-file" as const;
+      return "global-file" as const;
+    })();
+    return {
+      ...entry,
+      provenance: {
+        source,
+        sourcePath: entry.path,
+        timestampMs: entry.provenanceTs,
+        explicit: true,
+        inferred: false,
+        taskId: classified.taskId,
+        pinType: source === "pin" ? this.detectPinType(entry.snippet) : undefined,
+      },
+    };
   }
 
   async sync(params?: {
@@ -655,12 +816,38 @@ export class MemoryIndexManager {
     }
   }
 
-  private buildSourceFilter(alias?: string): { sql: string; params: MemorySource[] } {
-    const sources = Array.from(this.sources);
+  private buildSourceFilter(
+    sourceOverride?: MemorySource[],
+    alias?: string,
+  ): { sql: string; params: MemorySource[] } {
+    const sources = sourceOverride ?? Array.from(this.sources);
     if (sources.length === 0) return { sql: "", params: [] };
     const column = alias ? `${alias}.source` : "source";
     const placeholders = sources.map(() => "?").join(", ");
     return { sql: ` AND ${column} IN (${placeholders})`, params: sources };
+  }
+
+  private buildPathFilter(stage: SearchStage, pathColumnPrefix?: string): SqlPathFilter {
+    const column = pathColumnPrefix ? `${pathColumnPrefix}.path` : "path";
+    if (stage.scope === "any") return { sql: "", params: [] };
+    if (stage.scope === "task") {
+      const taskId = normalizeMemoryTaskId(stage.taskId);
+      if (!taskId) return { sql: " AND 1=0", params: [] };
+      const taskFile = resolveTaskMemoryFilePath(taskId);
+      const taskDirPrefix = `${resolveTaskMemoryDirPath(taskId)}/%`;
+      return {
+        sql: ` AND (${column} = ? OR ${column} LIKE ?)`,
+        params: [taskFile, taskDirPrefix],
+      };
+    }
+    return {
+      sql:
+        ` AND (` +
+        `${column} = ? OR ${column} = ? OR ` +
+        `(${column} LIKE ? AND ${column} NOT LIKE ?)` +
+        `)`,
+      params: ["MEMORY.md", "memory.md", "memory/%", "memory/tasks/%"],
+    };
   }
 
   private openDatabase(): DatabaseSync {

@@ -117,6 +117,7 @@ export function createFollowupRunner(params: {
       if (queued.run.sessionKey) {
         registerAgentRunContext(runId, {
           sessionKey: queued.run.sessionKey,
+          taskId: queued.run.taskId,
           verboseLevel: queued.run.verboseLevel,
         });
       }
@@ -140,6 +141,8 @@ export function createFollowupRunner(params: {
             return runEmbeddedPiAgent({
               sessionId: queued.run.sessionId,
               sessionKey: queued.run.sessionKey,
+              taskId: queued.run.taskId,
+              taskTitle: queued.run.taskTitle,
               messageProvider: queued.run.messageProvider,
               agentAccountId: queued.run.agentAccountId,
               messageTo: queued.originatingTo,
@@ -256,6 +259,7 @@ export function createFollowupRunner(params: {
           sessionEntry,
           sessionStore,
           sessionKey,
+          taskId: queued.run.taskId,
           storePath,
         });
         if (queued.run.verboseLevel && queued.run.verboseLevel !== "off") {

@@ -45,6 +45,7 @@ import { registerAgentRunContext } from "../../infra/agent-events.js";
 import { deliverOutboundPayloads } from "../../infra/outbound/deliver.js";
 import { getRemoteSkillEligibility } from "../../infra/skills-remote.js";
 import { buildAgentMainSessionKey, normalizeAgentId } from "../../routing/session-key.js";
+import { resolveSessionTaskView } from "../../sessions/task-context.js";
 import {
   buildSafeExternalPrompt,
   detectSuspiciousPatterns,
@@ -323,8 +324,10 @@ export async function runCronIsolatedAgentTurn(params: {
       normalizeVerboseLevel(cronSession.sessionEntry.verboseLevel) ??
       normalizeVerboseLevel(agentCfg?.verboseDefault) ??
       "off";
+    const activeTask = resolveSessionTaskView({ entry: cronSession.sessionEntry });
     registerAgentRunContext(cronSession.sessionEntry.sessionId, {
       sessionKey: agentSessionKey,
+      taskId: activeTask.taskId,
       verboseLevel: resolvedVerboseLevel,
     });
     const messageChannel = resolvedDelivery.channel;
@@ -355,6 +358,8 @@ export async function runCronIsolatedAgentTurn(params: {
         return runEmbeddedPiAgent({
           sessionId: cronSession.sessionEntry.sessionId,
           sessionKey: agentSessionKey,
+          taskId: activeTask.taskId,
+          taskTitle: activeTask.title,
           messageChannel,
           agentAccountId: resolvedDelivery.accountId,
           sessionFile,

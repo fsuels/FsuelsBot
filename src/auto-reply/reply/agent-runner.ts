@@ -488,6 +488,7 @@ export async function runReplyAgent(params: {
         sessionEntry: activeSessionEntry,
         sessionStore: activeSessionStore,
         sessionKey,
+        taskId: followupRun.run.taskId,
         storePath,
       });
       if (verboseEnabled) {

@@ -8,6 +8,7 @@ import type { MoltbotConfig } from "../../config/config.js";
 import { resolveSessionFilePath } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
 import { enqueueSystemEvent } from "../../infra/system-events.js";
+import { resolveSessionTaskView } from "../../sessions/task-context.js";
 import { formatContextUsageShort, formatTokenCount } from "../status.js";
 import type { CommandHandler } from "./commands-types.js";
 import { stripMentions, stripStructuralPrefixes } from "./mentions.js";
@@ -63,9 +64,12 @@ export const handleCompactCommand: CommandHandler = async (params) => {
     agentId: params.agentId,
     isGroup: params.isGroup,
   });
+  const activeTask = resolveSessionTaskView({ entry: params.sessionEntry });
   const result = await compactEmbeddedPiSession({
     sessionId,
     sessionKey: params.sessionKey,
+    taskId: activeTask.taskId,
+    taskTitle: activeTask.title,
     messageChannel: params.command.channel,
     groupId: params.sessionEntry.groupId,
     groupChannel: params.sessionEntry.groupChannel,
@@ -101,6 +105,7 @@ export const handleCompactCommand: CommandHandler = async (params) => {
       sessionEntry: params.sessionEntry,
       sessionStore: params.sessionStore,
       sessionKey: params.sessionKey,
+      taskId: activeTask.taskId,
       storePath: params.storePath,
       // Update token counts after compaction
       tokensAfter: result.result?.tokensAfter,

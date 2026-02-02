@@ -18,6 +18,8 @@ type ModelRegistry = ReturnType<typeof discoverModels>;
 export type EmbeddedRunAttemptParams = {
   sessionId: string;
   sessionKey?: string;
+  taskId?: string;
+  taskTitle?: string;
   messageChannel?: string;
   messageProvider?: string;
   agentAccountId?: string;

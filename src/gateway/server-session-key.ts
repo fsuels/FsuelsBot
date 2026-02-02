@@ -2,6 +2,7 @@ import { loadConfig } from "../config/config.js";
 import { loadSessionStore, resolveStorePath } from "../config/sessions.js";
 import { getAgentRunContext, registerAgentRunContext } from "../infra/agent-events.js";
 import { toAgentRequestSessionKey } from "../routing/session-key.js";
+import { resolveSessionTaskId } from "../sessions/task-context.js";
 
 export function resolveSessionKeyForRun(runId: string) {
   const cached = getAgentRunContext(runId)?.sessionKey;
@@ -11,9 +12,13 @@ export function resolveSessionKeyForRun(runId: string) {
   const store = loadSessionStore(storePath);
   const found = Object.entries(store).find(([, entry]) => entry?.sessionId === runId);
   const storeKey = found?.[0];
+  const entry = found?.[1];
   if (storeKey) {
     const sessionKey = toAgentRequestSessionKey(storeKey) ?? storeKey;
-    registerAgentRunContext(runId, { sessionKey });
+    registerAgentRunContext(runId, {
+      sessionKey,
+      taskId: resolveSessionTaskId({ entry }),
+    });
     return sessionKey;
   }
   return undefined;

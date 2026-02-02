@@ -27,6 +27,7 @@ import {
   handleUsageCommand,
 } from "./commands-session.js";
 import { handlePluginCommand } from "./commands-plugin.js";
+import { handleForgetCommand, handlePinCommand, handleTaskCommand } from "./commands-memory.js";
 import type {
   CommandHandler,
   CommandHandlerResult,
@@ -53,6 +54,9 @@ const HANDLERS: CommandHandler[] = [
   handleConfigCommand,
   handleDebugCommand,
   handleModelsCommand,
+  handlePinCommand,
+  handleForgetCommand,
+  handleTaskCommand,
   handleStopCommand,
   handleCompactCommand,
   handleAbortTrigger,

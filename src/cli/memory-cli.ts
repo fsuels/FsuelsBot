@@ -563,6 +563,9 @@ export function registerMemoryCli(program: Command) {
     .option("--agent <id>", "Agent id (default: default agent)")
     .option("--max-results <n>", "Max results", (value: string) => Number(value))
     .option("--min-score <n>", "Minimum score", (value: string) => Number(value))
+    .option("--task <id>", "Task id namespace filter")
+    .option("--namespace <mode>", 'Namespace mode: "auto"|"any"|"task"|"global"')
+    .option("--no-global-fallback", "Disable global fallback in task mode")
     .option("--json", "Print JSON")
     .action(
       async (
@@ -570,6 +573,9 @@ export function registerMemoryCli(program: Command) {
         opts: MemoryCommandOptions & {
           maxResults?: number;
           minScore?: number;
+          task?: string;
+          namespace?: string;
+          globalFallback?: boolean;
         },
       ) => {
         const cfg = loadConfig();
@@ -586,6 +592,15 @@ export function registerMemoryCli(program: Command) {
               results = await manager.search(query, {
                 maxResults: opts.maxResults,
                 minScore: opts.minScore,
+                taskId: opts.task,
+                namespace:
+                  opts.namespace === "auto" ||
+                  opts.namespace === "any" ||
+                  opts.namespace === "task" ||
+                  opts.namespace === "global"
+                    ? opts.namespace
+                    : undefined,
+                globalFallback: opts.globalFallback,
               });
             } catch (err) {
               const message = formatErrorMessage(err);

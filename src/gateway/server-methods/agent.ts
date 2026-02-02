@@ -16,6 +16,7 @@ import {
 } from "../../infra/outbound/agent-delivery.js";
 import { defaultRuntime } from "../../runtime.js";
 import { resolveSendPolicy } from "../../sessions/send-policy.js";
+import { resolveSessionTaskId } from "../../sessions/task-context.js";
 import { normalizeSessionDeliveryFields } from "../../utils/delivery-context.js";
 import {
   INTERNAL_MESSAGE_CHANNEL,
@@ -286,7 +287,10 @@ export const agentHandlers: GatewayRequestHandlers = {
         });
         bestEffortDeliver = true;
       }
-      registerAgentRunContext(idem, { sessionKey: requestedSessionKey });
+      registerAgentRunContext(idem, {
+        sessionKey: requestedSessionKey,
+        taskId: resolveSessionTaskId({ entry: sessionEntry }),
+      });
     }
 
     const runId = idem;

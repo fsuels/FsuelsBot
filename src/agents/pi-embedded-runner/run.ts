@@ -304,6 +304,8 @@ export async function runEmbeddedPiAgent(
           const attempt = await runEmbeddedAttempt({
             sessionId: params.sessionId,
             sessionKey: params.sessionKey,
+            taskId: params.taskId,
+            taskTitle: params.taskTitle,
             messageChannel: params.messageChannel,
             messageProvider: params.messageProvider,
             agentAccountId: params.agentAccountId,
@@ -371,6 +373,8 @@ export async function runEmbeddedPiAgent(
                 const compactResult = await compactEmbeddedPiSessionDirect({
                   sessionId: params.sessionId,
                   sessionKey: params.sessionKey,
+                  taskId: params.taskId,
+                  taskTitle: params.taskTitle,
                   messageChannel: params.messageChannel,
                   messageProvider: params.messageProvider,
                   agentAccountId: params.agentAccountId,

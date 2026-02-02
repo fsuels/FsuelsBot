@@ -39,6 +39,7 @@ import {
 import { applySessionsPatchToStore } from "../sessions-patch.js";
 import { resolveSessionKeyFromResolveParams } from "../sessions-resolve.js";
 import type { GatewayRequestHandlers } from "./types.js";
+import { applySessionTaskUpdate, resolveSessionTaskId } from "../../sessions/task-context.js";
 
 export const sessionsHandlers: GatewayRequestHandlers = {
   "sessions.list": ({ params, respond }) => {
@@ -234,7 +235,7 @@ export const sessionsHandlers: GatewayRequestHandlers = {
       }
       const entry = store[primaryKey];
       const now = Date.now();
-      const nextEntry: SessionEntry = {
+      let nextEntry: SessionEntry = {
         sessionId: randomUUID(),
         updatedAt: now,
         systemSent: false,
@@ -246,6 +247,10 @@ export const sessionsHandlers: GatewayRequestHandlers = {
         model: entry?.model,
         contextTokens: entry?.contextTokens,
         sendPolicy: entry?.sendPolicy,
+        activeTaskId: entry?.activeTaskId,
+        activeTaskTitle: entry?.activeTaskTitle,
+        taskStateById: entry?.taskStateById,
+        lastTaskSwitch: entry?.lastTaskSwitch,
         label: entry?.label,
         origin: snapshotSessionOrigin(entry),
         lastChannel: entry?.lastChannel,
@@ -256,6 +261,14 @@ export const sessionsHandlers: GatewayRequestHandlers = {
         outputTokens: 0,
         totalTokens: 0,
       };
+      nextEntry = applySessionTaskUpdate(nextEntry, {
+        taskId: resolveSessionTaskId({ entry: nextEntry }),
+        compactionCount: 0,
+        memoryFlushAt: undefined,
+        memoryFlushCompactionCount: undefined,
+        updatedAt: now,
+        source: "sessions.reset",
+      });
       store[primaryKey] = nextEntry;
       return nextEntry;
     });

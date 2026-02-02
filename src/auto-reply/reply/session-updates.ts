@@ -8,6 +8,7 @@ import { type SessionEntry, updateSessionStore } from "../../config/sessions.js"
 import { buildChannelSummary } from "../../infra/channel-summary.js";
 import { getRemoteSkillEligibility } from "../../infra/skills-remote.js";
 import { drainSystemEventEntries } from "../../infra/system-events.js";
+import { applySessionTaskUpdate, resolveSessionTaskView } from "../../sessions/task-context.js";
 
 export async function prependSystemEvents(params: {
   cfg: MoltbotConfig;
@@ -239,6 +240,7 @@ export async function incrementCompactionCount(params: {
   sessionEntry?: SessionEntry;
   sessionStore?: Record<string, SessionEntry>;
   sessionKey?: string;
+  taskId?: string;
   storePath?: string;
   now?: number;
   /** Token count after compaction - if provided, updates session token counts */
@@ -248,6 +250,7 @@ export async function incrementCompactionCount(params: {
     sessionEntry,
     sessionStore,
     sessionKey,
+    taskId,
     storePath,
     now = Date.now(),
     tokensAfter,
@@ -255,29 +258,51 @@ export async function incrementCompactionCount(params: {
   if (!sessionStore || !sessionKey) return undefined;
   const entry = sessionStore[sessionKey] ?? sessionEntry;
   if (!entry) return undefined;
-  const nextCount = (entry.compactionCount ?? 0) + 1;
-  // Build update payload with compaction count and optionally updated token counts
-  const updates: Partial<SessionEntry> = {
+  const taskView = resolveSessionTaskView({ entry, taskId });
+  const nextCount = taskView.compactionCount + 1;
+  const compactionUpdate: Parameters<typeof applySessionTaskUpdate>[1] = {
+    taskId: taskView.taskId,
     compactionCount: nextCount,
     updatedAt: now,
+    source: "compaction",
   };
+  if (tokensAfter != null && tokensAfter > 0) {
+    compactionUpdate.totalTokens = tokensAfter;
+  }
+  let nextEntry = applySessionTaskUpdate(entry, compactionUpdate);
   // If tokensAfter is provided, update the cached token counts to reflect post-compaction state
   if (tokensAfter != null && tokensAfter > 0) {
-    updates.totalTokens = tokensAfter;
-    // Clear input/output breakdown since we only have the total estimate after compaction
-    updates.inputTokens = undefined;
-    updates.outputTokens = undefined;
+    nextEntry = {
+      ...nextEntry,
+      totalTokens: tokensAfter,
+      // Clear input/output breakdown since we only have the total estimate after compaction
+      inputTokens: undefined,
+      outputTokens: undefined,
+    };
   }
-  sessionStore[sessionKey] = {
-    ...entry,
-    ...updates,
-  };
+  sessionStore[sessionKey] = nextEntry;
   if (storePath) {
     await updateSessionStore(storePath, (store) => {
-      store[sessionKey] = {
-        ...store[sessionKey],
-        ...updates,
+      const storeEntry = store[sessionKey] ?? entry;
+      const storeCompactionUpdate: Parameters<typeof applySessionTaskUpdate>[1] = {
+        taskId: taskView.taskId,
+        compactionCount: nextCount,
+        updatedAt: now,
+        source: "compaction",
       };
+      if (tokensAfter != null && tokensAfter > 0) {
+        storeCompactionUpdate.totalTokens = tokensAfter;
+      }
+      let updated = applySessionTaskUpdate(storeEntry, storeCompactionUpdate);
+      if (tokensAfter != null && tokensAfter > 0) {
+        updated = {
+          ...updated,
+          totalTokens: tokensAfter,
+          inputTokens: undefined,
+          outputTokens: undefined,
+        };
+      }
+      store[sessionKey] = updated;
     });
   }
   return nextCount;

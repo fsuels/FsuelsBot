@@ -112,6 +112,7 @@ export function createMoltbotCodingTools(options?: {
   messageThreadId?: string | number;
   sandbox?: SandboxContext | null;
   sessionKey?: string;
+  taskId?: string;
   agentDir?: string;
   workspaceDir?: string;
   config?: MoltbotConfig;
@@ -305,6 +306,7 @@ export function createMoltbotCodingTools(options?: {
       sandboxBrowserBridgeUrl: sandbox?.browser?.bridgeUrl,
       allowHostBrowserControl: sandbox ? sandbox.browserAllowHostControl : true,
       agentSessionKey: options?.sessionKey,
+      taskId: options?.taskId,
       agentChannel: resolveGatewayMessageChannel(options?.messageProvider),
       agentAccountId: options?.agentAccountId,
       agentTo: options?.messageTo,

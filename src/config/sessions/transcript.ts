@@ -7,6 +7,7 @@ import type { SessionEntry } from "./types.js";
 import { loadSessionStore, updateSessionStore } from "./store.js";
 import { resolveDefaultSessionStorePath, resolveSessionTranscriptPath } from "./paths.js";
 import { emitSessionTranscriptUpdate } from "../../sessions/transcript-events.js";
+import { appendTaskContextMarker, resolveSessionTaskId } from "../../sessions/task-context.js";
 
 function stripQuery(value: string): string {
   const noHash = value.split("#")[0] ?? value;
@@ -88,6 +89,7 @@ export async function appendAssistantMessageToSessionTranscript(params: {
   const store = loadSessionStore(storePath, { skipCache: true });
   const entry = store[sessionKey] as SessionEntry | undefined;
   if (!entry?.sessionId) return { ok: false, reason: `unknown sessionKey: ${sessionKey}` };
+  const taskId = resolveSessionTaskId({ entry });
 
   const sessionFile =
     entry.sessionFile?.trim() || resolveSessionTranscriptPath(entry.sessionId, params.agentId);
@@ -95,6 +97,12 @@ export async function appendAssistantMessageToSessionTranscript(params: {
   await ensureSessionHeader({ sessionFile, sessionId: entry.sessionId });
 
   const sessionManager = SessionManager.open(sessionFile);
+  appendTaskContextMarker({
+    sessionManager,
+    taskId,
+    title: entry.activeTaskTitle,
+    source: "delivery-mirror",
+  });
   sessionManager.appendMessage({
     role: "assistant",
     content: [{ type: "text", text: mirrorText }],
@@ -128,6 +136,6 @@ export async function appendAssistantMessageToSessionTranscript(params: {
     });
   }
 
-  emitSessionTranscriptUpdate(sessionFile);
+  emitSessionTranscriptUpdate({ sessionFile, taskId });
   return { ok: true, sessionFile };
 }

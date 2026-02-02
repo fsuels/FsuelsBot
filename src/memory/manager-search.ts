@@ -16,6 +16,7 @@ export type SearchRowResult = {
   score: number;
   snippet: string;
   source: SearchSource;
+  provenanceTs?: number;
 };
 
 export async function searchVector(params: {
@@ -28,6 +29,8 @@ export async function searchVector(params: {
   ensureVectorReady: (dimensions: number) => Promise<boolean>;
   sourceFilterVec: { sql: string; params: SearchSource[] };
   sourceFilterChunks: { sql: string; params: SearchSource[] };
+  pathFilterVec?: { sql: string; params: string[] };
+  pathFilterChunks?: { sql: string; params: string[] };
 }): Promise<SearchRowResult[]> {
   if (params.queryVec.length === 0 || params.limit <= 0) return [];
   if (await params.ensureVectorReady(params.queryVec.length)) {
@@ -35,10 +38,12 @@ export async function searchVector(params: {
       .prepare(
         `SELECT c.id, c.path, c.start_line, c.end_line, c.text,\n` +
           `       c.source,\n` +
+          `       COALESCE(f.mtime, c.updated_at) AS provenance_ts,\n` +
           `       vec_distance_cosine(v.embedding, ?) AS dist\n` +
           `  FROM ${params.vectorTable} v\n` +
           `  JOIN chunks c ON c.id = v.id\n` +
-          ` WHERE c.model = ?${params.sourceFilterVec.sql}\n` +
+          `  LEFT JOIN files f ON f.path = c.path AND f.source = c.source\n` +
+          ` WHERE c.model = ?${params.sourceFilterVec.sql}${params.pathFilterVec?.sql ?? ""}\n` +
           ` ORDER BY dist ASC\n` +
           ` LIMIT ?`,
       )
@@ -46,6 +51,7 @@ export async function searchVector(params: {
         vectorToBlob(params.queryVec),
         params.providerModel,
         ...params.sourceFilterVec.params,
+        ...(params.pathFilterVec?.params ?? []),
         params.limit,
       ) as Array<{
       id: string;
@@ -54,6 +60,7 @@ export async function searchVector(params: {
       end_line: number;
       text: string;
       source: SearchSource;
+      provenance_ts: number;
       dist: number;
     }>;
     return rows.map((row) => ({
@@ -64,6 +71,7 @@ export async function searchVector(params: {
       score: 1 - row.dist,
       snippet: truncateUtf16Safe(row.text, params.snippetMaxChars),
       source: row.source,
+      provenanceTs: row.provenance_ts,
     }));
   }
 
@@ -71,6 +79,7 @@ export async function searchVector(params: {
     db: params.db,
     providerModel: params.providerModel,
     sourceFilter: params.sourceFilterChunks,
+    pathFilter: params.pathFilterChunks,
   });
   const scored = candidates
     .map((chunk) => ({
@@ -89,6 +98,7 @@ export async function searchVector(params: {
       score: entry.score,
       snippet: truncateUtf16Safe(entry.chunk.text, params.snippetMaxChars),
       source: entry.chunk.source,
+      provenanceTs: entry.chunk.updatedAt,
     }));
 }
 
@@ -96,6 +106,7 @@ export function listChunks(params: {
   db: DatabaseSync;
   providerModel: string;
   sourceFilter: { sql: string; params: SearchSource[] };
+  pathFilter?: { sql: string; params: string[] };
 }): Array<{
   id: string;
   path: string;
@@ -104,14 +115,16 @@ export function listChunks(params: {
   text: string;
   embedding: number[];
   source: SearchSource;
+  updatedAt: number;
 }> {
   const rows = params.db
     .prepare(
-      `SELECT id, path, start_line, end_line, text, embedding, source\n` +
+      `SELECT id, path, start_line, end_line, text, embedding, source,\n` +
+        `       updated_at\n` +
         `  FROM chunks\n` +
-        ` WHERE model = ?${params.sourceFilter.sql}`,
+        ` WHERE model = ?${params.sourceFilter.sql}${params.pathFilter?.sql ?? ""}`,
     )
-    .all(params.providerModel, ...params.sourceFilter.params) as Array<{
+    .all(params.providerModel, ...params.sourceFilter.params, ...(params.pathFilter?.params ?? [])) as Array<{
     id: string;
     path: string;
     start_line: number;
@@ -119,6 +132,7 @@ export function listChunks(params: {
     text: string;
     embedding: string;
     source: SearchSource;
+    updated_at: number;
   }>;
 
   return rows.map((row) => ({
@@ -129,6 +143,7 @@ export function listChunks(params: {
     text: row.text,
     embedding: parseEmbedding(row.embedding),
     source: row.source,
+    updatedAt: row.updated_at,
   }));
 }
 
@@ -140,6 +155,7 @@ export async function searchKeyword(params: {
   limit: number;
   snippetMaxChars: number;
   sourceFilter: { sql: string; params: SearchSource[] };
+  pathFilter?: { sql: string; params: string[] };
   buildFtsQuery: (raw: string) => string | null;
   bm25RankToScore: (rank: number) => number;
 }): Promise<Array<SearchRowResult & { textScore: number }>> {
@@ -149,20 +165,34 @@ export async function searchKeyword(params: {
 
   const rows = params.db
     .prepare(
-      `SELECT id, path, source, start_line, end_line, text,\n` +
+      `SELECT ${params.ftsTable}.id AS id,\n` +
+        `       ${params.ftsTable}.path AS path,\n` +
+        `       ${params.ftsTable}.source AS source,\n` +
+        `       ${params.ftsTable}.start_line AS start_line,\n` +
+        `       ${params.ftsTable}.end_line AS end_line,\n` +
+        `       ${params.ftsTable}.text AS text,\n` +
+        `       COALESCE(f.mtime, 0) AS provenance_ts,\n` +
         `       bm25(${params.ftsTable}) AS rank\n` +
         `  FROM ${params.ftsTable}\n` +
-        ` WHERE ${params.ftsTable} MATCH ? AND model = ?${params.sourceFilter.sql}\n` +
+        `  LEFT JOIN files f ON f.path = ${params.ftsTable}.path AND f.source = ${params.ftsTable}.source\n` +
+        ` WHERE ${params.ftsTable} MATCH ? AND model = ?${params.sourceFilter.sql}${params.pathFilter?.sql ?? ""}\n` +
         ` ORDER BY rank ASC\n` +
         ` LIMIT ?`,
     )
-    .all(ftsQuery, params.providerModel, ...params.sourceFilter.params, params.limit) as Array<{
+    .all(
+      ftsQuery,
+      params.providerModel,
+      ...params.sourceFilter.params,
+      ...(params.pathFilter?.params ?? []),
+      params.limit,
+    ) as Array<{
     id: string;
     path: string;
     source: SearchSource;
     start_line: number;
     end_line: number;
     text: string;
+    provenance_ts: number;
     rank: number;
   }>;
 
@@ -177,6 +207,7 @@ export async function searchKeyword(params: {
       textScore,
       snippet: truncateUtf16Safe(row.text, params.snippetMaxChars),
       source: row.source,
+      provenanceTs: row.provenance_ts,
     };
   });
 }

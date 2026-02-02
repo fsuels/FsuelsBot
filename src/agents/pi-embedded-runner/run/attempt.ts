@@ -83,6 +83,11 @@ import { buildTtsSystemPromptHint } from "../../../tts/tts.js";
 import { isTimeoutError } from "../../failover-error.js";
 import { getGlobalHookRunner } from "../../../plugins/hook-runner-global.js";
 import { MAX_IMAGE_BYTES } from "../../../media/constants.js";
+import {
+  appendTaskContextMarker,
+  resolveSessionTaskId,
+  resolveTaskScopedHistoryMessages,
+} from "../../../sessions/task-context.js";
 import type { EmbeddedRunAttemptParams, EmbeddedRunAttemptResult } from "./types.js";
 import { detectAndLoadPromptImages } from "./images.js";
 
@@ -220,6 +225,7 @@ export async function runEmbeddedAttempt(
           senderUsername: params.senderUsername,
           senderE164: params.senderE164,
           sessionKey: params.sessionKey ?? params.sessionId,
+          taskId: params.taskId,
           agentDir,
           workspaceDir: effectiveWorkspace,
           config: params.config,
@@ -401,11 +407,13 @@ export async function runEmbeddedAttempt(
         provider: params.provider,
         modelId: params.modelId,
       });
+      const activeTaskId = resolveSessionTaskId({ fallbackTaskId: params.taskId });
 
       await prewarmSessionFile(params.sessionFile);
       sessionManager = guardSessionManager(SessionManager.open(params.sessionFile), {
         agentId: sessionAgentId,
         sessionKey: params.sessionKey,
+        taskId: activeTaskId,
         allowSyntheticToolResults: transcriptPolicy.allowSyntheticToolResults,
       });
       trackSessionManagerAccess(params.sessionFile);
@@ -416,6 +424,12 @@ export async function runEmbeddedAttempt(
         hadSessionFile,
         sessionId: params.sessionId,
         cwd: effectiveWorkspace,
+      });
+      appendTaskContextMarker({
+        sessionManager,
+        taskId: activeTaskId,
+        title: params.taskTitle,
+        source: "run",
       });
 
       const settingsManager = SettingsManager.create(effectiveWorkspace, agentDir);
@@ -515,8 +529,12 @@ export async function runEmbeddedAttempt(
       }
 
       try {
+        const history = resolveTaskScopedHistoryMessages({
+          sessionManager,
+          taskId: activeTaskId,
+        });
         const prior = await sanitizeSessionHistory({
-          messages: activeSession.messages,
+          messages: history.messages,
           modelApi: params.model.api,
           modelId: params.modelId,
           provider: params.provider,
@@ -536,9 +554,7 @@ export async function runEmbeddedAttempt(
           getDmHistoryLimitFromSessionKey(params.sessionKey, params.config),
         );
         cacheTrace?.recordStage("session:limited", { messages: limited });
-        if (limited.length > 0) {
-          activeSession.agent.replaceMessages(limited);
-        }
+        activeSession.agent.replaceMessages(limited);
       } catch (err) {
         sessionManager.flushPendingToolResults?.();
         activeSession.dispose();

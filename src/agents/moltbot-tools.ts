@@ -23,6 +23,7 @@ export function createMoltbotTools(options?: {
   sandboxBrowserBridgeUrl?: string;
   allowHostBrowserControl?: boolean;
   agentSessionKey?: string;
+  taskId?: string;
   agentChannel?: GatewayMessageChannel;
   agentAccountId?: string;
   /** Delivery target (e.g. telegram:group:123:topic:456) for topic/thread routing. */
@@ -149,6 +150,7 @@ export function createMoltbotTools(options?: {
         config: options?.config,
       }),
       sessionKey: options?.agentSessionKey,
+      taskId: options?.taskId,
       messageChannel: options?.agentChannel,
       agentAccountId: options?.agentAccountId,
       sandboxed: options?.sandboxed,

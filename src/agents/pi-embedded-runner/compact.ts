@@ -69,10 +69,17 @@ import type { EmbeddedPiCompactResult } from "./types.js";
 import { formatUserTime, resolveUserTimeFormat, resolveUserTimezone } from "../date-time.js";
 import { describeUnknownError, mapThinkingLevel, resolveExecToolDefaults } from "./utils.js";
 import { buildTtsSystemPromptHint } from "../../tts/tts.js";
+import {
+  appendTaskContextMarker,
+  resolveSessionTaskId,
+  resolveTaskScopedHistoryMessages,
+} from "../../sessions/task-context.js";
 
 export type CompactEmbeddedPiSessionParams = {
   sessionId: string;
   sessionKey?: string;
+  taskId?: string;
+  taskTitle?: string;
   messageChannel?: string;
   messageProvider?: string;
   agentAccountId?: string;
@@ -220,6 +227,7 @@ export async function compactEmbeddedPiSessionDirect(
       messageProvider: params.messageChannel ?? params.messageProvider,
       agentAccountId: params.agentAccountId,
       sessionKey: params.sessionKey ?? params.sessionId,
+      taskId: params.taskId,
       groupId: params.groupId,
       groupChannel: params.groupChannel,
       groupSpace: params.groupSpace,
@@ -359,12 +367,20 @@ export async function compactEmbeddedPiSessionDirect(
         provider,
         modelId,
       });
+      const activeTaskId = resolveSessionTaskId({ fallbackTaskId: params.taskId });
       const sessionManager = guardSessionManager(SessionManager.open(params.sessionFile), {
         agentId: sessionAgentId,
         sessionKey: params.sessionKey,
+        taskId: activeTaskId,
         allowSyntheticToolResults: transcriptPolicy.allowSyntheticToolResults,
       });
       trackSessionManagerAccess(params.sessionFile);
+      appendTaskContextMarker({
+        sessionManager,
+        taskId: activeTaskId,
+        title: params.taskTitle,
+        source: "compact",
+      });
       const settingsManager = SettingsManager.create(effectiveWorkspace, agentDir);
       ensurePiCompactionReserveTokens({
         settingsManager,
@@ -402,8 +418,12 @@ export async function compactEmbeddedPiSessionDirect(
       }));
 
       try {
+        const history = resolveTaskScopedHistoryMessages({
+          sessionManager,
+          taskId: activeTaskId,
+        });
         const prior = await sanitizeSessionHistory({
-          messages: session.messages,
+          messages: history.messages,
           modelApi: model.api,
           modelId,
           provider,
@@ -421,9 +441,7 @@ export async function compactEmbeddedPiSessionDirect(
           validated,
           getDmHistoryLimitFromSessionKey(params.sessionKey, params.config),
         );
-        if (limited.length > 0) {
-          session.agent.replaceMessages(limited);
-        }
+        session.agent.replaceMessages(limited);
         const result = await session.compact(params.customInstructions);
         // Estimate tokens after compaction by summing token estimates for remaining messages
         let tokensAfter: number | undefined;

@@ -61,6 +61,7 @@ export type MoltbotPluginToolContext = {
   agentDir?: string;
   agentId?: string;
   sessionKey?: string;
+  taskId?: string;
   messageChannel?: string;
   agentAccountId?: string;
   sandboxed?: boolean;

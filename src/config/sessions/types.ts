@@ -23,6 +23,23 @@ export type SessionOrigin = {
   threadId?: string | number;
 };
 
+export type SessionTaskState = {
+  status?: "active" | "paused" | "completed" | "archived";
+  title?: string;
+  updatedAt: number;
+  compactionCount?: number;
+  totalTokens?: number;
+  memoryFlushAt?: number;
+  memoryFlushCompactionCount?: number;
+};
+
+export type SessionTaskSwitchAudit = {
+  fromTaskId?: string;
+  toTaskId: string;
+  switchedAt: number;
+  source?: string;
+};
+
 export type SessionEntry = {
   /**
    * Last delivered heartbeat payload (used to suppress duplicate heartbeat notifications).
@@ -54,6 +71,10 @@ export type SessionEntry = {
   authProfileOverride?: string;
   authProfileOverrideSource?: "auto" | "user";
   authProfileOverrideCompactionCount?: number;
+  activeTaskId?: string;
+  activeTaskTitle?: string;
+  taskStateById?: Record<string, SessionTaskState>;
+  lastTaskSwitch?: SessionTaskSwitchAudit;
   groupActivation?: "mention" | "always";
   groupActivationNeedsSystemIntro?: boolean;
   sendPolicy?: "allow" | "deny";
