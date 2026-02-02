@@ -1,5 +1,5 @@
 {
-    "version": 1,
+    "version": 2,
     "created": "2026-01-31",
     "review_date": "2026-02-07",
     "predictions": [
@@ -27,8 +27,8 @@
             "prediction": "Will reject proposals requiring upfront capital",
             "confidence": "MEDIUM",
             "rationale": "Cash tight, rental income helps but not flush",
-            "score": null,
-            "scored_at": null
+            "score": 5,
+            "scored_at": "2026-02-02T05:47:45.036211+00:00"
         },
         {
             "id": "P4",
@@ -140,9 +140,9 @@
         }
     ],
     "stats": {
-        "correct": 0,
+        "correct": 1,
         "wrong": 0,
-        "pending": 15
+        "pending": 14
     },
     "game": {
         "streak": 0,

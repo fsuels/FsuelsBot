@@ -1137,6 +1137,149 @@ body {
   padding: 14px;
   margin-bottom: 16px;
 }
+/* Agent Squad Panel - Always Visible */
+.agent-squad-panel {
+  background: rgba(13, 17, 23, 0.8);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 16px;
+  backdrop-filter: blur(10px);
+}
+.squad-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.squad-header .lane-title {
+  color: #a78bfa;
+}
+.squad-status {
+  font-size: 12px;
+  color: #6e7681;
+  padding: 4px 10px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+}
+.squad-status.working {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.1);
+}
+.squad-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+@media (max-width: 900px) {
+  .squad-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 600px) {
+  .squad-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.squad-agent {
+  background: rgba(22, 27, 34, 0.6);
+  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.squad-agent:hover {
+  border-color: rgba(139, 92, 246, 0.3);
+  transform: translateY(-2px);
+}
+.squad-agent.working {
+  border-color: rgba(74, 222, 128, 0.4);
+  background: linear-gradient(135deg, rgba(74, 222, 128, 0.05) 0%, rgba(22, 27, 34, 0.6) 100%);
+  box-shadow: 0 0 20px rgba(74, 222, 128, 0.1);
+}
+.squad-agent-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+.squad-agent-info {
+  flex: 1;
+  min-width: 0;
+}
+.squad-agent-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e6edf3;
+  margin-bottom: 4px;
+}
+.squad-agent-status {
+  font-size: 11px;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.squad-agent-status.idle {
+  color: #6e7681;
+}
+.squad-agent-status.working {
+  color: #4ade80;
+}
+.squad-agent-status.completed {
+  color: #60a5fa;
+}
+.squad-agent-task {
+  font-size: 11px;
+  color: #8b949e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.squad-agent-task a {
+  color: #60a5fa;
+  text-decoration: none;
+}
+.squad-agent-task a:hover {
+  text-decoration: underline;
+}
+
+/* Agent Modal Tabs */
+.agent-tab {
+  padding: 8px 16px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  color: #8b949e;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.agent-tab:hover {
+  background: rgba(255,255,255,0.1);
+  color: #c9d1d9;
+}
+.agent-tab.active {
+  background: rgba(139,92,246,0.2);
+  border-color: rgba(139,92,246,0.4);
+  color: #a78bfa;
+}
+#agentProfile h1, #agentProfile h2, #agentProfile h3 {
+  color: #a78bfa;
+  margin-top: 16px;
+  margin-bottom: 8px;
+}
+#agentProfile h1 { font-size: 18px; }
+#agentProfile h2 { font-size: 15px; }
+#agentProfile h3 { font-size: 13px; }
+#agentProfile code {
+  background: rgba(139,92,246,0.15);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #c9a0ff;
+}
+#agentProfile strong {
+  color: #e6edf3;
+}
+
 .parallel-header {
   display: flex;
   align-items: center;
@@ -1446,6 +1589,36 @@ body {
   </div>
 </div>
 
+<!-- Agent Profile Modal -->
+<div class="modal-overlay" id="agentModal" onclick="closeAgentModal(event)">
+  <div class="modal" style="max-width:700px;max-height:85vh;" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="agentModalTitle">🔬 Research Agent</div>
+        <div class="modal-id" id="agentModalFile">agents/research-agent.md</div>
+      </div>
+      <button class="modal-close" onclick="closeAgentModal()">&times;</button>
+    </div>
+    <div class="modal-body" style="padding:0;">
+      <div style="display:flex;gap:8px;padding:16px;border-bottom:1px solid rgba(255,255,255,0.06);">
+        <button id="agentViewBtn" onclick="setAgentView('view')" class="agent-tab active">📖 View Profile</button>
+        <button id="agentEditBtn" onclick="setAgentView('edit')" class="agent-tab">✏️ Edit Rules</button>
+        <button id="agentTasksBtn" onclick="setAgentView('tasks')" class="agent-tab">📋 Tasks</button>
+      </div>
+      <div id="agentViewContent" style="padding:16px;max-height:55vh;overflow-y:auto;">
+        <div id="agentProfile" style="font-family:'SF Mono','Fira Code',monospace;font-size:12px;line-height:1.6;white-space:pre-wrap;color:#c9d1d9;"></div>
+      </div>
+      <div id="agentEditContent" style="padding:16px;display:none;">
+        <textarea id="agentEditArea" style="width:100%;height:400px;background:#0d1117;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px;font-family:'SF Mono','Fira Code',monospace;font-size:12px;color:#c9d1d9;resize:vertical;"></textarea>
+        <button onclick="saveAgentProfile()" style="margin-top:12px;padding:10px 20px;background:linear-gradient(135deg,#238636,#2ea043);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;">💾 Save Changes</button>
+      </div>
+      <div id="agentTasksContent" style="padding:16px;display:none;">
+        <div id="agentTasksList" style="font-size:13px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="container">
   <div class="header">
     <h1><span class="live-dot" id="liveDot"></span> Mission Control</h1>
@@ -1470,7 +1643,57 @@ body {
     <span class="deadline-days" id="deadlineDays">-- days</span>
   </div>
 
-  <!-- Parallel Execution Panel -->
+  <!-- Agent Squad Panel - ALWAYS VISIBLE -->
+  <div class="agent-squad-panel" id="agentSquadPanel">
+    <div class="squad-header">
+      <span class="lane-title">🏢 Agent Squad</span>
+      <span class="squad-status" id="squadStatus">All Idle</span>
+    </div>
+    <div class="squad-grid" id="squadGrid">
+      <div class="squad-agent" id="agent-research" data-agent="research" onclick="openAgentModal('research')" title="Click to view Research Agent profile">
+        <div class="squad-agent-icon">🔬</div>
+        <div class="squad-agent-info">
+          <div class="squad-agent-name">Research</div>
+          <div class="squad-agent-status idle">Idle</div>
+          <div class="squad-agent-task" id="research-task">—</div>
+        </div>
+      </div>
+      <div class="squad-agent" id="agent-content" data-agent="content" onclick="openAgentModal('content')" title="Click to view Content Agent profile">
+        <div class="squad-agent-icon">✍️</div>
+        <div class="squad-agent-info">
+          <div class="squad-agent-name">Content</div>
+          <div class="squad-agent-status idle">Idle</div>
+          <div class="squad-agent-task" id="content-task">—</div>
+        </div>
+      </div>
+      <div class="squad-agent" id="agent-audit" data-agent="audit" onclick="openAgentModal('audit')" title="Click to view Audit Agent profile">
+        <div class="squad-agent-icon">🔍</div>
+        <div class="squad-agent-info">
+          <div class="squad-agent-name">Audit</div>
+          <div class="squad-agent-status idle">Idle</div>
+          <div class="squad-agent-task" id="audit-task">—</div>
+        </div>
+      </div>
+      <div class="squad-agent" id="agent-analytics" data-agent="analytics" onclick="openAgentModal('analytics')" title="Click to view Analytics Agent profile">
+        <div class="squad-agent-icon">📊</div>
+        <div class="squad-agent-info">
+          <div class="squad-agent-name">Analytics</div>
+          <div class="squad-agent-status idle">Idle</div>
+          <div class="squad-agent-task" id="analytics-task">—</div>
+        </div>
+      </div>
+      <div class="squad-agent" id="agent-code" data-agent="code" onclick="openAgentModal('code')" title="Click to view Code Agent profile">
+        <div class="squad-agent-icon">💻</div>
+        <div class="squad-agent-info">
+          <div class="squad-agent-name">Code</div>
+          <div class="squad-agent-status idle">Idle</div>
+          <div class="squad-agent-task" id="code-task">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Parallel Execution Panel (legacy - hidden if no active) -->
   <div class="parallel-panel" id="parallelPanel" style="display:none;">
     <div class="parallel-header">
       <span class="lane-title">🔄 Parallel Execution <span class="lane-count" id="activeAgentCount">0</span></span>
@@ -1782,9 +2005,78 @@ async function loadTaskBoard() {
 
     document.getElementById('lastUpdate').textContent = 'Updated: ' + new Date().toLocaleTimeString();
 
+    // Update Agent Squad panel
+    updateAgentSquad(tasks, lanes);
+    
   } catch(e) {
     console.error('Failed to load tasks:', e);
     document.getElementById('botCurrentTasks').innerHTML = '<div style="color:#f85149;">Failed to load tasks.json</div>';
+  }
+}
+
+// Update Agent Squad panel based on claimed tasks and sessions
+function updateAgentSquad(tasks, lanes) {
+  const agents = ['research', 'content', 'audit', 'analytics', 'code'];
+  let workingCount = 0;
+  
+  // Find tasks claimed by each agent type
+  const agentTasks = {};
+  agents.forEach(a => agentTasks[a] = null);
+  
+  // Check bot_current and bot_queue for claimed or required_agent tasks
+  const activeLanes = [...(lanes.bot_current || []), ...(lanes.bot_queue || [])];
+  
+  activeLanes.forEach(taskId => {
+    const task = tasks[taskId];
+    if (!task) return;
+    
+    // Check if claimed by a specific agent
+    if (task.claimed_by && task.claimed_by.specialty) {
+      const specialty = task.claimed_by.specialty;
+      if (agents.includes(specialty) && !agentTasks[specialty]) {
+        agentTasks[specialty] = { id: taskId, title: task.title, status: 'working' };
+      }
+    }
+    // Or check required_agent on active tasks
+    else if (task.required_agent && agents.includes(task.required_agent)) {
+      const specialty = task.required_agent;
+      if (!agentTasks[specialty] && task.status === 'in_progress') {
+        agentTasks[specialty] = { id: taskId, title: task.title, status: 'working' };
+      }
+    }
+  });
+  
+  // Update UI for each agent
+  agents.forEach(agentType => {
+    const el = document.getElementById(`agent-${agentType}`);
+    const taskEl = document.getElementById(`${agentType}-task`);
+    const statusEl = el.querySelector('.squad-agent-status');
+    
+    if (agentTasks[agentType]) {
+      const task = agentTasks[agentType];
+      el.classList.add('working');
+      el.classList.remove('idle');
+      statusEl.textContent = 'Working';
+      statusEl.className = 'squad-agent-status working';
+      taskEl.innerHTML = `<a href="#" onclick="showTaskDetail('${task.id}');return false;">${task.id}</a>: ${task.title.substring(0, 25)}...`;
+      workingCount++;
+    } else {
+      el.classList.remove('working');
+      el.classList.add('idle');
+      statusEl.textContent = 'Idle';
+      statusEl.className = 'squad-agent-status idle';
+      taskEl.textContent = '—';
+    }
+  });
+  
+  // Update squad status badge
+  const statusEl = document.getElementById('squadStatus');
+  if (workingCount > 0) {
+    statusEl.textContent = `${workingCount} Working`;
+    statusEl.classList.add('working');
+  } else {
+    statusEl.textContent = 'All Idle';
+    statusEl.classList.remove('working');
   }
 }
 
@@ -3403,6 +3695,127 @@ function getClaimedBadge(task) {
   if (!task.claimed_by || !task.claimed_by.agent_name) return '';
   const emoji = getSpecialtyEmoji(task.claimed_by.specialty);
   return `<span class="claimed-badge">${emoji} ${task.claimed_by.agent_name}</span>`;
+}
+
+// ============ AGENT PROFILE MODAL ============
+const agentConfig = {
+  research: { name: 'Research Agent', emoji: '🔬', file: 'agents/research-agent.md' },
+  content: { name: 'Content Agent', emoji: '✍️', file: 'agents/content-agent.md' },
+  audit: { name: 'Audit Agent', emoji: '🔍', file: 'agents/audit-agent.md' },
+  analytics: { name: 'Analytics Agent', emoji: '📊', file: 'agents/analytics-agent.md' },
+  code: { name: 'Code Agent', emoji: '💻', file: 'agents/code-agent.md' }
+};
+
+let currentAgentType = null;
+let currentAgentContent = '';
+
+async function openAgentModal(agentType) {
+  const config = agentConfig[agentType];
+  if (!config) return;
+  
+  currentAgentType = agentType;
+  document.getElementById('agentModalTitle').textContent = `${config.emoji} ${config.name}`;
+  document.getElementById('agentModalFile').textContent = config.file;
+  document.getElementById('agentProfile').innerHTML = '<div style="color:#8b949e;">Loading agent profile...</div>';
+  document.getElementById('agentModal').classList.add('active');
+  setAgentView('view');
+  
+  try {
+    const resp = await fetch('/api/agent-profile?agent=' + agentType + '&t=' + Date.now());
+    const data = await resp.json();
+    
+    if (data.error) {
+      document.getElementById('agentProfile').innerHTML = `<div style="color:#f85149;">Error: ${data.error}</div>`;
+      return;
+    }
+    
+    currentAgentContent = data.content || '';
+    // Simple markdown rendering
+    const html = renderMarkdown(currentAgentContent);
+    document.getElementById('agentProfile').innerHTML = html;
+    document.getElementById('agentEditArea').value = currentAgentContent;
+    
+    // Load agent's tasks
+    loadAgentTasks(agentType);
+    
+  } catch(e) {
+    document.getElementById('agentProfile').innerHTML = `<div style="color:#f85149;">Failed to load: ${e.message}</div>`;
+  }
+}
+
+function closeAgentModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('agentModal').classList.remove('active');
+  currentAgentType = null;
+}
+
+function setAgentView(view) {
+  document.querySelectorAll('.agent-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('agentViewContent').style.display = view === 'view' ? 'block' : 'none';
+  document.getElementById('agentEditContent').style.display = view === 'edit' ? 'block' : 'none';
+  document.getElementById('agentTasksContent').style.display = view === 'tasks' ? 'block' : 'none';
+  
+  if (view === 'view') document.getElementById('agentViewBtn').classList.add('active');
+  if (view === 'edit') document.getElementById('agentEditBtn').classList.add('active');
+  if (view === 'tasks') document.getElementById('agentTasksBtn').classList.add('active');
+}
+
+function renderMarkdown(md) {
+  // Basic markdown → HTML
+  return md
+    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/^- (.+)$/gm, '• $1')
+    .replace(/\n\n/g, '<br><br>')
+    .replace(/\n/g, '<br>');
+}
+
+function loadAgentTasks(agentType) {
+  const tasksList = document.getElementById('agentTasksList');
+  const tasks = Object.entries(allTasks || {}).filter(([id, task]) => {
+    return task.required_agent === agentType || 
+           (task.claimed_by && task.claimed_by.specialty === agentType);
+  });
+  
+  if (tasks.length === 0) {
+    tasksList.innerHTML = '<div style="color:#8b949e;">No tasks assigned to this agent</div>';
+    return;
+  }
+  
+  tasksList.innerHTML = tasks.map(([id, task]) => {
+    const status = task.status === 'in_progress' ? '🟢' : task.status === 'done' ? '✅' : '⏳';
+    return `<div style="padding:8px;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;" onclick="showTaskDetail('${id}')">
+      ${status} <strong>${id}</strong>: ${task.title}
+    </div>`;
+  }).join('');
+}
+
+async function saveAgentProfile() {
+  const content = document.getElementById('agentEditArea').value;
+  if (!currentAgentType || !content) return;
+  
+  try {
+    const resp = await fetch('/api/agent-profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agent: currentAgentType, content: content })
+    });
+    const data = await resp.json();
+    
+    if (data.ok) {
+      alert('✅ Agent profile saved!');
+      currentAgentContent = content;
+      document.getElementById('agentProfile').innerHTML = renderMarkdown(content);
+      setAgentView('view');
+    } else {
+      alert('❌ Save failed: ' + (data.error || 'Unknown error'));
+    }
+  } catch(e) {
+    alert('❌ Save failed: ' + e.message);
+  }
 }
 </script>
 </body>

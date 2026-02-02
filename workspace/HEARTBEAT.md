@@ -44,6 +44,14 @@ EVERY action I take
 ## Combined Heartbeat Checks (MANDATORY — 4x faster than old method)
 Run EVERY heartbeat: `powershell -ExecutionPolicy Bypass -File "C:\dev\FsuelsBot\workspace\scripts\heartbeat-checks.ps1" -Quiet`
 
+## Tasks.json Integrity (BEFORE ANY WRITE)
+**RULE:** Before ANY modification to tasks.json, validate integrity:
+```powershell
+powershell -ExecutionPolicy Bypass -File "scripts/validate-tasks-integrity.ps1"
+```
+If validation fails, DO NOT WRITE. Alert Francisco immediately.
+**Root cause (2026-02-01):** Lane arrays referenced task IDs without definitions = corruption.
+
 This single script performs ALL of the following in ~700ms (vs 3s+ for individual scripts):
 - ✅ Updates health state (last-healthy-state.json)
 - ✅ Checks Mission Control is running (port 8765)

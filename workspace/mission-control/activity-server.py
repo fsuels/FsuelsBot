@@ -528,6 +528,48 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
 
         path = self.path.split('?')[0]
         
+        # Agent profile API - POST to save agent MD file
+        if path == '/api/agent-profile':
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            try:
+                data = json.loads(body) if body else {}
+            except:
+                data = {}
+            
+            agent_type = data.get('agent')
+            content = data.get('content')
+            
+            agent_files = {
+                'research': 'agents/research-agent.md',
+                'content': 'agents/content-agent.md',
+                'audit': 'agents/audit-agent.md',
+                'analytics': 'agents/analytics-agent.md',
+                'code': 'agents/code-agent.md'
+            }
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            
+            if not agent_type or agent_type not in agent_files:
+                self.wfile.write(json.dumps({"error": f"Invalid agent type: {agent_type}"}).encode())
+                return
+            
+            if not content:
+                self.wfile.write(json.dumps({"error": "Content required"}).encode())
+                return
+            
+            agent_path = os.path.join(WORKSPACE_DIR, agent_files[agent_type])
+            try:
+                with open(agent_path, 'w', encoding='utf-8') as f:
+                    f.write(content)
+                self.wfile.write(json.dumps({"ok": True, "message": "Agent profile saved"}).encode())
+            except Exception as e:
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
+            return
+        
         if path == '/api/delete-cron':
             # Read request body
             content_length = int(self.headers.get('Content-Length', 0))
@@ -1723,6 +1765,40 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
             memory_health = check_memory_health()
             self.wfile.write(json.dumps(memory_health, indent=2, ensure_ascii=False).encode('utf-8'))
+            return
+        
+        # Agent profile API - GET to read agent MD file
+        if path.startswith('/api/agent-profile'):
+            query = parse_qs(urlparse(self.path).query)
+            agent_type = query.get('agent', [None])[0]
+            
+            agent_files = {
+                'research': 'agents/research-agent.md',
+                'content': 'agents/content-agent.md',
+                'audit': 'agents/audit-agent.md',
+                'analytics': 'agents/analytics-agent.md',
+                'code': 'agents/code-agent.md'
+            }
+            
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            
+            if not agent_type or agent_type not in agent_files:
+                self.wfile.write(json.dumps({"error": f"Invalid agent type: {agent_type}"}).encode())
+                return
+            
+            agent_path = os.path.join(WORKSPACE_DIR, agent_files[agent_type])
+            try:
+                if os.path.exists(agent_path):
+                    with open(agent_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    self.wfile.write(json.dumps({"ok": True, "content": content, "path": agent_files[agent_type]}).encode())
+                else:
+                    self.wfile.write(json.dumps({"error": f"Agent file not found: {agent_files[agent_type]}"}).encode())
+            except Exception as e:
+                self.wfile.write(json.dumps({"error": str(e)}).encode())
             return
         
         if path == '/api/backlog':

@@ -8,12 +8,12 @@ This folder is home. Treat it that way.
   AUDIT LOG: memory/events.jsonl (append-only)
   This section is a RENDER - always update state.json first, then re-render here
 -->
-**Last updated:** 2026-02-01 05:45 EST | **Version:** 154
+**Last updated:** 2026-02-01 05:42 EST | **Version:** 155
 
-**Current task:** T215 - Close Anthropic Best Practice Gaps (Hooks, MCP, Plan Mode)
-**Status:** 🔄 IN PROGRESS (2/3 complete)
-**Context:** Implementing 3 gaps from Anthropic's official best practices. Plan Mode ✅, MCP researched ✅, Hooks building.
-**Next step:** Await hooks-builder completion
+**Current task:** None - Awaiting next task
+**Status:** ⏸️ IDLE
+**Context:** T215 complete. Agent Squad panel added to Mission Control. Francisco asked for team visibility - delivered. All sub-agents finished.
+**Next step:** Activate agents (assign them work) when Francisco confirms
 
 **✅ COMPLETED THIS SESSION:**
 | Task | Result |
@@ -24,52 +24,40 @@ This folder is home. Treat it that way.
 | T212 | ✅ COMPLETE - Multi-agent architecture with all 5 components |
 | X Article 3 | ✅ Analyzed @ethanjrowland on Anthropic's AI playbook - validates our architecture |
 | Plan Mode (Gap #3) | ✅ 6-phase planning for complex tasks, complexity scoring |
-| MCP Research (Gap #2) | ✅ Documented servers. Note: MCP for Claude Desktop - need direct API skills for Clawdbot |
+| MCP Research (Gap #2) | ✅ Documented servers. MCP for Claude Desktop - need direct API skills for Clawdbot |
+| T215 Hooks (Gap #1) | ✅ 5 deterministic hooks: pre-commit-lint, post-edit-test, protected-folders, context-checkpoint |
+| Agent Squad UI | ✅ Added 🏢 Agent Squad panel to Mission Control showing all 5 specialists |
+| Tasks.json integrity | ✅ Created validate-tasks-integrity.ps1 to prevent corruption |
 
-**🔄 SUB-AGENTS RUNNING:**
-| Label | Task | Status |
-|-------|------|--------|
-| hooks-builder | Deterministic hooks (pre-commit, post-edit, protected) | 🟢 RUNNING |
+**🔄 SUB-AGENTS RUNNING:** None
 
-**📁 T212 ARTIFACTS (Multi-Agent System):**
-- `procedures/peer-review.md` — Peer review before task completion
-- `procedures/backlog-generator.md` — Self-generating backlog (6 sources)
-- `procedures/task-claim-pool.md` — Priority scoring + task claiming
-- `procedures/plan-mode.md` — 6-phase planning for complex tasks
-- `agents/PROTOCOL.md` — Inter-agent communication protocol
-- `agents/SQUAD.md` — Specialist agent roster
-- `agents/*.md` — 5 agent profiles (Research, Content, Audit, Analytics, Code)
-- `scripts/backlog-generator.py` — Daily backlog scan script
-- `scripts/task-claim-pool.py` — Priority calculation + claiming
-- `memory/agent-inbox/` — Shared inbox for agent handoffs
-- `mission-control/index.html` — Task search + priority badges + parallel execution
+**📁 ARTIFACTS CREATED THIS SESSION:**
+- `agents/*.md` (7 files) — Agent profiles + protocol
+- `procedures/plan-mode.md` — 6-phase planning
+- `procedures/peer-review.md` — Mandatory review before done
+- `procedures/task-claim-pool.md` — Priority scoring
+- `procedures/backlog-generator.md` — Auto-generate tasks
+- `scripts/backlog-generator.py` — 6-source scanner
+- `scripts/task-claim-pool.py` — Priority + claiming
+- `scripts/validate-tasks-integrity.ps1` — Corruption prevention
+- `.claude/hooks/*.cjs` (5 files) — Deterministic hooks
+- `mission-control/index.html` — Agent Squad panel added
 
 **⚠️ WAITING ON HUMAN:**
 - T174 Step 4: Send DMs from @GhostBrokerAI
 - T174 Step 5: Post on Moltbook Discord
 - Tawk.to: Click Agent Message color box, enter #6366f1, Save
+- Confirm: Activate agent squad (assign them work)?
 
 **📋 TASK BOARD:** `memory/tasks.json`
 
-**🔄 COMPACTION CHECKPOINT:** 2026-02-01 05:45 EST - T215 in progress (2/3 gaps closed). Plan Mode ✅ (procedures/plan-mode.md). MCP researched ✅ (note: MCP is for Claude Desktop, Clawdbot needs direct API skills). Hooks-builder sub-agent still running. T212 multi-agent architecture complete with all 5 components.
+**🔄 COMPACTION CHECKPOINT:** 2026-02-01 05:42 EST - T215 COMPLETE (all 3 Anthropic gaps closed). Agent Squad panel added to Mission Control per Francisco's request. Tasks.json integrity validator created. All sub-agents finished. Ready to activate agents when Francisco confirms.
 
-**📌 NEW RULES THIS SESSION:**
-- **TASK ID IN EVERY RESPONSE** — When discussing any task, ALWAYS include the task ID (T174, T211, etc.) so Francisco can search in Mission Control
-- **INBOX FIRST** — When Francisco shares a link/file → IMMEDIATELY save to `memory/inbox.md` with timestamp BEFORE any analysis. Survives compaction.
-- **VERIFY BEFORE DONE** — For EVERY task: (1) Do the work, (2) VERIFY it actually worked (screenshot/test/check live), (3) ONLY THEN report done. Evidence or it didn't happen.
-- **INSTANT ACK** — Respond to Francisco's messages IMMEDIATELY, no delay
-- **POST WORKFLOW** — Post immediately → Create verification task with full text + link in human queue
-- **REACT FIRST** — On every message from Francisco, react ⚡ immediately BEFORE processing
-- **NO VANITY METRICS** — Real improvements only, not commit counts or round numbers
-
-**📌 NEW RULES THIS SESSION:**
-- **TASK ID IN EVERY RESPONSE** — When discussing any task, ALWAYS include the task ID (T174, T211, etc.) so Francisco can search in Mission Control
-- **INBOX FIRST** — When Francisco shares a link/file → IMMEDIATELY save to `memory/inbox.md` with timestamp BEFORE any analysis. Survives compaction.
-- **VERIFY BEFORE DONE** — For EVERY task: (1) Do the work, (2) VERIFY it actually worked (screenshot/test/check live), (3) ONLY THEN report done. Evidence or it didn't happen.
-- **INSTANT ACK** — Respond to Francisco's messages IMMEDIATELY, no delay
-- **POST WORKFLOW** — Post immediately → Create verification task with full text + link in human queue
-- **REACT FIRST** — On every message from Francisco, react ⚡ immediately BEFORE processing
-- **NO VANITY METRICS** — Real improvements only, not commit counts or round numbers
+**📌 KEY RULES:**
+- **TASK ID IN EVERY RESPONSE** — Include task ID so Francisco can search in Mission Control
+- **VALIDATE tasks.json BEFORE ANY WRITE** — Run scripts/validate-tasks-integrity.ps1
+- **MISSION CONTROL ALWAYS OPEN** — Tab 1, never close
+- **INBOX FIRST** — Save links/files to inbox.md BEFORE analysis
 
 **Standing rules:**
 - **🔴 VERIFY EVERY TASK** — Do the work → VERIFY it worked (screenshot/test/live check) → ONLY THEN claim done. No exceptions.

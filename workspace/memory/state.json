@@ -1,13 +1,13 @@
 {
-  "version": 154,
-  "updated_at": "2026-02-01T05:45:00.000Z",
+  "version": 155,
+  "updated_at": "2026-02-01T10:42:00.000Z",
   "updated_by": "bot",
   "current_task": {
-    "id": "T215",
-    "title": "Close Anthropic Best Practice Gaps (Hooks, MCP, Plan Mode)",
-    "status": "in_progress",
-    "context": "Implementing 3 gaps from Anthropic's official best practices. Plan Mode ✅, MCP researched ✅, Hooks building. Mission Control always-open rule enforced.",
-    "next_step": "Await hooks-builder completion"
+    "id": null,
+    "title": "Awaiting next task",
+    "status": "idle",
+    "context": "T215 complete. Agent Squad panel added to Mission Control. Francisco asked for team visibility - delivered. All sub-agents finished.",
+    "next_step": "Activate agents (assign them work) when Francisco confirms"
   },
   "completed_this_session": [
     {"task": "CRON-20260201-index-rebuild", "result": "Weekly index rebuild - 102 events, 6 open loops, CI HEALTHY"},
@@ -16,20 +16,33 @@
     {"task": "T212", "result": "COMPLETE - Multi-agent architecture with all 5 components"},
     {"task": "X Article 3", "result": "Analyzed @ethanjrowland on Anthropic's AI playbook - validates our architecture"},
     {"task": "Plan Mode (Gap #3)", "result": "6-phase planning for complex tasks, complexity scoring"},
-    {"task": "MCP Research (Gap #2)", "result": "Documented Shopify/Supabase/GA servers. Note: MCP for Claude Desktop, not Clawdbot - need direct API skills"}
+    {"task": "MCP Research (Gap #2)", "result": "Documented servers. MCP for Claude Desktop - need direct API skills for Clawdbot"},
+    {"task": "T215 Hooks (Gap #1)", "result": "5 deterministic hooks: pre-commit-lint, post-edit-test, protected-folders, context-checkpoint"},
+    {"task": "Agent Squad UI", "result": "Added 🏢 Agent Squad panel to Mission Control showing all 5 specialists"},
+    {"task": "Tasks.json integrity", "result": "Created validate-tasks-integrity.ps1 to prevent corruption"}
   ],
   "waiting_on_human": [
     "T174 Step 4: Send DMs from @GhostBrokerAI",
     "T174 Step 5: Post on Moltbook Discord",
-    "Tawk.to: Click Agent Message color box, enter #6366f1, Save"
+    "Tawk.to: Click Agent Message color box, enter #6366f1, Save",
+    "Confirm: Activate agent squad (assign them work)?"
   ],
-  "sub_agents_running": [
-    {"label": "hooks-builder", "task": "Deterministic hooks (pre-commit, post-edit, protected folders)"}
+  "sub_agents_running": [],
+  "artifacts_created": [
+    "agents/*.md (7 files) - Agent profiles + protocol",
+    "procedures/plan-mode.md - 6-phase planning",
+    "procedures/peer-review.md - Mandatory review before done",
+    "procedures/task-claim-pool.md - Priority scoring",
+    "procedures/backlog-generator.md - Auto-generate tasks",
+    "scripts/backlog-generator.py - 6-source scanner",
+    "scripts/task-claim-pool.py - Priority + claiming",
+    "scripts/validate-tasks-integrity.ps1 - Corruption prevention",
+    ".claude/hooks/*.cjs (5 files) - Deterministic hooks",
+    "mission-control/index.html - Agent Squad panel added"
   ],
-  "browser_rule": "Mission Control (localhost:8765) ALWAYS open in Tab 1 - NEVER close",
   "key_rules": [
     "TASK ID IN EVERY RESPONSE",
-    "NO HUMAN TIME LIMITS - machine speed",
+    "VALIDATE tasks.json BEFORE ANY WRITE",
     "MISSION CONTROL ALWAYS OPEN in Tab 1",
     "INBOX FIRST before analysis"
   ]

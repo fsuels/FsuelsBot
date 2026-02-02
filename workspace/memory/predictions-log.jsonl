@@ -1,1 +1,2 @@
 {"date": "2026-01-31", "event": "system_created", "predictions_count": 15, "note": "Predictions system launched. Francisco will score with ✓/✗ in Mission Control."}
+{"date": "2026-02-02", "time": "05:47:45", "event": "score", "prediction_id": "P3", "score": 5, "stats": {"correct": 1, "wrong": 0, "pending": 14}, "game": {"streak": 1, "best_streak": 1, "today_scored": 1, "total_scored": 1, "accuracy": 100, "last_play_date": "2026-02-02", "level": 1, "xp": 10, "bot_score": 5.0, "human_score": 0, "total_rating_sum": 5, "blind_spots_found": 0}}
