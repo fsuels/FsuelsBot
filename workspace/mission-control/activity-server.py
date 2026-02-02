@@ -17,7 +17,12 @@ from urllib.parse import urlparse, parse_qs
 PORT = 8765
 LOG_DIR = r"\tmp\clawdbot"
 DASHBOARD_DIR = os.path.dirname(os.path.abspath(__file__))
-DASHBOARD_KEY = os.environ.get("DASHBOARD_KEY", "a6132abf77194fd10a77317a094771f1")
+BIND_HOST = os.environ.get("DASHBOARD_BIND", "127.0.0.1")
+DASHBOARD_KEY = os.environ.get("DASHBOARD_KEY", "").strip()
+_generated_dashboard_key = False
+if not DASHBOARD_KEY:
+    DASHBOARD_KEY = secrets.token_hex(32)
+    _generated_dashboard_key = True
 
 # Session tokens for wifi auth
 _valid_sessions = {}
@@ -47,6 +52,22 @@ activity_state = {
 
 CURRENT_TASK_FILE = os.path.join(DASHBOARD_DIR, "current-task.json")
 WORKSPACE_DIR = os.path.dirname(DASHBOARD_DIR)  # Parent of mission-control
+WORKSPACE_PATH = Path(WORKSPACE_DIR).resolve()
+
+
+def resolve_workspace_path(relative_path):
+    """Resolve a workspace-relative path and reject traversal attempts."""
+    if not isinstance(relative_path, str) or not relative_path.strip():
+        return None
+    try:
+        candidate = (WORKSPACE_PATH / relative_path).resolve()
+    except Exception:
+        return None
+    try:
+        candidate.relative_to(WORKSPACE_PATH)
+    except ValueError:
+        return None
+    return candidate
 
 def check_memory_health():
     """Check memory system integrity"""
@@ -788,10 +809,8 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                 return
             
             # Security: only allow reading from workspace
-            full_path = os.path.join(WORKSPACE_DIR, file_path)
-            full_path = os.path.normpath(full_path)
-            
-            if not full_path.startswith(WORKSPACE_DIR):
+            resolved_path = resolve_workspace_path(file_path)
+            if resolved_path is None:
                 self.send_response(403)
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()
@@ -799,8 +818,8 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                 return
             
             try:
-                if os.path.exists(full_path):
-                    with open(full_path, 'r', encoding='utf-8') as f:
+                if resolved_path.exists():
+                    with resolved_path.open('r', encoding='utf-8') as f:
                         content = f.read()
                     
                     # Limit size for safety
@@ -1966,13 +1985,17 @@ def main():
     # Start log tailer thread
     tailer = threading.Thread(target=tail_log, daemon=True)
     tailer.start()
+    dashboard_host = "localhost" if BIND_HOST in ("127.0.0.1", "::1") else BIND_HOST
     print(f"Activity server starting on port {PORT}")
-    print(f"Dashboard: http://localhost:{PORT}")
-    print(f"Activity API: http://localhost:{PORT}/api/activity")
-    print(f"LAN: http://192.168.4.25:{PORT}")
+    print(f"Dashboard: http://{dashboard_host}:{PORT}")
+    print(f"Activity API: http://{dashboard_host}:{PORT}/api/activity")
+    if _generated_dashboard_key:
+        print("DASHBOARD_KEY not set; generated an ephemeral key for this process.")
+    if BIND_HOST in ("0.0.0.0", "::"):
+        print(f"LAN access URL: http://<host-ip>:{PORT}/?key={DASHBOARD_KEY}")
     
-    server = http.server.HTTPServer(('0.0.0.0', PORT), ActivityHandler)
-    server.allow_reuse_address = True
+    http.server.HTTPServer.allow_reuse_address = True
+    server = http.server.HTTPServer((BIND_HOST, PORT), ActivityHandler)
     print("Server bound and listening...")
     try:
         server.serve_forever()

@@ -78,8 +78,13 @@ async function dockerImageExists(image: string): Promise<boolean> {
   try {
     await runExec("docker", ["image", "inspect", image], { timeoutMs: 5_000 });
     return true;
-  } catch (error: any) {
-    const stderr = error?.stderr || error?.message || "";
+  } catch (error: unknown) {
+    const stderr =
+      typeof error === "object" && error !== null && "stderr" in error
+        ? String((error as { stderr?: unknown }).stderr ?? "")
+        : error instanceof Error
+          ? error.message
+          : String(error);
     if (String(stderr).includes("No such image")) {
       return false;
     }
@@ -97,49 +102,10 @@ function resolveSandboxBrowserImage(cfg: MoltbotConfig): string {
   return image ? image : DEFAULT_SANDBOX_BROWSER_IMAGE;
 }
 
-function updateSandboxDockerImage(cfg: MoltbotConfig, image: string): MoltbotConfig {
-  return {
-    ...cfg,
-    agents: {
-      ...cfg.agents,
-      defaults: {
-        ...cfg.agents?.defaults,
-        sandbox: {
-          ...cfg.agents?.defaults?.sandbox,
-          docker: {
-            ...cfg.agents?.defaults?.sandbox?.docker,
-            image,
-          },
-        },
-      },
-    },
-  };
-}
-
-function updateSandboxBrowserImage(cfg: MoltbotConfig, image: string): MoltbotConfig {
-  return {
-    ...cfg,
-    agents: {
-      ...cfg.agents,
-      defaults: {
-        ...cfg.agents?.defaults,
-        sandbox: {
-          ...cfg.agents?.defaults?.sandbox,
-          browser: {
-            ...cfg.agents?.defaults?.sandbox?.browser,
-            image,
-          },
-        },
-      },
-    },
-  };
-}
-
 type SandboxImageCheck = {
   label: string;
   image: string;
   buildScript?: string;
-  updateConfig: (image: string) => void;
 };
 
 async function handleMissingSandboxImage(
@@ -184,9 +150,6 @@ export async function maybeRepairSandboxImages(
     return cfg;
   }
 
-  let next = cfg;
-  const changes: string[] = [];
-
   const dockerImage = resolveSandboxDockerImage(cfg);
   await handleMissingSandboxImage(
     {
@@ -198,10 +161,6 @@ export async function maybeRepairSandboxImages(
           : dockerImage === DEFAULT_SANDBOX_IMAGE
             ? "scripts/sandbox-setup.sh"
             : undefined,
-      updateConfig: (image) => {
-        next = updateSandboxDockerImage(next, image);
-        changes.push(`Updated agents.defaults.sandbox.docker.image → ${image}`);
-      },
     },
     runtime,
     prompter,
@@ -213,21 +172,13 @@ export async function maybeRepairSandboxImages(
         label: "browser",
         image: resolveSandboxBrowserImage(cfg),
         buildScript: "scripts/sandbox-browser-setup.sh",
-        updateConfig: (image) => {
-          next = updateSandboxBrowserImage(next, image);
-          changes.push(`Updated agents.defaults.sandbox.browser.image → ${image}`);
-        },
       },
       runtime,
       prompter,
     );
   }
 
-  if (changes.length > 0) {
-    note(changes.join("\n"), "Doctor changes");
-  }
-
-  return next;
+  return cfg;
 }
 
 export function noteSandboxScopeWarnings(cfg: MoltbotConfig) {

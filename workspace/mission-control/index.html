@@ -1847,6 +1847,33 @@ const laneExpanded = {
   humanTasks: false
 };
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function escapeJsString(value) {
+  return String(value ?? '')
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/\r/g, '\\r')
+    .replace(/\n/g, '\\n')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+}
+
+function escapeCssClass(value) {
+  return String(value ?? '').replace(/[^a-zA-Z0-9_-]/g, '');
+}
+
+function buildSafeDomId(prefix, value) {
+  return `${prefix}-${String(value ?? '').replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+}
+
 // Toggle lane expand/collapse and re-render
 function toggleLane(laneId) {
   laneExpanded[laneId] = !laneExpanded[laneId];
@@ -1986,10 +2013,10 @@ async function loadTaskBoard() {
         const deletedDate = t.deleted_at ? new Date(t.deleted_at).toLocaleDateString() : '';
         return `
           <div class="trash-item">
-            <span class="trash-item-title">${t.title}</span>
-            <span class="trash-item-date">${deletedDate}</span>
-            <button class="restore-btn" onclick="restoreTask('${id}')">↩ Restore</button>
-            <button class="perma-delete-btn" onclick="permanentDelete('${id}')" title="Delete forever">✕</button>
+            <span class="trash-item-title">${escapeHtml(t.title)}</span>
+            <span class="trash-item-date">${escapeHtml(deletedDate)}</span>
+            <button class="restore-btn" onclick="restoreTask('${escapeJsString(id)}')">↩ Restore</button>
+            <button class="perma-delete-btn" onclick="permanentDelete('${escapeJsString(id)}')" title="Delete forever">✕</button>
           </div>
         `;
       }).join('');
@@ -2058,7 +2085,10 @@ function updateAgentSquad(tasks, lanes) {
       el.classList.remove('idle');
       statusEl.textContent = 'Working';
       statusEl.className = 'squad-agent-status working';
-      taskEl.innerHTML = `<a href="#" onclick="showTaskDetail('${task.id}');return false;">${task.id}</a>: ${task.title.substring(0, 25)}...`;
+      const safeTaskId = escapeJsString(task.id);
+      const safeTaskLabel = escapeHtml(task.id);
+      const safeTitle = escapeHtml((task.title || '').substring(0, 25));
+      taskEl.innerHTML = `<a href="#" onclick="showTaskDetail('${safeTaskId}');return false;">${safeTaskLabel}</a>: ${safeTitle}...`;
       workingCount++;
     } else {
       el.classList.remove('working');
@@ -2081,8 +2111,6 @@ function updateAgentSquad(tasks, lanes) {
 }
 
 // Load actual cron jobs from Clawdbot gateway
-let allCronJobs = {}; // Store for modal access
-
 async function loadCronJobs() {
   const container = document.getElementById('scheduledTasks');
   try {
@@ -2090,7 +2118,7 @@ async function loadCronJobs() {
     const data = await resp.json();
     
     if (data.error && !data.jobs?.length) {
-      container.innerHTML = `<div style="color:#f85149;font-size:11px;">Error: ${data.error}</div>`;
+      container.innerHTML = `<div style="color:#f85149;font-size:11px;">Error: ${escapeHtml(data.error)}</div>`;
       return;
     }
     
@@ -2099,9 +2127,6 @@ async function loadCronJobs() {
       container.innerHTML = '<div style="color:#8b949e;">No cron jobs configured</div>';
       return;
     }
-    
-    // Store for modal access
-    jobs.forEach(j => { allCronJobs[j.id] = j; });
     
     // Format next run time nicely
     function formatNextRun(nextRunMs) {
@@ -2123,15 +2148,15 @@ async function loadCronJobs() {
     }
     
     container.innerHTML = jobs.filter(j => j.enabled).map(job => `
-      <div class="scheduled-item" onclick="showCronDetail('${job.id}')" title="${job.description || job.name}">
+      <div class="scheduled-item" onclick="showCronDetail('${escapeJsString(job.id)}')" title="${escapeHtml(job.description || job.name || '')}">
         <div class="scheduled-content">
-          <div class="scheduled-id">${job.id}</div>
-          <div class="scheduled-title">${job.name}</div>
-          <div class="scheduled-time">⏰ ${job.schedule}</div>
+          <div class="scheduled-id">${escapeHtml(job.id)}</div>
+          <div class="scheduled-title">${escapeHtml(job.name || '')}</div>
+          <div class="scheduled-time">⏰ ${escapeHtml(job.schedule || '')}</div>
           <div class="scheduled-next">Next: ${formatNextRun(job.nextRunMs)}</div>
           ${formatLastRun(job.lastRunMs, job.lastStatus)}
         </div>
-        <button class="delete-btn scheduled-delete" onclick="event.stopPropagation(); deleteCronJob('${job.id}')" title="Delete">✕</button>
+        <button class="delete-btn scheduled-delete" onclick="event.stopPropagation(); deleteCronJob('${escapeJsString(job.id)}')" title="Delete">✕</button>
       </div>
     `).join('');
     
@@ -2139,53 +2164,6 @@ async function loadCronJobs() {
     console.error('Failed to load cron jobs:', e);
     container.innerHTML = '<div style="color:#f85149;font-size:11px;">Failed to load cron jobs</div>';
   }
-}
-
-// Show cron job detail modal
-function showCronDetail(id) {
-  const job = allCronJobs[id];
-  if (!job) return;
-  
-  document.getElementById('cronModalTitle').textContent = job.name;
-  document.getElementById('cronModalId').textContent = job.id;
-  document.getElementById('cronSummary').innerHTML = `
-    <p><strong>Description:</strong> ${job.description || 'No description'}</p>
-    <p><strong>What it does:</strong> ${job.payload || 'Not specified'}</p>
-  `;
-  document.getElementById('cronSchedule').value = job.schedule || '';
-  
-  // Set next run datetime
-  if (job.nextRunMs) {
-    const dt = new Date(job.nextRunMs);
-    document.getElementById('cronNextRun').value = dt.toISOString().slice(0, 16);
-  }
-  
-  // Show audit trail
-  let auditHtml = '<div class="modal-section"><div class="modal-label">📊 Audit Trail</div><div class="modal-content">';
-  if (job.lastRunMs) {
-    const lastDt = new Date(job.lastRunMs);
-    auditHtml += `<p>Last run: ${lastDt.toLocaleString()} — Status: ${job.lastStatus === 'ok' ? '✅ OK' : '❌ Failed'}</p>`;
-  } else {
-    auditHtml += '<p>Never run yet</p>';
-  }
-  auditHtml += '</div></div>';
-  
-  // Insert audit section before the save button
-  const saveSection = document.querySelector('#cronModal .modal-section:last-child');
-  let existingAudit = document.getElementById('cronAuditSection');
-  if (existingAudit) existingAudit.remove();
-  
-  const auditDiv = document.createElement('div');
-  auditDiv.id = 'cronAuditSection';
-  auditDiv.innerHTML = auditHtml;
-  saveSection.parentNode.insertBefore(auditDiv, saveSection);
-  
-  document.getElementById('cronModal').classList.add('active');
-}
-
-function closeCronModal(e) {
-  if (e && e.target !== e.currentTarget) return;
-  document.getElementById('cronModal').classList.remove('active');
 }
 
 async function deleteCronJob(id) {
@@ -2196,8 +2174,12 @@ async function deleteCronJob(id) {
 }
 
 function renderTask(id, task, statusClass, badge, queueInfo) {
-  const planLink = task.plan ? `<span class="task-plan">📄 ${task.plan.split('/').pop()}</span>` : '';
-  const estimate = task.estimate ? `<span class="task-estimate">⏱ ${task.estimate}</span>` : '';
+  const safeId = escapeJsString(id);
+  const safeIdLabel = escapeHtml(id);
+  const safeTitle = escapeHtml(task.title || '');
+  const planName = task.plan ? String(task.plan).split('/').pop() : '';
+  const planLink = planName ? `<span class="task-plan">📄 ${escapeHtml(planName)}</span>` : '';
+  const estimate = task.estimate ? `<span class="task-estimate">⏱ ${escapeHtml(task.estimate)}</span>` : '';
   
   // Priority and claim badges for pool system
   const priorityBadge = getPriorityBadge(task);
@@ -2209,7 +2191,8 @@ function renderTask(id, task, statusClass, badge, queueInfo) {
   let specialtyBadge = '';
   if (task.required_agent && task.required_agent !== 'general') {
     const emoji = getSpecialtyEmoji(task.required_agent);
-    specialtyBadge = `<span class="specialty-badge ${task.required_agent}" style="font-size:9px;padding:2px 6px;">${emoji}</span>`;
+    const specialtyClass = escapeCssClass(task.required_agent);
+    specialtyBadge = `<span class="specialty-badge ${specialtyClass}" style="font-size:9px;padding:2px 6px;">${emoji}</span>`;
   }
 
   // Epistemic verification status badge
@@ -2231,7 +2214,7 @@ function renderTask(id, task, statusClass, badge, queueInfo) {
   if (task.needs_verification) {
     badgeHtml = `<span class="task-estimate" style="background:#7c3aed;color:#fff;">🔍 VERIFY</span>`;
   } else if (badge) {
-    badgeHtml = `<span class="task-estimate" style="background:#238636;color:#fff;">${badge}</span>`;
+    badgeHtml = `<span class="task-estimate" style="background:#238636;color:#fff;">${escapeHtml(badge)}</span>`;
   }
 
   // Step progress indicator
@@ -2261,18 +2244,18 @@ function renderTask(id, task, statusClass, badge, queueInfo) {
 
   // Mark Complete button for human tasks
   const completeBtn = statusClass === 'human-task'
-    ? `<button class="complete-btn" onclick="event.stopPropagation(); requestComplete('${id}', this)">✓ Mark Complete</button>`
+    ? `<button class="complete-btn" onclick="event.stopPropagation(); requestComplete('${safeId}', this)">✓ Mark Complete</button>`
     : '';
 
   // Transfer buttons - move between lanes
   let transferBtn = '';
   if (statusClass === 'human-task') {
-    transferBtn = `<button class="transfer-btn" onclick="event.stopPropagation(); transferTask('${id}', 'human', 'bot_queue')" title="Move to Bot Queue">🤖←</button>`;
+    transferBtn = `<button class="transfer-btn" onclick="event.stopPropagation(); transferTask('${safeId}', 'human', 'bot_queue')" title="Move to Bot Queue">🤖←</button>`;
   } else if (statusClass === 'in-progress') {
     // Pause button - move from Working back to Queue
-    transferBtn = `<button class="transfer-btn pause-btn" onclick="event.stopPropagation(); transferTask('${id}', 'bot_current', 'bot_queue')" title="Pause - Move back to Queue">❚❚</button>`;
+    transferBtn = `<button class="transfer-btn pause-btn" onclick="event.stopPropagation(); transferTask('${safeId}', 'bot_current', 'bot_queue')" title="Pause - Move back to Queue">❚❚</button>`;
   } else if (queueInfo) {
-    transferBtn = `<button class="transfer-btn" onclick="event.stopPropagation(); transferTask('${id}', 'bot_queue', 'human')" title="Move to Human Tasks">→👤</button>`;
+    transferBtn = `<button class="transfer-btn" onclick="event.stopPropagation(); transferTask('${safeId}', 'bot_queue', 'human')" title="Move to Human Tasks">→👤</button>`;
   }
 
   // Reorder buttons for queue tasks
@@ -2282,14 +2265,14 @@ function renderTask(id, task, statusClass, badge, queueInfo) {
     const downDisabled = queueInfo.index === queueInfo.total - 1 ? 'disabled' : '';
     reorderBtns = `
       <div class="reorder-controls">
-        <button class="reorder-btn" ${upDisabled} onclick="event.stopPropagation(); reorderTask('${id}', 'up')" title="Move up">▲</button>
-        <button class="reorder-btn" ${downDisabled} onclick="event.stopPropagation(); reorderTask('${id}', 'down')" title="Move down">▼</button>
+        <button class="reorder-btn" ${upDisabled} onclick="event.stopPropagation(); reorderTask('${safeId}', 'up')" title="Move up">▲</button>
+        <button class="reorder-btn" ${downDisabled} onclick="event.stopPropagation(); reorderTask('${safeId}', 'down')" title="Move down">▼</button>
       </div>
     `;
   }
 
   // Delete button for all tasks
-  const deleteBtn = `<button class="delete-btn" onclick="event.stopPropagation(); deleteTask('${id}', event)" title="Remove task">✕</button>`;
+  const deleteBtn = `<button class="delete-btn" onclick="event.stopPropagation(); deleteTask('${safeId}', event)" title="Remove task">✕</button>`;
 
   // Build toolbar with all action buttons
   let toolbar = '';
@@ -2299,9 +2282,9 @@ function renderTask(id, task, statusClass, badge, queueInfo) {
   }
 
   return `
-    <div class="task-item ${statusClass}${claimedClass}" onclick="showTaskDetail('${id}')">
-      <div class="task-id" onclick="event.stopPropagation(); askAboutTask('${id}')" title="Click to ask about this task">${id}</div>
-      <div class="task-title-text">${task.title}</div>
+    <div class="task-item ${statusClass}${claimedClass}" onclick="showTaskDetail('${safeId}')">
+      <div class="task-id" onclick="event.stopPropagation(); askAboutTask('${safeId}')" title="Click to ask about this task">${safeIdLabel}</div>
+      <div class="task-title-text">${safeTitle}</div>
       <div class="task-meta">
         ${priorityBadge}
         ${specialtyBadge}
@@ -2344,6 +2327,8 @@ async function askAboutTask(taskId) {
 function showTaskDetail(id) {
   const task = allTasks[id];
   if (!task) return;
+  const safeTaskId = escapeJsString(id);
+  const html = escapeHtml;
 
   document.getElementById('modalTitle').textContent = task.title;
   document.getElementById('modalId').textContent = id;
@@ -2362,32 +2347,32 @@ function showTaskDetail(id) {
     // Why it exists (priority display for cron tasks)
     if (task.context.why_exists) {
       contextHtml += '<div style="margin-bottom:12px;padding:10px;background:rgba(136,192,208,0.15);border-radius:6px;border-left:3px solid #88c0d0;">';
-      contextHtml += '<strong>❓ Why This Exists:</strong><br>' + task.context.why_exists;
+      contextHtml += '<strong>❓ Why This Exists:</strong><br>' + html(task.context.why_exists);
       contextHtml += '</div>';
     }
 
     // Benefit to you (priority display for cron tasks)
     if (task.context.benefit_to_you) {
       contextHtml += '<div style="margin-bottom:12px;padding:10px;background:rgba(163,190,140,0.15);border-radius:6px;border-left:3px solid #a3be8c;">';
-      contextHtml += '<strong>✅ Benefit To You:</strong><br>' + task.context.benefit_to_you;
+      contextHtml += '<strong>✅ Benefit To You:</strong><br>' + html(task.context.benefit_to_you);
       contextHtml += '</div>';
     }
 
     // Schedule if present
     if (task.context.schedule) {
-      contextHtml += '<div style="margin-bottom:12px;font-size:13px;"><strong>⏰ Schedule:</strong> ' + task.context.schedule + '</div>';
+      contextHtml += '<div style="margin-bottom:12px;font-size:13px;"><strong>⏰ Schedule:</strong> ' + html(task.context.schedule) + '</div>';
     }
 
     // Summary (fallback or additional)
     if (task.context.summary && !task.context.why_exists) {
-      contextHtml += task.context.summary;
+      contextHtml += html(task.context.summary);
     }
 
     // Add decisions if present
     if (task.context.decisions && task.context.decisions.length > 0) {
       contextHtml += '<div style="margin-top:12px;font-size:12px;"><strong>Key Decisions:</strong><ul style="margin:4px 0 0 16px;">';
       task.context.decisions.forEach(d => {
-        contextHtml += '<li>' + d + '</li>';
+        contextHtml += '<li>' + html(d) + '</li>';
       });
       contextHtml += '</ul></div>';
     }
@@ -2395,7 +2380,7 @@ function showTaskDetail(id) {
     if (task.context.constraints && task.context.constraints.length > 0) {
       contextHtml += '<div style="margin-top:8px;font-size:12px;"><strong>Constraints:</strong><ul style="margin:4px 0 0 16px;">';
       task.context.constraints.forEach(c => {
-        contextHtml += '<li>' + c + '</li>';
+        contextHtml += '<li>' + html(c) + '</li>';
       });
       contextHtml += '</ul></div>';
     }
@@ -2423,21 +2408,21 @@ function showTaskDetail(id) {
     // Claims vs Verified
     if (task.epistemic && task.epistemic.claims) {
       epiHtml += '<div style="margin-bottom:8px;"><strong style="color:#fbbf24;">📋 Claims:</strong><ul style="margin:4px 0 0 16px;font-size:12px;">';
-      task.epistemic.claims.forEach(c => { epiHtml += '<li>' + c + '</li>'; });
+      task.epistemic.claims.forEach(c => { epiHtml += '<li>' + html(c) + '</li>'; });
       epiHtml += '</ul></div>';
     }
     if (task.epistemic && task.epistemic.verified && task.epistemic.verified.length > 0) {
       epiHtml += '<div style="margin-bottom:8px;"><strong style="color:#4ade80;">✅ Verified:</strong><ul style="margin:4px 0 0 16px;font-size:12px;">';
-      task.epistemic.verified.forEach(v => { epiHtml += '<li>' + v + '</li>'; });
+      task.epistemic.verified.forEach(v => { epiHtml += '<li>' + html(v) + '</li>'; });
       epiHtml += '</ul></div>';
     }
     
     // Outcome
     if (task.outcome) {
       epiHtml += '<div style="margin-top:12px;padding:10px;background:rgba(96,165,250,0.1);border-radius:6px;border-left:3px solid #60a5fa;">';
-      if (task.outcome.intended_effect) epiHtml += '<div style="font-size:12px;"><strong>🎯 Intended:</strong> ' + task.outcome.intended_effect + '</div>';
-      if (task.outcome.success_metric) epiHtml += '<div style="font-size:12px;margin-top:4px;"><strong>📏 Metric:</strong> ' + task.outcome.success_metric + '</div>';
-      if (task.outcome.measured_effect) epiHtml += '<div style="font-size:12px;margin-top:4px;"><strong>📊 Measured:</strong> ' + task.outcome.measured_effect + '</div>';
+      if (task.outcome.intended_effect) epiHtml += '<div style="font-size:12px;"><strong>🎯 Intended:</strong> ' + html(task.outcome.intended_effect) + '</div>';
+      if (task.outcome.success_metric) epiHtml += '<div style="font-size:12px;margin-top:4px;"><strong>📏 Metric:</strong> ' + html(task.outcome.success_metric) + '</div>';
+      if (task.outcome.measured_effect) epiHtml += '<div style="font-size:12px;margin-top:4px;"><strong>📊 Measured:</strong> ' + html(task.outcome.measured_effect) + '</div>';
       if (task.outcome.success !== null && task.outcome.success !== undefined) {
         const successIcon = task.outcome.success === true ? '✅' : task.outcome.success === 'partial' ? '⚠️' : '❌';
         epiHtml += '<div style="font-size:12px;margin-top:4px;"><strong>Result:</strong> ' + successIcon + '</div>';
@@ -2476,9 +2461,9 @@ function showTaskDetail(id) {
       }
       const isCurrent = idx === currentStep && step.status !== 'done';
       const border = isCurrent ? 'border: 1px solid ' + color + ';' : '';
-      let stepInfo = step.step;
+      let stepInfo = html(step.step || '');
       if (step.waiting_for) {
-        stepInfo += '<div style="font-size:11px;color:#d29922;margin-top:4px;">⏳ Waiting for: ' + step.waiting_for + '</div>';
+        stepInfo += '<div style="font-size:11px;color:#d29922;margin-top:4px;">⏳ Waiting for: ' + html(step.waiting_for) + '</div>';
       }
       if (step.completed_at) {
         const completedTime = new Date(step.completed_at).toLocaleString();
@@ -2528,19 +2513,19 @@ function showTaskDetail(id) {
   if (task.learnings) {
     let learningsHtml = '';
     if (task.learnings.question) {
-      learningsHtml += '<div style="margin-bottom:12px;"><strong>Question:</strong> ' + task.learnings.question + '</div>';
+      learningsHtml += '<div style="margin-bottom:12px;"><strong>Question:</strong> ' + html(task.learnings.question) + '</div>';
     }
     if (task.learnings.verdict) {
-      learningsHtml += '<div style="margin-bottom:12px;padding:10px;background:rgba(163,113,247,0.15);border-radius:6px;border-left:3px solid #a371f7;"><strong>Verdict:</strong> ' + task.learnings.verdict + '</div>';
+      learningsHtml += '<div style="margin-bottom:12px;padding:10px;background:rgba(163,113,247,0.15);border-radius:6px;border-left:3px solid #a371f7;"><strong>Verdict:</strong> ' + html(task.learnings.verdict) + '</div>';
     }
     if (task.learnings.outcomes && task.learnings.outcomes.length > 0) {
       learningsHtml += '<div style="margin-bottom:8px;"><strong>Outcomes:</strong><ul style="margin:4px 0 0 16px;">';
-      task.learnings.outcomes.forEach(function(o) { learningsHtml += '<li>' + o + '</li>'; });
+      task.learnings.outcomes.forEach(function(o) { learningsHtml += '<li>' + html(o) + '</li>'; });
       learningsHtml += '</ul></div>';
     }
     if (task.learnings.actionsTaken && task.learnings.actionsTaken.length > 0) {
       learningsHtml += '<div><strong>Actions Taken:</strong><ul style="margin:4px 0 0 16px;">';
-      task.learnings.actionsTaken.forEach(function(a) { learningsHtml += '<li>' + a + '</li>'; });
+      task.learnings.actionsTaken.forEach(function(a) { learningsHtml += '<li>' + html(a) + '</li>'; });
       learningsHtml += '</ul></div>';
     }
     document.getElementById('modalLearnings').innerHTML = learningsHtml;
@@ -2552,8 +2537,9 @@ function showTaskDetail(id) {
   // Plan link
   const planSection = document.getElementById('modalPlanSection');
   if (task.plan) {
-    document.getElementById('modalPlanLink').href = '../' + task.plan;
-    document.getElementById('modalPlanName').textContent = task.plan;
+    const planPath = String(task.plan);
+    document.getElementById('modalPlanLink').href = '../' + encodeURI(planPath);
+    document.getElementById('modalPlanName').textContent = planPath;
     planSection.style.display = 'block';
   } else {
     planSection.style.display = 'none';
@@ -2608,11 +2594,11 @@ function showTaskDetail(id) {
           <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
             <span style="font-weight:500;">${authorIcon} ${authorName}</span>
             <div style="display:flex;align-items:center;gap:8px;">
-              <span style="font-size:11px;color:#8b949e;">${time}</span>
-              <button onclick="toggleCrossOut('${id}', ${idx})" title="${btnTitle}" style="background:none;border:none;cursor:pointer;font-size:12px;opacity:0.6;padding:2px 4px;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">${btnText}</button>
+              <span style="font-size:11px;color:#8b949e;">${html(time || '')}</span>
+              <button onclick="toggleCrossOut('${safeTaskId}', ${idx})" title="${html(btnTitle)}" style="background:none;border:none;cursor:pointer;font-size:12px;opacity:0.6;padding:2px 4px;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">${btnText}</button>
             </div>
           </div>
-          <div style="font-size:13px;white-space:pre-wrap;">${msg.message}</div>
+          <div style="font-size:13px;white-space:pre-wrap;">${html(msg.message || '')}</div>
         </div>
       `;
     });
@@ -2786,13 +2772,16 @@ async function getScenario(category) {
     const data = await resp.json();
     if (data.scenario) {
       currentScenarioData = data;
-      document.getElementById('scenarioText').innerHTML = data.scenario;
-      document.getElementById('botPrediction').innerHTML = '🤖 <strong>My prediction:</strong> ' + data.prediction;
+      document.getElementById('scenarioText').textContent = data.scenario;
+      document.getElementById('botPrediction').innerHTML =
+        '🤖 <strong>My prediction:</strong> ' + escapeHtml(data.prediction);
     } else if (data.error) {
-      document.getElementById('scenarioText').innerHTML = '<em style="color:#f87171;">Error: ' + data.error + '</em>';
+      document.getElementById('scenarioText').innerHTML =
+        '<em style="color:#f87171;">Error: ' + escapeHtml(data.error) + '</em>';
     }
   } catch (e) {
-    document.getElementById('scenarioText').innerHTML = '<em style="color:#f87171;">Failed: ' + e.message + '. Try refreshing the page.</em>';
+    document.getElementById('scenarioText').innerHTML =
+      '<em style="color:#f87171;">Failed: ' + escapeHtml(e.message) + '. Try refreshing the page.</em>';
   }
 }
 
@@ -2854,10 +2843,10 @@ async function loadQAHistory() {
       const stars = '★'.repeat(e.score || 0) + '☆'.repeat(5 - (e.score || 0));
       html += `
         <div class="qa-history-item">
-          <div class="category">${e.category || 'general'}</div>
-          <div class="question">${e.scenario || ''}</div>
-          <div class="prediction">🤖 Predicted: ${e.prediction || ''}</div>
-          <div class="answer">✅ You said: ${e.answer || ''}</div>
+          <div class="category">${escapeHtml(e.category || 'general')}</div>
+          <div class="question">${escapeHtml(e.scenario || '')}</div>
+          <div class="prediction">🤖 Predicted: ${escapeHtml(e.prediction || '')}</div>
+          <div class="answer">✅ You said: ${escapeHtml(e.answer || '')}</div>
           <div class="score">Score: ${stars}</div>
         </div>
       `;
@@ -2934,29 +2923,32 @@ function renderPredictions() {
   for (const [cat, items] of Object.entries(byCategory)) {
     if (items.length === 0) continue;
     const catEmoji = cat === 'priority' ? '🎯' : cat === 'behavior' ? '⏰' : '🧭';
-    html += `<div style="grid-column:1/-1;font-size:11px;color:#8b949e;text-transform:uppercase;margin-top:8px;">${catEmoji} ${cat}</div>`;
+    html += `<div style="grid-column:1/-1;font-size:11px;color:#8b949e;text-transform:uppercase;margin-top:8px;">${catEmoji} ${escapeHtml(cat)}</div>`;
     items.forEach(p => {
       const scoreClass = p.score ? `scored-${p.score}` : '';
+      const confidenceClass = escapeCssClass(p.confidence);
+      const safePredId = escapeJsString(p.id);
+      const feedbackInputId = buildSafeDomId('feedback', p.id);
       html += `
         <div class="prediction-card ${scoreClass}">
           <div class="prediction-header">
-            <span class="prediction-id">${p.id}</span>
-            <span class="prediction-confidence ${p.confidence}">${p.confidence}</span>
+            <span class="prediction-id">${escapeHtml(p.id)}</span>
+            <span class="prediction-confidence ${confidenceClass}">${escapeHtml(p.confidence)}</span>
           </div>
-          <div class="prediction-text">${p.prediction}</div>
-          <div class="prediction-rationale">${p.rationale}</div>
+          <div class="prediction-text">${escapeHtml(p.prediction)}</div>
+          <div class="prediction-rationale">${escapeHtml(p.rationale)}</div>
           <div class="prediction-actions">
-            <button class="score-btn rating ${p.score === 1 ? 'active' : ''}" onclick="scorePrediction('${p.id}', 1)" title="Completely wrong">1</button>
-            <button class="score-btn rating ${p.score === 2 ? 'active' : ''}" onclick="scorePrediction('${p.id}', 2)" title="Mostly wrong">2</button>
-            <button class="score-btn rating ${p.score === 3 ? 'active' : ''}" onclick="scorePrediction('${p.id}', 3)" title="Partially right">3</button>
-            <button class="score-btn rating ${p.score === 4 ? 'active' : ''}" onclick="scorePrediction('${p.id}', 4)" title="Mostly right">4</button>
-            <button class="score-btn rating ${p.score === 5 ? 'active' : ''}" onclick="scorePrediction('${p.id}', 5)" title="Spot on!">5</button>
+            <button class="score-btn rating ${p.score === 1 ? 'active' : ''}" onclick="scorePrediction('${safePredId}', 1)" title="Completely wrong">1</button>
+            <button class="score-btn rating ${p.score === 2 ? 'active' : ''}" onclick="scorePrediction('${safePredId}', 2)" title="Mostly wrong">2</button>
+            <button class="score-btn rating ${p.score === 3 ? 'active' : ''}" onclick="scorePrediction('${safePredId}', 3)" title="Partially right">3</button>
+            <button class="score-btn rating ${p.score === 4 ? 'active' : ''}" onclick="scorePrediction('${safePredId}', 4)" title="Mostly right">4</button>
+            <button class="score-btn rating ${p.score === 5 ? 'active' : ''}" onclick="scorePrediction('${safePredId}', 5)" title="Spot on!">5</button>
           </div>
           <div class="prediction-feedback" style="margin-top:8px;">
-            <input type="text" class="feedback-input" id="feedback-${p.id}" placeholder="Why? (optional feedback)" 
+            <input type="text" class="feedback-input" id="${feedbackInputId}" placeholder="Why? (optional feedback)" 
               style="width:100%;padding:6px 10px;font-size:11px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#c9d1d9;"
-              onkeypress="if(event.key==='Enter')saveFeedback('${p.id}')">
-            ${p.feedback ? '<div style="font-size:10px;color:#a78bfa;margin-top:4px;">💬 ' + p.feedback + '</div>' : ''}
+              onkeypress="if(event.key==='Enter')saveFeedback('${safePredId}')">
+            ${p.feedback ? '<div style="font-size:10px;color:#a78bfa;margin-top:4px;">💬 ' + escapeHtml(p.feedback) + '</div>' : ''}
           </div>
         </div>
       `;
@@ -2991,7 +2983,8 @@ async function scorePrediction(id, score) {
 }
 
 async function saveFeedback(id) {
-  const input = document.getElementById('feedback-' + id);
+  const input = document.getElementById(buildSafeDomId('feedback', id));
+  if (!input) return;
   const feedback = input.value.trim();
   if (!feedback) return;
   
@@ -3031,16 +3024,16 @@ async function loadPredictionsHistory() {
         const stars = '★'.repeat(scoreNum) + '☆'.repeat(5 - scoreNum);
         html += `
           <div class="history-item">
-            <span class="date">${e.date} ${e.time || ''}</span>
-            <span class="pred-id">${e.prediction_id}</span>
+            <span class="date">${escapeHtml(e.date)} ${escapeHtml(e.time || '')}</span>
+            <span class="pred-id">${escapeHtml(e.prediction_id)}</span>
             <span class="${scoreClass}">${stars}</span>
           </div>
         `;
       } else if (e.event === 'system_created') {
         html += `
           <div class="history-item">
-            <span class="date">${e.date}</span>
-            <span class="note">🚀 ${e.note || 'System created'}</span>
+            <span class="date">${escapeHtml(e.date)}</span>
+            <span class="note">🚀 ${escapeHtml(e.note || 'System created')}</span>
           </div>
         `;
       }
@@ -3097,8 +3090,8 @@ function renderDoneTasks() {
   document.getElementById('doneTasks').innerHTML = filteredIds.map(id => {
     const t = allTasks[id];
     if (!t) return '';
-    return `<div class="done-item" onclick="showTaskDetail('${id}')" style="cursor:pointer;"><span class="check">✓</span>${t.title}</div>`;
-  }).join('') || `<div class="done-item">Nothing completed on ${filterDate}</div>`;
+    return `<div class="done-item" onclick="showTaskDetail('${escapeJsString(id)}')" style="cursor:pointer;"><span class="check">✓</span>${escapeHtml(t.title)}</div>`;
+  }).join('') || `<div class="done-item">Nothing completed on ${escapeHtml(filterDate)}</div>`;
 }
 
 let currentLanes = {};
@@ -3135,7 +3128,7 @@ function deleteTask(taskId, event) {
 
   const bubble = document.getElementById('confirmBubble');
   document.getElementById('confirmTitle').textContent = `Delete this task?`;
-  document.getElementById('confirmMessage').innerHTML = `<strong>${taskId}</strong><br>${title}`;
+  document.getElementById('confirmMessage').innerHTML = `<strong>${escapeHtml(taskId)}</strong><br>${escapeHtml(title)}`;
 
   // Position near the clicked button
   const btn = event.target.closest('.delete-btn');
@@ -3384,7 +3377,9 @@ function showCronDetail(id) {
   document.getElementById('cronPlan').value = cron.plan || '';
 
   // Show summary
-  const summary = cronSummaries[id] || cron.description || 'No description available. Add one by editing the cron job.';
+  const summary =
+    cronSummaries[id] ||
+    escapeHtml(cron.description || 'No description available. Add one by editing the cron job.');
   document.getElementById('cronSummary').innerHTML = summary;
 
   if (cron.nextRun) {
@@ -3555,17 +3550,18 @@ function handleTaskSearch(event) {
   resultsDiv.innerHTML = limited.map(m => {
     const color = laneColors[m.lane] || '#8b949e';
     const label = laneLabels[m.lane] || m.lane;
-    const title = m.task.title.length > 35 ? m.task.title.substring(0, 35) + '...' : m.task.title;
+    const rawTitle = String(m.task.title || '');
+    const title = rawTitle.length > 35 ? rawTitle.substring(0, 35) + '...' : rawTitle;
     return `
-      <div class="search-result-item" onclick="jumpToTask('${m.id}')" 
+      <div class="search-result-item" onclick="jumpToTask('${escapeJsString(m.id)}')" 
         style="padding:12px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.08);transition:background 0.15s;"
         onmouseover="this.style.background='rgba(96,165,250,0.15)'" 
         onmouseout="this.style.background='transparent'">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
-          <span style="font-family:'SF Mono','Fira Code',monospace;color:#58a6ff;font-weight:800;font-size:18px;text-shadow:0 0 10px rgba(88,166,255,0.3);">${m.id}</span>
-          <span style="font-size:10px;color:${color};text-transform:uppercase;font-weight:600;">${label}</span>
+          <span style="font-family:'SF Mono','Fira Code',monospace;color:#58a6ff;font-weight:800;font-size:18px;text-shadow:0 0 10px rgba(88,166,255,0.3);">${escapeHtml(m.id)}</span>
+          <span style="font-size:10px;color:${color};text-transform:uppercase;font-weight:600;">${escapeHtml(label)}</span>
         </div>
-        <div style="font-size:12px;color:#e6edf3;margin-top:6px;">${title}</div>
+        <div style="font-size:12px;color:#e6edf3;margin-top:6px;">${escapeHtml(title)}</div>
       </div>
     `;
   }).join('');
@@ -3611,6 +3607,7 @@ function renderParallelExecution(data) {
   
   panel.style.display = 'block';
   const agents = data.parallel_execution.active_agents;
+  const tasksById = data.tasks || {};
   countEl.textContent = agents.length + '/' + (data.parallel_execution.max_concurrent || 5);
   
   const specialtyEmojis = {
@@ -3623,9 +3620,10 @@ function renderParallelExecution(data) {
   };
   
   agentsDiv.innerHTML = agents.map(agent => {
-    const task = data.tasks[agent.current_task];
+    const task = tasksById[agent.current_task];
     const taskTitle = task ? task.title : 'Unknown task';
     const emoji = specialtyEmojis[agent.specialty] || '🤖';
+    const safeTaskId = escapeJsString(agent.current_task);
     
     // Calculate time since started
     let timeText = '';
@@ -3648,9 +3646,9 @@ function renderParallelExecution(data) {
     
     return `
       <div class="agent-card active">
-        <div class="agent-name">${emoji} ${agent.agent_name} ${staleWarning}</div>
+        <div class="agent-name">${emoji} ${escapeHtml(agent.agent_name)} ${staleWarning}</div>
         <div class="agent-task">
-          <a href="#" onclick="showTaskDetail('${agent.current_task}'); return false;">${agent.current_task}</a>: ${taskTitle.substring(0, 40)}${taskTitle.length > 40 ? '...' : ''}
+          <a href="#" onclick="showTaskDetail('${safeTaskId}'); return false;">${escapeHtml(agent.current_task)}</a>: ${escapeHtml(taskTitle.substring(0, 40))}${taskTitle.length > 40 ? '...' : ''}
         </div>
         <div class="agent-time">⏱ Started ${timeText}</div>
       </div>
@@ -3687,14 +3685,14 @@ function getSpecialtyEmoji(specialty) {
 function getPriorityBadge(task) {
   if (!task.priority || !task.priority.priority_level) return '';
   const level = task.priority.priority_level;
-  return `<span class="priority-badge ${level}">${level}</span>`;
+  return `<span class="priority-badge ${escapeCssClass(level)}">${escapeHtml(level)}</span>`;
 }
 
 // Get claimed badge HTML
 function getClaimedBadge(task) {
   if (!task.claimed_by || !task.claimed_by.agent_name) return '';
   const emoji = getSpecialtyEmoji(task.claimed_by.specialty);
-  return `<span class="claimed-badge">${emoji} ${task.claimed_by.agent_name}</span>`;
+  return `<span class="claimed-badge">${emoji} ${escapeHtml(task.claimed_by.agent_name)}</span>`;
 }
 
 // ============ AGENT PROFILE MODAL ============
@@ -3725,7 +3723,7 @@ async function openAgentModal(agentType) {
     const data = await resp.json();
     
     if (data.error) {
-      document.getElementById('agentProfile').innerHTML = `<div style="color:#f85149;">Error: ${data.error}</div>`;
+      document.getElementById('agentProfile').innerHTML = `<div style="color:#f85149;">Error: ${escapeHtml(data.error)}</div>`;
       return;
     }
     
@@ -3739,7 +3737,7 @@ async function openAgentModal(agentType) {
     loadAgentTasks(agentType);
     
   } catch(e) {
-    document.getElementById('agentProfile').innerHTML = `<div style="color:#f85149;">Failed to load: ${e.message}</div>`;
+    document.getElementById('agentProfile').innerHTML = `<div style="color:#f85149;">Failed to load: ${escapeHtml(e.message)}</div>`;
   }
 }
 
@@ -3761,8 +3759,9 @@ function setAgentView(view) {
 }
 
 function renderMarkdown(md) {
-  // Basic markdown → HTML
-  return md
+  // Basic markdown rendering over escaped text to avoid script injection.
+  const escaped = escapeHtml(md ?? '');
+  return escaped
     .replace(/^### (.+)$/gm, '<h3>$1</h3>')
     .replace(/^## (.+)$/gm, '<h2>$1</h2>')
     .replace(/^# (.+)$/gm, '<h1>$1</h1>')
@@ -3787,8 +3786,8 @@ function loadAgentTasks(agentType) {
   
   tasksList.innerHTML = tasks.map(([id, task]) => {
     const status = task.status === 'in_progress' ? '🟢' : task.status === 'done' ? '✅' : '⏳';
-    return `<div style="padding:8px;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;" onclick="showTaskDetail('${id}')">
-      ${status} <strong>${id}</strong>: ${task.title}
+    return `<div style="padding:8px;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;" onclick="showTaskDetail('${escapeJsString(id)}')">
+      ${status} <strong>${escapeHtml(id)}</strong>: ${escapeHtml(task.title)}
     </div>`;
   }).join('');
 }
