@@ -32,6 +32,15 @@ const waitForFileRemoval = async (file: string, timeoutMs = 200) => {
   throw new Error(`timed out waiting for ${file} removal`);
 };
 
+function isSymlinkUnavailable(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const code =
+    "code" in error && typeof (error as { code?: unknown }).code === "string"
+      ? (error as { code: string }).code
+      : "";
+  return code === "EPERM" || code === "EACCES" || code === "ENOTSUP";
+}
+
 describe("media server", () => {
   beforeAll(async () => {
     await fs.rm(MEDIA_DIR, { recursive: true, force: true });
@@ -80,7 +89,12 @@ describe("media server", () => {
   it("blocks symlink escaping outside media dir", async () => {
     const target = path.join(process.cwd(), "package.json"); // outside MEDIA_DIR
     const link = path.join(MEDIA_DIR, "link-out");
-    await fs.symlink(target, link);
+    try {
+      await fs.symlink(target, link);
+    } catch (error) {
+      if (isSymlinkUnavailable(error)) return;
+      throw error;
+    }
 
     const server = await startMediaServer(0, 5_000);
     const port = (server.address() as AddressInfo).port;

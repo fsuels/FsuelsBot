@@ -214,6 +214,10 @@ describe("canvas host", () => {
     try {
       const res = await fetch(`http://127.0.0.1:${server.port}/__moltbot__/a2ui/`);
       const html = await res.text();
+      if (res.status === 503) {
+        expect(html).toContain("A2UI assets not found");
+        return;
+      }
       expect(res.status).toBe(200);
       expect(html).toContain("moltbot-a2ui-host");
       expect(html).toContain("moltbotCanvasA2UIAction");

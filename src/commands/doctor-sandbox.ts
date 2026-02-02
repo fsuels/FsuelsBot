@@ -81,7 +81,7 @@ async function dockerImageExists(image: string): Promise<boolean> {
   } catch (error: unknown) {
     const stderr =
       typeof error === "object" && error !== null && "stderr" in error
-        ? String((error as { stderr?: unknown }).stderr ?? "")
+        ? normalizeErrorText((error as { stderr?: unknown }).stderr)
         : error instanceof Error
           ? error.message
           : String(error);
@@ -90,6 +90,20 @@ async function dockerImageExists(image: string): Promise<boolean> {
     }
     throw error;
   }
+}
+
+function normalizeErrorText(value: unknown): string {
+  if (typeof value === "string") return value;
+  if (Buffer.isBuffer(value)) return value.toString("utf8");
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => normalizeErrorText(item))
+      .filter((item) => item.length > 0)
+      .join("\n");
+  }
+  if (value == null) return "";
+  if (value instanceof Error) return value.message;
+  return "";
 }
 
 function resolveSandboxDockerImage(cfg: MoltbotConfig): string {

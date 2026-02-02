@@ -10,7 +10,9 @@ afterEach(() => {
   resetProcessRegistryForTests();
 });
 
-test("process send-keys encodes Enter for pty sessions", async () => {
+test.skipIf(process.platform === "win32")(
+  "process send-keys encodes Enter for pty sessions",
+  async () => {
   const execTool = createExecTool();
   const processTool = createProcessTool();
   const result = await execTool.execute("toolcall", {
@@ -43,9 +45,10 @@ test("process send-keys encodes Enter for pty sessions", async () => {
   }
 
   throw new Error("PTY session did not exit after send-keys");
-});
+  },
+);
 
-test("process submit sends Enter for pty sessions", async () => {
+test.skipIf(process.platform === "win32")("process submit sends Enter for pty sessions", async () => {
   const execTool = createExecTool();
   const processTool = createProcessTool();
   const result = await execTool.execute("toolcall", {

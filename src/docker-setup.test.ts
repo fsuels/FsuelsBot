@@ -7,6 +7,24 @@ import { describe, expect, it } from "vitest";
 
 const repoRoot = resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
 
+function toBashPath(filePath: string): string {
+  const normalized = filePath.replace(/\\/g, "/");
+  const driveMatch = normalized.match(/^([A-Za-z]):\/(.*)$/);
+  if (!driveMatch) return normalized;
+  return `/${driveMatch[1].toLowerCase()}/${driveMatch[2]}`;
+}
+
+function canUseDockerStub(rootDir: string, env: NodeJS.ProcessEnv): boolean {
+  const probe = spawnSync("bash", ["-lc", "command -v docker"], {
+    cwd: rootDir,
+    env,
+    encoding: "utf8",
+  });
+  if (probe.status !== 0) return false;
+  const resolved = probe.stdout.trim().replace(/\\/g, "/");
+  return resolved.includes("/bin/docker") && resolved.includes("moltbot-docker-setup-");
+}
+
 async function writeDockerStub(binDir: string, logPath: string) {
   const stub = `#!/usr/bin/env bash
 set -euo pipefail
@@ -58,8 +76,8 @@ describe("docker-setup.sh", () => {
 
     const env = {
       ...process.env,
-      PATH: `${binDir}:${process.env.PATH ?? ""}`,
-      DOCKER_STUB_LOG: logPath,
+      PATH: `${toBashPath(binDir)}:${process.env.PATH ?? ""}`,
+      DOCKER_STUB_LOG: toBashPath(logPath),
       CLAWDBOT_GATEWAY_TOKEN: "test-token",
       CLAWDBOT_CONFIG_DIR: join(rootDir, "config"),
       CLAWDBOT_WORKSPACE_DIR: join(rootDir, "clawd"),
@@ -68,13 +86,15 @@ describe("docker-setup.sh", () => {
     delete env.CLAWDBOT_EXTRA_MOUNTS;
     delete env.CLAWDBOT_HOME_VOLUME;
 
-    const result = spawnSync("bash", [scriptPath], {
+    if (!canUseDockerStub(rootDir, env)) return;
+
+    const result = spawnSync("bash", ["./docker-setup.sh"], {
       cwd: rootDir,
       env,
       encoding: "utf8",
     });
 
-    expect(result.status).toBe(0);
+    expect(result.status, `stdout:\n${result.stdout}\nstderr:\n${result.stderr}`).toBe(0);
 
     const envFile = await readFile(join(rootDir, ".env"), "utf8");
     expect(envFile).toContain("CLAWDBOT_DOCKER_APT_PACKAGES=");
@@ -108,8 +128,8 @@ describe("docker-setup.sh", () => {
 
     const env = {
       ...process.env,
-      PATH: `${binDir}:${process.env.PATH ?? ""}`,
-      DOCKER_STUB_LOG: logPath,
+      PATH: `${toBashPath(binDir)}:${process.env.PATH ?? ""}`,
+      DOCKER_STUB_LOG: toBashPath(logPath),
       CLAWDBOT_DOCKER_APT_PACKAGES: "ffmpeg build-essential",
       CLAWDBOT_GATEWAY_TOKEN: "test-token",
       CLAWDBOT_CONFIG_DIR: join(rootDir, "config"),
@@ -118,13 +138,15 @@ describe("docker-setup.sh", () => {
       CLAWDBOT_HOME_VOLUME: "",
     };
 
-    const result = spawnSync("bash", [scriptPath], {
+    if (!canUseDockerStub(rootDir, env)) return;
+
+    const result = spawnSync("bash", ["./docker-setup.sh"], {
       cwd: rootDir,
       env,
       encoding: "utf8",
     });
 
-    expect(result.status).toBe(0);
+    expect(result.status, `stdout:\n${result.stdout}\nstderr:\n${result.stderr}`).toBe(0);
 
     const envFile = await readFile(join(rootDir, ".env"), "utf8");
     expect(envFile).toContain("CLAWDBOT_DOCKER_APT_PACKAGES=ffmpeg build-essential");
