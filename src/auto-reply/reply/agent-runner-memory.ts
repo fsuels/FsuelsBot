@@ -1,4 +1,6 @@
 import crypto from "node:crypto";
+import fs from "node:fs/promises";
+import path from "node:path";
 import { resolveAgentModelFallbacksOverride } from "../../agents/agent-scope.js";
 import { runWithModelFallback } from "../../agents/model-fallback.js";
 import { isCliProvider } from "../../agents/model-selection.js";
@@ -14,8 +16,11 @@ import { logVerbose } from "../../globals.js";
 import { registerAgentRunContext } from "../../infra/agent-events.js";
 import {
   applySessionTaskUpdate,
+  DEFAULT_SESSION_TASK_ID,
   resolveSessionTaskView,
 } from "../../sessions/task-context.js";
+import { mergeTaskMemoryFile } from "../../memory/task-memory-merge.js";
+import { resolveTaskMemoryFilePath } from "../../memory/namespaces.js";
 import type { TemplateContext } from "../templating.js";
 import type { VerboseLevel } from "../thinking.js";
 import type { GetReplyOptions } from "../types.js";
@@ -98,6 +103,19 @@ export async function runMemoryFlushIfNeeded(params: {
     });
   }
   let memoryCompactionCompleted = false;
+  const flushTaskId = params.followupRun.run.taskId?.trim();
+  let taskMemoryBeforeFlush: string | undefined;
+  if (flushTaskId && flushTaskId !== DEFAULT_SESSION_TASK_ID) {
+    const taskFilePath = path.join(
+      params.followupRun.run.workspaceDir,
+      resolveTaskMemoryFilePath(flushTaskId),
+    );
+    try {
+      taskMemoryBeforeFlush = await fs.readFile(taskFilePath, "utf-8");
+    } catch {
+      taskMemoryBeforeFlush = undefined;
+    }
+  }
   const flushSystemPrompt = [
     params.followupRun.run.extraSystemPrompt,
     memoryFlushSettings.systemPrompt,
@@ -172,6 +190,20 @@ export async function runMemoryFlushIfNeeded(params: {
         });
       },
     });
+    if (flushTaskId && flushTaskId !== DEFAULT_SESSION_TASK_ID) {
+      try {
+        const mergeResult = await mergeTaskMemoryFile({
+          workspaceDir: params.followupRun.run.workspaceDir,
+          taskId: flushTaskId,
+          existingMarkdown: taskMemoryBeforeFlush,
+        });
+        if (mergeResult.applied && mergeResult.changed) {
+          logVerbose(`memory flush merged durable task memory: ${mergeResult.relPath}`);
+        }
+      } catch (err) {
+        logVerbose(`memory flush task-memory merge failed: ${String(err)}`);
+      }
+    }
     const activeTask = resolveSessionTaskView({
       entry:
         activeSessionEntry ?? (params.sessionKey ? activeSessionStore?.[params.sessionKey] : undefined),

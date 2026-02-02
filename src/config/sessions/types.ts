@@ -75,6 +75,12 @@ export type SessionEntry = {
   activeTaskTitle?: string;
   taskStateById?: Record<string, SessionTaskState>;
   lastTaskSwitch?: SessionTaskSwitchAudit;
+  memoryGuidanceMode?: "supportive" | "minimal";
+  memoryGuidancePromptCount?: number;
+  memoryGuidanceExplicitCount?: number;
+  memoryGuidanceIgnoredCount?: number;
+  memoryGuidanceLastNudgeKind?: string;
+  memoryGuidanceLastNudgeAt?: number;
   groupActivation?: "mention" | "always";
   groupActivationNeedsSystemIntro?: boolean;
   sendPolicy?: "allow" | "deny";

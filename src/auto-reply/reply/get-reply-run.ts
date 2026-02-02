@@ -15,6 +15,7 @@ import {
   updateSessionStore,
 } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
+import { emitDiagnosticEvent, isDiagnosticsEnabled } from "../../infra/diagnostic-events.js";
 import { clearCommandLane, getQueueSize } from "../../process/command-queue.js";
 import { normalizeMainKey } from "../../routing/session-key.js";
 import { DEFAULT_SESSION_TASK_ID, resolveSessionTaskView } from "../../sessions/task-context.js";
@@ -44,7 +45,12 @@ import type { createModelSelectionState } from "./model-selection.js";
 import { resolveQueueSettings } from "./queue.js";
 import { ensureSkillSnapshot, prependSystemEvents } from "./session-updates.js";
 import { inferTaskHintFromMessage } from "./task-hints.js";
-import { selectTaskMemoryNudge } from "./task-memory-guidance.js";
+import {
+  applyMemoryGuidanceTurn,
+  detectMemoryGuidanceUserSignal,
+  resolveMemoryGuidanceState,
+  selectTaskMemoryNudge,
+} from "./task-memory-guidance.js";
 import type { TypingController } from "./typing.js";
 import { resolveTypingMode } from "./typing-mode.js";
 
@@ -278,12 +284,16 @@ export async function runPreparedReply(
     }
     resolvedThinkLevel = "high";
     if (sessionEntry && sessionStore && sessionKey && sessionEntry.thinkingLevel === "xhigh") {
-      sessionEntry.thinkingLevel = "high";
-      sessionEntry.updatedAt = Date.now();
-      sessionStore[sessionKey] = sessionEntry;
+      const updatedSessionEntry: SessionEntry = {
+        ...sessionEntry,
+        thinkingLevel: "high",
+        updatedAt: Date.now(),
+      };
+      sessionEntry = updatedSessionEntry;
+      sessionStore[sessionKey] = updatedSessionEntry;
       if (storePath) {
         await updateSessionStore(storePath, (store) => {
-          store[sessionKey] = sessionEntry;
+          store[sessionKey] = updatedSessionEntry;
         });
       }
     }
@@ -425,11 +435,14 @@ export async function runPreparedReply(
   } catch (err) {
     logVerbose(`failed to load constraint pins: ${String(err)}`);
   }
-  const memoryNudge = selectTaskMemoryNudge({
+  const memoryGuidanceState = resolveMemoryGuidanceState(sessionEntry);
+  const memoryGuidanceUserSignal = detectMemoryGuidanceUserSignal(rawBodyTrimmed || baseBodyTrimmed);
+  const memoryNudgeDecision = selectTaskMemoryNudge({
     message: rawBodyTrimmed || baseBodyTrimmed,
     isNewSession,
     sessionEntry,
     activeTaskId: activeTask.taskId,
+    guidanceMode: memoryGuidanceState.mode,
     inferredTaskId: inferredTaskHint?.taskId,
     inferredTaskScore: inferredTaskHint?.score,
     inferredTaskConfidence: inferredTaskHint?.confidence,
@@ -438,8 +451,79 @@ export async function runPreparedReply(
     taskTotalTokens: effectiveTask.totalTokens,
     hasImportantConflict,
   });
-  const memoryNudgeSystemPrompt = memoryNudge
-    ? `Start this reply with exactly: "${memoryNudge}" Then continue with the rest of your response naturally in plain language.`
+  const memoryGuidanceUpdate = applyMemoryGuidanceTurn({
+    state: memoryGuidanceState,
+    userSignal: memoryGuidanceUserSignal,
+    shownNudgeKind: memoryNudgeDecision?.kind,
+  });
+  if (sessionStore && sessionKey) {
+    const currentEntry =
+      sessionEntry ??
+      sessionStore[sessionKey] ?? {
+        sessionId: sessionIdFinal,
+        updatedAt: Date.now(),
+      };
+    if (memoryGuidanceUpdate.changed) {
+      const updatedAt = Date.now();
+      const nextEntry: SessionEntry = {
+        ...currentEntry,
+        memoryGuidanceMode: memoryGuidanceUpdate.next.mode,
+        memoryGuidancePromptCount: memoryGuidanceUpdate.next.promptCount,
+        memoryGuidanceExplicitCount: memoryGuidanceUpdate.next.explicitCount,
+        memoryGuidanceIgnoredCount: memoryGuidanceUpdate.next.ignoredCount,
+        memoryGuidanceLastNudgeKind: memoryGuidanceUpdate.next.lastNudgeKind,
+        memoryGuidanceLastNudgeAt: memoryGuidanceUpdate.next.lastNudgeAt,
+        updatedAt,
+      };
+      sessionStore[sessionKey] = nextEntry;
+      sessionEntry = nextEntry;
+      if (storePath) {
+        await updateSessionStore(storePath, (store) => {
+          const existing = store[sessionKey] ?? currentEntry;
+          store[sessionKey] = {
+            ...existing,
+            memoryGuidanceMode: memoryGuidanceUpdate.next.mode,
+            memoryGuidancePromptCount: memoryGuidanceUpdate.next.promptCount,
+            memoryGuidanceExplicitCount: memoryGuidanceUpdate.next.explicitCount,
+            memoryGuidanceIgnoredCount: memoryGuidanceUpdate.next.ignoredCount,
+            memoryGuidanceLastNudgeKind: memoryGuidanceUpdate.next.lastNudgeKind,
+            memoryGuidanceLastNudgeAt: memoryGuidanceUpdate.next.lastNudgeAt,
+            updatedAt,
+          };
+        });
+      }
+    }
+  }
+  if (isDiagnosticsEnabled(cfg)) {
+    emitDiagnosticEvent({
+      type: "memory.guidance",
+      sessionKey,
+      sessionId: sessionEntry?.sessionId ?? sessionIdFinal,
+      taskId: effectiveTask.taskId,
+      mode: memoryGuidanceUpdate.next.mode,
+      shown: Boolean(memoryNudgeDecision),
+      nudgeKind: memoryNudgeDecision?.kind,
+      userSignal: memoryGuidanceUserSignal,
+      inferredTaskId: inferredTaskHint?.taskId,
+      inferredTaskConfidence: inferredTaskHint?.confidence,
+      ambiguousCount: inferredTaskHint?.ambiguousTaskIds?.length ?? 0,
+      hasConflict: hasImportantConflict,
+    });
+    if (memoryGuidanceUpdate.response) {
+      emitDiagnosticEvent({
+        type: "memory.guidance.response",
+        sessionKey,
+        sessionId: sessionEntry?.sessionId ?? sessionIdFinal,
+        taskId: effectiveTask.taskId,
+        priorNudgeKind: memoryGuidanceUpdate.response.priorNudgeKind,
+        response: memoryGuidanceUpdate.response.response,
+        latencyMs: memoryGuidanceUpdate.response.latencyMs,
+        userSignal: memoryGuidanceUserSignal,
+      });
+    }
+  }
+  const memoryNudgeSystemPrompt = memoryNudgeDecision
+    ? `Start this reply with exactly: "${memoryNudgeDecision.text}" Then continue with the rest of your response naturally in plain language.`
     : "";
   const runExtraSystemPrompt = [
     extraSystemPrompt,

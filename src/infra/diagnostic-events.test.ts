@@ -52,4 +52,32 @@ describe("diagnostic-events", () => {
 
     expect(types).toEqual(["webhook.received", "message.queued", "session.state"]);
   });
+
+  test("emits memory guidance telemetry events", async () => {
+    resetDiagnosticEventsForTest();
+    const types: string[] = [];
+    const stop = onDiagnosticEvent((evt) => types.push(evt.type));
+
+    emitDiagnosticEvent({
+      type: "memory.guidance",
+      mode: "supportive",
+      shown: true,
+      nudgeKind: "topic-switch",
+      userSignal: "none",
+      inferredTaskConfidence: "low",
+      ambiguousCount: 2,
+      hasConflict: false,
+    });
+    emitDiagnosticEvent({
+      type: "memory.guidance.response",
+      priorNudgeKind: "topic-switch",
+      response: "acknowledged",
+      latencyMs: 1200,
+      userSignal: "explicit-task",
+    });
+
+    stop();
+
+    expect(types).toEqual(["memory.guidance", "memory.guidance.response"]);
+  });
 });

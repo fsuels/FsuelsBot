@@ -127,6 +127,32 @@ export type DiagnosticHeartbeatEvent = DiagnosticBaseEvent & {
   queued: number;
 };
 
+export type DiagnosticMemoryGuidanceEvent = DiagnosticBaseEvent & {
+  type: "memory.guidance";
+  sessionKey?: string;
+  sessionId?: string;
+  taskId?: string;
+  mode: "supportive" | "minimal";
+  shown: boolean;
+  nudgeKind?: string;
+  userSignal?: "explicit-task" | "none";
+  inferredTaskId?: string;
+  inferredTaskConfidence?: "low" | "medium" | "high";
+  ambiguousCount?: number;
+  hasConflict?: boolean;
+};
+
+export type DiagnosticMemoryGuidanceResponseEvent = DiagnosticBaseEvent & {
+  type: "memory.guidance.response";
+  sessionKey?: string;
+  sessionId?: string;
+  taskId?: string;
+  priorNudgeKind: string;
+  response: "acknowledged" | "ignored";
+  latencyMs?: number;
+  userSignal?: "explicit-task" | "none";
+};
+
 export type DiagnosticEventPayload =
   | DiagnosticUsageEvent
   | DiagnosticWebhookReceivedEvent
@@ -139,7 +165,9 @@ export type DiagnosticEventPayload =
   | DiagnosticLaneEnqueueEvent
   | DiagnosticLaneDequeueEvent
   | DiagnosticRunAttemptEvent
-  | DiagnosticHeartbeatEvent;
+  | DiagnosticHeartbeatEvent
+  | DiagnosticMemoryGuidanceEvent
+  | DiagnosticMemoryGuidanceResponseEvent;
 
 export type DiagnosticEventInput = DiagnosticEventPayload extends infer Event
   ? Event extends DiagnosticEventPayload

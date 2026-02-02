@@ -245,4 +245,117 @@ describe("runReplyAgent memory flush", () => {
     const stored = JSON.parse(await fs.readFile(storePath, "utf-8"));
     expect(stored[sessionKey].memoryFlushAt).toBeUndefined();
   });
+
+  it("deterministically merges task memory sections after flush", async () => {
+    runEmbeddedPiAgentMock.mockReset();
+    const tmp = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-flush-merge-"));
+    const storePath = path.join(tmp, "sessions.json");
+    const sessionKey = "main";
+    const sessionEntry = {
+      sessionId: "session",
+      updatedAt: Date.now(),
+      totalTokens: 80_000,
+      compactionCount: 1,
+      activeTaskId: "task-a",
+      taskStateById: {
+        "task-a": {
+          updatedAt: Date.now(),
+          compactionCount: 1,
+          totalTokens: 80_000,
+          status: "active",
+        },
+      },
+    };
+
+    const taskMemoryPath = path.join(tmp, "memory", "tasks", "task-a.md");
+    await fs.mkdir(path.dirname(taskMemoryPath), { recursive: true });
+    await fs.writeFile(
+      taskMemoryPath,
+      [
+        "## Goal",
+        "Old goal",
+        "",
+        "## Decisions",
+        "- Keep API v1",
+        "",
+        "## Open Questions",
+        "- Should we use redis cache?",
+        "",
+        "## Next Actions",
+        "- Add health endpoint",
+      ].join("\n"),
+      "utf-8",
+    );
+
+    await seedSessionStore({ storePath, sessionKey, entry: sessionEntry });
+
+    runEmbeddedPiAgentMock.mockImplementation(async (params: EmbeddedRunParams) => {
+      if (params.prompt === DEFAULT_MEMORY_FLUSH_PROMPT) {
+        await fs.writeFile(
+          taskMemoryPath,
+          [
+            "## Goal",
+            "New goal",
+            "",
+            "## Decisions",
+            "- keep api v1",
+            "- Add retries",
+            "",
+            "## Open Questions",
+            "- RESOLVED: should we use redis cache?",
+            "",
+            "## Next Actions",
+            "- Draft rollout plan",
+          ].join("\n"),
+          "utf-8",
+        );
+        return { payloads: [], meta: {} };
+      }
+      return {
+        payloads: [{ text: "ok" }],
+        meta: { agentMeta: { usage: { input: 1, output: 1 } } },
+      };
+    });
+
+    const { typing, sessionCtx, resolvedQueue, followupRun } = createBaseRun({
+      storePath,
+      sessionEntry,
+      runOverrides: {
+        workspaceDir: tmp,
+        taskId: "task-a",
+      },
+    });
+
+    await runReplyAgent({
+      commandBody: "hello",
+      followupRun,
+      queueKey: "main",
+      resolvedQueue,
+      shouldSteer: false,
+      shouldFollowup: false,
+      isActive: false,
+      isStreaming: false,
+      typing,
+      sessionCtx,
+      sessionEntry,
+      sessionStore: { [sessionKey]: sessionEntry },
+      sessionKey,
+      storePath,
+      defaultModel: "anthropic/claude-opus-4-5",
+      agentCfgContextTokens: 100_000,
+      resolvedVerboseLevel: "off",
+      isNewSession: false,
+      blockStreamingEnabled: false,
+      resolvedBlockStreamingBreak: "message_end",
+      shouldInjectGroupIntro: false,
+      typingMode: "instant",
+    });
+
+    const merged = await fs.readFile(taskMemoryPath, "utf-8");
+    expect(merged).toContain("New goal");
+    expect(merged).toContain("- Keep API v1");
+    expect(merged).toContain("- Add retries");
+    expect(merged).toContain("- Draft rollout plan");
+    expect(merged).not.toContain("Should we use redis cache?");
+  });
 });
