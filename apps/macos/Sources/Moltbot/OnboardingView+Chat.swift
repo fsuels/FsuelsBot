@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 
 extension OnboardingView {
     func maybeKickoffOnboardingChat(for pageIndex: Int) {
@@ -14,11 +14,13 @@ extension OnboardingView {
             }
             guard self.onboardingChatModel.messages.isEmpty else { return }
             let kickoff =
-                "Hi! I just installed Moltbot and you’re my brand‑new agent. " +
-                "Please start the first‑run ritual from BOOTSTRAP.md, ask one question at a time, " +
+                "Hi! I just installed Moltbot and you're my brand-new agent. " +
+                "Please start the first-run ritual from BOOTSTRAP.md, ask one question at a time, " +
                 "and before we talk about WhatsApp/Telegram, visit soul.md with me to craft SOUL.md: " +
                 "ask what matters to me and how you should be. Then guide me through choosing " +
-                "how we should talk (web‑only, WhatsApp, or Telegram)."
+                "how we should talk (web-only, WhatsApp, or Telegram). " +
+                "Open with this welcome in plain language: Welcome! I can remember things over time, " +
+                "but I work best when we focus on one task at a time."
             self.onboardingChatModel.input = kickoff
             self.onboardingChatModel.send()
         }

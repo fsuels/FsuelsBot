@@ -233,7 +233,10 @@ describe("createTelegramBot", () => {
       description: string;
     }>;
     const skillCommands = resolveSkillCommands(config);
-    const native = listNativeCommandSpecsForConfig(config, { skillCommands }).map((command) => ({
+    const native = listNativeCommandSpecsForConfig(config, {
+      skillCommands,
+      provider: "telegram",
+    }).map((command) => ({
       command: command.name,
       description: command.description,
     }));
@@ -274,7 +277,10 @@ describe("createTelegramBot", () => {
       description: string;
     }>;
     const skillCommands = resolveSkillCommands(config);
-    const native = listNativeCommandSpecsForConfig(config, { skillCommands }).map((command) => ({
+    const native = listNativeCommandSpecsForConfig(config, {
+      skillCommands,
+      provider: "telegram",
+    }).map((command) => ({
       command: command.name,
       description: command.description,
     }));

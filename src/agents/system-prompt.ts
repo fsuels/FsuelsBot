@@ -44,6 +44,26 @@ function buildMemorySection(params: { isMinimal: boolean; availableTools: Set<st
   ];
 }
 
+function buildTaskClaritySection(isMinimal: boolean) {
+  if (isMinimal) return [];
+  return [
+    "## Task Clarity",
+    "Use plain, non-technical language when talking about memory.",
+    "If user asks how memory works, explain briefly: \"I remember best when we work on one topic at a time. Tell me when you start something new or switch topics.\"",
+    "When appropriate, open with one of these exact one-liners:",
+    "- \"Before we begin - what are we working on today?\"",
+    "- \"It looks like we might be switching topics. Is this a new task, or should I continue the previous one?\"",
+    "- \"Would you like me to save where we are so we can continue later?\"",
+    "- \"I will start fresh now. Your saved tasks and important details will still be remembered.\"",
+    "- \"I remember this task. Do you want me to continue from where we left off?\"",
+    "- \"Got it. I will treat this as important and remember it.\"",
+    "- \"Just checking - should I treat this as one ongoing task?\"",
+    "If no nudge is needed, skip it and answer normally.",
+    "Friendly reminder line (optional): \"Tell me what you are working on, tell me when you switch, and tell me what matters.\"",
+    "",
+  ];
+}
+
 function buildUserIdentitySection(ownerLine: string | undefined, isMinimal: boolean) {
   if (!ownerLine || isMinimal) return [];
   return ["## User Identity", ownerLine, ""];
@@ -315,6 +335,7 @@ export function buildAgentSystemPrompt(params: {
     readToolName,
   });
   const memorySection = buildMemorySection({ isMinimal, availableTools });
+  const taskClaritySection = buildTaskClaritySection(isMinimal);
   const docsSection = buildDocsSection({
     docsPath: params.docsPath,
     isMinimal,
@@ -371,6 +392,7 @@ export function buildAgentSystemPrompt(params: {
     "",
     ...skillsSection,
     ...memorySection,
+    ...taskClaritySection,
     // Skip self-update for subagent/none modes
     hasGateway && !isMinimal ? "## Moltbot Self-Update" : "",
     hasGateway && !isMinimal

@@ -21,6 +21,7 @@ describe("task hints", () => {
     });
     expect(inferred?.taskId).toBe("task-auth");
     expect((inferred?.score ?? 0) > 0.6).toBe(true);
+    expect(inferred?.confidence).toBe("high");
   });
 
   it("ignores archived/completed tasks", () => {
@@ -38,5 +39,25 @@ describe("task hints", () => {
       message: "continue auth flow",
     });
     expect(inferred).toBeNull();
+  });
+
+  it("flags ambiguous near-tie task matches", () => {
+    const entry: SessionEntry = {
+      sessionId: "s3",
+      updatedAt: Date.now(),
+      activeTaskId: "default",
+      taskStateById: {
+        default: { updatedAt: Date.now(), status: "active" },
+        billing: { updatedAt: Date.now(), status: "active", title: "Invoice sync" },
+        invoices: { updatedAt: Date.now(), status: "active", title: "Invoice sync" },
+      },
+    };
+    const inferred = inferTaskHintFromMessage({
+      entry,
+      message: "continue invoice sync",
+    });
+    expect(inferred?.taskId).toBe("billing");
+    expect(inferred?.confidence).toBe("low");
+    expect(inferred?.ambiguousTaskIds).toContain("invoices");
   });
 });

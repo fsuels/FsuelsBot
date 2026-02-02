@@ -253,6 +253,21 @@ describe("handleCommands context", () => {
     expect(result.reply?.text).toContain("Context breakdown (detailed)");
     expect(result.reply?.text).toContain("Top tools (schema size):");
   });
+
+  it("returns plain-language context guidance on Telegram", async () => {
+    const cfg = {
+      commands: { text: true },
+      channels: { telegram: { allowFrom: ["*"] } },
+    } as MoltbotConfig;
+    const params = buildParams("/context", cfg, {
+      Provider: "telegram",
+      Surface: "telegram",
+    });
+    const result = await handleCommands(params);
+    expect(result.shouldContinue).toBe(false);
+    expect(result.reply?.text).toContain("I remember best when we work on one topic at a time.");
+    expect(result.reply?.text).toContain("When you switch topics, I start fresh");
+  });
 });
 
 describe("handleCommands subagents", () => {
@@ -391,6 +406,32 @@ describe("handleCommands subagents", () => {
     expect(result.shouldContinue).toBe(false);
     expect(result.reply?.text).toContain("🤖 Subagents: 1 active");
     expect(result.reply?.text).toContain("· 1 done");
+  });
+
+  it("returns plain-language status on Telegram", async () => {
+    const cfg = {
+      commands: { text: true },
+      channels: { telegram: { allowFrom: ["*"] } },
+      session: { mainKey: "main", scope: "per-sender" },
+    } as MoltbotConfig;
+    const params = buildParams("/status", cfg, {
+      Provider: "telegram",
+      Surface: "telegram",
+    });
+    params.sessionEntry = {
+      sessionId: "status-telegram",
+      updatedAt: Date.now(),
+      activeTaskId: "task-active",
+      taskStateById: {
+        default: { updatedAt: Date.now(), status: "active" },
+        "task-active": { updatedAt: Date.now(), status: "active" },
+        "task-prev": { updatedAt: Date.now(), status: "paused" },
+      },
+    };
+    const result = await handleCommands(params);
+    expect(result.shouldContinue).toBe(false);
+    expect(result.reply?.text).toContain("Right now, I am focused on the current topic");
+    expect(result.reply?.text).toContain("I can also continue a previous task");
   });
 
   it("returns info for a subagent", async () => {

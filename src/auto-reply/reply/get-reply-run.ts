@@ -44,6 +44,7 @@ import type { createModelSelectionState } from "./model-selection.js";
 import { resolveQueueSettings } from "./queue.js";
 import { ensureSkillSnapshot, prependSystemEvents } from "./session-updates.js";
 import { inferTaskHintFromMessage } from "./task-hints.js";
+import { selectTaskMemoryNudge } from "./task-memory-guidance.js";
 import type { TypingController } from "./typing.js";
 import { resolveTypingMode } from "./typing-mode.js";
 
@@ -51,7 +52,7 @@ type AgentDefaults = NonNullable<MoltbotConfig["agents"]>["defaults"];
 type ExecOverrides = Pick<ExecToolDefaults, "host" | "security" | "ask" | "node">;
 
 const BARE_SESSION_RESET_PROMPT =
-  "A new session was started via /new or /reset. Say hi briefly (1-2 sentences) and ask what the user wants to do next. If the runtime model differs from default_model in the system prompt, mention the default model in the greeting. Do not mention internal steps, files, tools, or reasoning.";
+  "A new session was started via /new or /reset. Say hi briefly (1-2 sentences) and ask what the user wants to work on. Also say: \"I will start fresh now. Your saved tasks and important details will still be remembered.\" Do not mention internal steps, files, tools, or reasoning.";
 
 type RunPreparedReplyParams = {
   ctx: MsgContext;
@@ -291,12 +292,31 @@ export async function runPreparedReply(
     const channel = ctx.OriginatingChannel || (command.channel as any);
     const to = ctx.OriginatingTo || command.from || command.to;
     if (channel && to) {
-      const modelLabel = `${provider}/${model}`;
-      const defaultLabel = `${defaultProvider}/${defaultModel}`;
-      const text =
-        modelLabel === defaultLabel
-          ? `✅ New session started · model: ${modelLabel}`
-          : `✅ New session started · model: ${modelLabel} (default: ${defaultLabel})`;
+      const normalizedResetBody = rawBodyTrimmed.toLowerCase();
+      const isTelegramChannel = channel === "telegram" || command.surface === "telegram";
+      const text = (() => {
+        if (isTelegramChannel && normalizedResetBody.startsWith("/new")) {
+          return [
+            "I have started fresh.",
+            "",
+            "Your saved work and important details are still remembered.",
+            "What would you like to work on now?",
+          ].join("\n");
+        }
+        if (isTelegramChannel && normalizedResetBody.startsWith("/reset")) {
+          return [
+            "I am clearing the recent conversation now.",
+            "",
+            "Saved work is still safe.",
+            "What would you like to work on next?",
+          ].join("\n");
+        }
+        const modelLabel = `${provider}/${model}`;
+        const defaultLabel = `${defaultProvider}/${defaultModel}`;
+        return modelLabel === defaultLabel
+          ? `New session started - model: ${modelLabel}`
+          : `New session started - model: ${modelLabel} (default: ${defaultLabel})`;
+      })();
       await routeReply({
         payload: { text },
         channel,
@@ -353,20 +373,22 @@ export async function runPreparedReply(
   });
   const authProfileIdSource = sessionEntry?.authProfileOverrideSource;
   const activeTask = resolveSessionTaskView({ entry: sessionEntry });
-  const inferredTaskHint =
-    activeTask.taskId === DEFAULT_SESSION_TASK_ID
-      ? inferTaskHintFromMessage({
-          entry: sessionEntry,
-          message: rawBodyTrimmed || baseBodyTrimmed,
-        })
-      : null;
-  const effectiveTask = inferredTaskHint
+  const inferredTaskHint = inferTaskHintFromMessage({
+    entry: sessionEntry,
+    message: rawBodyTrimmed || baseBodyTrimmed,
+  });
+  const shouldApplyTaskHint =
+    activeTask.taskId === DEFAULT_SESSION_TASK_ID &&
+    Boolean(inferredTaskHint?.taskId) &&
+    inferredTaskHint?.taskId !== DEFAULT_SESSION_TASK_ID;
+  const effectiveTask = shouldApplyTaskHint && inferredTaskHint
     ? resolveSessionTaskView({ entry: sessionEntry, taskId: inferredTaskHint.taskId })
     : activeTask;
-  const taskHintSystemPrompt = inferredTaskHint
+  const taskHintSystemPrompt = shouldApplyTaskHint
     ? `Task hint (not persisted): treat this request as task "${effectiveTask.taskId}" for retrieval and memory lookup. Ask for explicit confirmation before persisting a task switch.`
     : "";
   let constraintSystemPrompt = "";
+  let hasImportantConflict = false;
   try {
     const constraintPins = await listConstraintPinsForInjection({
       workspaceDir,
@@ -382,10 +404,49 @@ export async function runPreparedReply(
         ...lines,
       ].join("\n");
     }
+    const normalizedMessage = (rawBodyTrimmed || baseBodyTrimmed).toLowerCase();
+    const indicatesChange = /\b(actually|instead|change|override|update|newer)\b/.test(
+      normalizedMessage,
+    );
+    if (indicatesChange && constraintPins.length > 0) {
+      hasImportantConflict = constraintPins.some((pin) => {
+        const tokens = (
+          pin.text
+            .toLowerCase()
+            .match(/[a-z0-9]+/g)
+            ?.filter((token) => token.length >= 4)
+            .slice(0, 6) ?? []
+        );
+        if (tokens.length === 0) return false;
+        const overlaps = tokens.filter((token) => normalizedMessage.includes(token)).length;
+        return overlaps >= Math.min(2, tokens.length);
+      });
+    }
   } catch (err) {
     logVerbose(`failed to load constraint pins: ${String(err)}`);
   }
-  const runExtraSystemPrompt = [extraSystemPrompt, taskHintSystemPrompt, constraintSystemPrompt]
+  const memoryNudge = selectTaskMemoryNudge({
+    message: rawBodyTrimmed || baseBodyTrimmed,
+    isNewSession,
+    sessionEntry,
+    activeTaskId: activeTask.taskId,
+    inferredTaskId: inferredTaskHint?.taskId,
+    inferredTaskScore: inferredTaskHint?.score,
+    inferredTaskConfidence: inferredTaskHint?.confidence,
+    ambiguousTaskIds: inferredTaskHint?.ambiguousTaskIds,
+    taskCompactionCount: effectiveTask.compactionCount,
+    taskTotalTokens: effectiveTask.totalTokens,
+    hasImportantConflict,
+  });
+  const memoryNudgeSystemPrompt = memoryNudge
+    ? `Start this reply with exactly: "${memoryNudge}" Then continue with the rest of your response naturally in plain language.`
+    : "";
+  const runExtraSystemPrompt = [
+    extraSystemPrompt,
+    taskHintSystemPrompt,
+    memoryNudgeSystemPrompt,
+    constraintSystemPrompt,
+  ]
     .filter(Boolean)
     .join("\n\n");
   const followupRun = {

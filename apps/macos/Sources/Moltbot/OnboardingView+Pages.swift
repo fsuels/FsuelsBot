@@ -66,6 +66,34 @@ extension OnboardingView {
                     }
                 }
                 .frame(maxWidth: 520)
+
+                self.onboardingCard(spacing: 10, padding: 14) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("How memory works")
+                            .font(.headline)
+                        Text(
+                            "I can remember things over time, and I work best when we focus on one task at a time.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text("When you start something new, say it clearly.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .help("Example: I want to work on supplier onboarding.")
+                        Text("If you switch topics, tell me first so things do not get mixed up.")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .help("Say: Lets continue the task about X.")
+                        Text(
+                            "Tip: Tell me what you are working on, tell me when you switch, and tell me what matters.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .frame(maxWidth: 520)
             }
             .padding(.top, 16)
         }
@@ -687,6 +715,13 @@ extension OnboardingView {
                 "This is a dedicated onboarding chat. Your agent will introduce itself, " +
                     "learn who you are, and help you connect WhatsApp or Telegram if you want.")
                 .font(.body)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 520)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(
+                "If something is important, say so clearly. If you start fresh, saved tasks and important details can still be remembered.")
+                .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 520)

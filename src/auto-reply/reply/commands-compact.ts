@@ -49,7 +49,7 @@ export const handleCompactCommand: CommandHandler = async (params) => {
   if (!params.sessionEntry?.sessionId) {
     return {
       shouldContinue: false,
-      reply: { text: "⚙️ Compaction unavailable (missing session id)." },
+      reply: { text: "Compaction unavailable (missing session id)." },
     };
   }
   const sessionId = params.sessionEntry.sessionId;
@@ -94,7 +94,7 @@ export const handleCompactCommand: CommandHandler = async (params) => {
   const compactLabel = result.ok
     ? result.compacted
       ? result.result?.tokensBefore != null && result.result?.tokensAfter != null
-        ? `Compacted (${formatTokenCount(result.result.tokensBefore)} → ${formatTokenCount(result.result.tokensAfter)})`
+        ? `Compacted (${formatTokenCount(result.result.tokensBefore)} -> ${formatTokenCount(result.result.tokensAfter)})`
         : result.result?.tokensBefore
           ? `Compacted (${formatTokenCount(result.result.tokensBefore)} before)`
           : "Compacted"
@@ -123,8 +123,20 @@ export const handleCompactCommand: CommandHandler = async (params) => {
   );
   const reason = result.reason?.trim();
   const line = reason
-    ? `${compactLabel}: ${reason} • ${contextSummary}`
-    : `${compactLabel} • ${contextSummary}`;
+    ? `${compactLabel}: ${reason} - ${contextSummary}`
+    : `${compactLabel} - ${contextSummary}`;
   enqueueSystemEvent(line, { sessionKey: params.sessionKey });
-  return { shouldContinue: false, reply: { text: `⚙️ ${line}` } };
+  const isTelegram =
+    params.command.surface === "telegram" || params.command.channel === "telegram";
+  if (isTelegram && result.ok && result.compacted) {
+    return {
+      shouldContinue: false,
+      reply: {
+        text:
+          "I have saved the important parts and shortened the conversation.\n\n" +
+          "We can keep going, or you can come back to this later.",
+      },
+    };
+  }
+  return { shouldContinue: false, reply: { text: `Compaction: ${line}` } };
 };

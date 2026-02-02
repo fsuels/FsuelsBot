@@ -61,6 +61,16 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain("Voice (TTS) is enabled.");
   });
 
+  it("includes task clarity guidance in full prompts", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/clawd",
+    });
+
+    expect(prompt).toContain("## Task Clarity");
+    expect(prompt).toContain("Before we begin - what are we working on today?");
+    expect(prompt).toContain("Got it. I will treat this as important and remember it.");
+  });
+
   it("adds reasoning tag hint when enabled", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/clawd",

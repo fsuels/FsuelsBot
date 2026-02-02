@@ -491,6 +491,10 @@ export function buildHelpMessage(cfg?: MoltbotConfig): string {
 
   lines.push("");
   lines.push("More: /commands for full list");
+  lines.push("");
+  lines.push(
+    "Tip: Tell me what you are working on, tell me when you switch, and tell me what matters.",
+  );
 
   return lines.join("\n");
 }

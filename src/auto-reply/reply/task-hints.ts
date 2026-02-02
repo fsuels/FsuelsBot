@@ -4,6 +4,8 @@ import { DEFAULT_SESSION_TASK_ID } from "../../sessions/task-context.js";
 export type InferredTaskHint = {
   taskId: string;
   score: number;
+  confidence: "low" | "medium" | "high";
+  ambiguousTaskIds?: string[];
 };
 
 function tokenizeTaskHintText(value: string): string[] {
@@ -27,7 +29,7 @@ export function inferTaskHintFromMessage(params: {
   const messageTokens = new Set(tokenizeTaskHintText(messageText));
   if (messageTokens.size === 0) return null;
 
-  let best: InferredTaskHint | null = null;
+  const candidates: Array<{ taskId: string; score: number }> = [];
   for (const [taskId, state] of Object.entries(taskMap)) {
     if (!taskId || taskId === DEFAULT_SESSION_TASK_ID) continue;
     if (state?.status === "completed" || state?.status === "archived") continue;
@@ -41,11 +43,27 @@ export function inferTaskHintFromMessage(params: {
     if (messageLower.includes(taskId.toLowerCase())) {
       score += 0.35;
     }
-    if (!best || score > best.score) {
-      best = { taskId, score };
-    }
+    candidates.push({ taskId, score });
   }
 
+  const sorted = candidates.sort((a, b) => b.score - a.score);
+  const best = sorted[0];
   if (!best || best.score < 0.6) return null;
-  return best;
+  const confidence: InferredTaskHint["confidence"] =
+    best.score >= 0.8 ? "high" : best.score >= 0.7 ? "medium" : "low";
+  const ambiguousTaskIds = sorted
+    .filter(
+      (candidate) =>
+        candidate.taskId !== best.taskId &&
+        candidate.score >= 0.55 &&
+        best.score - candidate.score <= 0.1,
+    )
+    .map((candidate) => candidate.taskId)
+    .slice(0, 3);
+  return {
+    taskId: best.taskId,
+    score: best.score,
+    confidence,
+    ...(ambiguousTaskIds.length > 0 ? { ambiguousTaskIds } : {}),
+  };
 }

@@ -136,7 +136,7 @@ function buildChatCommands(): ChatCommandDefinition[] {
     defineChatCommand({
       key: "commands",
       nativeName: "commands",
-      description: "List all slash commands.",
+      description: "Show everything I can do.",
       textAlias: "/commands",
       category: "status",
     }),
@@ -164,7 +164,7 @@ function buildChatCommands(): ChatCommandDefinition[] {
     defineChatCommand({
       key: "status",
       nativeName: "status",
-      description: "Show current status.",
+      description: "Show what I am focused on right now.",
       textAlias: "/status",
       category: "status",
     }),
@@ -187,7 +187,7 @@ function buildChatCommands(): ChatCommandDefinition[] {
     defineChatCommand({
       key: "context",
       nativeName: "context",
-      description: "Explain how context is built and used.",
+      description: "Explain how I remember things and continue work.",
       textAlias: "/context",
       acceptsArgs: true,
       category: "status",
@@ -328,7 +328,7 @@ function buildChatCommands(): ChatCommandDefinition[] {
     defineChatCommand({
       key: "usage",
       nativeName: "usage",
-      description: "Usage footer or cost summary.",
+      description: "Show usage and activity information.",
       textAlias: "/usage",
       category: "options",
       args: [
@@ -451,7 +451,7 @@ function buildChatCommands(): ChatCommandDefinition[] {
     defineChatCommand({
       key: "reset",
       nativeName: "reset",
-      description: "Reset the current session.",
+      description: "Start fresh for a different topic.",
       textAlias: "/reset",
       acceptsArgs: true,
       category: "session",
@@ -459,14 +459,14 @@ function buildChatCommands(): ChatCommandDefinition[] {
     defineChatCommand({
       key: "new",
       nativeName: "new",
-      description: "Start a new session.",
+      description: "Start a new topic (saved work stays safe).",
       textAlias: "/new",
       acceptsArgs: true,
       category: "session",
     }),
     defineChatCommand({
       key: "compact",
-      description: "Compact the session context.",
+      description: "Save and shorten the current conversation.",
       textAlias: "/compact",
       scope: "text",
       category: "session",

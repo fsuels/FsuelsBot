@@ -111,6 +111,17 @@ const NATIVE_NAME_OVERRIDES: Record<string, Record<string, string>> = {
   },
 };
 
+const PROVIDER_TEXT_NATIVE_COMMANDS: Record<string, Set<string>> = {
+  telegram: new Set(["compact"]),
+};
+
+function shouldExposeAsNative(command: ChatCommandDefinition, provider?: string): boolean {
+  if (command.scope !== "text" && command.nativeName) return true;
+  const providerKey = provider?.trim().toLowerCase();
+  if (!providerKey) return false;
+  return PROVIDER_TEXT_NATIVE_COMMANDS[providerKey]?.has(command.key) === true;
+}
+
 function resolveNativeName(command: ChatCommandDefinition, provider?: string): string | undefined {
   if (!command.nativeName) return undefined;
   if (provider) {
@@ -125,7 +136,7 @@ export function listNativeCommandSpecs(params?: {
   provider?: string;
 }): NativeCommandSpec[] {
   return listChatCommands({ skillCommands: params?.skillCommands })
-    .filter((command) => command.scope !== "text" && command.nativeName)
+    .filter((command) => shouldExposeAsNative(command, params?.provider))
     .map((command) => ({
       name: resolveNativeName(command, params?.provider) ?? command.key,
       description: command.description,
@@ -139,7 +150,7 @@ export function listNativeCommandSpecsForConfig(
   params?: { skillCommands?: SkillCommandSpec[]; provider?: string },
 ): NativeCommandSpec[] {
   return listChatCommandsForConfig(cfg, params)
-    .filter((command) => command.scope !== "text" && command.nativeName)
+    .filter((command) => shouldExposeAsNative(command, params?.provider))
     .map((command) => ({
       name: resolveNativeName(command, params?.provider) ?? command.key,
       description: command.description,
@@ -155,8 +166,8 @@ export function findCommandByNativeName(
   const normalized = name.trim().toLowerCase();
   return getChatCommands().find(
     (command) =>
-      command.scope !== "text" &&
-      resolveNativeName(command, provider)?.toLowerCase() === normalized,
+      shouldExposeAsNative(command, provider) &&
+      (resolveNativeName(command, provider) ?? command.key).toLowerCase() === normalized,
   );
 }
 

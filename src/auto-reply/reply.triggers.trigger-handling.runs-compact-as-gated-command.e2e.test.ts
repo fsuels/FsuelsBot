@@ -138,7 +138,7 @@ describe("trigger handling", () => {
         },
       );
       const text = Array.isArray(res) ? res[0]?.text : res?.text;
-      expect(text?.startsWith("⚙️ Compacted")).toBe(true);
+      expect(text?.startsWith("Compaction: Compacted")).toBe(true);
       expect(compactEmbeddedPiSession).toHaveBeenCalledOnce();
       expect(runEmbeddedPiAgent).not.toHaveBeenCalled();
       const store = loadSessionStore(storePath);

@@ -96,6 +96,15 @@ describe("commands registry", () => {
     expect(findCommandByNativeName("tts", "discord")).toBeUndefined();
   });
 
+  it("exposes /compact as a Telegram native command", () => {
+    const native = listNativeCommandSpecsForConfig(
+      { commands: { native: true } },
+      { provider: "telegram" },
+    );
+    expect(native.find((spec) => spec.name === "compact")).toBeTruthy();
+    expect(findCommandByNativeName("compact", "telegram")?.key).toBe("compact");
+  });
+
   it("detects known text commands", () => {
     const detection = getCommandDetection();
     expect(detection.exact.has("/commands")).toBe(true);

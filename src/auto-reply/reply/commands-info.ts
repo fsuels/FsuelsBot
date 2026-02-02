@@ -1,4 +1,5 @@
 import { logVerbose } from "../../globals.js";
+import { DEFAULT_SESSION_TASK_ID } from "../../sessions/task-context.js";
 import { listSkillCommandsForAgents } from "../skill-commands.js";
 import {
   buildCommandsMessage,
@@ -8,6 +9,23 @@ import {
 import { buildStatusReply } from "./commands-status.js";
 import { buildContextReply } from "./commands-context-report.js";
 import type { CommandHandler } from "./commands-types.js";
+
+function isTelegramCommand(params: Parameters<CommandHandler>[0]): boolean {
+  return params.command.surface === "telegram" || params.command.channel === "telegram";
+}
+
+function hasPreviousTaskContext(params: Parameters<CommandHandler>[0]): boolean {
+  const entry = params.sessionEntry;
+  const taskMap = entry?.taskStateById;
+  if (!taskMap) return false;
+  const activeTaskId = entry?.activeTaskId?.trim();
+  return Object.entries(taskMap).some(([taskId, state]) => {
+    if (!taskId || taskId === DEFAULT_SESSION_TASK_ID) return false;
+    if (activeTaskId && taskId === activeTaskId) return false;
+    if (state?.status === "archived") return false;
+    return true;
+  });
+}
 
 export const handleHelpCommand: CommandHandler = async (params, allowTextCommands) => {
   if (!allowTextCommands) return null;
@@ -118,6 +136,17 @@ export const handleStatusCommand: CommandHandler = async (params, allowTextComma
     );
     return { shouldContinue: false };
   }
+  if (isTelegramCommand(params) && params.command.commandBodyNormalized === "/status") {
+    const lines = [
+      "Right now, I am focused on the current topic we are discussing.",
+      "",
+      "If you want to switch topics or continue something else, just tell me.",
+    ];
+    if (hasPreviousTaskContext(params)) {
+      lines.push("", "I can also continue a previous task if you want.");
+    }
+    return { shouldContinue: false, reply: { text: lines.join("\n") } };
+  }
   const reply = await buildStatusReply({
     cfg: params.cfg,
     command: params.command,
@@ -148,6 +177,17 @@ export const handleContextCommand: CommandHandler = async (params, allowTextComm
       `Ignoring /context from unauthorized sender: ${params.command.senderId || "<unknown>"}`,
     );
     return { shouldContinue: false };
+  }
+  if (isTelegramCommand(params) && normalized === "/context") {
+    return {
+      shouldContinue: false,
+      reply: {
+        text:
+          "I remember best when we work on one topic at a time.\n\n" +
+          "When you tell me what you are working on, I keep it together.\n" +
+          "When you switch topics, I start fresh but keep saved work safe.",
+      },
+    };
   }
   return { shouldContinue: false, reply: await buildContextReply(params) };
 };

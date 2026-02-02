@@ -73,6 +73,57 @@ After setup, the app opens a dedicated onboarding chat session so the agent can
 introduce itself and guide next steps. This keeps first‑run guidance separate
 from your normal conversation.
 
+## Conversation guidance copy
+
+Use this user-facing copy in onboarding screens, welcome cards, and tooltips:
+
+- Welcome message:
+  - Welcome!
+  - I can remember things over time, but I work best when we focus on one task at a time.
+  - When you start something new, just tell me what you are working on.
+  - When you switch topics, let me know.
+  - I will take care of the rest.
+- Short memory tooltip:
+  - I remember best when we work on one topic at a time.
+  - Tell me when you start something new or switch topics.
+- Starting a task:
+  - When you begin a new project or topic, say it clearly.
+  - Example: I want to work on supplier onboarding.
+- Switching topics:
+  - If you change to a different topic, tell me first.
+  - This keeps things from getting mixed up.
+- Coming back later:
+  - You can come back anytime.
+  - Say: Lets continue the task about X.
+- Important details:
+  - If something must not be forgotten, say so clearly.
+  - I will treat it as important and keep it safe.
+- Start fresh message:
+  - Starting fresh clears the recent conversation, but I still remember saved tasks and important details.
+
+Gentle auto prompts for the agent:
+
+- Chat start or after long silence:
+  - Before we begin - what would you like to work on?
+- Sudden topic switch:
+  - It looks like we may be switching topics. Is this something new?
+- Long or complex task:
+  - Would you like me to save where we are so we can continue later?
+- Before start fresh:
+  - I am clearing the recent conversation now.
+  - Saved work is still safe. What would you like to work on next?
+- Resuming old topic after reset:
+  - I remember this task.
+  - Do you want me to continue from where we left off?
+- Critical statement:
+  - Got it. I will treat this as important and remember it.
+- Ongoing work with no clear task:
+  - Just checking - should I treat this as one ongoing task?
+
+One-line reminder:
+
+- Tip: Tell me what you are working on, tell me when you switch, and tell me what matters.
+
 ## Agent bootstrap ritual
 
 On the first agent run, Moltbot bootstraps a workspace (default `~/clawd`):

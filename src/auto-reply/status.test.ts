@@ -415,10 +415,10 @@ describe("buildCommandsMessage", () => {
     } as MoltbotConfig);
     expect(text).toContain("ℹ️ Slash commands");
     expect(text).toContain("Status");
-    expect(text).toContain("/commands - List all slash commands.");
+    expect(text).toContain("/commands - Show everything I can do.");
     expect(text).toContain("/skill - Run a skill by name.");
     expect(text).toContain("/think (/thinking, /t) - Set thinking level.");
-    expect(text).toContain("/compact [text] - Compact the session context.");
+    expect(text).toContain("/compact [text] - Save and shorten the current conversation.");
     expect(text).not.toContain("/config");
     expect(text).not.toContain("/debug");
   });
@@ -447,6 +447,9 @@ describe("buildHelpMessage", () => {
     } as MoltbotConfig);
     expect(text).toContain("Skills");
     expect(text).toContain("/skill <name> [input]");
+    expect(text).toContain(
+      "Tip: Tell me what you are working on, tell me when you switch, and tell me what matters.",
+    );
     expect(text).not.toContain("/config");
     expect(text).not.toContain("/debug");
   });
