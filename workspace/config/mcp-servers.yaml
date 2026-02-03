@@ -1,6 +1,94 @@
 # MCP Server Configurations for Ghost Broker
 # Model Context Protocol servers connect AI assistants to external data sources
-# Last updated: 2026-02-01
+# Last updated: 2026-02-03
+
+# ============================================================================
+# TERMINATOR MCP - Desktop Automation Agent (LIVE ✅)
+# ============================================================================
+terminator:
+  name: "Terminator - Desktop Automation"
+  status: "available"
+  type: "node"  # Uses npx terminator-mcp-agent
+  
+  # Official Terminator MCP Server (mediar-ai)
+  official_server:
+    repo: "https://github.com/mediar-ai/terminator"
+    docs: "https://t8r.tech"
+    npm: "terminator-mcp-agent"
+    
+  # MCP client configuration
+  config:
+    mcpServers:
+      terminator-mcp-agent:
+        command: "npx"
+        args: ["-y", "terminator-mcp-agent@latest"]
+        env:
+          LOG_LEVEL: "info"
+          RUST_BACKTRACE: "1"
+          
+  # Alternative: HTTP transport for web integrations
+  http_config:
+    mcpServers:
+      terminator-mcp-agent:
+        command: "npx"
+        args: ["-y", "terminator-mcp-agent@latest", "--transport", "http", "--port", "3000"]
+        env:
+          LOG_LEVEL: "info"
+          
+  # Available capabilities
+  capabilities:
+    - name: "Desktop Control"
+      description: "Mouse clicks, keyboard input, drag-and-drop"
+      features:
+        - click: "Click at coordinates or element selector"
+        - type: "Type text input"
+        - press: "Press keyboard shortcuts"
+        - drag: "Drag and drop operations"
+        
+    - name: "Screen Vision"
+      description: "Screenshot and visual element detection"
+      features:
+        - screenshot: "Capture screen or window"
+        - find: "Locate elements by text or image"
+        - ocr: "Extract text from screen"
+        
+    - name: "Accessibility Tree"
+      description: "Windows UI Automation API integration"
+      features:
+        - inspect: "Inspect UI element properties"
+        - navigate: "Navigate element hierarchy"
+        - interact: "Interact with accessible elements"
+        
+    - name: "Browser Automation"
+      description: "Control web browsers without separate login"
+      features:
+        - uses_session: "Uses your existing browser session"
+        - no_takeover: "Works in background, doesn't steal focus"
+        
+  # Key differentiators
+  why_terminator:
+    - "Uses your browser session - no need to relogin"
+    - "Doesn't take over cursor or keyboard - runs in background"
+    - "Works across pixels, DOM, and Accessibility tree for reliability"
+    - "Cross-platform: Windows, macOS, Linux"
+    
+  # Use cases for OpenClaw
+  use_cases:
+    - "Create a new instance on GCP, connect via CLI"
+    - "Check logs on Vercel to find errors"
+    - "Test app features based on recent commits"
+    - "Automate repetitive desktop workflows"
+    - "Fill out forms across any application"
+    - "Control desktop apps that don't have APIs"
+    
+  notes: |
+    Terminator provides full desktop automation via MCP.
+    The agent can control any Windows application using:
+    - Direct pixel coordinates and screen vision
+    - DOM manipulation for web browsers
+    - Windows Accessibility API for native apps
+    
+    Security: Runs locally, no cloud; agent has full desktop access.
 
 # ============================================================================
 # SHOPIFY MCP - dresslikemommy Store (LIVE ✅)

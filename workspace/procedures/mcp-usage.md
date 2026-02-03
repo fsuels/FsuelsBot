@@ -1,7 +1,7 @@
 # MCP Server Usage Guide
 > Model Context Protocol servers for Ghost Broker ecosystem
 
-**Last Updated:** 2026-02-01  
+**Last Updated:** 2026-02-03  
 **Config File:** `config/mcp-servers.yaml`
 
 ---
@@ -22,13 +22,72 @@ The **Model Context Protocol (MCP)** is an open standard that enables AI assista
 
 | Service | Status | Use Case |
 |---------|--------|----------|
+| **Terminator** | ✅ Available | Desktop automation, mouse/keyboard control |
 | **Shopify** | ✅ Available | Orders, products, customers |
 | **Google Analytics** | ✅ Available | Traffic, conversions, user behavior |
 | **Supabase** | ⏳ Pending T151 | Ghost Broker database queries |
 
 ---
 
-## 1. Shopify MCP
+## 1. Terminator MCP (Desktop Automation)
+
+### Purpose
+Control your entire desktop via AI:
+- "Click the submit button in the browser"
+- "Type my email into this form"
+- "Open Calculator, compute 42 * 17, and tell me the result"
+- "Take a screenshot of the current window"
+
+### Quick Setup
+
+**One-liner (Claude Code):**
+```bash
+claude mcp add terminator "npx -y terminator-mcp-agent@latest"
+```
+
+**MCP Config (Cursor, VS Code, Windsurf):**
+```json
+{
+  "mcpServers": {
+    "terminator-mcp-agent": {
+      "command": "npx",
+      "args": ["-y", "terminator-mcp-agent@latest"],
+      "env": {
+        "LOG_LEVEL": "info",
+        "RUST_BACKTRACE": "1"
+      }
+    }
+  }
+}
+```
+
+### Key Features
+- **Uses your browser session** - no need to relogin
+- **Doesn't take over cursor/keyboard** - runs in background
+- **Multi-modal** - pixels, DOM, and Accessibility tree
+
+### Available Capabilities
+
+| Capability | Description |
+|------------|-------------|
+| `click` | Click at coordinates or element selector |
+| `type` | Type text input |
+| `press` | Press keyboard shortcuts |
+| `screenshot` | Capture screen or window |
+| `find` | Locate elements by text/image |
+| `inspect` | Windows UI Automation API |
+
+### Example Queries
+```
+"Navigate to settings in this app"
+"Find the login button and click it"
+"Fill out this form with my saved details"
+"Check my email and summarize unread messages"
+```
+
+---
+
+## 2. Shopify MCP
 
 ### Purpose
 Query dresslikemommy store data via natural language:
