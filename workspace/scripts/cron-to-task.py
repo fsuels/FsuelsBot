@@ -26,7 +26,8 @@ def create_cron_task(job_id: str, title: str, instructions: str, plan: str = Non
     task_id = f"CRON-{date_str}-{job_id}"
     
     # Load current tasks
-    with open(TASKS_FILE, 'r', encoding='utf-8') as f:
+    # NOTE: tasks.json may be UTF-8 with BOM on Windows; use utf-8-sig to tolerate BOM
+    with open(TASKS_FILE, 'r', encoding='utf-8-sig') as f:
         data = json.load(f)
     
     # Check if task already exists (idempotency - don't create duplicates)
