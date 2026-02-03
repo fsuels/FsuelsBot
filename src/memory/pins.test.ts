@@ -8,6 +8,7 @@ import {
   forgetMemoryPins,
   listConstraintPinsForInjection,
   listMemoryPins,
+  removeMemoryPin,
   upsertMemoryPin,
 } from "./pins.js";
 
@@ -107,5 +108,50 @@ describe("memory pins", () => {
     });
     expect(second.id).toBe(first.id);
     expect(second.updatedAt).toBe(first.updatedAt);
+  });
+
+  it("removes stale task pin markdown after deleting the last task pin", async () => {
+    const created = await upsertMemoryPin({
+      workspaceDir,
+      type: "constraint",
+      text: "Task-only guardrail",
+      scope: "task",
+      taskId: "task-a",
+    });
+    const taskPinsPath = path.join(workspaceDir, "memory/tasks/task-a/pins.md");
+    const beforeText = await fs.readFile(taskPinsPath, "utf-8");
+    expect(beforeText).toContain("Task-only guardrail");
+
+    const removed = await removeMemoryPin({
+      workspaceDir,
+      id: created.id,
+    });
+    expect(removed).toBe(true);
+    await expect(fs.access(taskPinsPath)).rejects.toThrow();
+  });
+
+  it("serializes concurrent pin writes without losing updates", async () => {
+    await Promise.all(
+      Array.from({ length: 8 }, (_, index) =>
+        upsertMemoryPin({
+          workspaceDir,
+          type: "fact",
+          text: `Concurrent fact ${index}`,
+          scope: "global",
+        }),
+      ),
+    );
+
+    const pins = await listMemoryPins({ workspaceDir, scope: "global" });
+    const texts = new Set(pins.map((pin) => pin.text));
+    expect(texts.size).toBeGreaterThanOrEqual(8);
+    for (let index = 0; index < 8; index += 1) {
+      expect(texts.has(`Concurrent fact ${index}`)).toBe(true);
+    }
+  });
+
+  it("fails closed when pins store JSON is corrupted", async () => {
+    await fs.writeFile(path.join(workspaceDir, "memory/.pins.json"), "{not-valid-json", "utf-8");
+    await expect(listMemoryPins({ workspaceDir })).rejects.toThrow(/pins store read failed/i);
   });
 });

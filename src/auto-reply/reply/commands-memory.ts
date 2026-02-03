@@ -154,12 +154,24 @@ async function persistSessionEntry(params: {
   }
 }
 
-async function commitBestEffort(params: Parameters<typeof commitMemoryEvents>[0]): Promise<void> {
+async function commitRequired(params: Parameters<typeof commitMemoryEvents>[0]): Promise<void> {
   try {
     await commitMemoryEvents(params);
   } catch (err) {
-    logVerbose(`memory event commit skipped: ${String(err)}`);
+    const detail = err instanceof Error ? err.message : String(err);
+    throw new Error(`durable memory commit failed: ${detail}`);
   }
+}
+
+function durabilityFailureReply(action: string, error: unknown): { shouldContinue: false; reply: { text: string } } {
+  const detail = error instanceof Error ? error.message : String(error);
+  logVerbose(`${action} blocked by durability failure: ${detail}`);
+  return {
+    shouldContinue: false,
+    reply: {
+      text: `${action} failed because memory commit did not persist. ${detail}`,
+    },
+  };
 }
 
 async function runTaskSwitch(params: {
@@ -180,6 +192,27 @@ async function runTaskSwitch(params: {
     workspaceDir: params.workspaceDir,
     taskId,
   });
+  const resolvedTitle = params.title ?? existingTask?.title ?? taskId;
+  const events: Parameters<typeof commitMemoryEvents>[0]["events"] = [];
+  if (!existingTask) {
+    events.push({ type: "TASK_CREATED", payload: { taskId, title: resolvedTitle } });
+  }
+  if (params.title) {
+    events.push({ type: "TITLE_SET", payload: { title: params.title } });
+  }
+  events.push({
+    type: "STATE_PATCH_APPLIED",
+    payload: { patch: { status: "active", title: resolvedTitle } },
+  });
+  await commitRequired({
+    workspaceDir: params.workspaceDir,
+    writeScope: "task",
+    taskId,
+    actor: "user",
+    events,
+    now,
+  });
+
   const taskRecord = await upsertTaskRegistryTask({
     workspaceDir: params.workspaceDir,
     taskId,
@@ -212,26 +245,6 @@ async function runTaskSwitch(params: {
     sessionStore: params.sessionStore,
     sessionKey: params.sessionKey,
     storePath: params.storePath,
-  });
-
-  const events: Parameters<typeof commitMemoryEvents>[0]["events"] = [];
-  if (!existingTask) {
-    events.push({ type: "TASK_CREATED", payload: { taskId, title: taskRecord.title } });
-  }
-  if (params.title) {
-    events.push({ type: "TITLE_SET", payload: { title: params.title } });
-  }
-  events.push({
-    type: "STATE_PATCH_APPLIED",
-    payload: { patch: { status: "active", title: params.title ?? taskRecord.title } },
-  });
-  await commitBestEffort({
-    workspaceDir: params.workspaceDir,
-    writeScope: "task",
-    taskId,
-    actor: "user",
-    events,
-    now,
   });
   return nextEntry;
 }
@@ -347,16 +360,20 @@ export const handlePinCommand: CommandHandler = async (params, allowTextCommands
         },
       };
     }
-    await commitBestEffort({
-      workspaceDir: params.workspaceDir,
-      writeScope: result.scope ?? "global",
-      taskId: result.taskId,
-      actor: "user",
-      events: [
-        { type: "PIN_REMOVE_REQUESTED", payload: { pinId: result.pinId } },
-        { type: "PIN_REMOVED", payload: { pinId: result.pinId } },
-      ],
-    });
+    try {
+      await commitRequired({
+        workspaceDir: params.workspaceDir,
+        writeScope: result.scope ?? "global",
+        taskId: result.taskId,
+        actor: "user",
+        events: [
+          { type: "PIN_REMOVE_REQUESTED", payload: { pinId: result.pinId } },
+          { type: "PIN_REMOVED", payload: { pinId: result.pinId } },
+        ],
+      });
+    } catch (error) {
+      return durabilityFailureReply("Pin removal", error);
+    }
     return {
       shouldContinue: false,
       reply: { text: `Removed pin ${result.pinId}.` },
@@ -430,13 +447,17 @@ export const handlePinCommand: CommandHandler = async (params, allowTextCommands
     if (!edited) {
       return { shouldContinue: false, reply: { text: `Pin not found: ${pinId}.` } };
     }
-    await commitBestEffort({
-      workspaceDir: params.workspaceDir,
-      writeScope: edited.scope,
-      taskId: edited.taskId,
-      actor: "user",
-      events: [{ type: "STATE_PATCH_APPLIED", payload: { patch: { pins: [edited.id] } } }],
-    });
+    try {
+      await commitRequired({
+        workspaceDir: params.workspaceDir,
+        writeScope: edited.scope,
+        taskId: edited.taskId,
+        actor: "user",
+        events: [{ type: "STATE_PATCH_APPLIED", payload: { patch: { pins: [edited.id] } } }],
+      });
+    } catch (error) {
+      return durabilityFailureReply("Pin edit", error);
+    }
     return { shouldContinue: false, reply: { text: `Updated pin ${pinId}.` } };
   }
 
@@ -478,13 +499,17 @@ export const handlePinCommand: CommandHandler = async (params, allowTextCommands
     entity,
     ttlMs,
   });
-  await commitBestEffort({
-    workspaceDir: params.workspaceDir,
-    writeScope: pin.scope,
-    taskId: pin.taskId,
-    actor: "user",
-    events: [{ type: "PIN_ADDED", payload: { pinId: pin.id, text: pin.text, pinType: pin.type } }],
-  });
+  try {
+    await commitRequired({
+      workspaceDir: params.workspaceDir,
+      writeScope: pin.scope,
+      taskId: pin.taskId,
+      actor: "user",
+      events: [{ type: "PIN_ADDED", payload: { pinId: pin.id, text: pin.text, pinType: pin.type } }],
+    });
+  } catch (error) {
+    return durabilityFailureReply("Pin add", error);
+  }
   return {
     shouldContinue: false,
     reply: {
@@ -548,6 +573,19 @@ export const handleForgetCommand: CommandHandler = async (params, allowTextComma
     const activeTask = resolveSessionTaskView({ entry: params.sessionEntry });
     if (activeTask.taskId === taskId) {
       const now = Date.now();
+      try {
+        await commitRequired({
+          workspaceDir: params.workspaceDir,
+          writeScope: "task",
+          taskId,
+          actor: "user",
+          events: [{ type: "STATE_PATCH_APPLIED", payload: { patch: { status: "archived" } } }],
+          now,
+        });
+      } catch (error) {
+        return durabilityFailureReply(`Forget task ${taskId}`, error);
+      }
+
       let next = applySessionTaskUpdate(params.sessionEntry, {
         taskId,
         status: "archived",
@@ -570,14 +608,6 @@ export const handleForgetCommand: CommandHandler = async (params, allowTextComma
         workspaceDir: params.workspaceDir,
         taskId,
         status: "archived",
-        now,
-      });
-      await commitBestEffort({
-        workspaceDir: params.workspaceDir,
-        writeScope: "task",
-        taskId,
-        actor: "user",
-        events: [{ type: "STATE_PATCH_APPLIED", payload: { patch: { status: "archived" } } }],
         now,
       });
     }
@@ -662,16 +692,20 @@ export const handleTaskCommand: CommandHandler = async (params, allowTextCommand
       taskId = `${slugifyTaskTitle(title)}-${suffix}`;
       suffix += 1;
     }
-    await runTaskSwitch({
-      workspaceDir: params.workspaceDir,
-      entry,
-      taskId,
-      title,
-      sessionStore: params.sessionStore,
-      sessionKey: params.sessionKey,
-      storePath: params.storePath,
-      source: "task.new",
-    });
+    try {
+      await runTaskSwitch({
+        workspaceDir: params.workspaceDir,
+        entry,
+        taskId,
+        title,
+        sessionStore: params.sessionStore,
+        sessionKey: params.sessionKey,
+        storePath: params.storePath,
+        source: "task.new",
+      });
+    } catch (error) {
+      return durabilityFailureReply(`Create task ${taskId}`, error);
+    }
     return {
       shouldContinue: false,
       reply: { text: `Created task ${taskId} and switched context.` },
@@ -684,16 +718,20 @@ export const handleTaskCommand: CommandHandler = async (params, allowTextCommand
       return { shouldContinue: false, reply: { text: "Usage: /task set <id> [title]" } };
     }
     const title = parsed.values.slice(2).join(" ").trim() || undefined;
-    await runTaskSwitch({
-      workspaceDir: params.workspaceDir,
-      entry,
-      taskId,
-      title,
-      sessionStore: params.sessionStore,
-      sessionKey: params.sessionKey,
-      storePath: params.storePath,
-      source: "task.set",
-    });
+    try {
+      await runTaskSwitch({
+        workspaceDir: params.workspaceDir,
+        entry,
+        taskId,
+        title,
+        sessionStore: params.sessionStore,
+        sessionKey: params.sessionKey,
+        storePath: params.storePath,
+        source: "task.set",
+      });
+    } catch (error) {
+      return durabilityFailureReply(`Set active task to ${taskId}`, error);
+    }
     return { shouldContinue: false, reply: { text: `Active task set to ${taskId}.` } };
   }
 
@@ -703,28 +741,41 @@ export const handleTaskCommand: CommandHandler = async (params, allowTextCommand
     if (!left || !right) {
       return { shouldContinue: false, reply: { text: "Usage: /task link <id1> <id2>" } };
     }
-    const linked = await linkTaskRegistryTasks({
-      workspaceDir: params.workspaceDir,
-      taskId: left,
-      relatedTaskId: right,
-    });
-    if (!linked.updated) {
+    const leftTask = await getTaskRegistryTask({ workspaceDir: params.workspaceDir, taskId: left });
+    const rightTask = await getTaskRegistryTask({ workspaceDir: params.workspaceDir, taskId: right });
+    if (!leftTask || !rightTask) {
       return {
         shouldContinue: false,
         reply: { text: `Could not link tasks. Ensure both task ids exist: ${left}, ${right}` },
       };
     }
-    await commitBestEffort({
-      workspaceDir: params.workspaceDir,
-      writeScope: "global",
-      actor: "user",
-      events: [
-        {
-          type: "STATE_PATCH_APPLIED",
-          payload: { patch: { links: [left, right] } },
-        },
-      ],
-    });
+
+    try {
+      await commitRequired({
+        workspaceDir: params.workspaceDir,
+        writeScope: "global",
+        actor: "user",
+        events: [
+          {
+            type: "STATE_PATCH_APPLIED",
+            payload: { patch: { links: [left, right] } },
+          },
+        ],
+      });
+      const linked = await linkTaskRegistryTasks({
+        workspaceDir: params.workspaceDir,
+        taskId: left,
+        relatedTaskId: right,
+      });
+      if (!linked.updated) {
+        return {
+          shouldContinue: false,
+          reply: { text: `Could not link tasks. Ensure both task ids exist: ${left}, ${right}` },
+        };
+      }
+    } catch (error) {
+      return durabilityFailureReply(`Link tasks ${left} and ${right}`, error);
+    }
     return { shouldContinue: false, reply: { text: `Linked tasks ${left} <-> ${right}.` } };
   }
 
@@ -763,31 +814,35 @@ export const handleTaskCommand: CommandHandler = async (params, allowTextCommand
       source: "task.status",
     });
   }
-  await persistSessionEntry({
-    entry: next,
-    sessionStore: params.sessionStore,
-    sessionKey: params.sessionKey,
-    storePath: params.storePath,
-  });
-  await upsertTaskRegistryTask({
-    workspaceDir: params.workspaceDir,
-    taskId: targetTaskId,
-    status: mapSessionStatusToRegistryStatus(statusAction),
-    now,
-  });
-  await commitBestEffort({
-    workspaceDir: params.workspaceDir,
-    writeScope: "task",
-    taskId: targetTaskId,
-    actor: "user",
-    events: [
-      {
-        type: "STATE_PATCH_APPLIED",
-        payload: { patch: { status: mapSessionStatusToRegistryStatus(statusAction) } },
-      },
-    ],
-    now,
-  });
+  try {
+    await commitRequired({
+      workspaceDir: params.workspaceDir,
+      writeScope: "task",
+      taskId: targetTaskId,
+      actor: "user",
+      events: [
+        {
+          type: "STATE_PATCH_APPLIED",
+          payload: { patch: { status: mapSessionStatusToRegistryStatus(statusAction) } },
+        },
+      ],
+      now,
+    });
+    await persistSessionEntry({
+      entry: next,
+      sessionStore: params.sessionStore,
+      sessionKey: params.sessionKey,
+      storePath: params.storePath,
+    });
+    await upsertTaskRegistryTask({
+      workspaceDir: params.workspaceDir,
+      taskId: targetTaskId,
+      status: mapSessionStatusToRegistryStatus(statusAction),
+      now,
+    });
+  } catch (error) {
+    return durabilityFailureReply(`Set task ${targetTaskId} status`, error);
+  }
   return { shouldContinue: false, reply: { text: `Task ${targetTaskId} marked ${statusAction}.` } };
 };
 

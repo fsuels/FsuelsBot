@@ -1066,8 +1066,11 @@ async function readTaskRegistryStore(workspaceDir: string): Promise<TaskRegistry
           : Date.now(),
       tasks,
     };
-  } catch {
-    return defaultTaskRegistryStore();
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === "ENOENT") return defaultTaskRegistryStore();
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(`memory task registry read failed: ${detail}`);
   }
 }
 
@@ -1076,8 +1079,7 @@ async function writeTaskRegistryStore(
   store: TaskRegistryStore,
 ): Promise<void> {
   const absPath = path.join(workspaceDir, TASK_REGISTRY_REL_PATH);
-  ensureDir(path.dirname(absPath));
-  await fs.writeFile(absPath, `${JSON.stringify(store, null, 2)}\n`, "utf-8");
+  await writeTextFileAtomic(absPath, `${JSON.stringify(store, null, 2)}\n`);
 }
 
 async function writeTextFileAtomic(absPath: string, content: string): Promise<void> {

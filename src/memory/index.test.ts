@@ -544,4 +544,35 @@ describe("memory index", () => {
     manager = result.manager;
     await expect(result.manager.readFile({ relPath: "NOTES.md" })).rejects.toThrow("path required");
   });
+
+  it("rejects memory_get path traversal into sibling workspace-prefixed directories", async () => {
+    const siblingDir = path.join(path.dirname(workspaceDir), `${path.basename(workspaceDir)}-sibling`);
+    const siblingMemoryDir = path.join(siblingDir, "memory");
+    await fs.mkdir(siblingMemoryDir, { recursive: true });
+    await fs.writeFile(path.join(siblingMemoryDir, "outside.md"), "outside", "utf-8");
+
+    const cfg = {
+      agents: {
+        defaults: {
+          workspace: workspaceDir,
+          memorySearch: {
+            provider: "openai",
+            model: "mock-embed",
+            store: { path: indexPath },
+            sync: { watch: false, onSessionStart: false, onSearch: true },
+          },
+        },
+        list: [{ id: "main", default: true }],
+      },
+    };
+    const result = await getMemorySearchManager({ cfg, agentId: "main" });
+    expect(result.manager).not.toBeNull();
+    if (!result.manager) throw new Error("manager missing");
+    manager = result.manager;
+
+    const escapePath = `memory/../../${path.basename(siblingDir)}/memory/outside.md`;
+    await expect(result.manager.readFile({ relPath: escapePath })).rejects.toThrow(
+      "path escapes workspace",
+    );
+  });
 });

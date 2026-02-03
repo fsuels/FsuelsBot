@@ -142,6 +142,14 @@ const log = createSubsystemLogger("memory");
 
 const INDEX_CACHE = new Map<string, MemoryIndexManager>();
 
+function isPathInsideWorkspace(workspaceDir: string, absPath: string): boolean {
+  const resolvedWorkspace = path.resolve(workspaceDir);
+  const resolvedPath = path.resolve(absPath);
+  const relative = path.relative(resolvedWorkspace, resolvedPath);
+  if (!relative) return true;
+  return !relative.startsWith("..") && !path.isAbsolute(relative);
+}
+
 const vectorToBlob = (embedding: number[]): Buffer =>
   Buffer.from(new Float32Array(embedding).buffer);
 
@@ -743,7 +751,7 @@ export class MemoryIndexManager {
       throw new Error("path required");
     }
     const absPath = path.resolve(this.workspaceDir, relPath);
-    if (!absPath.startsWith(this.workspaceDir)) {
+    if (!isPathInsideWorkspace(this.workspaceDir, absPath)) {
       throw new Error("path escapes workspace");
     }
     const content = await fs.readFile(absPath, "utf-8");

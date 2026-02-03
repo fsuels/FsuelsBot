@@ -262,6 +262,13 @@ describe("task-memory-system", () => {
     );
   });
 
+  it("fails closed when task registry JSON is corrupted", async () => {
+    const registryPath = path.join(workspaceDir, "memory/system/task-registry.json");
+    await fs.mkdir(path.dirname(registryPath), { recursive: true });
+    await fs.writeFile(registryPath, "{bad-json", "utf-8");
+    await expect(listTaskRegistry(workspaceDir)).rejects.toThrow(/task registry read failed/i);
+  });
+
   it("stores and prunes transient ttl buffer items", async () => {
     const now = Date.now();
     await upsertTransientBufferItem({

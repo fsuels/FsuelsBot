@@ -2,23 +2,41 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import type { MoltbotConfig } from "../../config/config.js";
 import type { SessionEntry } from "../../config/sessions/types.js";
+import * as taskMemorySystem from "../../memory/task-memory-system.js";
 import type { MsgContext } from "../templating.js";
 import { buildCommandContext, handleCommands } from "./commands.js";
 import { parseInlineDirectives } from "./directive-handling.js";
 
 let workspaceDir = os.tmpdir();
+const previousMemoryEnv: Record<string, string | undefined> = {};
 
 beforeAll(async () => {
+  for (const key of [
+    "MEMORY_SECURITY_MODE",
+    "MEMORY_WAL_ACTIVE_SIGNING_KEY_ID",
+    "MEMORY_WAL_ACTIVE_SIGNING_KEY",
+    "MEMORY_WAL_VERIFICATION_KEYS_JSON",
+  ]) {
+    previousMemoryEnv[key] = process.env[key];
+  }
+  process.env.MEMORY_SECURITY_MODE = "prod";
+  process.env.MEMORY_WAL_ACTIVE_SIGNING_KEY_ID = "test:key:1";
+  process.env.MEMORY_WAL_ACTIVE_SIGNING_KEY = "test-secret";
+  process.env.MEMORY_WAL_VERIFICATION_KEYS_JSON = JSON.stringify({ "test:key:1": "test-secret" });
   workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "moltbot-commands-memory-"));
   await fs.mkdir(path.join(workspaceDir, "memory"), { recursive: true });
   await fs.mkdir(path.join(workspaceDir, "memory", "global"), { recursive: true });
 });
 
 afterAll(async () => {
+  for (const [key, value] of Object.entries(previousMemoryEnv)) {
+    if (value == null) delete process.env[key];
+    else process.env[key] = value;
+  }
   await fs.rm(workspaceDir, { recursive: true, force: true });
 });
 
@@ -360,5 +378,42 @@ describe("memory commands", () => {
     );
     expect(modeMinimal.reply?.text).toContain("Memory mode is minimal");
     expect(sessionStore[sessionKey]?.memoryGuidanceMode).toBe("minimal");
+  });
+
+  it("blocks mutating task commands when durable memory commit fails", async () => {
+    const cfg = {
+      commands: { text: true },
+      channels: { whatsapp: { allowFrom: ["*"] } },
+    } as MoltbotConfig;
+    const sessionKey = "agent:main:main";
+    const sessionEntry: SessionEntry = {
+      sessionId: "s5",
+      updatedAt: Date.now(),
+      activeTaskId: "default",
+      taskStateById: {
+        default: { updatedAt: Date.now(), status: "active" },
+      },
+    };
+    const sessionStore: Record<string, SessionEntry> = { [sessionKey]: sessionEntry };
+    const commitSpy = vi
+      .spyOn(taskMemorySystem, "commitMemoryEvents")
+      .mockRejectedValueOnce(new Error("forced wal failure"));
+    try {
+      const result = await handleCommands(
+        buildParams({
+          body: "/task set task-fail",
+          cfg,
+          sessionKey,
+          sessionEntry,
+          sessionStore,
+        }),
+      );
+      expect(result.shouldContinue).toBe(false);
+      expect(result.reply?.text).toContain("failed because memory commit did not persist");
+      expect(sessionStore[sessionKey]?.activeTaskId).toBe("default");
+      expect(sessionStore[sessionKey]?.taskStateById?.["task-fail"]).toBeUndefined();
+    } finally {
+      commitSpy.mockRestore();
+    }
   });
 });
