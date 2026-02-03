@@ -20,6 +20,7 @@ import {
   createMemoryPinRemoveIntent,
   editMemoryPin,
   listMemoryPins,
+  removeMemoryPin,
   type MemoryPinType,
   upsertMemoryPin,
 } from "../../memory/pins.js";
@@ -81,6 +82,10 @@ function formatPin(pin: {
   const expires =
     typeof pin.expiresAt === "number" ? ` expires=${new Date(pin.expiresAt).toISOString()}` : "";
   return `- ${pin.id} [${pin.type}] (${scope}) ${pin.text}${expires}`;
+}
+
+function normalizePinTextForMatch(value: string): string {
+  return value.replace(/\s+/g, " ").trim().toLowerCase();
 }
 
 function normalizeTaskStatus(
@@ -163,7 +168,10 @@ async function commitRequired(params: Parameters<typeof commitMemoryEvents>[0]):
   }
 }
 
-function durabilityFailureReply(action: string, error: unknown): { shouldContinue: false; reply: { text: string } } {
+function durabilityFailureReply(
+  action: string,
+  error: unknown,
+): { shouldContinue: false; reply: { text: string } } {
   const detail = error instanceof Error ? error.message : String(error);
   logVerbose(`${action} blocked by durability failure: ${detail}`);
   return {
@@ -437,6 +445,16 @@ export const handlePinCommand: CommandHandler = async (params, allowTextCommands
         return { shouldContinue: false, reply: { text: `Invalid --ttl value: ${ttlRaw}` } };
       }
     }
+    const existingPin = (
+      await listMemoryPins({
+        workspaceDir: params.workspaceDir,
+        scope: "all",
+        includeExpired: true,
+      })
+    ).find((pin) => pin.id === pinId);
+    if (!existingPin) {
+      return { shouldContinue: false, reply: { text: `Pin not found: ${pinId}.` } };
+    }
     const edited = await editMemoryPin({
       workspaceDir: params.workspaceDir,
       id: pinId,
@@ -456,6 +474,23 @@ export const handlePinCommand: CommandHandler = async (params, allowTextCommands
         events: [{ type: "STATE_PATCH_APPLIED", payload: { patch: { pins: [edited.id] } } }],
       });
     } catch (error) {
+      const rollbackTtlMs =
+        existingPin.type === "temporary" && typeof existingPin.expiresAt === "number"
+          ? Math.max(existingPin.expiresAt - Date.now(), 1)
+          : undefined;
+      try {
+        await editMemoryPin({
+          workspaceDir: params.workspaceDir,
+          id: existingPin.id,
+          text: existingPin.text,
+          entity: existingPin.entity,
+          ttlMs: rollbackTtlMs,
+        });
+      } catch (rollbackError) {
+        const rollbackDetail =
+          rollbackError instanceof Error ? rollbackError.message : String(rollbackError);
+        logVerbose(`Pin edit rollback failed for ${existingPin.id}: ${rollbackDetail}`);
+      }
       return durabilityFailureReply("Pin edit", error);
     }
     return { shouldContinue: false, reply: { text: `Updated pin ${pinId}.` } };
@@ -490,6 +525,21 @@ export const handlePinCommand: CommandHandler = async (params, allowTextCommands
       return { shouldContinue: false, reply: { text: `Invalid --ttl value: ${ttlRaw}` } };
     }
   }
+  const expectedTaskId = scope === "task" ? taskId : undefined;
+  const normalizedText = normalizePinTextForMatch(text);
+  const existingPin = (
+    await listMemoryPins({
+      workspaceDir: params.workspaceDir,
+      scope: scope === "task" ? "task" : "global",
+      taskId: expectedTaskId,
+    })
+  ).find(
+    (candidate) =>
+      candidate.type === type &&
+      candidate.scope === scope &&
+      (candidate.taskId ?? "") === (expectedTaskId ?? "") &&
+      normalizePinTextForMatch(candidate.text) === normalizedText,
+  );
   const pin = await upsertMemoryPin({
     workspaceDir: params.workspaceDir,
     type,
@@ -505,9 +555,23 @@ export const handlePinCommand: CommandHandler = async (params, allowTextCommands
       writeScope: pin.scope,
       taskId: pin.taskId,
       actor: "user",
-      events: [{ type: "PIN_ADDED", payload: { pinId: pin.id, text: pin.text, pinType: pin.type } }],
+      events: [
+        { type: "PIN_ADDED", payload: { pinId: pin.id, text: pin.text, pinType: pin.type } },
+      ],
     });
   } catch (error) {
+    if (!existingPin) {
+      try {
+        await removeMemoryPin({
+          workspaceDir: params.workspaceDir,
+          id: pin.id,
+        });
+      } catch (rollbackError) {
+        const rollbackDetail =
+          rollbackError instanceof Error ? rollbackError.message : String(rollbackError);
+        logVerbose(`Pin add rollback failed for ${pin.id}: ${rollbackDetail}`);
+      }
+    }
     return durabilityFailureReply("Pin add", error);
   }
   return {
@@ -742,7 +806,10 @@ export const handleTaskCommand: CommandHandler = async (params, allowTextCommand
       return { shouldContinue: false, reply: { text: "Usage: /task link <id1> <id2>" } };
     }
     const leftTask = await getTaskRegistryTask({ workspaceDir: params.workspaceDir, taskId: left });
-    const rightTask = await getTaskRegistryTask({ workspaceDir: params.workspaceDir, taskId: right });
+    const rightTask = await getTaskRegistryTask({
+      workspaceDir: params.workspaceDir,
+      taskId: right,
+    });
     if (!leftTask || !rightTask) {
       return {
         shouldContinue: false,

@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
+import { isPathWithinRoot } from "./internal.js";
 import {
   normalizeMemoryTaskId,
   resolveTaskMemoryDirPath,
@@ -60,6 +61,8 @@ async function removePathIfExists(absPath: string, rm: () => Promise<void>): Pro
 async function removeTaskMemory(workspaceDir: string, taskId: string): Promise<number> {
   const absTaskFile = path.join(workspaceDir, resolveTaskMemoryFilePath(taskId));
   const absTaskDir = path.join(workspaceDir, resolveTaskMemoryDirPath(taskId));
+  if (!isPathWithinRoot(workspaceDir, absTaskFile)) return 0;
+  if (!isPathWithinRoot(workspaceDir, absTaskDir)) return 0;
   let removed = 0;
   removed += await removePathIfExists(absTaskFile, async () => {
     await fs.rm(absTaskFile, { force: true });
@@ -105,6 +108,7 @@ export async function forgetMemoryWorkspace(params: {
   }
 
   for (const absPath of files) {
+    if (!isPathWithinRoot(params.workspaceDir, absPath)) continue;
     const relPath = path.relative(params.workspaceDir, absPath).replace(/\\/g, "/");
     if (taskId && relPath.startsWith(`memory/tasks/${taskId}/`)) continue;
     if (taskId && relPath === `memory/tasks/${taskId}.md`) continue;

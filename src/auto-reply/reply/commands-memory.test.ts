@@ -416,4 +416,99 @@ describe("memory commands", () => {
       commitSpy.mockRestore();
     }
   });
+
+  it("rolls back new pin writes when durable commit fails", async () => {
+    const cfg = {
+      commands: { text: true },
+      channels: { whatsapp: { allowFrom: ["*"] } },
+    } as MoltbotConfig;
+    const sessionKey = "agent:main:main";
+    const sessionEntry: SessionEntry = { sessionId: "s6", updatedAt: Date.now() };
+    const sessionStore: Record<string, SessionEntry> = { [sessionKey]: sessionEntry };
+    const pinText = "rollback add sentinel";
+    const commitSpy = vi
+      .spyOn(taskMemorySystem, "commitMemoryEvents")
+      .mockRejectedValueOnce(new Error("forced wal failure"));
+    try {
+      const result = await handleCommands(
+        buildParams({
+          body: `/pin fact ${pinText}`,
+          cfg,
+          sessionKey,
+          sessionEntry,
+          sessionStore,
+        }),
+      );
+      expect(result.shouldContinue).toBe(false);
+      expect(result.reply?.text).toContain("failed because memory commit did not persist");
+
+      const parsed = JSON.parse(
+        await fs.readFile(path.join(workspaceDir, "memory", ".pins.json"), "utf-8"),
+      ) as {
+        pins: Array<{ text: string }>;
+      };
+      expect(parsed.pins.some((pin) => pin.text.toLowerCase() === pinText)).toBe(false);
+    } finally {
+      commitSpy.mockRestore();
+    }
+  });
+
+  it("rolls back pin edits when durable commit fails", async () => {
+    const cfg = {
+      commands: { text: true },
+      channels: { whatsapp: { allowFrom: ["*"] } },
+    } as MoltbotConfig;
+    const sessionKey = "agent:main:main";
+    const sessionEntry: SessionEntry = { sessionId: "s7", updatedAt: Date.now() };
+    const sessionStore: Record<string, SessionEntry> = { [sessionKey]: sessionEntry };
+    const originalText = "rollback edit before";
+    const editedText = "rollback edit after";
+
+    await handleCommands(
+      buildParams({
+        body: `/pin fact ${originalText}`,
+        cfg,
+        sessionKey,
+        sessionEntry,
+        sessionStore,
+      }),
+    );
+    const beforeEdit = JSON.parse(
+      await fs.readFile(path.join(workspaceDir, "memory", ".pins.json"), "utf-8"),
+    ) as {
+      pins: Array<{ id: string; text: string }>;
+    };
+    const target = beforeEdit.pins.find((pin) => pin.text.toLowerCase() === originalText);
+    expect(target?.id).toBeTruthy();
+    if (!target?.id) {
+      throw new Error("expected pin id for edit rollback test");
+    }
+
+    const commitSpy = vi
+      .spyOn(taskMemorySystem, "commitMemoryEvents")
+      .mockRejectedValueOnce(new Error("forced wal failure"));
+    try {
+      const result = await handleCommands(
+        buildParams({
+          body: `/pin edit ${target.id} ${editedText}`,
+          cfg,
+          sessionKey,
+          sessionEntry: sessionStore[sessionKey],
+          sessionStore,
+        }),
+      );
+      expect(result.shouldContinue).toBe(false);
+      expect(result.reply?.text).toContain("failed because memory commit did not persist");
+
+      const afterEdit = JSON.parse(
+        await fs.readFile(path.join(workspaceDir, "memory", ".pins.json"), "utf-8"),
+      ) as {
+        pins: Array<{ id: string; text: string }>;
+      };
+      const updated = afterEdit.pins.find((pin) => pin.id === target.id);
+      expect(updated?.text.toLowerCase()).toBe(originalText);
+    } finally {
+      commitSpy.mockRestore();
+    }
+  });
 });

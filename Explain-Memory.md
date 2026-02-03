@@ -147,7 +147,7 @@ Key ranking behaviors:
 
 ### 6.4 Memory get safety
 
-`memory_get` reads only memory paths and now verifies resolved path containment using robust relative-path boundary checks (not plain string prefix checks).
+`memory_get` reads only memory paths and now verifies resolved path containment using shared robust relative-path boundary checks (not plain string prefix checks).
 
 ## 7) Pin subsystem
 
@@ -186,7 +186,8 @@ Guidance mode (`supportive` vs `minimal`) is adaptive via user response signals.
 
 - Mutating task commands now require successful durable WAL commit before session/task-registry state mutation is applied.
 - Mutating memory command paths no longer silently suppress commit failures; they return explicit failure replies when durable commit fails.
-- This closes the previous "best-effort commit" gap for task command mutations.
+- `/pin add` and `/pin edit` now attempt rollback when durable commit fails (new pins are removed; edits are reverted).
+- `/pin confirm` still removes from pin store before WAL commit, so remove-confirm rollback remains the largest remaining durability gap.
 
 ## 9) Memory flush and merge behavior
 
@@ -234,7 +235,9 @@ Key direct evidence:
 - `src/memory/index.test.ts`
   - indexing/search behaviors and memory_get path traversal rejection.
 - `src/auto-reply/reply/commands-memory.test.ts`
-  - mutating task commands block state mutation when durable commit fails.
+  - mutating task commands block state mutation when durable commit fails; pin add/edit rollback on durable failure.
+- `src/memory/internal.test.ts`
+  - path containment utility rejects sibling-prefix and out-of-root paths.
 
 ## 13) Senior-engineer scorecard (1-10)
 
@@ -243,25 +246,25 @@ These scores reflect implemented behavior and tested confidence.
 | Aspect | Score | Why it is good | Why it is not perfect |
 |---|---:|---|---|
 | Scope isolation and task boundaries | 9.2 | Explicit write scopes, task namespace filtering, autoswitch gates, and commit-first task command mutations reduce cross-task contamination risk. | Task inference is still heuristic, so misclassification risk cannot be reduced to zero. |
-| Durable write integrity | 9.2 | WAL append + signature chain + lock serialization + snapshot updates are robust, and mutating task commands now fail closed on commit failures. | Registry/transient stores are still not under a single atomic multi-store transaction boundary. |
+| Durable write integrity | 9.3 | WAL append + signature chain + lock serialization + snapshot updates are robust, and mutating task commands now fail closed on commit failures. | Registry/transient stores are still not under a single atomic multi-store transaction boundary. |
 | Authenticity / tamper resistance | 9.2 | Strong fail-closed replay checks and multiple key providers with rotation deprecation logic. | Security depends on correct operator key management and env setup discipline. |
 | Retrieval determinism and relevance | 8.8 | Deterministic ranker with semantic floor, dominance override, near-tie policy, and stable tie-breakers. | Ranking is heuristic; relevance quality can still drift across heterogeneous memory styles. |
-| Pin safety lifecycle | 9.3 | Lock-serialized + atomic writes, immutable duplicate behavior, explicit remove-confirm flow. | Pin mutation operations still commit after local pin-store mutation, so rollback semantics on commit failure are limited. |
+| Pin safety lifecycle | 9.4 | Lock-serialized + atomic writes, immutable duplicate behavior, explicit remove-confirm flow, and add/edit rollback on commit failure. | Remove-confirm path still mutates local pin state before durable WAL confirmation. |
 | Task switching safety | 9.0 | Opt-in autoswitch, ambiguity checks, thrash/mismatch counters, explicit prompts. | Still heuristic inference; occasional false positives/negatives are expected in language-heavy inputs. |
 | Memory flush and merge reliability | 8.6 | Clear trigger logic, skip guards, deterministic merge semantics for structured sections. | Unstructured task memory content intentionally skips merge, which can leave manual cleanup burden. |
 | Observability and diagnostics contracts | 9.1 | Versioned schemas and strict validation for memory telemetry; alert transport supports retry and PagerDuty. | Diagnostics are strong, but operator dashboards/SLO docs are not part of this code module. |
 | Operational lifecycle (rotation/retention/repair) | 8.9 | Segment rotation, compaction baseline signing, retention, and explicit repair path are implemented. | Operational runbooks and local procedural docs are partially out of sync with runtime design. |
-| File-read safety for memory_get | 9.0 | Memory path gating plus robust workspace containment now block traversal into sibling-prefix paths. | Defense still depends on correct normalization path in this component only; broader shared utility hardening is still possible. |
+| File-read safety for memory_get | 9.3 | Memory path gating plus shared containment utility now block traversal into sibling-prefix and out-of-root paths across read/forget surfaces. | Remaining safety still depends on consistent adoption in any future file-touching memory surfaces. |
 
-**Overall score: 9.2 / 10**
+**Overall score: 9.3 / 10**
 
 ## 14) Highest-priority recommendations
 
 ### P0 (should do next)
 
-1. **Finish pin-path transactional durability semantics.**
-   - Why: pin add/edit/remove-confirm paths still mutate pin store before WAL durability is confirmed.
-   - Improvement: add rollback-safe semantics or WAL-first coordinated commit plan for pin mutations.
+1. **Finish pin remove-confirm transactional durability semantics.**
+   - Why: add/edit now rollback, but remove-confirm still mutates pin store before WAL durability is confirmed.
+   - Improvement: introduce a coordinated remove-confirm flow that can commit WAL first or restore removed pin + intent on commit failure.
 
 2. **Update operational procedures/docs to match WAL+snapshot architecture.**
    - Why: procedure drift causes operator mistakes during incident response.
@@ -269,8 +272,8 @@ These scores reflect implemented behavior and tested confidence.
 
 ### P1 (important hardening)
 
-3. **Adopt a shared path-containment utility across modules.**
-   - Why: avoids future reintroduction of string-prefix path checks in other tool/read surfaces.
+3. **Enforce shared path-containment utility by policy/tests for new memory file surfaces.**
+   - Why: utility exists now; the main risk is future drift or one-off checks in new code.
 
 4. **Add periodic integrity scan command (WAL + manifest + baseline + snapshots).**
    - Why: proactive detection lowers MTTR before write-time failures surface.
@@ -299,9 +302,9 @@ If another AI has no file access, tell it this:
 - Memory flush runs near compaction pressure and merges task markdown with deterministic section merge semantics.
 - Diagnostics are strongly versioned for memory guidance/turn-control/retrieval plus security alerting to webhook/PagerDuty.
 - Mutating task commands now fail closed on durable commit failures instead of silently skipping event commits.
-- Remaining top gap: pin mutation paths still need stronger rollback semantics if durability fails after local pin-store mutation.
+- Pin add/edit now rollback on commit failure; primary remaining durability gap is pin remove-confirm ordering.
 
 Use this score baseline when requesting further review:
-- Overall: **9.2/10**
+- Overall: **9.3/10**
 - Best areas: authenticity/tamper controls, task command durability gating, pin lifecycle safety, diagnostics contracts.
 - Main improvement opportunity: pin mutation transactional durability and operations-doc alignment.

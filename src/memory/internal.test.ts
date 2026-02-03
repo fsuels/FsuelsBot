@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
+import path from "node:path";
 
-import { chunkMarkdown } from "./internal.js";
+import { chunkMarkdown, isPathWithinRoot } from "./internal.js";
 
 describe("chunkMarkdown", () => {
   it("splits overly long lines into max-sized chunks", () => {
@@ -12,5 +13,19 @@ describe("chunkMarkdown", () => {
     for (const chunk of chunks) {
       expect(chunk.text.length).toBeLessThanOrEqual(maxChars);
     }
+  });
+});
+
+describe("isPathWithinRoot", () => {
+  it("accepts root and descendant paths", () => {
+    const root = path.resolve("/tmp/workspace");
+    expect(isPathWithinRoot(root, root)).toBe(true);
+    expect(isPathWithinRoot(root, path.join(root, "memory", "global.md"))).toBe(true);
+  });
+
+  it("rejects outside and sibling-prefixed paths", () => {
+    const root = path.resolve("/tmp/workspace");
+    expect(isPathWithinRoot(root, path.resolve("/tmp/workspace-backup/secrets.md"))).toBe(false);
+    expect(isPathWithinRoot(root, path.resolve("/tmp/secrets.md"))).toBe(false);
   });
 });
