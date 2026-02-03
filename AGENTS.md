@@ -109,6 +109,7 @@
 ## Agent-Specific Notes
 - Vocabulary: "makeup" = "mac app".
 - Never edit `node_modules` (global/Homebrew/npm/git installs too). Updates overwrite. Skill notes go in `tools.md` or `AGENTS.md`.
+- Always apply the `senior-engineer` skill for coding tasks (implement/refactor/debug/test/review/architecture). If the skill cannot be loaded, enforce the same protocol inline: surface assumptions before non-trivial changes, stop for ambiguity/conflicts, push back on risky approaches, keep scope surgical, and include `CHANGES MADE` / `THINGS I DIDN'T TOUCH` / `POTENTIAL CONCERNS` in completion notes.
 - Signal: "update fly" => `fly ssh console -a flawd-bot -C "bash -lc 'cd /data/clawd/moltbot && git pull --rebase origin main'"` then `fly machines restart e825232f34d058 -a flawd-bot`.
 - When working on a GitHub Issue or PR, print the full URL at the end of the task.
 - When answering questions, respond with high-confidence answers only: verify in code; do not guess.
