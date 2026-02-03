@@ -136,6 +136,7 @@
 - **Multi-agent safety:** do **not** switch branches / check out a different branch unless explicitly requested.
 - **Multi-agent safety:** running multiple agents is OK as long as each agent has its own session.
 - **Multi-agent safety:** when you see unrecognized files, keep going; focus on your changes and commit only those.
+- **Local customization guardrails (FsuelsBot):** treat `workspace/mission-control/**`, `src/memory/**`, `src/auto-reply/reply/commands-memory*`, and `Explain-Memory.md` as protected local customizations. Before any package upgrade or upstream sync that could affect them: (1) snapshot-commit those paths first, (2) compare upstream diffs, and (3) re-apply only selected hunks; never full-overwrite these surfaces without explicit user approval.
 - Lint/format churn:
   - If staged+unstaged diffs are formatting-only, auto-resolve without asking.
   - If commit/push already requested, auto-stage and include formatting-only follow-ups in the same commit (or a tiny follow-up commit if needed), no extra confirmation.
