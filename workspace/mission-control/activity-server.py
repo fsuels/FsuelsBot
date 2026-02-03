@@ -53,6 +53,7 @@ activity_state = {
 CURRENT_TASK_FILE = os.path.join(DASHBOARD_DIR, "current-task.json")
 WORKSPACE_DIR = os.path.dirname(DASHBOARD_DIR)  # Parent of mission-control
 WORKSPACE_PATH = Path(WORKSPACE_DIR).resolve()
+CLAWDBOT_CONFIG_FILE = os.path.join(Path.home(), ".clawdbot", "clawdbot.json")
 
 
 def resolve_workspace_path(relative_path):
@@ -69,6 +70,37 @@ def resolve_workspace_path(relative_path):
         return None
     return candidate
 
+
+def load_json_file(path):
+    """Load JSON files defensively, accepting utf-8 and utf-8 with BOM."""
+    last_error = None
+    for encoding in ("utf-8-sig", "utf-8"):
+        try:
+            with open(path, 'r', encoding=encoding) as f:
+                return json.load(f)
+        except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+            last_error = exc
+            continue
+    if last_error:
+        raise last_error
+    raise ValueError(f"Unable to load JSON file: {path}")
+
+
+def load_gateway_info():
+    """Read local gateway bind/port/token to build a clickable control URL."""
+    try:
+        cfg = load_json_file(CLAWDBOT_CONFIG_FILE)
+    except Exception:
+        return {"url": "http://127.0.0.1:18789"}
+
+    gateway = cfg.get("gateway", {}) if isinstance(cfg, dict) else {}
+    port = gateway.get("port", 18789)
+    auth = gateway.get("auth", {}) if isinstance(gateway, dict) else {}
+    token = auth.get("token") if isinstance(auth, dict) else None
+    if token:
+        return {"url": f"http://127.0.0.1:{port}/?token={token}"}
+    return {"url": f"http://127.0.0.1:{port}"}
+
 def check_memory_health():
     """Check memory system integrity"""
     checks = {}
@@ -79,8 +111,7 @@ def check_memory_health():
     state_file = os.path.join(WORKSPACE_DIR, "memory", "state.json")
     if os.path.exists(state_file):
         try:
-            with open(state_file, 'r', encoding='utf-8') as f:
-                state = json.load(f)
+            state = load_json_file(state_file)
             checks["state.json"] = {"status": "ok", "version": state.get("version", "?")}
             # Extract current task info
             if state.get("currentTask"):
@@ -168,8 +199,7 @@ def load_current_task():
     state_file = os.path.join(WORKSPACE_DIR, "memory", "state.json")
     try:
         if os.path.exists(state_file):
-            with open(state_file, 'r', encoding='utf-8') as f:
-                state = json.load(f)
+            state = load_json_file(state_file)
             if state.get("currentTask"):
                 task = state["currentTask"]
                 progress = task.get("progress", {})
@@ -208,8 +238,7 @@ def load_current_task():
         if os.path.exists(CURRENT_TASK_FILE):
             mtime = os.path.getmtime(CURRENT_TASK_FILE)
             if time.time() - mtime < 1800:
-                with open(CURRENT_TASK_FILE, 'r', encoding='utf-8') as f:
-                    return json.load(f)
+                return load_json_file(CURRENT_TASK_FILE)
     except:
         pass
     return None
@@ -307,12 +336,14 @@ def categorize_event(entry):
     if "run start" in msg:
         model_match = re.search(r'model=(\S+)', msg)
         model = model_match.group(1) if model_match else ""
+        provider_match = re.search(r'provider=(\S+)', msg)
+        provider = provider_match.group(1) if provider_match else ""
         channel_match = re.search(r'messageChannel=(\S+)', msg)
         channel = channel_match.group(1) if channel_match else ""
         friendly = "Processing a new request"
         if channel:
             friendly += f" from {channel.title()}"
-        return {"type": "run_start", "model": model, "icon": "🧠", "friendly": friendly}
+        return {"type": "run_start", "model": model, "provider": provider, "icon": "🧠", "friendly": friendly}
     
     if "run end" in msg or "run done" in msg or "run complete" in msg:
         return {"type": "run_end", "icon": "🏁", "friendly": "Finished processing request"}
@@ -448,6 +479,8 @@ def tail_log():
                             activity_state["currentTask"] = cat.get("friendly", "Processing request...")
                             if cat.get("model"):
                                 activity_state["sessionInfo"]["model"] = cat["model"]
+                            if cat.get("provider"):
+                                activity_state["sessionInfo"]["provider"] = cat["provider"]
                         
                         elif cat["type"] == "run_end":
                             activity_state["status"] = "idle"
@@ -611,8 +644,7 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
             # Load tasks.json
             tasks_file = os.path.join(WORKSPACE_DIR, "memory", "tasks.json")
             try:
-                with open(tasks_file, 'r', encoding='utf-8') as f:
-                    tasks_data = json.load(f)
+                tasks_data = load_json_file(tasks_file)
                 
                 scheduled = tasks_data.get('lanes', {}).get('scheduled', [])
                 
@@ -679,8 +711,7 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
             
             tasks_file = os.path.join(WORKSPACE_DIR, "memory", "tasks.json")
             try:
-                with open(tasks_file, 'r', encoding='utf-8') as f:
-                    tasks_data = json.load(f)
+                tasks_data = load_json_file(tasks_file)
                 
                 trash = tasks_data.get('lanes', {}).get('trash', [])
                 if task_id not in trash:
@@ -752,8 +783,7 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
             
             tasks_file = os.path.join(WORKSPACE_DIR, "memory", "tasks.json")
             try:
-                with open(tasks_file, 'r', encoding='utf-8') as f:
-                    tasks_data = json.load(f)
+                tasks_data = load_json_file(tasks_file)
                 
                 trash = tasks_data.get('lanes', {}).get('trash', [])
                 if task_id not in trash:
@@ -868,8 +898,7 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
             # Load tasks.json
             tasks_file = os.path.join(WORKSPACE_DIR, "memory", "tasks.json")
             try:
-                with open(tasks_file, 'r', encoding='utf-8') as f:
-                    tasks_data = json.load(f)
+                tasks_data = load_json_file(tasks_file)
                 
                 if cron_id not in tasks_data.get('tasks', {}):
                     self.send_response(400)
@@ -933,8 +962,7 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
             # Load tasks.json
             tasks_file = os.path.join(WORKSPACE_DIR, "memory", "tasks.json")
             try:
-                with open(tasks_file, 'r', encoding='utf-8') as f:
-                    tasks_data = json.load(f)
+                tasks_data = load_json_file(tasks_file)
                 
                 from_list = tasks_data.get('lanes', {}).get(from_lane, [])
                 to_list = tasks_data.get('lanes', {}).get(to_lane, [])
@@ -995,8 +1023,7 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
             # Load tasks.json
             tasks_file = os.path.join(WORKSPACE_DIR, "memory", "tasks.json")
             try:
-                with open(tasks_file, 'r', encoding='utf-8') as f:
-                    tasks_data = json.load(f)
+                tasks_data = load_json_file(tasks_file)
                 
                 # Remove from all lanes
                 removed_from = None
@@ -1071,8 +1098,7 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
             # Load tasks.json
             tasks_file = os.path.join(WORKSPACE_DIR, "memory", "tasks.json")
             try:
-                with open(tasks_file, 'r', encoding='utf-8') as f:
-                    tasks_data = json.load(f)
+                tasks_data = load_json_file(tasks_file)
                 
                 bot_queue = tasks_data.get('lanes', {}).get('bot_queue', [])
                 
@@ -1142,8 +1168,7 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
             # Load tasks.json
             tasks_file = os.path.join(WORKSPACE_DIR, "memory", "tasks.json")
             try:
-                with open(tasks_file, 'r', encoding='utf-8') as f:
-                    tasks_data = json.load(f)
+                tasks_data = load_json_file(tasks_file)
                 
                 human_lane = tasks_data.get('lanes', {}).get('human', [])
                 bot_current = tasks_data.get('lanes', {}).get('bot_current', [])
@@ -1242,8 +1267,7 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
             
             tasks_file = os.path.join(WORKSPACE_DIR, "memory", "tasks.json")
             try:
-                with open(tasks_file, 'r', encoding='utf-8') as f:
-                    tasks_data = json.load(f)
+                tasks_data = load_json_file(tasks_file)
                 
                 task_data = tasks_data.get('tasks', {}).get(task_id)
                 if not task_data:
@@ -1311,8 +1335,7 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
             
             tasks_file = os.path.join(WORKSPACE_DIR, "memory", "tasks.json")
             try:
-                with open(tasks_file, 'r', encoding='utf-8') as f:
-                    tasks_data = json.load(f)
+                tasks_data = load_json_file(tasks_file)
                 
                 task_data = tasks_data.get('tasks', {}).get(task_id)
                 if not task_data:
@@ -1867,8 +1890,7 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
             tasks_file = os.path.join(WORKSPACE_DIR, "memory", "tasks.json")
             try:
                 if os.path.exists(tasks_file):
-                    with open(tasks_file, 'r', encoding='utf-8') as f:
-                        tasks_data = json.load(f)
+                    tasks_data = load_json_file(tasks_file)
                     
                     # AUTO-PROMOTE: If bot_current is empty, pull from bot_queue
                     lanes = tasks_data.get('lanes', {})
@@ -1941,7 +1963,7 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
             return
         
         if path == '/api/status':
-            # Return status based on log activity (no gateway proxy - it returns HTML)
+            # Return lightweight UI status + a direct gateway control URL.
             up_since = activity_state.get("stats", {}).get("upSince", "")
             uptime = 0
             if up_since:
@@ -1963,10 +1985,13 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header('Content-Type', 'application/json')
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
+            gateway_info = load_gateway_info()
             self.wfile.write(json.dumps({
                 "online": online,
                 "uptime": uptime,
-                "status": activity_state.get("status", "unknown")
+                "status": activity_state.get("status", "unknown"),
+                "sessionInfo": activity_state.get("sessionInfo", {}),
+                "gateway": gateway_info
             }).encode())
             return
         

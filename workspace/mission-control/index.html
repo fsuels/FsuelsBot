@@ -173,6 +173,39 @@ body {
   animation: gentlePulse 3s ease-in-out infinite;
   box-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
 }
+.live-dot.offline {
+  background: #f87171;
+  box-shadow: 0 0 8px rgba(248, 113, 113, 0.4);
+  animation: none;
+}
+.gateway-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(96,165,250,0.35);
+  background: rgba(96,165,250,0.08);
+  color: #93c5fd;
+  font-size: 11px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.gateway-link:hover {
+  background: rgba(96,165,250,0.15);
+}
+.brain-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(167,139,250,0.35);
+  background: rgba(167,139,250,0.08);
+  color: #c4b5fd;
+  font-size: 11px;
+  font-family: 'SF Mono','Fira Code',monospace;
+}
 @keyframes gentlePulse { 0%,100% { opacity:1; transform: scale(1); } 50% { opacity:0.6; transform: scale(0.9); } }
 
 /* Deadline Banner - Elegant Pink */
@@ -1623,6 +1656,8 @@ body {
   <div class="header">
     <h1><span class="live-dot" id="liveDot"></span> Mission Control</h1>
     <div style="display:flex;gap:10px;align-items:center;">
+      <a id="gatewayLink" class="gateway-link" href="http://127.0.0.1:18789" target="_blank" rel="noopener">⚙ Gateway</a>
+      <span id="brainModel" class="brain-pill">🧠 --</span>
       <!-- Task Search -->
       <div style="position:relative;">
         <input type="text" id="taskSearch" placeholder="🔍 T001..." 
@@ -1878,6 +1913,30 @@ function buildSafeDomId(prefix, value) {
 function toggleLane(laneId) {
   laneExpanded[laneId] = !laneExpanded[laneId];
   loadTaskBoard(); // Re-render with new state
+}
+
+async function loadStatusBar() {
+  const liveDot = document.getElementById('liveDot');
+  const gatewayLink = document.getElementById('gatewayLink');
+  const brainModel = document.getElementById('brainModel');
+  try {
+    const resp = await fetch('/api/status?' + Date.now());
+    const data = await resp.json();
+    const online = !!data.online;
+    liveDot.classList.toggle('offline', !online);
+
+    if (data.gateway && data.gateway.url) {
+      gatewayLink.href = data.gateway.url;
+    }
+
+    const info = data.sessionInfo || {};
+    const provider = info.provider || 'unknown';
+    const model = info.model || '--';
+    brainModel.textContent = `🧠 ${provider}/${model}`;
+  } catch (e) {
+    liveDot.classList.add('offline');
+    brainModel.textContent = '🧠 disconnected';
+  }
 }
 
 async function loadTaskBoard() {
@@ -3098,6 +3157,7 @@ let currentLanes = {};
 
 loadTaskBoard();
 loadPredictions(); // Load predictions to update badge
+loadStatusBar();
 
 // Smart auto-refresh: only refresh when modal is NOT open
 setInterval(() => {
@@ -3106,6 +3166,7 @@ setInterval(() => {
   if (!isModalOpen) {
     loadTaskBoard();
   }
+  loadStatusBar();
   // If modal is open, skip refresh to preserve user's work
 }, 15000);
 
