@@ -1,0 +1,1 @@
+{"process":"chrome","selector":"role:Document|name:Google Channel >> role:Button|name:Save","click_type":"left","verify_element_exists":"","verify_element_not_exists":"","highlight_before_action":true,"ui_diff_before_after":true,"tree_output_format":"compact_yaml","include_window_screenshot":true,"timeout_ms":5000}

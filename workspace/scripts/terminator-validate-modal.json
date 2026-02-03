@@ -1,0 +1,1 @@
+{"process":"chrome","selector":"role:Dialog","timeout_ms":1500,"retries":0,"verify_element_exists":"","verify_element_not_exists":"","include_tree_after_action":false}

@@ -1,0 +1,1 @@
+{"process":"chrome","window_selector":"role:Window|name:Dress Like Mommy","selector":"role:Button|name:Manage","timeout_ms":2000,"retries":1,"verify_element_exists":"","verify_element_not_exists":"","include_tree_after_action":false}
