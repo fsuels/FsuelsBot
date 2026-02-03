@@ -3,11 +3,12 @@ import { html, nothing } from "lit";
 import { formatAgo } from "../format";
 import { formatSessionTokens } from "../presenter";
 import { pathForTab } from "../navigation";
-import type { GatewaySessionRow, SessionsListResult } from "../types";
+import type { GatewayModelChoice, GatewaySessionRow, SessionsListResult } from "../types";
 
 export type SessionsProps = {
   loading: boolean;
   result: SessionsListResult | null;
+  models: GatewayModelChoice[];
   error: string | null;
   activeMinutes: string;
   limit: string;
@@ -28,6 +29,7 @@ export type SessionsProps = {
       thinkingLevel?: string | null;
       verboseLevel?: string | null;
       reasoningLevel?: string | null;
+      model?: string | null;
     },
   ) => void;
   onDelete: (key: string) => void;
@@ -41,6 +43,36 @@ const VERBOSE_LEVELS = [
   { value: "on", label: "on" },
 ] as const;
 const REASONING_LEVELS = ["", "off", "on", "stream"] as const;
+type ModelOption = { value: string; label: string };
+
+function toModelRef(model: GatewayModelChoice): string {
+  return `${model.provider}/${model.id}`;
+}
+
+function toModelLabel(model: GatewayModelChoice): string {
+  const ref = toModelRef(model);
+  if (!model.name || model.name === model.id) return ref;
+  return `${model.name} (${ref})`;
+}
+
+function buildModelOptions(
+  models: GatewayModelChoice[],
+  rows: GatewaySessionRow[],
+): ModelOption[] {
+  const options = new Map<string, string>();
+  for (const model of models) {
+    const ref = toModelRef(model);
+    options.set(ref, toModelLabel(model));
+  }
+  for (const row of rows) {
+    const current = row.model?.trim();
+    if (!current || options.has(current)) continue;
+    options.set(current, `${current} (not in catalog)`);
+  }
+  return Array.from(options.entries())
+    .map(([value, label]) => ({ value, label }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+}
 
 function normalizeProviderId(provider?: string | null): string {
   if (!provider) return "";
@@ -72,6 +104,8 @@ function resolveThinkLevelPatchValue(value: string, isBinary: boolean): string |
 
 export function renderSessions(props: SessionsProps) {
   const rows = props.result?.sessions ?? [];
+  const defaultsModel = props.result?.defaults?.model ?? null;
+  const modelOptions = buildModelOptions(props.models, rows);
   return html`
     <section class="card">
       <div class="row" style="justify-content: space-between;">
@@ -149,13 +183,14 @@ export function renderSessions(props: SessionsProps) {
         ${props.result ? `Store: ${props.result.path}` : ""}
       </div>
 
-      <div class="table" style="margin-top: 16px;">
+      <div class="table table--sessions" style="margin-top: 16px;">
         <div class="table-head">
           <div>Key</div>
           <div>Label</div>
           <div>Kind</div>
           <div>Updated</div>
           <div>Tokens</div>
+          <div>Model</div>
           <div>Thinking</div>
           <div>Verbose</div>
           <div>Reasoning</div>
@@ -164,7 +199,15 @@ export function renderSessions(props: SessionsProps) {
         ${rows.length === 0
           ? html`<div class="muted">No sessions found.</div>`
           : rows.map((row) =>
-              renderRow(row, props.basePath, props.onPatch, props.onDelete, props.loading),
+              renderRow(
+                row,
+                modelOptions,
+                defaultsModel,
+                props.basePath,
+                props.onPatch,
+                props.onDelete,
+                props.loading,
+              ),
             )}
       </div>
     </section>
@@ -173,12 +216,19 @@ export function renderSessions(props: SessionsProps) {
 
 function renderRow(
   row: GatewaySessionRow,
+  modelOptions: ModelOption[],
+  defaultsModel: string | null,
   basePath: string,
   onPatch: SessionsProps["onPatch"],
   onDelete: SessionsProps["onDelete"],
   disabled: boolean,
 ) {
   const updated = row.updatedAt ? formatAgo(row.updatedAt) : "n/a";
+  const model = row.model?.trim() ?? "";
+  const modelValue = model && model !== defaultsModel ? model : "";
+  const inheritModelLabel = defaultsModel
+    ? `inherit (${defaultsModel})`
+    : "inherit";
   const rawThinking = row.thinkingLevel ?? "";
   const isBinaryThinking = isBinaryThinkingProvider(row.modelProvider);
   const thinking = resolveThinkLevelDisplay(rawThinking, isBinaryThinking);
@@ -210,6 +260,22 @@ function renderRow(
       <div>${row.kind}</div>
       <div>${updated}</div>
       <div>${formatSessionTokens(row)}</div>
+      <div>
+        <select
+          data-session-model=${row.key}
+          .value=${modelValue}
+          ?disabled=${disabled}
+          @change=${(e: Event) => {
+            const value = (e.target as HTMLSelectElement).value;
+            onPatch(row.key, { model: value || null });
+          }}
+        >
+          <option value="">${inheritModelLabel}</option>
+          ${modelOptions.map(
+            (option) => html`<option value=${option.value}>${option.label}</option>`,
+          )}
+        </select>
+      </div>
       <div>
         <select
           .value=${thinking}

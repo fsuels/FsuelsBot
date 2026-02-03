@@ -745,6 +745,11 @@
   align-items: center;
 }
 
+.table--sessions .table-head,
+.table--sessions .table-row {
+  grid-template-columns: 1.4fr 1fr 0.8fr 0.7fr 0.8fr 1.2fr 0.8fr 0.8fr 0.8fr 0.6fr;
+}
+
 .table-head {
   font-size: 12px;
   font-weight: 500;

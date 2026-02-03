@@ -14,6 +14,7 @@ import type {
   CronJob,
   CronRunLogEntry,
   CronStatus,
+  GatewayModelChoice,
   HealthSnapshot,
   LogEntry,
   LogLevel,
@@ -197,6 +198,7 @@ export class MoltbotApp extends LitElement {
 
   @state() sessionsLoading = false;
   @state() sessionsResult: SessionsListResult | null = null;
+  @state() sessionsModels: GatewayModelChoice[] = [];
   @state() sessionsError: string | null = null;
   @state() sessionsFilterActive = "";
   @state() sessionsFilterLimit = "120";

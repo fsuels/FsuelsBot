@@ -286,6 +286,7 @@ export function renderApp(state: AppViewState) {
           ? renderSessions({
               loading: state.sessionsLoading,
               result: state.sessionsResult,
+              models: state.sessionsModels,
               error: state.sessionsError,
               activeMinutes: state.sessionsFilterActive,
               limit: state.sessionsFilterLimit,

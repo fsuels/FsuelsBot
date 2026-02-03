@@ -11,6 +11,7 @@ import type {
   CronRunLogEntry,
   CronStatus,
   HealthSnapshot,
+  GatewayModelChoice,
   LogEntry,
   LogLevel,
   NostrProfile,
@@ -108,6 +109,7 @@ export type AppViewState = {
   agentsError: string | null;
   sessionsLoading: boolean;
   sessionsResult: SessionsListResult | null;
+  sessionsModels: GatewayModelChoice[];
   sessionsError: string | null;
   sessionsFilterActive: string;
   sessionsFilterLimit: string;

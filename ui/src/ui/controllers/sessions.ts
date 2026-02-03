@@ -1,12 +1,13 @@
 import type { GatewayBrowserClient } from "../gateway";
 import { toNumber } from "../format";
-import type { SessionsListResult } from "../types";
+import type { GatewayModelChoice, ModelsListResult, SessionsListResult } from "../types";
 
 export type SessionsState = {
   client: GatewayBrowserClient | null;
   connected: boolean;
   sessionsLoading: boolean;
   sessionsResult: SessionsListResult | null;
+  sessionsModels: GatewayModelChoice[];
   sessionsError: string | null;
   sessionsFilterActive: string;
   sessionsFilterLimit: string;
@@ -28,10 +29,16 @@ export async function loadSessions(state: SessionsState) {
     const limit = toNumber(state.sessionsFilterLimit, 0);
     if (activeMinutes > 0) params.activeMinutes = activeMinutes;
     if (limit > 0) params.limit = limit;
-    const res = (await state.client.request("sessions.list", params)) as
-      | SessionsListResult
-      | undefined;
+    const [sessionsResult, modelsResult] = await Promise.all([
+      state.client.request("sessions.list", params),
+      state.client.request("models.list", {}).catch(() => undefined),
+    ]);
+    const res = sessionsResult as SessionsListResult | undefined;
     if (res) state.sessionsResult = res;
+    const catalog = modelsResult as ModelsListResult | undefined;
+    state.sessionsModels = Array.isArray(catalog?.models)
+      ? catalog.models
+      : [];
   } catch (err) {
     state.sessionsError = String(err);
   } finally {
@@ -47,6 +54,7 @@ export async function patchSession(
     thinkingLevel?: string | null;
     verboseLevel?: string | null;
     reasoningLevel?: string | null;
+    model?: string | null;
   },
 ) {
   if (!state.client || !state.connected) return;
@@ -55,6 +63,7 @@ export async function patchSession(
   if ("thinkingLevel" in patch) params.thinkingLevel = patch.thinkingLevel;
   if ("verboseLevel" in patch) params.verboseLevel = patch.verboseLevel;
   if ("reasoningLevel" in patch) params.reasoningLevel = patch.reasoningLevel;
+  if ("model" in patch) params.model = patch.model;
   try {
     await state.client.request("sessions.patch", params);
     await loadSessions(state);
