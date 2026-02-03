@@ -206,6 +206,21 @@ body {
   font-size: 11px;
   font-family: 'SF Mono','Fira Code',monospace;
 }
+.model-select {
+  min-width: 230px;
+  max-width: 330px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(94, 234, 212, 0.35);
+  background: rgba(45, 212, 191, 0.08);
+  color: #99f6e4;
+  font-size: 11px;
+  font-family: 'SF Mono','Fira Code',monospace;
+}
+.model-select:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
 @keyframes gentlePulse { 0%,100% { opacity:1; transform: scale(1); } 50% { opacity:0.6; transform: scale(0.9); } }
 
 /* Deadline Banner - Elegant Pink */
@@ -1657,7 +1672,10 @@ body {
     <h1><span class="live-dot" id="liveDot"></span> Mission Control</h1>
     <div style="display:flex;gap:10px;align-items:center;">
       <a id="gatewayLink" class="gateway-link" href="http://127.0.0.1:18789" target="_blank" rel="noopener">⚙ Gateway</a>
-      <span id="brainModel" class="brain-pill">🧠 --</span>
+      <select id="modelSelect" class="model-select" title="Default model for new runs" onchange="setDefaultModel(this.value)">
+        <option value="">Loading models…</option>
+      </select>
+      <span id="brainModel" class="brain-pill">🧠 runtime --</span>
       <!-- Task Search -->
       <div style="position:relative;">
         <input type="text" id="taskSearch" placeholder="🔍 T001..." 
@@ -1915,6 +1933,79 @@ function toggleLane(laneId) {
   loadTaskBoard(); // Re-render with new state
 }
 
+let currentConfiguredModel = null;
+
+async function loadModelSelector() {
+  const select = document.getElementById('modelSelect');
+  if (!select) return;
+  const previous = select.value;
+  try {
+    const resp = await fetch('/api/models?' + Date.now());
+    const data = await resp.json();
+    const models = Array.isArray(data.models) ? data.models : [];
+    currentConfiguredModel = data.defaultModel || null;
+
+    select.innerHTML = '';
+    if (models.length === 0) {
+      const emptyOption = document.createElement('option');
+      emptyOption.value = '';
+      emptyOption.textContent = 'No configured models';
+      select.appendChild(emptyOption);
+      select.disabled = true;
+      return;
+    }
+
+    for (const model of models) {
+      const key = model.key || '';
+      if (!key) continue;
+      const option = document.createElement('option');
+      option.value = key;
+      const label = model.name ? `${model.name} [${key}]` : key;
+      option.textContent = label;
+      select.appendChild(option);
+    }
+
+    const desiredValue = currentConfiguredModel || previous;
+    if (desiredValue && Array.from(select.options).some(opt => opt.value === desiredValue)) {
+      select.value = desiredValue;
+    } else {
+      currentConfiguredModel = select.value;
+    }
+    select.disabled = false;
+  } catch (e) {
+    select.innerHTML = '<option value="">Model list unavailable</option>';
+    select.disabled = true;
+  }
+}
+
+async function setDefaultModel(modelKey) {
+  const select = document.getElementById('modelSelect');
+  if (!select || !modelKey || modelKey === currentConfiguredModel) {
+    return;
+  }
+
+  select.disabled = true;
+  try {
+    const resp = await fetch('/api/model-select', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: modelKey })
+    });
+    const data = await resp.json();
+    if (!resp.ok || data.error) {
+      throw new Error(data.error || `Failed to set model (${resp.status})`);
+    }
+    currentConfiguredModel = data.defaultModel || modelKey;
+    await loadModelSelector();
+    await loadStatusBar();
+  } catch (e) {
+    alert(`Model change failed: ${e.message || e}`);
+    await loadModelSelector();
+  } finally {
+    if (select) select.disabled = false;
+  }
+}
+
 async function loadStatusBar() {
   const liveDot = document.getElementById('liveDot');
   const gatewayLink = document.getElementById('gatewayLink');
@@ -1932,10 +2023,10 @@ async function loadStatusBar() {
     const info = data.sessionInfo || {};
     const provider = info.provider || 'unknown';
     const model = info.model || '--';
-    brainModel.textContent = `🧠 ${provider}/${model}`;
+    brainModel.textContent = `🧠 runtime ${provider}/${model}`;
   } catch (e) {
     liveDot.classList.add('offline');
-    brainModel.textContent = '🧠 disconnected';
+    brainModel.textContent = '🧠 runtime disconnected';
   }
 }
 
@@ -3158,6 +3249,7 @@ let currentLanes = {};
 loadTaskBoard();
 loadPredictions(); // Load predictions to update badge
 loadStatusBar();
+loadModelSelector();
 
 // Smart auto-refresh: only refresh when modal is NOT open
 setInterval(() => {
@@ -3167,6 +3259,7 @@ setInterval(() => {
     loadTaskBoard();
   }
   loadStatusBar();
+  loadModelSelector();
   // If modal is open, skip refresh to preserve user's work
 }, 15000);
 

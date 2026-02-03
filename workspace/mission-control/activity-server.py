@@ -7,6 +7,8 @@ import http.cookies
 import json
 import os
 import re
+import shutil
+import subprocess
 import time
 import secrets
 import threading
@@ -111,6 +113,54 @@ def load_gateway_info():
     if token:
         return {"url": f"http://127.0.0.1:{port}/?token={token}"}
     return {"url": f"http://127.0.0.1:{port}"}
+
+
+def resolve_cli_binary():
+    """Prefer openclaw, then fall back to clawdbot."""
+    home = Path.home()
+    candidates = [
+        shutil.which("openclaw"),
+        shutil.which("openclaw.cmd"),
+        str(home / "AppData" / "Roaming" / "npm" / "openclaw.cmd"),
+        shutil.which("clawdbot"),
+        shutil.which("clawdbot.cmd"),
+        str(home / "AppData" / "Roaming" / "npm" / "clawdbot.cmd"),
+    ]
+    for candidate in candidates:
+        if candidate and os.path.exists(candidate):
+            return candidate
+    return None
+
+
+def run_models_cli(args, timeout=20):
+    cli = resolve_cli_binary()
+    if not cli:
+        raise RuntimeError("No CLI found (openclaw/clawdbot).")
+    result = subprocess.run(
+        [cli, "models", *args],
+        capture_output=True,
+        text=True,
+        timeout=timeout
+    )
+    if result.returncode != 0:
+        details = (result.stderr or result.stdout or "").strip() or f"{cli} models {' '.join(args)} failed"
+        raise RuntimeError(details)
+    return result.stdout, cli
+
+
+def load_models_state():
+    """Return configured models + active default from the CLI JSON contracts."""
+    status_stdout, cli = run_models_cli(["status", "--json"])
+    list_stdout, _ = run_models_cli(["list", "--json"])
+    status_data = json.loads(status_stdout)
+    list_data = json.loads(list_stdout)
+    models = list_data.get("models", []) if isinstance(list_data, dict) else []
+    default_model = status_data.get("defaultModel") if isinstance(status_data, dict) else None
+    return {
+        "cli": cli,
+        "defaultModel": default_model,
+        "models": models
+    }
 
 def check_memory_health():
     """Check memory system integrity"""
@@ -592,6 +642,40 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
             return
 
         path = self.path.split('?')[0]
+
+        if path == '/api/model-select':
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            try:
+                data = json.loads(body) if body else {}
+            except Exception:
+                data = {}
+
+            model = data.get('model')
+            if not isinstance(model, str) or not model.strip():
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "model is required"}).encode('utf-8'))
+                return
+
+            try:
+                run_models_cli(["set", model.strip()])
+                updated = load_models_state()
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "ok": True,
+                    "defaultModel": updated.get("defaultModel"),
+                    "cli": updated.get("cli")
+                }).encode('utf-8'))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+            return
         
         # Agent profile API - POST to save agent MD file
         if path == '/api/agent-profile':
@@ -2026,6 +2110,19 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                 "sessionInfo": activity_state.get("sessionInfo", {}),
                 "gateway": gateway_info
             }).encode())
+            return
+
+        if path == '/api/models':
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Cache-Control', 'no-cache')
+            self.end_headers()
+            try:
+                models_state = load_models_state()
+                self.wfile.write(json.dumps(models_state).encode('utf-8'))
+            except Exception as e:
+                self.wfile.write(json.dumps({"error": str(e), "models": [], "defaultModel": None}).encode('utf-8'))
             return
         
         # Serve static files
