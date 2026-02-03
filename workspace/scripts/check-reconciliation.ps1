@@ -248,7 +248,7 @@ function Invoke-Reconciliation {
     $eventJson = $event | ConvertTo-Json -Compress
     $appendResult = node -e "
         const hc = require('./scripts/hash-chain.cjs');
-        const event = JSON.parse(process.argv[1]);
+        const event = JSON.parse(process.argv[2]);
         try {
             hc.appendEvent('$eventPath'.replace(/\\/g, '/'), event);
             console.log('OK');
