@@ -4,7 +4,11 @@ param(
   [int]$PortTerminator = 3000,
   [string]$RepoRoot = "C:\\dev\\FsuelsBot",
   [string]$WorkspaceRoot = "C:\\dev\\FsuelsBot\\workspace",
-  [string]$TerminatorExecDir = "C:\\Users\\Fsuels\\AppData\\Local\\mediar\\executions"
+  [string]$TerminatorExecDir = "C:\\Users\\Fsuels\\AppData\\Local\\mediar\\executions",
+  [switch]$Recover,
+  [switch]$SimulateMissionControlDown,
+  [switch]$SimulateTerminatorDown,
+  [switch]$SimulateStall
 )
 
 $ErrorActionPreference = 'SilentlyContinue'
@@ -67,10 +71,40 @@ try {
   if ($h -and $h -match 'healthy') { $terminatorHealthy = $true }
 } catch {}
 
+if ($SimulateMissionControlDown) { $missionControlListening = $false }
+if ($SimulateTerminatorDown) { $terminatorHealthy = $false }
+
 $stalled = $false
 if ($botCurrent.Count -gt 0) {
   if ($lastEvidenceUtc -eq $null) { $stalled = $true }
   elseif ($lastEvidenceUtc -lt $threshold) { $stalled = $true }
+}
+if ($SimulateStall) { $stalled = $true }
+
+$recoveryActions = @()
+if ($Recover -and $botCurrent.Count -gt 0) {
+  if (-not $missionControlListening) {
+    try {
+      Start-ScheduledTask -TaskName "MissionControlServer" | Out-Null
+      $recoveryActions += "Started scheduled task MissionControlServer"
+      Start-Sleep -Seconds 2
+      $missionControlListening = [bool](Get-NetTCPConnection -LocalPort $PortMissionControl -State Listen -ErrorAction SilentlyContinue)
+    } catch {
+      $recoveryActions += "Failed to start MissionControlServer"
+    }
+  }
+  if (-not $terminatorHealthy) {
+    try {
+      # start Terminator MCP server in http mode (local only)
+      cmd /c "start \"\" npx -y terminator-mcp-agent@latest --transport http --port 3000" | Out-Null
+      $recoveryActions += "Started Terminator MCP (npx http :3000)"
+      Start-Sleep -Seconds 3
+      $h2 = curl.exe -s "http://127.0.0.1:$PortTerminator/health" 2>$null
+      if ($h2 -and $h2 -match 'healthy') { $terminatorHealthy = $true }
+    } catch {
+      $recoveryActions += "Failed to start Terminator"
+    }
+  }
 }
 
 $result = [ordered]@{
@@ -86,6 +120,8 @@ $result = [ordered]@{
   missionControlListening = $missionControlListening
   terminatorHealthy = $terminatorHealthy
   stalled = $stalled
+  recoverEnabled = [bool]$Recover
+  recoveryActions = $recoveryActions
 }
 
 $result | ConvertTo-Json -Compress
