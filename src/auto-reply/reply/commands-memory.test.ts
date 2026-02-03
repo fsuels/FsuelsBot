@@ -110,7 +110,7 @@ describe("memory commands", () => {
     expect(listResult.reply?.text).toContain("[fact]");
 
     const pinId = parsed.pins[0]?.id;
-    const removeResult = await handleCommands(
+    const removeIntentResult = await handleCommands(
       buildParams({
         body: `/pin remove ${pinId}`,
         cfg,
@@ -119,8 +119,88 @@ describe("memory commands", () => {
         sessionStore,
       }),
     );
-    expect(removeResult.shouldContinue).toBe(false);
-    expect(removeResult.reply?.text).toContain(`Removed pin ${pinId}`);
+    expect(removeIntentResult.shouldContinue).toBe(false);
+    expect(removeIntentResult.reply?.text).toContain("Pin removal requires confirmation");
+    const tokenMatch = removeIntentResult.reply?.text.match(/\/pin confirm (\S+)/);
+    expect(tokenMatch?.[1]).toBeTruthy();
+    const token = tokenMatch?.[1];
+    if (!token) {
+      throw new Error("expected pin confirmation token");
+    }
+
+    const removeConfirmResult = await handleCommands(
+      buildParams({
+        body: `/pin confirm ${token}`,
+        cfg,
+        sessionKey,
+        sessionEntry: sessionStore[sessionKey],
+        sessionStore,
+      }),
+    );
+    expect(removeConfirmResult.shouldContinue).toBe(false);
+    expect(removeConfirmResult.reply?.text).toContain(`Removed pin ${pinId}`);
+  });
+
+  it("supports pin remove cancel tokens idempotently", async () => {
+    const cfg = {
+      commands: { text: true },
+      channels: { whatsapp: { allowFrom: ["*"] } },
+    } as MoltbotConfig;
+    const sessionKey = "agent:main:main";
+    const sessionEntry: SessionEntry = { sessionId: "s1b", updatedAt: Date.now() };
+    const sessionStore: Record<string, SessionEntry> = { [sessionKey]: sessionEntry };
+
+    await handleCommands(
+      buildParams({
+        body: "/pin fact beta policy",
+        cfg,
+        sessionKey,
+        sessionEntry,
+        sessionStore,
+      }),
+    );
+
+    const parsed = JSON.parse(
+      await fs.readFile(path.join(workspaceDir, "memory", ".pins.json"), "utf-8"),
+    ) as {
+      pins: Array<{ id: string }>;
+    };
+    const pinId = parsed.pins[0]?.id;
+    expect(pinId).toBeTruthy();
+
+    const removeIntent = await handleCommands(
+      buildParams({
+        body: `/pin remove ${pinId}`,
+        cfg,
+        sessionKey,
+        sessionEntry: sessionStore[sessionKey],
+        sessionStore,
+      }),
+    );
+    const token = removeIntent.reply?.text.match(/\/pin confirm (\S+)/)?.[1];
+    expect(token).toBeTruthy();
+
+    const cancelOnce = await handleCommands(
+      buildParams({
+        body: `/pin cancel ${token}`,
+        cfg,
+        sessionKey,
+        sessionEntry: sessionStore[sessionKey],
+        sessionStore,
+      }),
+    );
+    expect(cancelOnce.reply?.text).toContain("canceled");
+
+    const cancelTwice = await handleCommands(
+      buildParams({
+        body: `/pin cancel ${token}`,
+        cfg,
+        sessionKey,
+        sessionEntry: sessionStore[sessionKey],
+        sessionStore,
+      }),
+    );
+    expect(cancelTwice.reply?.text).toContain("already resolved");
   });
 
   it("forgets matching lines and pins", async () => {
@@ -158,11 +238,25 @@ describe("memory commands", () => {
     );
     expect(forgetResult.shouldContinue).toBe(false);
     expect(forgetResult.reply?.text).toContain("Forgot memory entries.");
-    expect(forgetResult.reply?.text).toContain("pins=1");
+    expect(forgetResult.reply?.text).toContain("pins=0");
 
-    const notes = await fs.readFile(path.join(workspaceDir, "memory", "global", "notes.md"), "utf-8");
+    const notes = await fs.readFile(
+      path.join(workspaceDir, "memory", "global", "notes.md"),
+      "utf-8",
+    );
     expect(notes.toLowerCase().includes("alpha key")).toBe(false);
     expect(notes).toContain("Keep this line");
+
+    const forgetPinsResult = await handleCommands(
+      buildParams({
+        body: "/forget alpha --pins true",
+        cfg,
+        sessionKey,
+        sessionEntry: sessionStore[sessionKey],
+        sessionStore,
+      }),
+    );
+    expect(forgetPinsResult.reply?.text).toContain("pins=1");
   });
 
   it("updates task lifecycle state and resets active task when completed", async () => {
@@ -208,5 +302,63 @@ describe("memory commands", () => {
     expect(completeResult.reply?.text).toContain("marked completed");
     expect(sessionStore[sessionKey]?.taskStateById?.["task-a"]?.status).toBe("completed");
     expect(sessionStore[sessionKey]?.activeTaskId).toBe("default");
+
+    const aliasList = await handleCommands(
+      buildParams({
+        body: "/tasks",
+        cfg,
+        sessionKey,
+        sessionEntry: sessionStore[sessionKey],
+        sessionStore,
+      }),
+    );
+    expect(aliasList.reply?.text).toContain("Known tasks");
+
+    const resumeResult = await handleCommands(
+      buildParams({
+        body: "/resume task-a",
+        cfg,
+        sessionKey,
+        sessionEntry: sessionStore[sessionKey],
+        sessionStore,
+      }),
+    );
+    expect(resumeResult.shouldContinue).toBe(false);
+    expect(resumeResult.reply?.text).toContain("Active task set to task-a");
+    expect(sessionStore[sessionKey]?.activeTaskId).toBe("task-a");
+  });
+
+  it("supports autoswitch and memory mode command toggles", async () => {
+    const cfg = {
+      commands: { text: true },
+      channels: { whatsapp: { allowFrom: ["*"] } },
+    } as MoltbotConfig;
+    const sessionKey = "agent:main:main";
+    const sessionEntry: SessionEntry = { sessionId: "s4", updatedAt: Date.now() };
+    const sessionStore: Record<string, SessionEntry> = { [sessionKey]: sessionEntry };
+
+    const autoswitchOn = await handleCommands(
+      buildParams({
+        body: "/autoswitch on",
+        cfg,
+        sessionKey,
+        sessionEntry,
+        sessionStore,
+      }),
+    );
+    expect(autoswitchOn.reply?.text).toContain("Autoswitch is on");
+    expect(sessionStore[sessionKey]?.autoSwitchOptIn).toBe(true);
+
+    const modeMinimal = await handleCommands(
+      buildParams({
+        body: "/mode minimal",
+        cfg,
+        sessionKey,
+        sessionEntry: sessionStore[sessionKey],
+        sessionStore,
+      }),
+    );
+    expect(modeMinimal.reply?.text).toContain("Memory mode is minimal");
+    expect(sessionStore[sessionKey]?.memoryGuidanceMode).toBe("minimal");
   });
 });

@@ -301,6 +301,8 @@ export type MemorySearchConfig = {
   query?: {
     maxResults?: number;
     minScore?: number;
+    /** Max snippets merged from linked tasks in memory_search (default: 3). */
+    linkedTaskSnippetCap?: number;
     hybrid?: {
       /** Enable hybrid BM25 + vector search (default: true). */
       enabled?: boolean;
@@ -310,6 +312,19 @@ export type MemorySearchConfig = {
       textWeight?: number;
       /** Multiplier for candidate pool size (default: 4). */
       candidateMultiplier?: number;
+    };
+    deterministic?: {
+      /**
+       * Minimum normalized similarity required for high-priority classes
+       * (pins/snapshots/decision-like entries) to keep priority lift.
+       */
+      minSimilarity?: number;
+      /** Score gap where lower-priority result can outrank higher-priority result. */
+      overrideDelta?: number;
+      /** Relative epsilon for near-tie detection on normalized scores. */
+      nearTieRelativeEpsilon?: number;
+      /** Absolute epsilon floor for near-tie detection on normalized scores. */
+      nearTieAbsoluteEpsilon?: number;
     };
   };
   /** Index cache behavior. */

@@ -73,8 +73,14 @@ export type SessionEntry = {
   authProfileOverrideCompactionCount?: number;
   activeTaskId?: string;
   activeTaskTitle?: string;
+  taskStack?: string[];
   taskStateById?: Record<string, SessionTaskState>;
   lastTaskSwitch?: SessionTaskSwitchAudit;
+  lastTaskSwitchAt?: number;
+  autoSwitchOptIn?: boolean;
+  taskSwitchThrashCounter?: number;
+  taskMismatchCounter?: number;
+  lastRetrievalRejectAt?: number;
   memoryGuidanceMode?: "supportive" | "minimal";
   memoryGuidancePromptCount?: number;
   memoryGuidanceExplicitCount?: number;

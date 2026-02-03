@@ -21,10 +21,20 @@ export type MemoryPinRecord = {
   expiresAt?: number;
 };
 
+export type MemoryPinRemoveIntent = {
+  token: string;
+  pinId: string;
+  scope: MemoryPinScope;
+  taskId?: string;
+  createdAt: number;
+  expiresAt: number;
+};
+
 type MemoryPinsStore = {
   version: 1;
   updatedAt: number;
   pins: MemoryPinRecord[];
+  removeIntents?: MemoryPinRemoveIntent[];
 };
 
 const PINS_STORE_REL_PATH = "memory/.pins.json";
@@ -42,7 +52,7 @@ function normalizeEntity(value: string | undefined): string | undefined {
 }
 
 function defaultStore(): MemoryPinsStore {
-  return { version: 1, updatedAt: Date.now(), pins: [] };
+  return { version: 1, updatedAt: Date.now(), pins: [], removeIntents: [] };
 }
 
 function isPinExpired(pin: MemoryPinRecord, now = Date.now()): boolean {
@@ -70,9 +80,14 @@ async function readStore(workspaceDir: string): Promise<MemoryPinsStore> {
       pins: pins
         .filter((pin) => pin && typeof pin === "object")
         .map((pin) => {
-          const type = String(pin.type ?? "").trim().toLowerCase();
+          const type = String(pin.type ?? "")
+            .trim()
+            .toLowerCase();
           const normalizedType: MemoryPinType =
-            type === "fact" || type === "preference" || type === "constraint" || type === "temporary"
+            type === "fact" ||
+            type === "preference" ||
+            type === "constraint" ||
+            type === "temporary"
               ? type
               : "fact";
           const scope = pin.scope === "task" ? "task" : "global";
@@ -98,6 +113,30 @@ async function readStore(workspaceDir: string): Promise<MemoryPinsStore> {
           } as MemoryPinRecord;
         })
         .filter((pin) => pin.text.length > 0),
+      removeIntents: Array.isArray(parsed?.removeIntents)
+        ? parsed.removeIntents
+            .filter((entry) => entry && typeof entry === "object")
+            .map((entry): MemoryPinRemoveIntent | null => {
+              const token = typeof entry.token === "string" ? entry.token.trim() : "";
+              const pinId = typeof entry.pinId === "string" ? entry.pinId.trim() : "";
+              const createdAt =
+                typeof entry.createdAt === "number" && Number.isFinite(entry.createdAt)
+                  ? Math.floor(entry.createdAt)
+                  : Date.now();
+              const expiresAt =
+                typeof entry.expiresAt === "number" && Number.isFinite(entry.expiresAt)
+                  ? Math.floor(entry.expiresAt)
+                  : createdAt;
+              const scope = entry.scope === "task" ? "task" : "global";
+              const taskId = scope === "task" ? normalizeMemoryTaskId(entry.taskId) : undefined;
+              if (!token || !pinId) return null;
+              if (scope === "task") {
+                return taskId ? { token, pinId, scope, taskId, createdAt, expiresAt } : null;
+              }
+              return { token, pinId, scope, createdAt, expiresAt };
+            })
+            .filter((entry): entry is MemoryPinRemoveIntent => entry !== null)
+        : [],
     };
   } catch {
     return defaultStore();
@@ -172,6 +211,13 @@ function filterActivePins(pins: MemoryPinRecord[], now = Date.now()): MemoryPinR
   return pins.filter((pin) => !isPinExpired(pin, now));
 }
 
+function filterActiveRemoveIntents(
+  intents: MemoryPinRemoveIntent[],
+  now = Date.now(),
+): MemoryPinRemoveIntent[] {
+  return intents.filter((intent) => intent.expiresAt > now);
+}
+
 export async function listMemoryPins(params: {
   workspaceDir: string;
   scope?: MemoryPinScope | "all";
@@ -210,7 +256,7 @@ export async function upsertMemoryPin(params: {
   const scope = params.scope ?? "global";
   const taskId =
     scope === "task"
-      ? normalizeMemoryTaskId(params.taskId) ?? DEFAULT_SESSION_TASK_ID
+      ? (normalizeMemoryTaskId(params.taskId) ?? DEFAULT_SESSION_TASK_ID)
       : undefined;
   const entity = normalizeEntity(params.entity);
   const ttlMs =
@@ -228,12 +274,7 @@ export async function upsertMemoryPin(params: {
       !isPinExpired(pin, now),
   );
   if (existing) {
-    existing.updatedAt = now;
-    existing.entity = entity;
-    existing.expiresAt = expiresAt;
-    store.updatedAt = now;
-    await writeStore(params.workspaceDir, store);
-    await writePinMarkdownFiles(params.workspaceDir, filterActivePins(store.pins, now));
+    // Pins are immutable by default; duplicate inserts are idempotent.
     return existing;
   }
   const created: MemoryPinRecord = {
@@ -254,6 +295,41 @@ export async function upsertMemoryPin(params: {
   return created;
 }
 
+export async function editMemoryPin(params: {
+  workspaceDir: string;
+  id: string;
+  text: string;
+  entity?: string;
+  ttlMs?: number;
+  now?: number;
+}): Promise<MemoryPinRecord | null> {
+  const store = await readStore(params.workspaceDir);
+  const now = params.now ?? Date.now();
+  const text = normalizeText(params.text);
+  if (!text) throw new Error("pin text required");
+  const index = store.pins.findIndex((pin) => pin.id === params.id);
+  if (index < 0) return null;
+  const current = store.pins[index];
+  const ttlMs =
+    typeof params.ttlMs === "number" && Number.isFinite(params.ttlMs) && params.ttlMs > 0
+      ? Math.floor(params.ttlMs)
+      : undefined;
+  const expiresAt =
+    current.type === "temporary" ? now + (ttlMs ?? DEFAULT_TEMPORARY_TTL_MS) : undefined;
+  const next: MemoryPinRecord = {
+    ...current,
+    text,
+    entity: normalizeEntity(params.entity) ?? current.entity,
+    updatedAt: now,
+    expiresAt,
+  };
+  store.pins[index] = next;
+  store.updatedAt = now;
+  await writeStore(params.workspaceDir, store);
+  await writePinMarkdownFiles(params.workspaceDir, filterActivePins(store.pins, now));
+  return next;
+}
+
 export async function removeMemoryPin(params: {
   workspaceDir: string;
   id: string;
@@ -266,6 +342,126 @@ export async function removeMemoryPin(params: {
   store.updatedAt = params.now ?? Date.now();
   await writeStore(params.workspaceDir, store);
   await writePinMarkdownFiles(params.workspaceDir, filterActivePins(store.pins));
+  return true;
+}
+
+export async function createMemoryPinRemoveIntent(params: {
+  workspaceDir: string;
+  id: string;
+  ttlMs?: number;
+  now?: number;
+}): Promise<{
+  token: string;
+  pinId: string;
+  scope: MemoryPinScope;
+  taskId?: string;
+  expiresAt: number;
+} | null> {
+  const store = await readStore(params.workspaceDir);
+  const now = params.now ?? Date.now();
+  const pin = store.pins.find((entry) => entry.id === params.id);
+  if (!pin) return null;
+  const ttlMs =
+    typeof params.ttlMs === "number" && Number.isFinite(params.ttlMs) && params.ttlMs > 0
+      ? Math.floor(params.ttlMs)
+      : 3 * 60 * 1000;
+  const intents = filterActiveRemoveIntents(store.removeIntents ?? [], now);
+  const existing = intents.find((intent) => intent.pinId === pin.id);
+  if (existing) {
+    store.removeIntents = intents;
+    store.updatedAt = now;
+    await writeStore(params.workspaceDir, store);
+    return {
+      token: existing.token,
+      pinId: existing.pinId,
+      scope: existing.scope,
+      taskId: existing.taskId,
+      expiresAt: existing.expiresAt,
+    };
+  }
+  const created: MemoryPinRemoveIntent = {
+    token: `pdel_${randomUUID().slice(0, 12)}`,
+    pinId: pin.id,
+    scope: pin.scope,
+    taskId: pin.taskId,
+    createdAt: now,
+    expiresAt: now + ttlMs,
+  };
+  store.removeIntents = [...intents, created];
+  store.updatedAt = now;
+  await writeStore(params.workspaceDir, store);
+  return {
+    token: created.token,
+    pinId: created.pinId,
+    scope: created.scope,
+    taskId: created.taskId,
+    expiresAt: created.expiresAt,
+  };
+}
+
+export async function confirmMemoryPinRemoveIntent(params: {
+  workspaceDir: string;
+  token: string;
+  now?: number;
+}): Promise<{
+  removed: boolean;
+  pinId?: string;
+  scope?: MemoryPinScope;
+  taskId?: string;
+  expired?: boolean;
+}> {
+  const store = await readStore(params.workspaceDir);
+  const now = params.now ?? Date.now();
+  const token = params.token.trim();
+  if (!token) return { removed: false };
+  const intents = store.removeIntents ?? [];
+  const index = intents.findIndex((intent) => intent.token === token);
+  if (index < 0) {
+    return { removed: false };
+  }
+  const intent = intents[index]!;
+  const nextIntents = intents.filter((entry) => entry.token !== token);
+  if (intent.expiresAt <= now) {
+    store.removeIntents = nextIntents;
+    store.updatedAt = now;
+    await writeStore(params.workspaceDir, store);
+    return {
+      removed: false,
+      expired: true,
+      pinId: intent.pinId,
+      scope: intent.scope,
+      taskId: intent.taskId,
+    };
+  }
+
+  const before = store.pins.length;
+  store.pins = store.pins.filter((pin) => pin.id !== intent.pinId);
+  const removed = store.pins.length < before;
+  store.removeIntents = nextIntents;
+  store.updatedAt = now;
+  await writeStore(params.workspaceDir, store);
+  await writePinMarkdownFiles(params.workspaceDir, filterActivePins(store.pins, now));
+  return {
+    removed,
+    pinId: intent.pinId,
+    scope: intent.scope,
+    taskId: intent.taskId,
+  };
+}
+
+export async function cancelMemoryPinRemoveIntent(params: {
+  workspaceDir: string;
+  token: string;
+  now?: number;
+}): Promise<boolean> {
+  const token = params.token.trim();
+  if (!token) return false;
+  const store = await readStore(params.workspaceDir);
+  const before = (store.removeIntents ?? []).length;
+  store.removeIntents = (store.removeIntents ?? []).filter((intent) => intent.token !== token);
+  if ((store.removeIntents ?? []).length === before) return false;
+  store.updatedAt = params.now ?? Date.now();
+  await writeStore(params.workspaceDir, store);
   return true;
 }
 
@@ -297,7 +493,8 @@ export async function forgetMemoryPins(params: {
   const taskId = normalizeMemoryTaskId(params.taskId);
   const entityNeedle = params.entity?.trim().toLowerCase();
   const textNeedle = params.text?.trim().toLowerCase();
-  const before = typeof params.before === "number" && Number.isFinite(params.before) ? params.before : undefined;
+  const before =
+    typeof params.before === "number" && Number.isFinite(params.before) ? params.before : undefined;
   const beforeCount = store.pins.length;
   store.pins = store.pins.filter((pin) => {
     if (taskId && pin.taskId === taskId) return false;

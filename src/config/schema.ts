@@ -245,11 +245,21 @@ const FIELD_LABELS: Record<string, string> = {
   "agents.defaults.memorySearch.sync.sessions.deltaMessages": "Session Delta Messages",
   "agents.defaults.memorySearch.query.maxResults": "Memory Search Max Results",
   "agents.defaults.memorySearch.query.minScore": "Memory Search Min Score",
+  "agents.defaults.memorySearch.query.linkedTaskSnippetCap":
+    "Memory Search Linked Task Snippet Cap",
   "agents.defaults.memorySearch.query.hybrid.enabled": "Memory Search Hybrid",
   "agents.defaults.memorySearch.query.hybrid.vectorWeight": "Memory Search Vector Weight",
   "agents.defaults.memorySearch.query.hybrid.textWeight": "Memory Search Text Weight",
   "agents.defaults.memorySearch.query.hybrid.candidateMultiplier":
     "Memory Search Hybrid Candidate Multiplier",
+  "agents.defaults.memorySearch.query.deterministic.minSimilarity":
+    "Memory Search Deterministic Min Similarity",
+  "agents.defaults.memorySearch.query.deterministic.overrideDelta":
+    "Memory Search Deterministic Override Delta",
+  "agents.defaults.memorySearch.query.deterministic.nearTieRelativeEpsilon":
+    "Memory Search Deterministic Near-Tie Relative Epsilon",
+  "agents.defaults.memorySearch.query.deterministic.nearTieAbsoluteEpsilon":
+    "Memory Search Deterministic Near-Tie Absolute Epsilon",
   "agents.defaults.memorySearch.cache.enabled": "Memory Search Embedding Cache",
   "agents.defaults.memorySearch.cache.maxEntries": "Memory Search Embedding Cache Max Entries",
   "auth.profiles": "Auth Profiles",
@@ -535,6 +545,16 @@ const FIELD_HELP: Record<string, string> = {
     "Weight for BM25 text relevance when merging results (0-1).",
   "agents.defaults.memorySearch.query.hybrid.candidateMultiplier":
     "Multiplier for candidate pool size (default: 4).",
+  "agents.defaults.memorySearch.query.linkedTaskSnippetCap":
+    "Max linked-task snippets appended by memory_search (default: 3).",
+  "agents.defaults.memorySearch.query.deterministic.minSimilarity":
+    "Minimum normalized similarity required to preserve high-priority class lift (default: 0.35).",
+  "agents.defaults.memorySearch.query.deterministic.overrideDelta":
+    "Normalized score gap where lower-priority entries can outrank higher-priority entries (default: 0.12).",
+  "agents.defaults.memorySearch.query.deterministic.nearTieRelativeEpsilon":
+    "Relative epsilon for near-tie checks on normalized scores (default: 1e-4).",
+  "agents.defaults.memorySearch.query.deterministic.nearTieAbsoluteEpsilon":
+    "Absolute epsilon floor for near-tie checks on normalized scores (default: 1e-6).",
   "agents.defaults.memorySearch.cache.enabled":
     "Cache chunk embeddings in SQLite to speed up reindexing and frequent updates (default: true).",
   "agents.defaults.memorySearch.cache.maxEntries":

@@ -382,12 +382,22 @@ export const MemorySearchSchema = z
       .object({
         maxResults: z.number().int().positive().optional(),
         minScore: z.number().min(0).max(1).optional(),
+        linkedTaskSnippetCap: z.number().int().nonnegative().optional(),
         hybrid: z
           .object({
             enabled: z.boolean().optional(),
             vectorWeight: z.number().min(0).max(1).optional(),
             textWeight: z.number().min(0).max(1).optional(),
             candidateMultiplier: z.number().int().positive().optional(),
+          })
+          .strict()
+          .optional(),
+        deterministic: z
+          .object({
+            minSimilarity: z.number().min(0).max(1).optional(),
+            overrideDelta: z.number().min(0).max(1).optional(),
+            nearTieRelativeEpsilon: z.number().positive().optional(),
+            nearTieAbsoluteEpsilon: z.number().positive().optional(),
           })
           .strict()
           .optional(),

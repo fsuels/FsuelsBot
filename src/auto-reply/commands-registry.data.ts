@@ -390,14 +390,24 @@ function buildChatCommands(): ChatCommandDefinition[] {
     defineChatCommand({
       key: "task",
       description: "Show/switch task context and lifecycle state.",
-      textAlias: "/task",
+      textAliases: [
+        "/task",
+        "/tasks",
+        "/resume",
+        "/switch",
+        "/newtask",
+        "/link",
+        "/archive",
+        "/close",
+      ],
       scope: "text",
       acceptsArgs: true,
       category: "session",
       args: [
         {
           name: "action",
-          description: "show | list | set | active | paused | completed | archived | done",
+          description:
+            "show | list | new | set | link | active | paused | completed | archived | done",
           type: "string",
         },
         {
@@ -412,14 +422,14 @@ function buildChatCommands(): ChatCommandDefinition[] {
     defineChatCommand({
       key: "pin",
       description: "Pin durable memory (fact, preference, constraint, temporary).",
-      textAlias: "/pin",
+      textAliases: ["/pin", "/pins", "/unpin"],
       scope: "text",
       acceptsArgs: true,
       category: "management",
       args: [
         {
           name: "action",
-          description: "list | remove | fact | preference | constraint | temporary",
+          description: "list | remove | edit | fact | preference | constraint | temporary",
           type: "string",
         },
         {
@@ -430,6 +440,40 @@ function buildChatCommands(): ChatCommandDefinition[] {
         },
       ],
       argsParsing: "none",
+    }),
+    defineChatCommand({
+      key: "autoswitch",
+      description: "Allow or block automatic task switching from inferred intent.",
+      textAlias: "/autoswitch",
+      scope: "text",
+      acceptsArgs: true,
+      category: "session",
+      args: [
+        {
+          name: "mode",
+          description: "on | off | status",
+          type: "string",
+          choices: ["on", "off", "status"],
+        },
+      ],
+      argsMenu: "auto",
+    }),
+    defineChatCommand({
+      key: "mode",
+      description: "Set memory guidance mode.",
+      textAlias: "/mode",
+      scope: "text",
+      acceptsArgs: true,
+      category: "options",
+      args: [
+        {
+          name: "mode",
+          description: "minimal | supportive | status",
+          type: "string",
+          choices: ["minimal", "supportive", "status"],
+        },
+      ],
+      argsMenu: "auto",
     }),
     defineChatCommand({
       key: "forget",

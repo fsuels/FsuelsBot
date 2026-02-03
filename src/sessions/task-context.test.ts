@@ -26,12 +26,18 @@ function messageText(message: AgentMessage): string {
 describe("task-context", () => {
   it("falls back to full replay when no task markers exist", () => {
     const sessionManager = SessionManager.inMemory();
-    sessionManager.appendMessage({ role: "user", content: [{ type: "text", text: "u1" }] } as AgentMessage);
+    sessionManager.appendMessage({
+      role: "user",
+      content: [{ type: "text", text: "u1" }],
+    } as AgentMessage);
     sessionManager.appendMessage({
       role: "assistant",
       content: [{ type: "text", text: "a1" }],
     } as AgentMessage);
-    sessionManager.appendMessage({ role: "user", content: [{ type: "text", text: "u2" }] } as AgentMessage);
+    sessionManager.appendMessage({
+      role: "user",
+      content: [{ type: "text", text: "u2" }],
+    } as AgentMessage);
 
     const scoped = resolveTaskScopedHistoryMessages({
       sessionManager,
@@ -50,21 +56,30 @@ describe("task-context", () => {
     } as AgentMessage);
 
     appendTaskContextMarker({ sessionManager, taskId: "task-a", source: "test" });
-    sessionManager.appendMessage({ role: "user", content: [{ type: "text", text: "a1" }] } as AgentMessage);
+    sessionManager.appendMessage({
+      role: "user",
+      content: [{ type: "text", text: "a1" }],
+    } as AgentMessage);
     sessionManager.appendMessage({
       role: "assistant",
       content: [{ type: "text", text: "a2" }],
     } as AgentMessage);
 
     appendTaskContextMarker({ sessionManager, taskId: "task-b", source: "test" });
-    sessionManager.appendMessage({ role: "user", content: [{ type: "text", text: "b1" }] } as AgentMessage);
+    sessionManager.appendMessage({
+      role: "user",
+      content: [{ type: "text", text: "b1" }],
+    } as AgentMessage);
     sessionManager.appendMessage({
       role: "assistant",
       content: [{ type: "text", text: "b2" }],
     } as AgentMessage);
 
     appendTaskContextMarker({ sessionManager, taskId: "task-a", source: "test" });
-    sessionManager.appendMessage({ role: "user", content: [{ type: "text", text: "a3" }] } as AgentMessage);
+    sessionManager.appendMessage({
+      role: "user",
+      content: [{ type: "text", text: "a3" }],
+    } as AgentMessage);
 
     const taskA = resolveTaskScopedHistoryMessages({ sessionManager, taskId: "task-a" });
     const taskB = resolveTaskScopedHistoryMessages({ sessionManager, taskId: "task-b" });
@@ -101,10 +116,12 @@ describe("task-context", () => {
 
     expect(taskB.lastTaskSwitch?.fromTaskId).toBe("task-a");
     expect(taskB.lastTaskSwitch?.toTaskId).toBe("task-b");
+    expect(taskB.taskStack).toEqual(["task-a"]);
     expect(taskB.taskStateById?.["task-a"]?.compactionCount).toBe(2);
     expect(taskB.taskStateById?.["task-b"]?.compactionCount).toBe(1);
     expect(taskB.taskStateById?.["task-b"]?.status).toBe("active");
     expect(taskB.compactionCount).toBe(1);
+    expect(backToTaskA.taskStack).toEqual(["task-b"]);
     expect(backToTaskA.compactionCount).toBe(2);
     expect(backToTaskA.totalTokens).toBe(40);
   });

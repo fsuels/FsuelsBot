@@ -61,6 +61,12 @@ export type MemorySearchResult = {
   score: number;
   snippet: string;
   source: MemorySource;
+  ranking?: {
+    normalizedScore: number;
+    priority: number;
+    overrideApplied?: boolean;
+    overrideReason?: "dominance" | "priority-floor";
+  };
   provenance?: {
     source: "transcript" | "task-file" | "global-file" | "legacy-file" | "pin";
     sourcePath: string;
@@ -166,6 +172,7 @@ export class MemoryIndexManager {
   private readonly sources: Set<MemorySource>;
   private providerKey: string;
   private readonly cache: { enabled: boolean; maxEntries?: number };
+  private readonly retrievalVersionHash: string;
   private readonly vector: {
     enabled: boolean;
     available: boolean | null;
@@ -254,6 +261,13 @@ export class MemoryIndexManager {
       enabled: params.settings.cache.enabled,
       maxEntries: params.settings.cache.maxEntries,
     };
+    this.retrievalVersionHash = hashText(
+      JSON.stringify({
+        provider: this.provider.id,
+        model: this.provider.model,
+        query: this.settings.query,
+      }),
+    );
     this.fts = { enabled: params.settings.query.hybrid.enabled, available: false };
     this.ensureSchema();
     this.vector = {
@@ -348,7 +362,9 @@ export class MemoryIndexManager {
       pathFilterVec: filters?.pathFilterVec,
       pathFilterChunks: filters?.pathFilterChunks,
     });
-    return results.map((entry) => entry as MemorySearchResult & { id: string; provenanceTs?: number });
+    return results.map(
+      (entry) => entry as MemorySearchResult & { id: string; provenanceTs?: number },
+    );
   }
 
   private buildFtsQuery(raw: string): string | null {
@@ -378,7 +394,8 @@ export class MemoryIndexManager {
       bm25RankToScore,
     });
     return results.map(
-      (entry) => entry as MemorySearchResult & { id: string; textScore: number; provenanceTs?: number },
+      (entry) =>
+        entry as MemorySearchResult & { id: string; textScore: number; provenanceTs?: number },
     );
   }
 
@@ -431,7 +448,9 @@ export class MemoryIndexManager {
     }
     if (!taskId) return [{ scope: "any" }];
     const globalFallback = params.globalFallback ?? true;
-    return globalFallback ? [{ scope: "task", taskId }, { scope: "global" }] : [{ scope: "task", taskId }];
+    return globalFallback
+      ? [{ scope: "task", taskId }, { scope: "global" }]
+      : [{ scope: "task", taskId }];
   }
 
   private async searchScoped(
@@ -478,23 +497,53 @@ export class MemoryIndexManager {
             pathFilterChunks,
           }).catch(() => [])
         : [];
+    const scopedKeywordResults = keywordResults.filter((entry) =>
+      this.isResultInStageScope(entry.path, stage),
+    );
+    const scopedVectorResults = vectorResults.filter((entry) =>
+      this.isResultInStageScope(entry.path, stage),
+    );
     if (!hybrid.enabled) {
-      const filtered = vectorResults.filter((entry) => entry.score >= minScore).slice(0, maxResults);
-      return filtered.map((entry) => this.withProvenance(entry));
+      const filtered = scopedVectorResults
+        .filter((entry) => entry.score >= minScore)
+        .slice(0, maxResults);
+      return this.rankDeterministic(filtered.map((entry) => this.withProvenance(entry))).slice(
+        0,
+        maxResults,
+      );
     }
     const merged = this.mergeHybridResults({
-      vector: vectorResults,
-      keyword: keywordResults,
+      vector: scopedVectorResults,
+      keyword: scopedKeywordResults,
       vectorWeight: hybrid.vectorWeight,
       textWeight: hybrid.textWeight,
     });
-    return merged
-      .filter((entry) => entry.score >= minScore)
-      .slice(0, maxResults)
-      .map((entry) => this.withProvenance(entry));
+    return this.rankDeterministic(
+      merged
+        .filter((entry) => entry.score >= minScore)
+        .slice(0, maxResults)
+        .map((entry) => this.withProvenance(entry)),
+    ).slice(0, maxResults);
   }
 
-  private detectPinType(snippet: string): "fact" | "preference" | "constraint" | "temporary" | undefined {
+  private isResultInStageScope(resultPath: string, stage: SearchStage): boolean {
+    if (stage.scope === "any") return true;
+    const normalizedPath = normalizeRelPath(resultPath);
+    if (!normalizedPath) return false;
+    if (stage.scope === "task") {
+      const taskId = normalizeMemoryTaskId(stage.taskId);
+      if (!taskId) return false;
+      const taskFile = resolveTaskMemoryFilePath(taskId);
+      const taskDirPrefix = `${resolveTaskMemoryDirPath(taskId)}/`;
+      return normalizedPath === taskFile || normalizedPath.startsWith(taskDirPrefix);
+    }
+    if (normalizedPath === "MEMORY.md" || normalizedPath === "memory.md") return true;
+    return normalizedPath.startsWith("memory/") && !normalizedPath.startsWith("memory/tasks/");
+  }
+
+  private detectPinType(
+    snippet: string,
+  ): "fact" | "preference" | "constraint" | "temporary" | undefined {
     const lowered = snippet.toLowerCase();
     if (/\[(fact)\]/.test(lowered)) return "fact";
     if (/\[(preference)\]/.test(lowered)) return "preference";
@@ -520,7 +569,8 @@ export class MemoryIndexManager {
     }
     const classified = classifyMemoryPath(entry.path);
     const source = (() => {
-      if (entry.path.endsWith("/pins.md") || entry.path === "memory/global/pins.md") return "pin" as const;
+      if (entry.path.endsWith("/pins.md") || entry.path === "memory/global/pins.md")
+        return "pin" as const;
       if (classified.namespace === "task") return "task-file" as const;
       if (classified.namespace === "global") return "global-file" as const;
       if (classified.namespace === "legacy") return "legacy-file" as const;
@@ -538,6 +588,137 @@ export class MemoryIndexManager {
         pinType: source === "pin" ? this.detectPinType(entry.snippet) : undefined,
       },
     };
+  }
+
+  private resolveDeterministicPriority(entry: MemorySearchResult): number {
+    const source = entry.provenance?.source;
+    if (source === "transcript") return 5;
+    if (source === "pin") return 100;
+
+    const snippet = entry.snippet.toLowerCase();
+    const pathLower = entry.path.toLowerCase();
+
+    if (pathLower.includes("/snapshot")) return 90;
+    if (snippet.includes("decision")) return 80;
+    if (snippet.includes("constraint") || entry.provenance?.pinType === "constraint") return 70;
+    if (snippet.includes("next action")) return 60;
+    if (snippet.includes("open question")) return 50;
+    if (pathLower.includes("events")) return 40;
+    if (source === "task-file") return 35;
+    if (source === "global-file") return 30;
+    if (source === "legacy-file") return 20;
+    return 10;
+  }
+
+  private adjustedDeterministicScore(entry: MemorySearchResult): number {
+    if (entry.provenance?.source === "transcript") {
+      // Durable memory remains authoritative even when transcript indexing is enabled.
+      return entry.score * 0.85;
+    }
+    return entry.score;
+  }
+
+  private isHighPriorityClass(priority: number): boolean {
+    return priority >= 60;
+  }
+
+  private rankDeterministic(results: MemorySearchResult[]): MemorySearchResult[] {
+    if (results.length === 0) return [];
+
+    const cfg = this.settings.query.deterministic;
+    const adjustedScores = results.map((entry) => this.adjustedDeterministicScore(entry));
+    const normalize = (score: number): number =>
+      Number.isFinite(score) ? Math.max(0, Math.min(1, score)) : 0;
+
+    type RankMeta = {
+      normalizedScore: number;
+      priority: number;
+      effectivePriority: number;
+      highPriorityEligible: boolean;
+    };
+    const meta = new Map<MemorySearchResult, RankMeta>();
+    for (let i = 0; i < results.length; i += 1) {
+      const entry = results[i]!;
+      const priority = this.resolveDeterministicPriority(entry);
+      const normalizedScore = normalize(adjustedScores[i] ?? 0);
+      const highPriorityEligible =
+        !this.isHighPriorityClass(priority) || normalizedScore >= cfg.minSimilarity;
+      meta.set(entry, {
+        normalizedScore,
+        priority,
+        // If a high-priority class misses the semantic floor, remove most class lift.
+        effectivePriority: highPriorityEligible ? priority : Math.min(priority, 25),
+        highPriorityEligible,
+      });
+    }
+
+    const sorted = [...results].sort((left, right) => {
+      const leftMeta = meta.get(left)!;
+      const rightMeta = meta.get(right)!;
+      const scoreDelta = rightMeta.normalizedScore - leftMeta.normalizedScore;
+      const nearTieEpsilon = Math.max(
+        cfg.nearTieAbsoluteEpsilon,
+        Math.max(Math.abs(rightMeta.normalizedScore), Math.abs(leftMeta.normalizedScore)) *
+          cfg.nearTieRelativeEpsilon,
+      );
+
+      if (leftMeta.effectivePriority !== rightMeta.effectivePriority) {
+        const higher =
+          rightMeta.effectivePriority > leftMeta.effectivePriority ? rightMeta : leftMeta;
+        const lower =
+          rightMeta.effectivePriority > leftMeta.effectivePriority ? leftMeta : rightMeta;
+        const dominanceGap = lower.normalizedScore - higher.normalizedScore;
+        if (dominanceGap >= cfg.overrideDelta && Math.abs(scoreDelta) > nearTieEpsilon) {
+          return scoreDelta;
+        }
+      }
+
+      if (Math.abs(scoreDelta) > nearTieEpsilon) return scoreDelta;
+
+      const priorityDelta = rightMeta.effectivePriority - leftMeta.effectivePriority;
+      if (priorityDelta !== 0) return priorityDelta;
+
+      const leftTs = left.provenance?.timestampMs ?? 0;
+      const rightTs = right.provenance?.timestampMs ?? 0;
+      if (rightTs !== leftTs) return rightTs - leftTs;
+
+      const byPath = left.path.localeCompare(right.path);
+      if (byPath !== 0) return byPath;
+      if (left.startLine !== right.startLine) return left.startLine - right.startLine;
+      return left.endLine - right.endLine;
+    });
+
+    const markedDominance = new Set<MemorySearchResult>();
+    for (let i = 0; i + 1 < sorted.length; i += 1) {
+      const current = sorted[i]!;
+      const next = sorted[i + 1]!;
+      const currentMeta = meta.get(current)!;
+      const nextMeta = meta.get(next)!;
+      if (
+        currentMeta.effectivePriority < nextMeta.effectivePriority &&
+        currentMeta.normalizedScore - nextMeta.normalizedScore >= cfg.overrideDelta
+      ) {
+        markedDominance.add(current);
+      }
+    }
+
+    return sorted.map((entry) => {
+      const rankMeta = meta.get(entry)!;
+      const overrideReason = markedDominance.has(entry)
+        ? "dominance"
+        : this.isHighPriorityClass(rankMeta.priority) && !rankMeta.highPriorityEligible
+          ? "priority-floor"
+          : undefined;
+      return {
+        ...entry,
+        ranking: {
+          normalizedScore: rankMeta.normalizedScore,
+          priority: rankMeta.priority,
+          overrideApplied: Boolean(overrideReason),
+          overrideReason,
+        },
+      };
+    });
   }
 
   async sync(params?: {
@@ -607,6 +788,11 @@ export class MemoryIndexManager {
       timeoutMs: number;
       lastError?: string;
       lastProvider?: string;
+    };
+    retrievalVersion: {
+      configHash: string;
+      embeddingModel: string;
+      bm25ConfigVersion: string;
     };
   } {
     const sourceFilter = this.buildSourceFilter();
@@ -697,6 +883,11 @@ export class MemoryIndexManager {
         timeoutMs: this.batch.timeoutMs,
         lastError: this.batchFailureLastError,
         lastProvider: this.batchFailureLastProvider,
+      },
+      retrievalVersion: {
+        configHash: this.retrievalVersionHash,
+        embeddingModel: this.provider.model,
+        bm25ConfigVersion: "bm25-v1",
       },
     };
   }

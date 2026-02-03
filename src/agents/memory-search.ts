@@ -57,11 +57,18 @@ export type ResolvedMemorySearchConfig = {
   query: {
     maxResults: number;
     minScore: number;
+    linkedTaskSnippetCap: number;
     hybrid: {
       enabled: boolean;
       vectorWeight: number;
       textWeight: number;
       candidateMultiplier: number;
+    };
+    deterministic: {
+      minSimilarity: number;
+      overrideDelta: number;
+      nearTieRelativeEpsilon: number;
+      nearTieAbsoluteEpsilon: number;
     };
   };
   cache: {
@@ -79,10 +86,15 @@ const DEFAULT_SESSION_DELTA_BYTES = 100_000;
 const DEFAULT_SESSION_DELTA_MESSAGES = 50;
 const DEFAULT_MAX_RESULTS = 6;
 const DEFAULT_MIN_SCORE = 0.35;
+const DEFAULT_LINKED_TASK_SNIPPET_CAP = 3;
 const DEFAULT_HYBRID_ENABLED = true;
 const DEFAULT_HYBRID_VECTOR_WEIGHT = 0.7;
 const DEFAULT_HYBRID_TEXT_WEIGHT = 0.3;
 const DEFAULT_HYBRID_CANDIDATE_MULTIPLIER = 4;
+const DEFAULT_DETERMINISTIC_MIN_SIMILARITY = 0.35;
+const DEFAULT_DETERMINISTIC_OVERRIDE_DELTA = 0.12;
+const DEFAULT_DETERMINISTIC_REL_EPSILON = 0.0001;
+const DEFAULT_DETERMINISTIC_ABS_EPSILON = 0.000001;
 const DEFAULT_CACHE_ENABLED = true;
 const DEFAULT_SOURCES: Array<"memory" | "sessions"> = ["memory"];
 
@@ -199,6 +211,10 @@ function mergeConfig(
   const query = {
     maxResults: overrides?.query?.maxResults ?? defaults?.query?.maxResults ?? DEFAULT_MAX_RESULTS,
     minScore: overrides?.query?.minScore ?? defaults?.query?.minScore ?? DEFAULT_MIN_SCORE,
+    linkedTaskSnippetCap:
+      overrides?.query?.linkedTaskSnippetCap ??
+      defaults?.query?.linkedTaskSnippetCap ??
+      DEFAULT_LINKED_TASK_SNIPPET_CAP,
   };
   const hybrid = {
     enabled:
@@ -218,6 +234,24 @@ function mergeConfig(
       defaults?.query?.hybrid?.candidateMultiplier ??
       DEFAULT_HYBRID_CANDIDATE_MULTIPLIER,
   };
+  const deterministic = {
+    minSimilarity:
+      overrides?.query?.deterministic?.minSimilarity ??
+      defaults?.query?.deterministic?.minSimilarity ??
+      DEFAULT_DETERMINISTIC_MIN_SIMILARITY,
+    overrideDelta:
+      overrides?.query?.deterministic?.overrideDelta ??
+      defaults?.query?.deterministic?.overrideDelta ??
+      DEFAULT_DETERMINISTIC_OVERRIDE_DELTA,
+    nearTieRelativeEpsilon:
+      overrides?.query?.deterministic?.nearTieRelativeEpsilon ??
+      defaults?.query?.deterministic?.nearTieRelativeEpsilon ??
+      DEFAULT_DETERMINISTIC_REL_EPSILON,
+    nearTieAbsoluteEpsilon:
+      overrides?.query?.deterministic?.nearTieAbsoluteEpsilon ??
+      defaults?.query?.deterministic?.nearTieAbsoluteEpsilon ??
+      DEFAULT_DETERMINISTIC_ABS_EPSILON,
+  };
   const cache = {
     enabled: overrides?.cache?.enabled ?? defaults?.cache?.enabled ?? DEFAULT_CACHE_ENABLED,
     maxEntries: overrides?.cache?.maxEntries ?? defaults?.cache?.maxEntries,
@@ -231,6 +265,11 @@ function mergeConfig(
   const normalizedVectorWeight = sum > 0 ? vectorWeight / sum : DEFAULT_HYBRID_VECTOR_WEIGHT;
   const normalizedTextWeight = sum > 0 ? textWeight / sum : DEFAULT_HYBRID_TEXT_WEIGHT;
   const candidateMultiplier = clampInt(hybrid.candidateMultiplier, 1, 20);
+  const linkedTaskSnippetCap = clampInt(query.linkedTaskSnippetCap, 0, 25);
+  const minSimilarity = clampNumber(deterministic.minSimilarity, 0, 1);
+  const overrideDelta = clampNumber(deterministic.overrideDelta, 0, 1);
+  const nearTieRelativeEpsilon = clampNumber(deterministic.nearTieRelativeEpsilon, 0.00000001, 1);
+  const nearTieAbsoluteEpsilon = clampNumber(deterministic.nearTieAbsoluteEpsilon, 0.00000001, 1);
   const deltaBytes = clampInt(sync.sessions.deltaBytes, 0, Number.MAX_SAFE_INTEGER);
   const deltaMessages = clampInt(sync.sessions.deltaMessages, 0, Number.MAX_SAFE_INTEGER);
   return {
@@ -256,11 +295,18 @@ function mergeConfig(
     query: {
       ...query,
       minScore,
+      linkedTaskSnippetCap,
       hybrid: {
         enabled: Boolean(hybrid.enabled),
         vectorWeight: normalizedVectorWeight,
         textWeight: normalizedTextWeight,
         candidateMultiplier,
+      },
+      deterministic: {
+        minSimilarity,
+        overrideDelta,
+        nearTieRelativeEpsilon,
+        nearTieAbsoluteEpsilon,
       },
     },
     cache: {

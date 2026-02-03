@@ -46,6 +46,23 @@ type SessionTaskView = {
   memoryFlushCompactionCount?: number;
 };
 
+function normalizeTaskStack(value: unknown, activeTaskId?: string): string[] {
+  if (!Array.isArray(value)) return [];
+  const out: string[] = [];
+  const seen = new Set<string>();
+  const active = normalizeTaskId(activeTaskId);
+  for (const raw of value) {
+    const taskId = normalizeTaskId(raw);
+    if (!taskId) continue;
+    if (taskId === active) continue;
+    if (seen.has(taskId)) continue;
+    seen.add(taskId);
+    out.push(taskId);
+    if (out.length >= 3) break;
+  }
+  return out;
+}
+
 const hasOwn = (obj: object, key: string): boolean =>
   Object.prototype.hasOwnProperty.call(obj, key);
 
@@ -72,7 +89,10 @@ export function resolveSessionTaskId(params: {
   );
 }
 
-function resolveTaskState(entry: SessionEntry | undefined, taskId: string): SessionTaskState | undefined {
+function resolveTaskState(
+  entry: SessionEntry | undefined,
+  taskId: string,
+): SessionTaskState | undefined {
   const state = entry?.taskStateById?.[taskId];
   return state && typeof state === "object" ? state : undefined;
 }
@@ -97,7 +117,9 @@ export function resolveSessionTaskView(params: {
       ? Math.floor(entry.totalTokens)
       : undefined;
   const legacyFlushAt =
-    shouldUseLegacy && typeof entry?.memoryFlushAt === "number" && Number.isFinite(entry.memoryFlushAt)
+    shouldUseLegacy &&
+    typeof entry?.memoryFlushAt === "number" &&
+    Number.isFinite(entry.memoryFlushAt)
       ? entry.memoryFlushAt
       : undefined;
   const legacyFlushCompaction =
@@ -161,7 +183,12 @@ export function applySessionTaskUpdate(
   }
   if (hasOwn(params, "status")) {
     const status = params.status;
-    if (status === "active" || status === "paused" || status === "completed" || status === "archived") {
+    if (
+      status === "active" ||
+      status === "paused" ||
+      status === "completed" ||
+      status === "archived"
+    ) {
       nextState.status = status;
     } else {
       delete nextState.status;
@@ -189,6 +216,12 @@ export function applySessionTaskUpdate(
   if (switched && !hasOwn(params, "status")) {
     nextState.status = "active";
   }
+  const existingStack = normalizeTaskStack(entry.taskStack, nextTaskId);
+  const nextTaskStack = (() => {
+    if (!switched || !previousTaskId) return existingStack;
+    const merged = [previousTaskId, ...existingStack];
+    return normalizeTaskStack(merged, nextTaskId);
+  })();
   const nextEntry: SessionEntry = {
     ...entry,
     updatedAt,
@@ -198,6 +231,7 @@ export function applySessionTaskUpdate(
     totalTokens: nextState.totalTokens,
     memoryFlushAt: nextState.memoryFlushAt,
     memoryFlushCompactionCount: nextState.memoryFlushCompactionCount,
+    taskStack: nextTaskStack,
     taskStateById: nextMap,
   };
   if (!nextEntry.activeTaskTitle) {
@@ -210,6 +244,7 @@ export function applySessionTaskUpdate(
       switchedAt: updatedAt,
       source: params.source,
     };
+    nextEntry.lastTaskSwitchAt = updatedAt;
   }
   return nextEntry;
 }
@@ -255,7 +290,9 @@ function isTaskReplayEntry(entry: PiSessionEntry): entry is TaskReplayEntry {
   }
 }
 
-export function readLastTaskContextMarker(sessionManager: SessionManager): TaskContextMarkerData | null {
+export function readLastTaskContextMarker(
+  sessionManager: SessionManager,
+): TaskContextMarkerData | null {
   const entries = sessionManager.getEntries();
   for (let i = entries.length - 1; i >= 0; i -= 1) {
     const marker = asTaskMarkerEntry(entries[i]);

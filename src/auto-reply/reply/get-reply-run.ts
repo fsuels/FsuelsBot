@@ -15,11 +15,22 @@ import {
   updateSessionStore,
 } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
-import { emitDiagnosticEvent, isDiagnosticsEnabled } from "../../infra/diagnostic-events.js";
+import {
+  emitDiagnosticEvent,
+  isDiagnosticsEnabled,
+  MEMORY_GUIDANCE_EVENT_VERSION,
+  MEMORY_GUIDANCE_RESPONSE_EVENT_VERSION,
+  MEMORY_TURN_CONTROL_EVENT_VERSION,
+} from "../../infra/diagnostic-events.js";
 import { clearCommandLane, getQueueSize } from "../../process/command-queue.js";
 import { normalizeMainKey } from "../../routing/session-key.js";
-import { DEFAULT_SESSION_TASK_ID, resolveSessionTaskView } from "../../sessions/task-context.js";
+import {
+  applySessionTaskUpdate,
+  DEFAULT_SESSION_TASK_ID,
+  resolveSessionTaskView,
+} from "../../sessions/task-context.js";
 import { listConstraintPinsForInjection } from "../../memory/pins.js";
+import { commitMemoryEvents } from "../../memory/task-memory-system.js";
 import { isReasoningTagProvider } from "../../utils/provider-utils.js";
 import { hasControlCommand } from "../command-detection.js";
 import { buildInboundMediaNote } from "../media-note.js";
@@ -58,7 +69,7 @@ type AgentDefaults = NonNullable<MoltbotConfig["agents"]>["defaults"];
 type ExecOverrides = Pick<ExecToolDefaults, "host" | "security" | "ask" | "node">;
 
 const BARE_SESSION_RESET_PROMPT =
-  "A new session was started via /new or /reset. Say hi briefly (1-2 sentences) and ask what the user wants to work on. Also say: \"I will start fresh now. Your saved tasks and important details will still be remembered.\" Do not mention internal steps, files, tools, or reasoning.";
+  'A new session was started via /new or /reset. Say hi briefly (1-2 sentences) and ask what the user wants to work on. Also say: "I will start fresh now. Your saved tasks and important details will still be remembered." Do not mention internal steps, files, tools, or reasoning.';
 
 type RunPreparedReplyParams = {
   ctx: MsgContext;
@@ -382,21 +393,143 @@ export async function runPreparedReply(
     isNewSession,
   });
   const authProfileIdSource = sessionEntry?.authProfileOverrideSource;
-  const activeTask = resolveSessionTaskView({ entry: sessionEntry });
+  let activeTask = resolveSessionTaskView({ entry: sessionEntry });
+  const activeTaskIdBeforeInference = activeTask.taskId;
   const inferredTaskHint = inferTaskHintFromMessage({
     entry: sessionEntry,
     message: rawBodyTrimmed || baseBodyTrimmed,
   });
-  const shouldApplyTaskHint =
-    activeTask.taskId === DEFAULT_SESSION_TASK_ID &&
+  const inferredTaskId = inferredTaskHint?.taskId;
+  const inferredDiffersFromActive =
+    Boolean(inferredTaskId) &&
+    inferredTaskId !== DEFAULT_SESSION_TASK_ID &&
+    inferredTaskId !== activeTask.taskId;
+  const nowMs = Date.now();
+  const priorMismatchCounter = Math.max(0, sessionEntry?.taskMismatchCounter ?? 0);
+  const priorThrashCounter = Math.max(0, sessionEntry?.taskSwitchThrashCounter ?? 0);
+  const thrashWindowMs = 5 * 60 * 1000;
+  const mismatchGateThreshold = 3;
+  const thrashGateThreshold = 3;
+  const recentSwitch =
+    typeof sessionEntry?.lastTaskSwitchAt === "number" &&
+    nowMs - sessionEntry.lastTaskSwitchAt <= thrashWindowMs;
+  const nextMismatchCounter = inferredDiffersFromActive ? priorMismatchCounter + 1 : 0;
+  const nextThrashCounter =
+    inferredDiffersFromActive && recentSwitch
+      ? priorThrashCounter + 1
+      : Math.max(0, priorThrashCounter - 1);
+  const autoSwitchGuardedByCounters =
+    nextMismatchCounter >= mismatchGateThreshold || nextThrashCounter >= thrashGateThreshold;
+  if (sessionStore && sessionKey) {
+    const currentEntry = sessionEntry ??
+      sessionStore[sessionKey] ?? {
+        sessionId: sessionIdFinal,
+        updatedAt: nowMs,
+      };
+    const nextEntry: SessionEntry = {
+      ...currentEntry,
+      taskMismatchCounter: nextMismatchCounter,
+      taskSwitchThrashCounter: nextThrashCounter,
+      lastRetrievalRejectAt: inferredDiffersFromActive ? nowMs : currentEntry.lastRetrievalRejectAt,
+      updatedAt: nowMs,
+    };
+    sessionStore[sessionKey] = nextEntry;
+    sessionEntry = nextEntry;
+    if (storePath) {
+      await updateSessionStore(storePath, (store) => {
+        const existing = store[sessionKey] ?? currentEntry;
+        store[sessionKey] = {
+          ...existing,
+          taskMismatchCounter: nextMismatchCounter,
+          taskSwitchThrashCounter: nextThrashCounter,
+          lastRetrievalRejectAt: inferredDiffersFromActive ? nowMs : existing.lastRetrievalRejectAt,
+          updatedAt: nowMs,
+        };
+      });
+    }
+  }
+  const autoSwitchOptIn = sessionEntry?.autoSwitchOptIn === true;
+  const canAutoSwitch =
+    autoSwitchOptIn &&
+    !autoSwitchGuardedByCounters &&
     Boolean(inferredTaskHint?.taskId) &&
-    inferredTaskHint?.taskId !== DEFAULT_SESSION_TASK_ID;
-  const effectiveTask = shouldApplyTaskHint && inferredTaskHint
-    ? resolveSessionTaskView({ entry: sessionEntry, taskId: inferredTaskHint.taskId })
-    : activeTask;
-  const taskHintSystemPrompt = shouldApplyTaskHint
-    ? `Task hint (not persisted): treat this request as task "${effectiveTask.taskId}" for retrieval and memory lookup. Ask for explicit confirmation before persisting a task switch.`
-    : "";
+    inferredTaskHint?.taskId !== DEFAULT_SESSION_TASK_ID &&
+    inferredTaskHint?.taskId !== activeTask.taskId &&
+    (inferredTaskHint?.ambiguousTaskIds?.length ?? 0) === 0 &&
+    (inferredTaskHint?.confidence === "high" || (inferredTaskHint?.score ?? 0) >= 0.8);
+  if (canAutoSwitch && inferredTaskHint?.taskId && sessionStore && sessionKey) {
+    const updatedAt = Date.now();
+    const previousTaskId = activeTask.taskId;
+    const currentEntry = sessionEntry ??
+      sessionStore[sessionKey] ?? {
+        sessionId: sessionIdFinal,
+        updatedAt,
+      };
+    const nextEntry = applySessionTaskUpdate(currentEntry, {
+      taskId: inferredTaskHint.taskId,
+      status: "active",
+      updatedAt,
+      source: "autoswitch",
+    });
+    sessionStore[sessionKey] = nextEntry;
+    sessionEntry = nextEntry;
+    activeTask = resolveSessionTaskView({ entry: nextEntry });
+    if (storePath) {
+      await updateSessionStore(storePath, (store) => {
+        const existing = store[sessionKey] ?? currentEntry;
+        store[sessionKey] = applySessionTaskUpdate(existing, {
+          taskId: inferredTaskHint.taskId,
+          status: "active",
+          updatedAt,
+          source: "autoswitch",
+        });
+      });
+    }
+    try {
+      await commitMemoryEvents({
+        workspaceDir,
+        writeScope: "task",
+        taskId: inferredTaskHint.taskId,
+        actor: "system",
+        events: [
+          {
+            type: "STATE_PATCH_APPLIED",
+            payload: { patch: { status: "active", autoSwitchedFrom: previousTaskId } },
+          },
+        ],
+        now: updatedAt,
+      });
+    } catch (err) {
+      logVerbose(`autoswitch memory event skipped: ${String(err)}`);
+    }
+  }
+  const effectiveTask = activeTask;
+  const taskHintSystemPrompt =
+    !autoSwitchOptIn &&
+    Boolean(inferredTaskHint?.taskId) &&
+    inferredTaskHint?.taskId !== DEFAULT_SESSION_TASK_ID &&
+    inferredTaskHint?.taskId !== activeTask.taskId
+      ? `Potential task switch detected to "${inferredTaskHint?.taskId}". Do not switch automatically. Ask the user to confirm with /switch <taskId> or /newtask <title>.`
+      : autoSwitchGuardedByCounters && inferredTaskHint?.taskId
+        ? `Potential task switch to "${inferredTaskHint.taskId}" is currently gated due to recent mismatch/thrash signals. Do not autoswitch; ask the user to confirm with /switch <taskId> or /newtask <title>.`
+        : "";
+  const normalizedUserReply = (rawBodyTrimmed || baseBodyTrimmed).trim().toLowerCase();
+  const isConfirmationReply = /^(yes|yep|correct|agreed|that'?s right|thats right)\b/.test(
+    normalizedUserReply,
+  );
+  if (isConfirmationReply && effectiveTask.taskId !== DEFAULT_SESSION_TASK_ID) {
+    try {
+      await commitMemoryEvents({
+        workspaceDir,
+        writeScope: "task",
+        taskId: effectiveTask.taskId,
+        actor: "user",
+        events: [{ type: "USER_CONFIRMED", payload: { source: "affirmation" } }],
+      });
+    } catch (err) {
+      logVerbose(`USER_CONFIRMED commit skipped: ${String(err)}`);
+    }
+  }
   let constraintSystemPrompt = "";
   let hasImportantConflict = false;
   try {
@@ -420,13 +553,12 @@ export async function runPreparedReply(
     );
     if (indicatesChange && constraintPins.length > 0) {
       hasImportantConflict = constraintPins.some((pin) => {
-        const tokens = (
+        const tokens =
           pin.text
             .toLowerCase()
             .match(/[a-z0-9]+/g)
             ?.filter((token) => token.length >= 4)
-            .slice(0, 6) ?? []
-        );
+            .slice(0, 6) ?? [];
         if (tokens.length === 0) return false;
         const overlaps = tokens.filter((token) => normalizedMessage.includes(token)).length;
         return overlaps >= Math.min(2, tokens.length);
@@ -436,12 +568,15 @@ export async function runPreparedReply(
     logVerbose(`failed to load constraint pins: ${String(err)}`);
   }
   const memoryGuidanceState = resolveMemoryGuidanceState(sessionEntry);
-  const memoryGuidanceUserSignal = detectMemoryGuidanceUserSignal(rawBodyTrimmed || baseBodyTrimmed);
+  const memoryGuidanceUserSignal = detectMemoryGuidanceUserSignal(
+    rawBodyTrimmed || baseBodyTrimmed,
+  );
   const memoryNudgeDecision = selectTaskMemoryNudge({
     message: rawBodyTrimmed || baseBodyTrimmed,
     isNewSession,
     sessionEntry,
     activeTaskId: activeTask.taskId,
+    autoSwitchOptIn,
     guidanceMode: memoryGuidanceState.mode,
     inferredTaskId: inferredTaskHint?.taskId,
     inferredTaskScore: inferredTaskHint?.score,
@@ -457,8 +592,7 @@ export async function runPreparedReply(
     shownNudgeKind: memoryNudgeDecision?.kind,
   });
   if (sessionStore && sessionKey) {
-    const currentEntry =
-      sessionEntry ??
+    const currentEntry = sessionEntry ??
       sessionStore[sessionKey] ?? {
         sessionId: sessionIdFinal,
         updatedAt: Date.now(),
@@ -495,8 +629,30 @@ export async function runPreparedReply(
     }
   }
   if (isDiagnosticsEnabled(cfg)) {
+    const inferredTaskId = inferredTaskHint?.taskId;
+    emitDiagnosticEvent({
+      type: "memory.turn-control",
+      eventVersion: MEMORY_TURN_CONTROL_EVENT_VERSION,
+      sessionKey,
+      sessionId: sessionEntry?.sessionId ?? sessionIdFinal,
+      activeTaskId: activeTaskIdBeforeInference,
+      inferredTaskId,
+      resolvedTaskId: effectiveTask.taskId,
+      autoSwitchOptIn,
+      autoSwitched:
+        Boolean(inferredTaskId) &&
+        inferredTaskId !== activeTaskIdBeforeInference &&
+        effectiveTask.taskId === inferredTaskId,
+      ambiguous: (inferredTaskHint?.ambiguousTaskIds?.length ?? 0) > 0,
+      decisionMode: (() => {
+        if (!inferredTaskId || inferredTaskId === activeTaskIdBeforeInference) return "stay";
+        if (effectiveTask.taskId === inferredTaskId) return "autoswitch";
+        return "ask";
+      })(),
+    });
     emitDiagnosticEvent({
       type: "memory.guidance",
+      eventVersion: MEMORY_GUIDANCE_EVENT_VERSION,
       sessionKey,
       sessionId: sessionEntry?.sessionId ?? sessionIdFinal,
       taskId: effectiveTask.taskId,
@@ -512,6 +668,7 @@ export async function runPreparedReply(
     if (memoryGuidanceUpdate.response) {
       emitDiagnosticEvent({
         type: "memory.guidance.response",
+        eventVersion: MEMORY_GUIDANCE_RESPONSE_EVENT_VERSION,
         sessionKey,
         sessionId: sessionEntry?.sessionId ?? sessionIdFinal,
         taskId: effectiveTask.taskId,

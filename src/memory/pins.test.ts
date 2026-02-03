@@ -88,4 +88,24 @@ describe("memory pins", () => {
     });
     expect(removed).toBe(1);
   });
+
+  it("keeps pins immutable on duplicate upsert", async () => {
+    const now = Date.now();
+    const first = await upsertMemoryPin({
+      workspaceDir,
+      type: "fact",
+      text: "API base is stable",
+      scope: "global",
+      now,
+    });
+    const second = await upsertMemoryPin({
+      workspaceDir,
+      type: "fact",
+      text: "API base is stable",
+      scope: "global",
+      now: now + 1_000,
+    });
+    expect(second.id).toBe(first.id);
+    expect(second.updatedAt).toBe(first.updatedAt);
+  });
 });

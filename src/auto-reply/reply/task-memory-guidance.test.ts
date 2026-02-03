@@ -69,7 +69,7 @@ describe("selectTaskMemoryNudge", () => {
       inferredTaskId: "task-b",
       now: 2000,
     });
-    expect(decision?.text).toBe("It looks like we may be switching topics. Is this something new?");
+    expect(decision?.text).toContain('Reply with "/switch task-b"');
   });
 
   it("acknowledges critical memory language", () => {
@@ -103,7 +103,20 @@ describe("selectTaskMemoryNudge", () => {
       ambiguousTaskIds: ["invoices"],
       now: 2000,
     });
-    expect(decision?.text).toContain("few things that could match");
+    expect(decision?.text).toContain("Ambiguous task match");
+    expect(decision?.text).toContain("Resume current task");
+  });
+
+  it("acknowledges autoswitch mode when inferred task differs", () => {
+    const decision = selectTaskMemoryNudge({
+      message: "continue payment api work",
+      isNewSession: false,
+      activeTaskId: "task-a",
+      inferredTaskId: "task-b",
+      autoSwitchOptIn: true,
+      now: 2000,
+    });
+    expect(decision?.text).toContain("Autoswitch is enabled");
   });
 
   it("surfaces important-memory conflicts explicitly", () => {
@@ -178,14 +191,14 @@ describe("memory guidance mode state", () => {
 
 describe("detectMemoryGuidanceUserSignal", () => {
   it("detects explicit task statements", () => {
-    expect(detectMemoryGuidanceUserSignal("Let's continue the task about supplier onboarding.")).toBe(
-      "explicit-task",
-    );
+    expect(
+      detectMemoryGuidanceUserSignal("Let's continue the task about supplier onboarding."),
+    ).toBe("explicit-task");
     expect(detectMemoryGuidanceUserSignal("/task set onboarding")).toBe("explicit-task");
+    expect(detectMemoryGuidanceUserSignal("/switch task-a")).toBe("explicit-task");
   });
 
   it("returns none for generic messages", () => {
     expect(detectMemoryGuidanceUserSignal("thanks")).toBe("none");
   });
 });
-

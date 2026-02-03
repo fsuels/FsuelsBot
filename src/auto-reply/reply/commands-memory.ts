@@ -1,10 +1,25 @@
+import crypto from "node:crypto";
+
 import { parseDurationMs } from "../../cli/parse-duration.js";
 import type { SessionEntry } from "../../config/sessions.js";
 import { updateSessionStore } from "../../config/sessions.js";
+import { logVerbose } from "../../globals.js";
 import { forgetMemoryWorkspace } from "../../memory/forget.js";
 import {
+  commitMemoryEvents,
+  getTaskRegistryTask,
+  linkTaskRegistryTasks,
+  listTaskRegistry,
+  setTaskRegistryStatus,
+  type TaskRegistryStatus,
+  upsertTaskRegistryTask,
+} from "../../memory/task-memory-system.js";
+import {
+  cancelMemoryPinRemoveIntent,
+  confirmMemoryPinRemoveIntent,
+  createMemoryPinRemoveIntent,
+  editMemoryPin,
   listMemoryPins,
-  removeMemoryPin,
   type MemoryPinType,
   upsertMemoryPin,
 } from "../../memory/pins.js";
@@ -13,7 +28,6 @@ import {
   DEFAULT_SESSION_TASK_ID,
   resolveSessionTaskView,
 } from "../../sessions/task-context.js";
-import { logVerbose } from "../../globals.js";
 import type { CommandHandler } from "./commands-types.js";
 
 type ParsedArgs = {
@@ -69,6 +83,60 @@ function formatPin(pin: {
   return `- ${pin.id} [${pin.type}] (${scope}) ${pin.text}${expires}`;
 }
 
+function normalizeTaskStatus(
+  action: string,
+): "active" | "paused" | "completed" | "archived" | null {
+  const normalized = action.trim().toLowerCase();
+  if (normalized === "active") return "active";
+  if (normalized === "paused" || normalized === "suspended") return "paused";
+  if (normalized === "completed" || normalized === "done" || normalized === "closed") {
+    return "completed";
+  }
+  if (normalized === "archived" || normalized === "archive") return "archived";
+  return null;
+}
+
+function mapSessionStatusToRegistryStatus(
+  status: "active" | "paused" | "completed" | "archived",
+): TaskRegistryStatus {
+  if (status === "active") return "active";
+  if (status === "paused") return "suspended";
+  if (status === "completed") return "closed";
+  return "archived";
+}
+
+function slugifyTaskTitle(value: string): string {
+  const base = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return base || `task-${Date.now()}`;
+}
+
+function ensureSessionEntry(params: {
+  entry?: SessionEntry;
+  sessionStore?: Record<string, SessionEntry>;
+  sessionKey?: string;
+}): SessionEntry {
+  const fromStore = params.sessionKey ? params.sessionStore?.[params.sessionKey] : undefined;
+  if (params.entry) return params.entry;
+  if (fromStore) return fromStore;
+  const now = Date.now();
+  return {
+    sessionId: crypto.randomUUID(),
+    updatedAt: now,
+    activeTaskId: DEFAULT_SESSION_TASK_ID,
+    taskStateById: {
+      [DEFAULT_SESSION_TASK_ID]: {
+        updatedAt: now,
+        status: "active",
+        title: "General",
+      },
+    },
+  };
+}
+
 async function persistSessionEntry(params: {
   entry: SessionEntry;
   sessionKey?: string;
@@ -86,15 +154,133 @@ async function persistSessionEntry(params: {
   }
 }
 
+async function commitBestEffort(params: Parameters<typeof commitMemoryEvents>[0]): Promise<void> {
+  try {
+    await commitMemoryEvents(params);
+  } catch (err) {
+    logVerbose(`memory event commit skipped: ${String(err)}`);
+  }
+}
+
+async function runTaskSwitch(params: {
+  workspaceDir: string;
+  entry: SessionEntry;
+  taskId: string;
+  title?: string;
+  sessionStore?: Record<string, SessionEntry>;
+  sessionKey?: string;
+  storePath?: string;
+  source: string;
+  now?: number;
+}): Promise<SessionEntry> {
+  const now = params.now ?? Date.now();
+  const activeBefore = resolveSessionTaskView({ entry: params.entry });
+  const taskId = params.taskId.trim();
+  const existingTask = await getTaskRegistryTask({
+    workspaceDir: params.workspaceDir,
+    taskId,
+  });
+  const taskRecord = await upsertTaskRegistryTask({
+    workspaceDir: params.workspaceDir,
+    taskId,
+    title: params.title,
+    status: "active",
+    now,
+  });
+  if (
+    activeBefore.taskId &&
+    activeBefore.taskId !== DEFAULT_SESSION_TASK_ID &&
+    activeBefore.taskId !== taskId
+  ) {
+    await setTaskRegistryStatus({
+      workspaceDir: params.workspaceDir,
+      taskId: activeBefore.taskId,
+      status: "suspended",
+      now,
+    });
+  }
+
+  const nextEntry = applySessionTaskUpdate(params.entry, {
+    taskId,
+    title: params.title ?? taskRecord.title,
+    status: "active",
+    updatedAt: now,
+    source: params.source,
+  });
+  await persistSessionEntry({
+    entry: nextEntry,
+    sessionStore: params.sessionStore,
+    sessionKey: params.sessionKey,
+    storePath: params.storePath,
+  });
+
+  const events: Parameters<typeof commitMemoryEvents>[0]["events"] = [];
+  if (!existingTask) {
+    events.push({ type: "TASK_CREATED", payload: { taskId, title: taskRecord.title } });
+  }
+  if (params.title) {
+    events.push({ type: "TITLE_SET", payload: { title: params.title } });
+  }
+  events.push({
+    type: "STATE_PATCH_APPLIED",
+    payload: { patch: { status: "active", title: params.title ?? taskRecord.title } },
+  });
+  await commitBestEffort({
+    workspaceDir: params.workspaceDir,
+    writeScope: "task",
+    taskId,
+    actor: "user",
+    events,
+    now,
+  });
+  return nextEntry;
+}
+
+function rewriteTaskCommand(normalized: string): string | null {
+  if (normalized === "/tasks") return "/task list";
+  if (normalized === "/resume") return "/task set";
+  if (normalized.startsWith("/resume ")) {
+    return `/task set ${normalized.slice("/resume".length).trim()}`;
+  }
+  if (normalized.startsWith("/switch ")) {
+    return `/task set ${normalized.slice("/switch".length).trim()}`;
+  }
+  if (normalized.startsWith("/newtask ")) {
+    return `/task new ${normalized.slice("/newtask".length).trim()}`;
+  }
+  if (normalized.startsWith("/archive ")) {
+    return `/task archive ${normalized.slice("/archive".length).trim()}`;
+  }
+  if (normalized === "/archive") return "/task archive";
+  if (normalized.startsWith("/close ")) {
+    return `/task close ${normalized.slice("/close".length).trim()}`;
+  }
+  if (normalized === "/close") return "/task close";
+  if (normalized.startsWith("/link ")) {
+    return `/task link ${normalized.slice("/link".length).trim()}`;
+  }
+  if (normalized === "/task" || normalized.startsWith("/task ")) return normalized;
+  return null;
+}
+
 export const handlePinCommand: CommandHandler = async (params, allowTextCommands) => {
   if (!allowTextCommands) return null;
-  const normalized = params.command.commandBodyNormalized;
-  if (normalized !== "/pin" && !normalized.startsWith("/pin ")) return null;
+  const normalized = params.command.rawBodyNormalized || params.command.commandBodyNormalized;
+  const isPinCommand = normalized === "/pin" || normalized.startsWith("/pin ");
+  const isPinsAlias = normalized === "/pins" || normalized.startsWith("/pins ");
+  const isUnpinAlias = normalized === "/unpin" || normalized.startsWith("/unpin ");
+  if (!isPinCommand && !isPinsAlias && !isUnpinAlias) return null;
   if (!params.command.isAuthorizedSender) {
     logVerbose(`Ignoring /pin from unauthorized sender: ${params.command.senderId || "<unknown>"}`);
     return { shouldContinue: false };
   }
-  const raw = normalized === "/pin" ? "" : normalized.slice("/pin".length).trim();
+  const canonical = (() => {
+    if (isPinsAlias) return normalized.replace(/^\/pins\b/, "/pin list");
+    if (isUnpinAlias) return normalized.replace(/^\/unpin\b/, "/pin remove");
+    return normalized;
+  })();
+
+  const raw = canonical === "/pin" ? "" : canonical.slice("/pin".length).trim();
   const parsed = parseArgs(raw);
   const action = parsed.values[0]?.toLowerCase();
 
@@ -106,7 +292,10 @@ export const handlePinCommand: CommandHandler = async (params, allowTextCommands
           "Usage:\n" +
           "/pin <fact|preference|constraint|temporary> <text> [--task <id>] [--ttl <duration>]\n" +
           "/pin list [--task <id>]\n" +
-          "/pin remove <pinId>",
+          "/pin edit <pinId> <new text>\n" +
+          "/pin remove <pinId>\n" +
+          "/pin confirm <token>\n" +
+          "/pin cancel <token>",
       },
     };
   }
@@ -125,8 +314,67 @@ export const handlePinCommand: CommandHandler = async (params, allowTextCommands
     return {
       shouldContinue: false,
       reply: {
-        text: `Memory pins (${pins.length})\n${pins.slice(0, 25).map((pin) => formatPin(pin)).join("\n")}`,
+        text: `Memory pins (${pins.length})\n${pins
+          .slice(0, 25)
+          .map((pin) => formatPin(pin))
+          .join("\n")}`,
       },
+    };
+  }
+
+  if (action === "confirm") {
+    const token = parsed.values[1]?.trim();
+    if (!token) {
+      return { shouldContinue: false, reply: { text: "Usage: /pin confirm <token>" } };
+    }
+    const result = await confirmMemoryPinRemoveIntent({
+      workspaceDir: params.workspaceDir,
+      token,
+    });
+    if (!result.pinId) {
+      return {
+        shouldContinue: false,
+        reply: { text: "Pin removal token not found. It may be expired or already used." },
+      };
+    }
+    if (!result.removed) {
+      return {
+        shouldContinue: false,
+        reply: {
+          text: result.expired
+            ? `Removal token expired for pin ${result.pinId}.`
+            : `Pin ${result.pinId} was already removed.`,
+        },
+      };
+    }
+    await commitBestEffort({
+      workspaceDir: params.workspaceDir,
+      writeScope: result.scope ?? "global",
+      taskId: result.taskId,
+      actor: "user",
+      events: [
+        { type: "PIN_REMOVE_REQUESTED", payload: { pinId: result.pinId } },
+        { type: "PIN_REMOVED", payload: { pinId: result.pinId } },
+      ],
+    });
+    return {
+      shouldContinue: false,
+      reply: { text: `Removed pin ${result.pinId}.` },
+    };
+  }
+
+  if (action === "cancel") {
+    const token = parsed.values[1]?.trim();
+    if (!token) {
+      return { shouldContinue: false, reply: { text: "Usage: /pin cancel <token>" } };
+    }
+    const canceled = await cancelMemoryPinRemoveIntent({
+      workspaceDir: params.workspaceDir,
+      token,
+    });
+    return {
+      shouldContinue: false,
+      reply: { text: canceled ? "Pin removal canceled." : "Token not found or already resolved." },
     };
   }
 
@@ -135,11 +383,61 @@ export const handlePinCommand: CommandHandler = async (params, allowTextCommands
     if (!pinId) {
       return { shouldContinue: false, reply: { text: "Usage: /pin remove <pinId>" } };
     }
-    const removed = await removeMemoryPin({ workspaceDir: params.workspaceDir, id: pinId });
+    const intent = await createMemoryPinRemoveIntent({
+      workspaceDir: params.workspaceDir,
+      id: pinId,
+    });
+    if (!intent) {
+      return {
+        shouldContinue: false,
+        reply: { text: `Pin not found: ${pinId}.` },
+      };
+    }
     return {
       shouldContinue: false,
-      reply: { text: removed ? `Removed pin ${pinId}.` : `Pin not found: ${pinId}.` },
+      reply: {
+        text:
+          `Pin removal requires confirmation.\n` +
+          `Run: /pin confirm ${intent.token}\n` +
+          `Expires: ${new Date(intent.expiresAt).toISOString()}\n` +
+          `Cancel: /pin cancel ${intent.token}`,
+      },
     };
+  }
+
+  if (action === "edit") {
+    const pinId = parsed.values[1]?.trim();
+    const text = parsed.values.slice(2).join(" ").trim();
+    if (!pinId || !text) {
+      return { shouldContinue: false, reply: { text: "Usage: /pin edit <pinId> <new text>" } };
+    }
+    const ttlRaw = typeof parsed.flags.ttl === "string" ? parsed.flags.ttl : undefined;
+    let ttlMs: number | undefined;
+    if (ttlRaw) {
+      try {
+        ttlMs = parseDurationMs(ttlRaw, { defaultUnit: "d" });
+      } catch {
+        return { shouldContinue: false, reply: { text: `Invalid --ttl value: ${ttlRaw}` } };
+      }
+    }
+    const edited = await editMemoryPin({
+      workspaceDir: params.workspaceDir,
+      id: pinId,
+      text,
+      entity: typeof parsed.flags.entity === "string" ? parsed.flags.entity : undefined,
+      ttlMs,
+    });
+    if (!edited) {
+      return { shouldContinue: false, reply: { text: `Pin not found: ${pinId}.` } };
+    }
+    await commitBestEffort({
+      workspaceDir: params.workspaceDir,
+      writeScope: edited.scope,
+      taskId: edited.taskId,
+      actor: "user",
+      events: [{ type: "STATE_PATCH_APPLIED", payload: { patch: { pins: [edited.id] } } }],
+    });
+    return { shouldContinue: false, reply: { text: `Updated pin ${pinId}.` } };
   }
 
   const allowedTypes: MemoryPinType[] = ["fact", "preference", "constraint", "temporary"];
@@ -180,6 +478,13 @@ export const handlePinCommand: CommandHandler = async (params, allowTextCommands
     entity,
     ttlMs,
   });
+  await commitBestEffort({
+    workspaceDir: params.workspaceDir,
+    writeScope: pin.scope,
+    taskId: pin.taskId,
+    actor: "user",
+    events: [{ type: "PIN_ADDED", payload: { pinId: pin.id, text: pin.text, pinType: pin.type } }],
+  });
   return {
     shouldContinue: false,
     reply: {
@@ -193,7 +498,9 @@ export const handleForgetCommand: CommandHandler = async (params, allowTextComma
   const normalized = params.command.commandBodyNormalized;
   if (normalized !== "/forget" && !normalized.startsWith("/forget ")) return null;
   if (!params.command.isAuthorizedSender) {
-    logVerbose(`Ignoring /forget from unauthorized sender: ${params.command.senderId || "<unknown>"}`);
+    logVerbose(
+      `Ignoring /forget from unauthorized sender: ${params.command.senderId || "<unknown>"}`,
+    );
     return { shouldContinue: false };
   }
   const raw = normalized === "/forget" ? "" : normalized.slice("/forget".length).trim();
@@ -201,7 +508,10 @@ export const handleForgetCommand: CommandHandler = async (params, allowTextComma
   const text = parsed.values.join(" ").trim() || undefined;
   const taskId = typeof parsed.flags.task === "string" ? parsed.flags.task.trim() : undefined;
   const entity = typeof parsed.flags.entity === "string" ? parsed.flags.entity.trim() : undefined;
-  const beforeRaw = typeof parsed.flags.before === "string" ? parsed.flags.before.trim() : undefined;
+  const beforeRaw =
+    typeof parsed.flags.before === "string" ? parsed.flags.before.trim() : undefined;
+  const includePins =
+    parsed.flags.pins === true || String(parsed.flags.pins ?? "").toLowerCase() === "true";
   let before: number | undefined;
   if (beforeRaw) {
     const parsedDate = Date.parse(beforeRaw);
@@ -220,6 +530,7 @@ export const handleForgetCommand: CommandHandler = async (params, allowTextComma
           "/forget --task <id>\n" +
           "/forget --entity <name>\n" +
           "/forget --before <date>\n" +
+          "/forget --pins true (required to remove pins)\n" +
           "(can combine filters)",
       },
     };
@@ -230,21 +541,23 @@ export const handleForgetCommand: CommandHandler = async (params, allowTextComma
     taskId,
     entity,
     before,
+    includePins,
   });
 
   if (taskId && params.sessionEntry) {
     const activeTask = resolveSessionTaskView({ entry: params.sessionEntry });
     if (activeTask.taskId === taskId) {
+      const now = Date.now();
       let next = applySessionTaskUpdate(params.sessionEntry, {
         taskId,
         status: "archived",
-        updatedAt: Date.now(),
+        updatedAt: now,
         source: "forget",
       });
       next = applySessionTaskUpdate(next, {
         taskId: DEFAULT_SESSION_TASK_ID,
         status: "active",
-        updatedAt: Date.now(),
+        updatedAt: now,
         source: "forget",
       });
       await persistSessionEntry({
@@ -252,6 +565,20 @@ export const handleForgetCommand: CommandHandler = async (params, allowTextComma
         sessionStore: params.sessionStore,
         sessionKey: params.sessionKey,
         storePath: params.storePath,
+      });
+      await setTaskRegistryStatus({
+        workspaceDir: params.workspaceDir,
+        taskId,
+        status: "archived",
+        now,
+      });
+      await commitBestEffort({
+        workspaceDir: params.workspaceDir,
+        writeScope: "task",
+        taskId,
+        actor: "user",
+        events: [{ type: "STATE_PATCH_APPLIED", payload: { patch: { status: "archived" } } }],
+        now,
       });
     }
   }
@@ -268,29 +595,47 @@ export const handleForgetCommand: CommandHandler = async (params, allowTextComma
 
 export const handleTaskCommand: CommandHandler = async (params, allowTextCommands) => {
   if (!allowTextCommands) return null;
-  const normalized = params.command.commandBodyNormalized;
-  if (normalized !== "/task" && !normalized.startsWith("/task ")) return null;
+  const rewritten =
+    rewriteTaskCommand(params.command.rawBodyNormalized) ??
+    rewriteTaskCommand(params.command.commandBodyNormalized);
+  if (!rewritten) return null;
   if (!params.command.isAuthorizedSender) {
-    logVerbose(`Ignoring /task from unauthorized sender: ${params.command.senderId || "<unknown>"}`);
+    logVerbose(
+      `Ignoring /task from unauthorized sender: ${params.command.senderId || "<unknown>"}`,
+    );
     return { shouldContinue: false };
   }
-  const raw = normalized === "/task" ? "" : normalized.slice("/task".length).trim();
+  const raw = rewritten === "/task" ? "" : rewritten.slice("/task".length).trim();
   const parsed = parseArgs(raw);
   const action = parsed.values[0]?.toLowerCase() ?? "show";
-  const entry = params.sessionEntry;
-
-  if (!entry) {
-    return { shouldContinue: false, reply: { text: "No session task state available yet." } };
-  }
-
+  const entry = ensureSessionEntry({
+    entry: params.sessionEntry,
+    sessionStore: params.sessionStore,
+    sessionKey: params.sessionKey,
+  });
   const active = resolveSessionTaskView({ entry });
+
   if (action === "show" || action === "status") {
     const line = `Task ${active.taskId} (${active.status ?? "active"})`;
     const title = active.title ? `\nTitle: ${active.title}` : "";
-    return { shouldContinue: false, reply: { text: `${line}${title}` } };
+    const stack = (entry.taskStack ?? []).length
+      ? `\nStack: ${(entry.taskStack ?? []).join(" -> ")}`
+      : "";
+    const autoSwitch = entry.autoSwitchOptIn === true ? "on" : "off";
+    return {
+      shouldContinue: false,
+      reply: { text: `${line}${title}\nAutoswitch: ${autoSwitch}${stack}` },
+    };
   }
 
   if (action === "list") {
+    const registryTasks = await listTaskRegistry(params.workspaceDir);
+    if (registryTasks.length > 0) {
+      const lines = registryTasks
+        .slice(0, 25)
+        .map((task) => `- ${task.taskId} (${task.status})${task.title ? ` - ${task.title}` : ""}`);
+      return { shouldContinue: false, reply: { text: `Known tasks:\n${lines.join("\n")}` } };
+    }
     const tasks = Object.entries(entry.taskStateById ?? {}).sort(
       (a, b) => (b[1]?.updatedAt ?? 0) - (a[1]?.updatedAt ?? 0),
     );
@@ -303,61 +648,118 @@ export const handleTaskCommand: CommandHandler = async (params, allowTextCommand
     return { shouldContinue: false, reply: { text: `Known tasks:\n${lines.join("\n")}` } };
   }
 
-  if (action === "set") {
+  if (action === "new") {
+    const title = parsed.values.slice(1).join(" ").trim();
+    if (!title) {
+      return { shouldContinue: false, reply: { text: "Usage: /task new <title>" } };
+    }
+    const existing = new Set(
+      (await listTaskRegistry(params.workspaceDir)).map((task) => task.taskId),
+    );
+    let taskId = slugifyTaskTitle(title);
+    let suffix = 2;
+    while (existing.has(taskId)) {
+      taskId = `${slugifyTaskTitle(title)}-${suffix}`;
+      suffix += 1;
+    }
+    await runTaskSwitch({
+      workspaceDir: params.workspaceDir,
+      entry,
+      taskId,
+      title,
+      sessionStore: params.sessionStore,
+      sessionKey: params.sessionKey,
+      storePath: params.storePath,
+      source: "task.new",
+    });
+    return {
+      shouldContinue: false,
+      reply: { text: `Created task ${taskId} and switched context.` },
+    };
+  }
+
+  if (action === "set" || action === "switch") {
     const taskId = parsed.values[1]?.trim();
     if (!taskId) {
       return { shouldContinue: false, reply: { text: "Usage: /task set <id> [title]" } };
     }
     const title = parsed.values.slice(2).join(" ").trim() || undefined;
-    const next = applySessionTaskUpdate(entry, {
+    await runTaskSwitch({
+      workspaceDir: params.workspaceDir,
+      entry,
       taskId,
       title,
-      status: "active",
-      updatedAt: Date.now(),
-      source: "task.set",
-    });
-    await persistSessionEntry({
-      entry: next,
       sessionStore: params.sessionStore,
       sessionKey: params.sessionKey,
       storePath: params.storePath,
+      source: "task.set",
     });
     return { shouldContinue: false, reply: { text: `Active task set to ${taskId}.` } };
   }
 
-  const statusAction = action === "done" ? "completed" : action;
-  if (
-    statusAction !== "active" &&
-    statusAction !== "paused" &&
-    statusAction !== "completed" &&
-    statusAction !== "archived"
-  ) {
+  if (action === "link") {
+    const left = parsed.values[1]?.trim();
+    const right = parsed.values[2]?.trim();
+    if (!left || !right) {
+      return { shouldContinue: false, reply: { text: "Usage: /task link <id1> <id2>" } };
+    }
+    const linked = await linkTaskRegistryTasks({
+      workspaceDir: params.workspaceDir,
+      taskId: left,
+      relatedTaskId: right,
+    });
+    if (!linked.updated) {
+      return {
+        shouldContinue: false,
+        reply: { text: `Could not link tasks. Ensure both task ids exist: ${left}, ${right}` },
+      };
+    }
+    await commitBestEffort({
+      workspaceDir: params.workspaceDir,
+      writeScope: "global",
+      actor: "user",
+      events: [
+        {
+          type: "STATE_PATCH_APPLIED",
+          payload: { patch: { links: [left, right] } },
+        },
+      ],
+    });
+    return { shouldContinue: false, reply: { text: `Linked tasks ${left} <-> ${right}.` } };
+  }
+
+  const statusAction = normalizeTaskStatus(action);
+  if (!statusAction) {
     return {
       shouldContinue: false,
       reply: {
         text:
           "Usage:\n" +
-          "/task show|list\n" +
+          "/task show|list|new|set|link\n" +
           "/task set <id> [title]\n" +
-          "/task <active|paused|completed|archived|done>",
+          "/task <active|paused|completed|archived|done>\n" +
+          "/tasks | /resume <id> | /switch <id> | /newtask <title> | /archive <id> | /close <id>",
       },
     };
   }
 
+  const targetTaskId = parsed.values[1]?.trim() || active.taskId;
+  const now = Date.now();
   let next = applySessionTaskUpdate(entry, {
-    taskId: active.taskId,
+    taskId: targetTaskId,
     status: statusAction,
-    updatedAt: Date.now(),
+    updatedAt: now,
     source: "task.status",
   });
   if (
     (statusAction === "completed" || statusAction === "archived") &&
-    active.taskId !== DEFAULT_SESSION_TASK_ID
+    targetTaskId !== DEFAULT_SESSION_TASK_ID &&
+    resolveSessionTaskView({ entry: next }).taskId === targetTaskId
   ) {
     next = applySessionTaskUpdate(next, {
       taskId: DEFAULT_SESSION_TASK_ID,
       status: "active",
-      updatedAt: Date.now(),
+      updatedAt: now,
       source: "task.status",
     });
   }
@@ -367,7 +769,97 @@ export const handleTaskCommand: CommandHandler = async (params, allowTextCommand
     sessionKey: params.sessionKey,
     storePath: params.storePath,
   });
-  return { shouldContinue: false, reply: { text: `Task ${active.taskId} marked ${statusAction}.` } };
+  await upsertTaskRegistryTask({
+    workspaceDir: params.workspaceDir,
+    taskId: targetTaskId,
+    status: mapSessionStatusToRegistryStatus(statusAction),
+    now,
+  });
+  await commitBestEffort({
+    workspaceDir: params.workspaceDir,
+    writeScope: "task",
+    taskId: targetTaskId,
+    actor: "user",
+    events: [
+      {
+        type: "STATE_PATCH_APPLIED",
+        payload: { patch: { status: mapSessionStatusToRegistryStatus(statusAction) } },
+      },
+    ],
+    now,
+  });
+  return { shouldContinue: false, reply: { text: `Task ${targetTaskId} marked ${statusAction}.` } };
 };
 
+export const handleAutoSwitchCommand: CommandHandler = async (params, allowTextCommands) => {
+  if (!allowTextCommands) return null;
+  const normalized = params.command.commandBodyNormalized;
+  if (normalized !== "/autoswitch" && !normalized.startsWith("/autoswitch ")) return null;
+  if (!params.command.isAuthorizedSender) {
+    logVerbose(
+      `Ignoring /autoswitch from unauthorized sender: ${params.command.senderId || "<unknown>"}`,
+    );
+    return { shouldContinue: false };
+  }
+  const raw = normalized === "/autoswitch" ? "" : normalized.slice("/autoswitch".length).trim();
+  const mode = raw.toLowerCase();
+  const entry = ensureSessionEntry({
+    entry: params.sessionEntry,
+    sessionStore: params.sessionStore,
+    sessionKey: params.sessionKey,
+  });
+  const nextValue = mode === "on" ? true : mode === "off" ? false : entry.autoSwitchOptIn === true;
+  const next: SessionEntry = {
+    ...entry,
+    autoSwitchOptIn: nextValue,
+    updatedAt: Date.now(),
+  };
+  await persistSessionEntry({
+    entry: next,
+    sessionStore: params.sessionStore,
+    sessionKey: params.sessionKey,
+    storePath: params.storePath,
+  });
+  if (mode !== "" && mode !== "on" && mode !== "off" && mode !== "status") {
+    return { shouldContinue: false, reply: { text: "Usage: /autoswitch on|off|status" } };
+  }
+  return {
+    shouldContinue: false,
+    reply: { text: `Autoswitch is ${nextValue ? "on" : "off"}.` },
+  };
+};
 
+export const handleMemoryModeCommand: CommandHandler = async (params, allowTextCommands) => {
+  if (!allowTextCommands) return null;
+  const normalized = params.command.commandBodyNormalized;
+  if (normalized !== "/mode" && !normalized.startsWith("/mode ")) return null;
+  if (!params.command.isAuthorizedSender) {
+    logVerbose(
+      `Ignoring /mode from unauthorized sender: ${params.command.senderId || "<unknown>"}`,
+    );
+    return { shouldContinue: false };
+  }
+  const raw = normalized === "/mode" ? "" : normalized.slice("/mode".length).trim().toLowerCase();
+  const entry = ensureSessionEntry({
+    entry: params.sessionEntry,
+    sessionStore: params.sessionStore,
+    sessionKey: params.sessionKey,
+  });
+  if (raw && raw !== "minimal" && raw !== "supportive" && raw !== "status") {
+    return { shouldContinue: false, reply: { text: "Usage: /mode minimal|supportive|status" } };
+  }
+  const nextMode =
+    raw === "minimal" || raw === "supportive" ? raw : (entry.memoryGuidanceMode ?? "supportive");
+  const next: SessionEntry = {
+    ...entry,
+    memoryGuidanceMode: nextMode,
+    updatedAt: Date.now(),
+  };
+  await persistSessionEntry({
+    entry: next,
+    sessionStore: params.sessionStore,
+    sessionKey: params.sessionKey,
+    storePath: params.storePath,
+  });
+  return { shouldContinue: false, reply: { text: `Memory mode is ${nextMode}.` } };
+};

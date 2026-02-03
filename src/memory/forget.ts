@@ -1,7 +1,11 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { normalizeMemoryTaskId, resolveTaskMemoryDirPath, resolveTaskMemoryFilePath } from "./namespaces.js";
+import {
+  normalizeMemoryTaskId,
+  resolveTaskMemoryDirPath,
+  resolveTaskMemoryFilePath,
+} from "./namespaces.js";
 import { forgetMemoryPins } from "./pins.js";
 
 export type ForgetMemoryResult = {
@@ -81,11 +85,13 @@ export async function forgetMemoryWorkspace(params: {
   taskId?: string;
   entity?: string;
   before?: number;
+  includePins?: boolean;
 }): Promise<ForgetMemoryResult> {
   const textNeedle = asNeedle(params.text);
   const entityNeedle = asNeedle(params.entity);
   const taskId = normalizeMemoryTaskId(params.taskId);
-  const before = typeof params.before === "number" && Number.isFinite(params.before) ? params.before : undefined;
+  const before =
+    typeof params.before === "number" && Number.isFinite(params.before) ? params.before : undefined;
   const files: string[] = [];
   await walkMarkdownFiles(path.join(params.workspaceDir, "memory"), files);
   const removeNeedles = [textNeedle, entityNeedle].filter(Boolean) as string[];
@@ -127,13 +133,15 @@ export async function forgetMemoryWorkspace(params: {
     await fs.writeFile(absPath, `${kept.join("\n")}\n`, "utf-8");
   }
 
-  const removedPins = await forgetMemoryPins({
-    workspaceDir: params.workspaceDir,
-    taskId,
-    entity: entityNeedle,
-    text: textNeedle,
-    before,
-  });
+  const removedPins = params.includePins
+    ? await forgetMemoryPins({
+        workspaceDir: params.workspaceDir,
+        taskId,
+        entity: entityNeedle,
+        text: textNeedle,
+        before,
+      })
+    : 0;
 
   return {
     removedLines,

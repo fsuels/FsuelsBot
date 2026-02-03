@@ -54,6 +54,20 @@ function normalizeText(value: string): string {
   return value.trim().toLowerCase();
 }
 
+function dedupeOptions(items: Array<string | undefined>): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const raw of items) {
+    const value = raw?.trim();
+    if (!value) continue;
+    const key = value.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(value);
+  }
+  return out;
+}
+
 function hasCriticalMemoryPhrase(message: string): boolean {
   const normalized = normalizeText(message);
   if (!normalized) return false;
@@ -82,7 +96,7 @@ function looksMultiIntent(message: string): boolean {
 export function detectMemoryGuidanceUserSignal(message: string): MemoryGuidanceUserSignal {
   const normalized = normalizeText(message);
   if (!normalized) return "none";
-  if (/^\/task\b/.test(normalized)) return "explicit-task";
+  if (/^\/(task|switch|newtask)\b/.test(normalized)) return "explicit-task";
   if (
     /\b(working on|work on|continue (with )?(task|project|topic)|start(ing)? (a )?new (task|topic|project)|switch(ing)? to|resume|let'?s continue)\b/.test(
       normalized,
@@ -113,7 +127,8 @@ export function resolveMemoryGuidanceState(entry?: SessionEntry): MemoryGuidance
     return value ? (value as MemoryGuidanceNudgeKind) : undefined;
   })();
   const lastNudgeAt =
-    typeof entry?.memoryGuidanceLastNudgeAt === "number" && Number.isFinite(entry.memoryGuidanceLastNudgeAt)
+    typeof entry?.memoryGuidanceLastNudgeAt === "number" &&
+    Number.isFinite(entry.memoryGuidanceLastNudgeAt)
       ? Math.floor(entry.memoryGuidanceLastNudgeAt)
       : undefined;
   return {
@@ -214,6 +229,7 @@ export function selectTaskMemoryNudge(params: {
   isNewSession: boolean;
   sessionEntry?: SessionEntry;
   activeTaskId: string;
+  autoSwitchOptIn?: boolean;
   guidanceMode?: MemoryGuidanceMode;
   inferredTaskId?: string;
   inferredTaskScore?: number;
@@ -232,6 +248,7 @@ export function selectTaskMemoryNudge(params: {
   const activeTaskId = params.activeTaskId.trim() || DEFAULT_SESSION_TASK_ID;
   const inferredTaskId = params.inferredTaskId?.trim();
   const inferredTaskScore = params.inferredTaskScore ?? 0;
+  const autoSwitch = params.autoSwitchOptIn === true;
 
   if (params.hasImportantConflict) {
     return {
@@ -250,11 +267,18 @@ export function selectTaskMemoryNudge(params: {
   }
 
   if (params.ambiguousTaskIds && params.ambiguousTaskIds.length > 0) {
+    const candidates = dedupeOptions([
+      inferredTaskId && inferredTaskId !== activeTaskId ? inferredTaskId : undefined,
+      ...params.ambiguousTaskIds,
+    ]);
+    const options = [
+      `1) Resume current task (${activeTaskId})`,
+      ...candidates.slice(0, 3).map((taskId, index) => `${index + 2}) Switch to ${taskId}`),
+      `${Math.min(5, candidates.length + 2)}) Start a new task (/newtask <title>)`,
+    ];
     return {
       kind: "task-ambiguous",
-      text:
-        "I remember a few things that could match this. " +
-        "Can you tell me which one you want to continue?",
+      text: `Ambiguous task match. Choose one:\n${options.join("\n")}`,
     };
   }
 
@@ -289,7 +313,9 @@ export function selectTaskMemoryNudge(params: {
   ) {
     return {
       kind: "topic-switch",
-      text: "It looks like we may be switching topics. Is this something new?",
+      text: autoSwitch
+        ? `Autoswitch is enabled. I switched to ${inferredTaskId} for this turn.`
+        : `It looks like a different task: ${inferredTaskId}. Reply with "/switch ${inferredTaskId}" or "/newtask <title>".`,
     };
   }
 
@@ -336,4 +362,3 @@ export function selectTaskMemoryNudge(params: {
 
   return null;
 }
-
