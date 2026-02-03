@@ -1701,6 +1701,28 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
 
         # Strip query string for path matching
         path = self.path.split('?')[0]
+
+        # Serve dashboard HTML from the mission-control directory explicitly.
+        # This avoids stale/incorrect pages when the server is launched from a different cwd.
+        if path in ('/', '/index.html'):
+            dashboard_path = os.path.join(DASHBOARD_DIR, 'index.html')
+            try:
+                with open(dashboard_path, 'rb') as f:
+                    payload = f.read()
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate')
+                self.send_header('Pragma', 'no-cache')
+                self.send_header('Expires', '0')
+                self.end_headers()
+                self.wfile.write(payload)
+                return
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+                return
         
         if path == '/api/qa-history':
             # Return Q&A game history
