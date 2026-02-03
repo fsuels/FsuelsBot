@@ -53,7 +53,11 @@ activity_state = {
 CURRENT_TASK_FILE = os.path.join(DASHBOARD_DIR, "current-task.json")
 WORKSPACE_DIR = os.path.dirname(DASHBOARD_DIR)  # Parent of mission-control
 WORKSPACE_PATH = Path(WORKSPACE_DIR).resolve()
-CLAWDBOT_CONFIG_FILE = os.path.join(Path.home(), ".clawdbot", "clawdbot.json")
+CONFIG_CANDIDATES = [
+    os.path.join(Path.home(), ".openclaw", "openclaw.json"),
+    os.path.join(Path.home(), ".clawdbot", "clawdbot.json"),
+    os.path.join(Path.home(), ".openclaw", "clawdbot.json"),
+]
 
 
 def resolve_workspace_path(relative_path):
@@ -88,9 +92,16 @@ def load_json_file(path):
 
 def load_gateway_info():
     """Read local gateway bind/port/token to build a clickable control URL."""
-    try:
-        cfg = load_json_file(CLAWDBOT_CONFIG_FILE)
-    except Exception:
+    cfg = None
+    for candidate in CONFIG_CANDIDATES:
+        if not os.path.exists(candidate):
+            continue
+        try:
+            cfg = load_json_file(candidate)
+            break
+        except Exception:
+            continue
+    if cfg is None:
         return {"url": "http://127.0.0.1:18789"}
 
     gateway = cfg.get("gateway", {}) if isinstance(cfg, dict) else {}
