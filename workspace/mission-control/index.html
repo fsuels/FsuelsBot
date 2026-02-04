@@ -206,25 +206,36 @@ body {
   font-size: 11px;
   font-family: 'SF Mono','Fira Code',monospace;
 }
+.brain-pill.runtime-override {
+  border-color: rgba(251, 191, 36, 0.55);
+  background: rgba(251, 191, 36, 0.12);
+  color: #fde68a;
+}
 .model-select {
   min-width: 230px;
   max-width: 330px;
-  padding: 6px 10px;
+  padding: 6px 30px 6px 10px;
   border-radius: 8px;
   border: 1px solid rgba(94, 234, 212, 0.35);
-  background: rgba(13, 17, 23, 0.85);
-  color: #e6edf3;
+  background: #0b1220;
+  color: #f8fafc;
   font-size: 11px;
   font-family: 'SF Mono','Fira Code',monospace;
   color-scheme: dark;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23cbd5e1' d='M5 6L0 0h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
 }
 .model-select option {
-  background: #0d1117;
-  color: #e6edf3;
+  background: #0f172a;
+  color: #f8fafc;
 }
 .model-select optgroup {
-  background: #0d1117;
-  color: #e6edf3;
+  background: #0f172a;
+  color: #cbd5e1;
 }
 .model-select:disabled {
   opacity: 0.65;
@@ -1943,6 +1954,7 @@ function toggleLane(laneId) {
 }
 
 let currentConfiguredModel = null;
+let lastModelSelectorRefreshMs = 0;
 
 async function loadModelSelector() {
   const select = document.getElementById('modelSelect');
@@ -1951,6 +1963,12 @@ async function loadModelSelector() {
   try {
     const resp = await fetch('/api/models?' + Date.now());
     const data = await resp.json();
+    if (data.loading && (!Array.isArray(data.models) || data.models.length === 0)) {
+      select.innerHTML = '<option value="">Loading models…</option>';
+      select.disabled = true;
+      setTimeout(() => loadModelSelector(), 2500);
+      return;
+    }
     const models = Array.isArray(data.models) ? data.models : [];
     currentConfiguredModel = data.defaultModel || null;
 
@@ -1981,6 +1999,7 @@ async function loadModelSelector() {
       currentConfiguredModel = select.value;
     }
     select.disabled = false;
+    lastModelSelectorRefreshMs = Date.now();
   } catch (e) {
     select.innerHTML = '<option value="">Model list unavailable</option>';
     select.disabled = true;
@@ -2019,6 +2038,7 @@ async function loadStatusBar() {
   const liveDot = document.getElementById('liveDot');
   const gatewayLink = document.getElementById('gatewayLink');
   const brainModel = document.getElementById('brainModel');
+  const modelSelect = document.getElementById('modelSelect');
   try {
     const resp = await fetch('/api/status?' + Date.now());
     const data = await resp.json();
@@ -2030,12 +2050,30 @@ async function loadStatusBar() {
     }
 
     const info = data.sessionInfo || {};
-    const provider = info.provider || 'unknown';
+    const provider = info.provider || '';
     const model = info.model || '--';
-    brainModel.textContent = `🧠 runtime ${provider}/${model}`;
+    const runtimeLabel = model.includes('/') ? model : `${provider || 'unknown'}/${model}`;
+    const runtimeKey = model.includes('/') ? model : (provider ? `${provider}/${model}` : '');
+    const runtimeDiff = !!runtimeKey && !!currentConfiguredModel && runtimeKey !== currentConfiguredModel;
+    brainModel.textContent = runtimeDiff
+      ? `🧠 runtime ${runtimeLabel} (override)`
+      : `🧠 runtime ${runtimeLabel}`;
+    brainModel.classList.toggle('runtime-override', runtimeDiff);
+    if (modelSelect) {
+      if (runtimeDiff) {
+        modelSelect.title = `Default: ${currentConfiguredModel} | Runtime: ${runtimeKey}`;
+      } else if (runtimeKey) {
+        modelSelect.title = `Default model for new runs (runtime: ${runtimeKey})`;
+      }
+    }
+    if (info.source) {
+      brainModel.title = `Runtime source: ${info.source}`;
+    }
   } catch (e) {
     liveDot.classList.add('offline');
     brainModel.textContent = '🧠 runtime disconnected';
+    brainModel.classList.remove('runtime-override');
+    brainModel.removeAttribute('title');
   }
 }
 
@@ -2043,6 +2081,9 @@ async function loadTaskBoard() {
   try {
     const resp = await fetch('/api/tasks?' + Date.now());
     const data = await resp.json();
+    if (data.error) {
+      throw new Error(data.error);
+    }
 
     const tasks = data.tasks || {};
     allTasks = tasks;  // Store for modal
@@ -2483,9 +2524,33 @@ async function askAboutTask(taskId) {
   }
 }
 
-function showTaskDetail(id) {
-  const task = allTasks[id];
+async function loadTaskDetail(id) {
+  const existing = allTasks[id];
+  if (existing && !existing.__summary) {
+    return existing;
+  }
+  if (existing && existing.status === 'missing') {
+    return existing;
+  }
+  const resp = await fetch('/api/task?id=' + encodeURIComponent(id) + '&' + Date.now());
+  const data = await resp.json();
+  if (!resp.ok || data.error || !data.task) {
+    throw new Error(data.error || `Unable to load task ${id}`);
+  }
+  allTasks[id] = data.task;
+  return data.task;
+}
+
+async function showTaskDetail(id) {
+  let task = allTasks[id];
   if (!task) return;
+  if (task.__summary && task.status !== 'missing') {
+    try {
+      task = await loadTaskDetail(id);
+    } catch (e) {
+      console.warn('Falling back to summary task payload:', e);
+    }
+  }
   const safeTaskId = escapeJsString(id);
   const html = escapeHtml;
 
@@ -3258,7 +3323,7 @@ let currentLanes = {};
 loadTaskBoard();
 loadPredictions(); // Load predictions to update badge
 loadStatusBar();
-loadModelSelector();
+setTimeout(() => loadModelSelector(), 600);
 
 // Smart auto-refresh: only refresh when modal is NOT open
 setInterval(() => {
@@ -3268,7 +3333,9 @@ setInterval(() => {
     loadTaskBoard();
   }
   loadStatusBar();
-  loadModelSelector();
+  if (Date.now() - lastModelSelectorRefreshMs > 60000) {
+    loadModelSelector();
+  }
   // If modal is open, skip refresh to preserve user's work
 }, 15000);
 

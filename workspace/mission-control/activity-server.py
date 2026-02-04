@@ -16,7 +16,7 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 
-PORT = 8765
+PORT = int(os.environ.get("MISSION_CONTROL_PORT", "8765"))
 LOG_DIR = r"\tmp\clawdbot"
 DASHBOARD_DIR = os.path.dirname(os.path.abspath(__file__))
 BIND_HOST = os.environ.get("DASHBOARD_BIND", "127.0.0.1")
@@ -60,6 +60,14 @@ CONFIG_CANDIDATES = [
     os.path.join(Path.home(), ".clawdbot", "clawdbot.json"),
     os.path.join(Path.home(), ".openclaw", "clawdbot.json"),
 ]
+SESSION_STORE_CANDIDATES = [
+    os.path.join(Path.home(), ".openclaw", "agents", "main", "sessions", "sessions.json"),
+    os.path.join(Path.home(), ".clawdbot", "agents", "main", "sessions", "sessions.json"),
+]
+_runtime_session_cache = {"at": 0.0, "info": None}
+_models_state_cache = {"at": 0.0, "data": None, "error": None}
+_models_cache_lock = threading.Lock()
+_models_refreshing = False
 
 
 def resolve_workspace_path(relative_path):
@@ -132,20 +140,100 @@ def resolve_cli_binary():
     return None
 
 
-def run_models_cli(args, timeout=20):
+def run_cli(args, timeout=20):
     cli = resolve_cli_binary()
     if not cli:
         raise RuntimeError("No CLI found (openclaw/clawdbot).")
     result = subprocess.run(
-        [cli, "models", *args],
+        [cli, *args],
         capture_output=True,
         text=True,
         timeout=timeout
     )
     if result.returncode != 0:
-        details = (result.stderr or result.stdout or "").strip() or f"{cli} models {' '.join(args)} failed"
+        details = (result.stderr or result.stdout or "").strip() or f"{cli} {' '.join(args)} failed"
         raise RuntimeError(details)
     return result.stdout, cli
+
+
+def run_models_cli(args, timeout=20):
+    return run_cli(["models", *args], timeout=timeout)
+
+
+def _provider_from_model(model):
+    if not isinstance(model, str) or not model.strip():
+        return None
+    model = model.strip()
+    if "/" in model:
+        return model.split("/", 1)[0]
+    if model.startswith("claude-"):
+        return "anthropic"
+    if model.startswith("gpt-"):
+        return "openai-codex"
+    if model.startswith("o"):
+        return "openai-codex"
+    if model.startswith("llama") or model.startswith("gpt-oss"):
+        return "ollama"
+    return None
+
+
+def _pick_runtime_session_from_store(path):
+    if not path or not os.path.exists(path):
+        return None
+    data = load_json_file(path)
+    if not isinstance(data, dict) or not data:
+        return None
+
+    preferred = data.get("agent:main:main")
+    if isinstance(preferred, dict):
+        return preferred
+
+    best = None
+    best_ts = -1
+    for entry in data.values():
+        if not isinstance(entry, dict):
+            continue
+        updated_at = entry.get("updatedAt")
+        if isinstance(updated_at, (int, float)) and updated_at > best_ts:
+            best_ts = updated_at
+            best = entry
+    return best
+
+
+def load_runtime_session_info(cache_seconds=5):
+    """Best-effort active runtime model/provider from local session stores."""
+    now = time.time()
+    cached_at = _runtime_session_cache.get("at", 0.0)
+    if now - cached_at < cache_seconds:
+        return _runtime_session_cache.get("info")
+
+    info = None
+
+    for candidate in SESSION_STORE_CANDIDATES:
+        try:
+            session = _pick_runtime_session_from_store(candidate)
+            if not isinstance(session, dict):
+                continue
+            model = session.get("model")
+            provider = session.get("modelProvider") or _provider_from_model(model)
+            if not model and not provider:
+                continue
+            info = {
+                "model": model,
+                "provider": provider,
+                "sessionId": session.get("sessionId"),
+                "source": f"session-store:{candidate}"
+            }
+            break
+        except Exception:
+            continue
+
+    if not info:
+        info = None
+
+    _runtime_session_cache["at"] = now
+    _runtime_session_cache["info"] = info
+    return info
 
 
 def load_models_state():
@@ -161,6 +249,64 @@ def load_models_state():
         "defaultModel": default_model,
         "models": models
     }
+
+
+def load_models_state_cached(force=False, ttl_seconds=300):
+    """Cache model metadata so task/status endpoints are not blocked by CLI calls."""
+    now = time.time()
+    with _models_cache_lock:
+        cached = _models_state_cache.get("data")
+        cached_at = _models_state_cache.get("at", 0.0)
+        if (not force) and cached and (now - cached_at) < ttl_seconds:
+            return cached
+    fresh = load_models_state()
+    with _models_cache_lock:
+        _models_state_cache["at"] = now
+        _models_state_cache["data"] = fresh
+        _models_state_cache["error"] = None
+    return fresh
+
+
+def start_models_refresh_if_needed(force=False, ttl_seconds=300):
+    """Kick off a background refresh and return immediately."""
+    global _models_refreshing
+    now = time.time()
+    with _models_cache_lock:
+        cached = _models_state_cache.get("data")
+        cached_at = _models_state_cache.get("at", 0.0)
+        if _models_refreshing:
+            return False
+        if (not force) and cached and (now - cached_at) < ttl_seconds:
+            return False
+        _models_refreshing = True
+
+    def _worker():
+        global _models_refreshing
+        try:
+            fresh = load_models_state()
+            with _models_cache_lock:
+                _models_state_cache["at"] = time.time()
+                _models_state_cache["data"] = fresh
+                _models_state_cache["error"] = None
+        except Exception as e:
+            with _models_cache_lock:
+                _models_state_cache["error"] = str(e)
+        finally:
+            with _models_cache_lock:
+                _models_refreshing = False
+
+    threading.Thread(target=_worker, daemon=True).start()
+    return True
+
+
+def snapshot_models_state():
+    with _models_cache_lock:
+        cached = _models_state_cache.get("data")
+        cached_at = _models_state_cache.get("at", 0.0)
+        error = _models_state_cache.get("error")
+        refreshing = _models_refreshing
+    age_ms = int(max(0.0, time.time() - cached_at) * 1000) if cached_at else None
+    return {"data": cached, "ageMs": age_ms, "refreshing": refreshing, "error": error}
 
 def check_memory_health():
     """Check memory system integrity"""
@@ -303,6 +449,73 @@ def load_current_task():
     except:
         pass
     return None
+
+
+def collect_lane_task_ids(lanes):
+    """Return unique task IDs referenced by any lane, preserving lane order."""
+    if not isinstance(lanes, dict):
+        return []
+    seen = set()
+    ordered = []
+    for lane_value in lanes.values():
+        values = []
+        if isinstance(lane_value, list):
+            values = lane_value
+        elif isinstance(lane_value, str):
+            values = [lane_value]
+        for task_id in values:
+            if not isinstance(task_id, str):
+                continue
+            if task_id in seen:
+                continue
+            seen.add(task_id)
+            ordered.append(task_id)
+    return ordered
+
+
+def normalize_task_timestamp(task, keys):
+    for key in keys:
+        value = task.get(key)
+        if isinstance(value, str) and value.strip():
+            return value
+    return None
+
+
+def summarize_task_for_dashboard(task_id, task):
+    """Build a compact task payload for fast board refreshes."""
+    if not isinstance(task, dict):
+        return {
+            "id": task_id,
+            "title": f"{task_id} (missing task payload)",
+            "status": "missing",
+            "__summary": True,
+        }
+
+    epistemic = task.get("epistemic") if isinstance(task.get("epistemic"), dict) else {}
+    return {
+        "id": task_id,
+        "title": task.get("title"),
+        "status": task.get("status"),
+        "plan": task.get("plan"),
+        "estimate": task.get("estimate"),
+        "priority": task.get("priority"),
+        "claimed_by": task.get("claimed_by"),
+        "required_agent": task.get("required_agent"),
+        "owner": task.get("owner"),
+        "needs_verification": task.get("needs_verification"),
+        "epistemic": {
+            "verification_status": epistemic.get("verification_status"),
+        },
+        "stepCount": len(task.get("steps")) if isinstance(task.get("steps"), list) else 0,
+        "current_step": task.get("current_step"),
+        "retry_count": task.get("retry_count"),
+        "created": normalize_task_timestamp(task, ["created", "created_at"]),
+        "completed": normalize_task_timestamp(task, ["completed", "completed_at"]),
+        "deleted_at": task.get("deleted_at"),
+        "__summary": True,
+    }
+
+
 state_lock = threading.Lock()
 
 def get_log_file():
@@ -661,14 +874,13 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
 
             try:
                 run_models_cli(["set", model.strip()])
-                updated = load_models_state()
+                start_models_refresh_if_needed(force=True)
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()
                 self.wfile.write(json.dumps({
                     "ok": True,
-                    "defaultModel": updated.get("defaultModel"),
-                    "cli": updated.get("cli")
+                    "defaultModel": model.strip(),
                 }).encode('utf-8'))
             except Exception as e:
                 self.send_response(500)
@@ -1997,6 +2209,35 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
             except Exception as e:
                 self.wfile.write(json.dumps({"error": str(e), "jobs": []}).encode('utf-8'))
             return
+
+        if path == '/api/task':
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Cache-Control', 'no-cache')
+            self.end_headers()
+            try:
+                query = parse_qs(urlparse(self.path).query)
+                task_id = query.get('id', [None])[0]
+                if not isinstance(task_id, str) or not task_id.strip():
+                    self.wfile.write(json.dumps({"error": "task id is required"}).encode('utf-8'))
+                    return
+                task_id = task_id.strip()
+                tasks_file = os.path.join(WORKSPACE_DIR, "memory", "tasks.json")
+                if not os.path.exists(tasks_file):
+                    self.wfile.write(json.dumps({"error": "tasks.json not found"}).encode('utf-8'))
+                    return
+
+                tasks_data = load_json_file(tasks_file)
+                tasks = tasks_data.get("tasks", {}) if isinstance(tasks_data, dict) else {}
+                task = tasks.get(task_id) if isinstance(tasks, dict) else None
+                if not isinstance(task, dict):
+                    self.wfile.write(json.dumps({"error": f"task not found: {task_id}"}).encode('utf-8'))
+                    return
+                self.wfile.write(json.dumps({"id": task_id, "task": task}, ensure_ascii=False).encode('utf-8'))
+            except Exception as e:
+                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+            return
         
         if path == '/api/tasks':
             self.send_response(200)
@@ -2033,7 +2274,26 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                         with open(tasks_file, 'w', encoding='utf-8') as f:
                             json.dump(tasks_data, f, indent=4, ensure_ascii=False)
                     
-                    self.wfile.write(json.dumps(tasks_data, indent=2, ensure_ascii=False).encode('utf-8'))
+                    tasks_map = tasks_data.get('tasks', {})
+                    lane_task_ids = collect_lane_task_ids(lanes)
+                    compact_tasks = {}
+                    if isinstance(tasks_map, dict):
+                        for task_id in lane_task_ids:
+                            compact_tasks[task_id] = summarize_task_for_dashboard(
+                                task_id,
+                                tasks_map.get(task_id),
+                            )
+
+                    payload = {
+                        "version": tasks_data.get("version"),
+                        "updated_at": tasks_data.get("updated_at"),
+                        "updated_by": tasks_data.get("updated_by"),
+                        "lanes": lanes,
+                        "tasks": compact_tasks,
+                        "tasks_in_lanes": len(compact_tasks),
+                        "tasks_total": len(tasks_map) if isinstance(tasks_map, dict) else 0,
+                    }
+                    self.wfile.write(json.dumps(payload, ensure_ascii=False).encode('utf-8'))
                 else:
                     self.wfile.write(json.dumps({"error": "tasks.json not found"}).encode('utf-8'))
             except Exception as e:
@@ -2103,11 +2363,19 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header('Access-Control-Allow-Origin', '*')
             self.end_headers()
             gateway_info = load_gateway_info()
+            runtime_info = load_runtime_session_info()
+            session_info = dict(activity_state.get("sessionInfo", {}))
+            if isinstance(runtime_info, dict):
+                for key in ("model", "provider", "sessionId", "source"):
+                    value = runtime_info.get(key)
+                    if value is not None and value != "":
+                        session_info[key] = value
+
             self.wfile.write(json.dumps({
                 "online": online,
                 "uptime": uptime,
                 "status": activity_state.get("status", "unknown"),
-                "sessionInfo": activity_state.get("sessionInfo", {}),
+                "sessionInfo": session_info,
                 "gateway": gateway_info
             }).encode())
             return
@@ -2118,11 +2386,24 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
             self.send_header('Access-Control-Allow-Origin', '*')
             self.send_header('Cache-Control', 'no-cache')
             self.end_headers()
-            try:
-                models_state = load_models_state()
-                self.wfile.write(json.dumps(models_state).encode('utf-8'))
-            except Exception as e:
-                self.wfile.write(json.dumps({"error": str(e), "models": [], "defaultModel": None}).encode('utf-8'))
+            start_models_refresh_if_needed()
+            snap = snapshot_models_state()
+            cached = snap.get("data")
+            if isinstance(cached, dict):
+                payload = dict(cached)
+                payload["loading"] = bool(snap.get("refreshing"))
+                payload["cacheAgeMs"] = snap.get("ageMs")
+                if snap.get("error"):
+                    payload["warning"] = snap.get("error")
+                self.wfile.write(json.dumps(payload).encode('utf-8'))
+                return
+            self.wfile.write(json.dumps({
+                "loading": True,
+                "cacheAgeMs": snap.get("ageMs"),
+                "error": snap.get("error"),
+                "models": [],
+                "defaultModel": None
+            }).encode('utf-8'))
             return
         
         # Serve static files
@@ -2136,10 +2417,12 @@ def main():
     import sys
     sys.stdout.reconfigure(line_buffering=True)
     sys.stderr.reconfigure(line_buffering=True)
-    
+
     # Start log tailer thread
     tailer = threading.Thread(target=tail_log, daemon=True)
     tailer.start()
+    # Warm model cache eagerly so first dashboard paint has model options quickly.
+    start_models_refresh_if_needed(force=True)
     dashboard_host = "localhost" if BIND_HOST in ("127.0.0.1", "::1") else BIND_HOST
     print(f"Activity server starting on port {PORT}")
     print(f"Dashboard: http://{dashboard_host}:{PORT}")
