@@ -1,0 +1,1 @@
+{"process": "chrome", "include_tree_after_action": true, "tree_max_depth": 6, "tree_output_format": "compact_yaml", "include_window_screenshot": true, "include_ocr": false}

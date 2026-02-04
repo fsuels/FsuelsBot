@@ -246,19 +246,29 @@ function Invoke-Reconciliation {
     
     # Use hash-chain.cjs to append with proper hashing
     $eventJson = $event | ConvertTo-Json -Compress
-    $appendResult = node -e "
-        const hc = require('./scripts/hash-chain.cjs');
-        const event = JSON.parse(process.argv[2]);
-        try {
-            hc.appendEvent('$eventPath'.replace(/\\/g, '/'), event);
-            console.log('OK');
-        } catch (e) {
-            console.error(e.message);
-            process.exit(1);
-        }
-    " $eventJson 2>&1
-    
-    if ($LASTEXITCODE -ne 0) {
+
+    # IMPORTANT: native command failures can become terminating errors depending on $ErrorActionPreference.
+    # We want to gracefully fall back to direct append instead of crashing the whole script.
+    $oldEap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $appendResult = & node -e "
+            const hc = require('./scripts/hash-chain.cjs');
+            const event = JSON.parse(process.argv[2]);
+            try {
+                hc.appendEvent('$eventPath'.replace(/\\/g, '/'), event);
+                console.log('OK');
+            } catch (e) {
+                console.error(e && e.message ? e.message : String(e));
+                process.exit(1);
+            }
+        " $eventJson 2>&1
+        $nodeExit = $LASTEXITCODE
+    } finally {
+        $ErrorActionPreference = $oldEap
+    }
+
+    if ($nodeExit -ne 0) {
         Write-Status "[WARN] Hash-chain append failed, using direct append" "Yellow"
         $event | ConvertTo-Json -Compress | Add-Content $eventPath -Encoding UTF8
     }

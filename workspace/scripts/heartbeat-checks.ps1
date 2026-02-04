@@ -57,12 +57,30 @@ foreach ($file in $files) {
     $old | Remove-Item -Force
 }
 
-# 5. Quick error check (simplified - just count recent errors)
+# 5. Quick error check
+# Count only *recent* errors (last 30 minutes) to avoid spamming forever on old log lines.
 $clawdbotLog = "\tmp\clawdbot\clawdbot-$(Get-Date -Format 'yyyy-MM-dd').log"
 $recentErrors = 0
+$cutoff = (Get-Date).ToUniversalTime().AddMinutes(-30)
+
 if (Test-Path $clawdbotLog) {
-    $recentErrors = (Get-Content $clawdbotLog -Tail 50 | Select-String -Pattern "Error:|failed:" | Measure-Object).Count
+    $lines = Get-Content $clawdbotLog -Tail 200
+    foreach ($line in $lines) {
+        if (-not ($line -match 'Error:|failed:|\"logLevelName\"\s*:\s*\"ERROR\"')) { continue }
+        try {
+            $obj = $line | ConvertFrom-Json -ErrorAction Stop
+            $ts = $null
+            if ($obj.time) { $ts = [DateTime]::Parse($obj.time).ToUniversalTime() }
+            elseif ($obj._meta -and $obj._meta.date) { $ts = [DateTime]::Parse($obj._meta.date).ToUniversalTime() }
+            if ($ts -and $ts -lt $cutoff) { continue }
+            $recentErrors++
+        } catch {
+            # Non-JSON line: treat as recent (worst-case), but still only if it looks like an error.
+            $recentErrors++
+        }
+    }
 }
+
 $results.recentErrors = $recentErrors
 
 # 6. Check for unanswered discussion comments

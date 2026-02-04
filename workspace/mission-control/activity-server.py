@@ -17,7 +17,12 @@ from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 
 PORT = int(os.environ.get("MISSION_CONTROL_PORT", "8765"))
-LOG_DIR = r"\tmp\clawdbot"
+LOG_ROOT = Path(os.environ.get("MISSION_CONTROL_LOG_ROOT", r"\tmp"))
+LOG_SOURCES = (
+    {"name": "openclaw", "dir": LOG_ROOT / "openclaw", "prefix": "openclaw"},
+    {"name": "clawdbot", "dir": LOG_ROOT / "clawdbot", "prefix": "clawdbot"},
+    {"name": "moltbot", "dir": LOG_ROOT / "moltbot", "prefix": "moltbot"},
+)
 DASHBOARD_DIR = os.path.dirname(os.path.abspath(__file__))
 BIND_HOST = os.environ.get("DASHBOARD_BIND", "127.0.0.1")
 DASHBOARD_KEY = os.environ.get("DASHBOARD_KEY", "").strip()
@@ -68,6 +73,7 @@ _runtime_session_cache = {"at": 0.0, "info": None}
 _models_state_cache = {"at": 0.0, "data": None, "error": None}
 _models_cache_lock = threading.Lock()
 _models_refreshing = False
+_log_source_cache = {"at": 0.0, "source": None}
 
 
 def resolve_workspace_path(relative_path):
@@ -617,10 +623,78 @@ def summarize_task_for_dashboard(task_id, task):
 
 state_lock = threading.Lock()
 
-def get_log_file():
-    """Get today's log file path"""
+def _latest_log_for_source(source):
+    try:
+        log_dir = source["dir"]
+        prefix = source["prefix"]
+        if not log_dir.exists():
+            return None
+        files = sorted(
+            log_dir.glob(f"{prefix}-*.log"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+        return files[0] if files else None
+    except Exception:
+        return None
+
+
+def resolve_log_source(cache_seconds=5):
+    now = time.time()
+    cached_at = _log_source_cache.get("at", 0.0)
+    if now - cached_at < cache_seconds:
+        return _log_source_cache.get("source")
+
     today = datetime.now().strftime("%Y-%m-%d")
-    return os.path.join(LOG_DIR, f"clawdbot-{today}.log")
+    chosen = None
+    chosen_mtime = -1.0
+
+    # Prefer a source that already has today's log, then fall back to most recent existing log.
+    for source in LOG_SOURCES:
+        today_path = source["dir"] / f"{source['prefix']}-{today}.log"
+        if today_path.exists():
+            try:
+                mtime = today_path.stat().st_mtime
+            except Exception:
+                mtime = 0.0
+            if mtime >= chosen_mtime:
+                chosen = source
+                chosen_mtime = mtime
+
+    if chosen is None:
+        for source in LOG_SOURCES:
+            latest = _latest_log_for_source(source)
+            if latest is None:
+                continue
+            try:
+                mtime = latest.stat().st_mtime
+            except Exception:
+                mtime = 0.0
+            if mtime >= chosen_mtime:
+                chosen = source
+                chosen_mtime = mtime
+
+    if chosen is None:
+        chosen = LOG_SOURCES[0]
+
+    _log_source_cache["at"] = now
+    _log_source_cache["source"] = chosen
+    return chosen
+
+
+def get_log_file():
+    """Get active log file path for openclaw/clawdbot/moltbot installs."""
+    source = resolve_log_source()
+    if source is None:
+        source = LOG_SOURCES[0]
+    today = datetime.now().strftime("%Y-%m-%d")
+    today_path = source["dir"] / f"{source['prefix']}-{today}.log"
+    if today_path.exists():
+        return str(today_path)
+    latest = _latest_log_for_source(source)
+    if latest is not None:
+        return str(latest)
+    return str(today_path)
 
 def strip_ansi(text):
     """Remove ANSI escape codes from text"""
@@ -2531,10 +2605,17 @@ def main():
     # Start log tailer thread
     tailer = threading.Thread(target=tail_log, daemon=True)
     tailer.start()
-    # Warm model cache eagerly so first dashboard paint has model options quickly.
-    start_models_refresh_if_needed(force=True)
+    # Warm model cache eagerly so first dashboard paint has model options.
+    try:
+        load_models_state_cached(force=True, ttl_seconds=0)
+    except Exception:
+        # Fall back to async refresh so the dashboard still boots.
+        start_models_refresh_if_needed(force=True)
+    log_source = resolve_log_source(cache_seconds=0)
     dashboard_host = "localhost" if BIND_HOST in ("127.0.0.1", "::1") else BIND_HOST
     print(f"Activity server starting on port {PORT}")
+    if isinstance(log_source, dict):
+        print(f"Log source: {log_source.get('name')} ({log_source.get('dir')})")
     print(f"Dashboard: http://{dashboard_host}:{PORT}")
     print(f"Activity API: http://{dashboard_host}:{PORT}/api/activity")
     if _generated_dashboard_key:

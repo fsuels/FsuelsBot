@@ -139,6 +139,14 @@ body {
   padding-bottom: 14px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
 }
+.header-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  max-width: min(100%, 980px);
+}
 .header h1 {
   font-size: 18px;
   font-weight: 500;
@@ -212,8 +220,8 @@ body {
   color: #fde68a;
 }
 .model-select {
-  min-width: 230px;
-  max-width: 330px;
+  min-width: 200px;
+  max-width: 260px;
   padding: 6px 30px 6px 10px;
   border-radius: 8px;
   border: 1px solid rgba(94, 234, 212, 0.35);
@@ -221,7 +229,6 @@ body {
   color: #f8fafc;
   font-size: 11px;
   font-family: 'SF Mono','Fira Code',monospace;
-  color-scheme: dark;
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -240,6 +247,19 @@ body {
 .model-select:disabled {
   opacity: 0.65;
   cursor: not-allowed;
+}
+.model-hint {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.75);
+  color: #cbd5e1;
+  font-size: 11px;
+  max-width: 320px;
+  white-space: normal;
+  line-height: 1.25;
 }
 @keyframes gentlePulse { 0%,100% { opacity:1; transform: scale(1); } 50% { opacity:0.6; transform: scale(0.9); } }
 
@@ -1690,11 +1710,12 @@ body {
 <div class="container">
   <div class="header">
     <h1><span class="live-dot" id="liveDot"></span> Mission Control</h1>
-    <div style="display:flex;gap:10px;align-items:center;">
+    <div class="header-controls">
       <a id="gatewayLink" class="gateway-link" href="http://127.0.0.1:18789" target="_blank" rel="noopener">⚙ Gateway</a>
       <select id="modelSelect" class="model-select" title="Default model for new runs" onchange="setDefaultModel(this.value)">
         <option value="">Loading models…</option>
       </select>
+      <span id="modelHint" class="model-hint">Model usage hint will appear here</span>
       <span id="brainModel" class="brain-pill">🧠 runtime --</span>
       <!-- Task Search -->
       <div style="position:relative;">
@@ -1954,7 +1975,43 @@ function toggleLane(laneId) {
 }
 
 let currentConfiguredModel = null;
+let currentRuntimeModel = null;
 let lastModelSelectorRefreshMs = 0;
+const MODEL_HINTS = {
+  'openai-codex/gpt-5.2': 'Balanced default: planning, research, and general execution.',
+  'openai-codex/gpt-5.2-codex': 'Code-heavy work: refactors, debugging, and implementation.',
+  'openai-codex/gpt-5.1': 'Fast chat mode: lightweight planning and quick replies.',
+  'openai-codex/gpt-5.1-codex-max': 'Deep coding: complex architecture and hard bug hunts.',
+  'openai-codex/gpt-5.1-codex-mini': 'Lowest latency coding: small edits and tight loops.',
+  'anthropic/claude-opus-4-5': 'Long-form reasoning: strategy, large-context synthesis.',
+  'anthropic/claude-sonnet-4-5': 'General purpose Claude: good speed/quality balance.',
+  'ollama/llama3.1:8b': 'Local zero-cost fast mode: drafts and routine automation.',
+  'ollama/gpt-oss:20b': 'Local deeper mode: better quality without cloud spend.',
+};
+const MODEL_BADGES = {
+  'openai-codex/gpt-5.2': 'Plan/Research',
+  'openai-codex/gpt-5.2-codex': 'Coding (deep)',
+  'openai-codex/gpt-5.1': 'Drafting (fast)',
+  'openai-codex/gpt-5.1-codex-max': 'Coding (max)',
+  'openai-codex/gpt-5.1-codex-mini': 'Coding (fast loop)',
+  'anthropic/claude-opus-4-5': 'Long reasoning',
+  'anthropic/claude-sonnet-4-5': 'Balanced alt',
+  'ollama/llama3.1:8b': 'Local fast ($0)',
+  'ollama/gpt-oss:20b': 'Local quality ($0)',
+};
+
+function getModelHint(modelKey) {
+  return MODEL_HINTS[modelKey] || 'Pick a model by workload: fast, deep, or local.';
+}
+
+function updateModelHint(runtimeKey) {
+  const hint = document.getElementById('modelHint');
+  if (!hint) return;
+  const effective = runtimeKey || currentRuntimeModel || currentConfiguredModel || '';
+  const text = getModelHint(effective);
+  hint.textContent = text;
+  hint.title = effective ? `${effective} - ${text}` : text;
+}
 
 async function loadModelSelector() {
   const select = document.getElementById('modelSelect');
@@ -1987,8 +2044,11 @@ async function loadModelSelector() {
       if (!key) continue;
       const option = document.createElement('option');
       option.value = key;
-      const label = model.name ? `${model.name} [${key}]` : key;
+      const baseLabel = model.name ? `${model.name} [${key}]` : key;
+      const badge = MODEL_BADGES[key];
+      const label = badge ? `${baseLabel} - ${badge}` : baseLabel;
       option.textContent = label;
+      option.title = getModelHint(key);
       select.appendChild(option);
     }
 
@@ -1998,11 +2058,13 @@ async function loadModelSelector() {
     } else {
       currentConfiguredModel = select.value;
     }
+    updateModelHint(currentRuntimeModel);
     select.disabled = false;
     lastModelSelectorRefreshMs = Date.now();
   } catch (e) {
     select.innerHTML = '<option value="">Model list unavailable</option>';
     select.disabled = true;
+    updateModelHint(currentRuntimeModel);
   }
 }
 
@@ -2054,26 +2116,32 @@ async function loadStatusBar() {
     const model = info.model || '--';
     const runtimeLabel = model.includes('/') ? model : `${provider || 'unknown'}/${model}`;
     const runtimeKey = model.includes('/') ? model : (provider ? `${provider}/${model}` : '');
+    currentRuntimeModel = runtimeKey || null;
     const runtimeDiff = !!runtimeKey && !!currentConfiguredModel && runtimeKey !== currentConfiguredModel;
     brainModel.textContent = runtimeDiff
       ? `🧠 runtime ${runtimeLabel} (override)`
       : `🧠 runtime ${runtimeLabel}`;
     brainModel.classList.toggle('runtime-override', runtimeDiff);
     if (modelSelect) {
+      const effectiveKey = runtimeDiff ? runtimeKey : (currentConfiguredModel || runtimeKey);
+      const recommendation = effectiveKey ? getModelHint(effectiveKey) : '';
       if (runtimeDiff) {
-        modelSelect.title = `Default: ${currentConfiguredModel} | Runtime: ${runtimeKey}`;
+        modelSelect.title = `Default: ${currentConfiguredModel} | Runtime: ${runtimeKey}${recommendation ? ` | ${recommendation}` : ''}`;
       } else if (runtimeKey) {
-        modelSelect.title = `Default model for new runs (runtime: ${runtimeKey})`;
+        modelSelect.title = `Default model for new runs (runtime: ${runtimeKey})${recommendation ? ` | ${recommendation}` : ''}`;
       }
     }
     if (info.source) {
       brainModel.title = `Runtime source: ${info.source}`;
     }
+    updateModelHint(runtimeKey);
   } catch (e) {
     liveDot.classList.add('offline');
     brainModel.textContent = '🧠 runtime disconnected';
     brainModel.classList.remove('runtime-override');
     brainModel.removeAttribute('title');
+    currentRuntimeModel = null;
+    updateModelHint(null);
   }
 }
 

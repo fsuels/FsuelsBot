@@ -1,0 +1,1 @@
+{"process": "chrome", "selector": "role:Edit|name:Address and search bar", "text_to_type": "https://admin.shopify.com/store/dresslikemommy-com/apps{Enter}", "clear_before_typing": true, "ui_diff_before_after": true, "highlight_before_action": true, "include_window_screenshot": true}
