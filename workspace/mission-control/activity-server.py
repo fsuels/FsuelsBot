@@ -177,6 +177,64 @@ def _provider_from_model(model):
     return None
 
 
+def _split_model_key(model_key):
+    if not isinstance(model_key, str):
+        return None, None
+    trimmed = model_key.strip()
+    if "/" not in trimmed:
+        return None, None
+    provider, model = trimmed.split("/", 1)
+    provider = provider.strip()
+    model = model.strip()
+    if not provider or not model:
+        return None, None
+    return provider, model
+
+
+def sync_main_session_model_in_stores(model_key):
+    """Force main session metadata to reflect the selected model immediately."""
+    provider, model = _split_model_key(model_key)
+    if not provider or not model:
+        return {"updated": 0, "errors": ["invalid model key"]}
+
+    updated = 0
+    errors = []
+    now_ms = int(time.time() * 1000)
+    for candidate in SESSION_STORE_CANDIDATES:
+        if not os.path.exists(candidate):
+            continue
+        try:
+            store = load_json_file(candidate)
+            if not isinstance(store, dict):
+                continue
+            entry = store.get("agent:main:main")
+            if not isinstance(entry, dict):
+                continue
+            entry["modelProvider"] = provider
+            entry["model"] = model
+            entry["updatedAt"] = max(int(entry.get("updatedAt", 0) or 0), now_ms)
+            if "providerOverride" in entry:
+                del entry["providerOverride"]
+            if "modelOverride" in entry:
+                del entry["modelOverride"]
+            if "authProfileOverride" in entry:
+                del entry["authProfileOverride"]
+            if "authProfileOverrideSource" in entry:
+                del entry["authProfileOverrideSource"]
+            if "authProfileOverrideCompactionCount" in entry:
+                del entry["authProfileOverrideCompactionCount"]
+            store["agent:main:main"] = entry
+            with open(candidate, "w", encoding="utf-8") as f:
+                json.dump(store, f, indent=2, ensure_ascii=False)
+            updated += 1
+        except Exception as e:
+            errors.append(f"{candidate}: {e}")
+
+    _runtime_session_cache["at"] = 0.0
+    _runtime_session_cache["info"] = None
+    return {"updated": updated, "errors": errors}
+
+
 def _pick_runtime_session_from_store(path):
     if not path or not os.path.exists(path):
         return None
@@ -307,6 +365,47 @@ def snapshot_models_state():
         refreshing = _models_refreshing
     age_ms = int(max(0.0, time.time() - cached_at) * 1000) if cached_at else None
     return {"data": cached, "ageMs": age_ms, "refreshing": refreshing, "error": error}
+
+
+def prime_models_cache_default(model_key):
+    """Immediately reflect default-model changes in cached /api/models payloads."""
+    provider, model = _split_model_key(model_key)
+    with _models_cache_lock:
+        cached = _models_state_cache.get("data")
+        if not isinstance(cached, dict):
+            _models_state_cache["data"] = {
+                "cli": resolve_cli_binary(),
+                "defaultModel": model_key,
+                "models": [],
+            }
+        else:
+            next_data = dict(cached)
+            next_data["defaultModel"] = model_key
+            models = []
+            for item in next_data.get("models", []):
+                if not isinstance(item, dict):
+                    continue
+                row = dict(item)
+                tags = row.get("tags")
+                if isinstance(tags, list):
+                    filtered = [t for t in tags if t != "default"]
+                else:
+                    filtered = []
+                if row.get("key") == model_key and "default" not in filtered:
+                    filtered.insert(0, "default")
+                row["tags"] = filtered
+                models.append(row)
+            next_data["models"] = models
+            _models_state_cache["data"] = next_data
+        _models_state_cache["at"] = time.time()
+        _models_state_cache["error"] = None
+    _runtime_session_cache["at"] = 0.0
+    _runtime_session_cache["info"] = {
+        "model": model,
+        "provider": provider,
+        "sessionId": None,
+        "source": "mission-control:model-select",
+    }
 
 def check_memory_health():
     """Check memory system integrity"""
@@ -873,15 +972,24 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                 return
 
             try:
-                run_models_cli(["set", model.strip()])
+                normalized_model = model.strip()
+                run_models_cli(["set", normalized_model])
+                # Keep runtime session metadata in sync so switching from the UI is immediate.
+                sync_result = sync_main_session_model_in_stores(normalized_model)
+                prime_models_cache_default(normalized_model)
                 start_models_refresh_if_needed(force=True)
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()
-                self.wfile.write(json.dumps({
+                response = {
                     "ok": True,
-                    "defaultModel": model.strip(),
-                }).encode('utf-8'))
+                    "defaultModel": normalized_model,
+                    "runtimeSyncedStores": sync_result.get("updated", 0),
+                }
+                sync_errors = sync_result.get("errors") or []
+                if sync_errors:
+                    response["syncErrors"] = sync_errors
+                self.wfile.write(json.dumps(response).encode('utf-8'))
             except Exception as e:
                 self.send_response(500)
                 self.send_header('Content-Type', 'application/json')
@@ -2391,7 +2499,9 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
             cached = snap.get("data")
             if isinstance(cached, dict):
                 payload = dict(cached)
-                payload["loading"] = bool(snap.get("refreshing"))
+                # Never block the selector when we already have cached model rows.
+                payload["loading"] = False
+                payload["refreshing"] = bool(snap.get("refreshing"))
                 payload["cacheAgeMs"] = snap.get("ageMs")
                 if snap.get("error"):
                     payload["warning"] = snap.get("error")
