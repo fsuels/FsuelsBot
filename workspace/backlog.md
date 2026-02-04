@@ -85,3 +85,11 @@
 
 ## Deleted Tasks
 *(moved here with reason — 5-step applied)*
+
+
+## Curiosity Engine Proposals (2026-02-03)
+| Proposal | Persona | Revenue Impact | Confidence | Human Min | Risk | TPS | Notes |
+|---|---:|---:|---:|---:|---:|---:|---|
+| Speed: Terminator MCP session reuse + keep agent warm (cut WhatsApp macro from ~50s to <10s) | Ops | 6 | 0.8 | 30 | 1 | 0.16 | Biggest bottleneck: repeated MCP init + extra get_window_tree calls |
+| Reliability: auto-create today's memory/YYYY-MM-DD.md during heartbeat checks (remove warning, better audits) | Ops | 3 | 0.9 | 5 | 1 | 0.54 | Prevents missing today file and makes nightly reviews consistent |
+| Quiet mode: send Telegram only on ALERT start/clear (state-change notifications) | Ops | 4 | 0.8 | 10 | 1 | 0.32 | Keeps 5-min checks without flooding chat |
