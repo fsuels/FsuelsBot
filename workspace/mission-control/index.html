@@ -1,4119 +1,633 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- Auto-refresh handled by JavaScript to preserve modal state -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<title>Mission Control</title>
-<style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  font-family: 'Inter', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
-  background: linear-gradient(145deg, #0a0a0f 0%, #0f0f18 50%, #0a0a0f 100%);
-  color: #c9d1d9;
-  min-height: 100vh;
-  padding: 20px;
-  line-height: 1.6;
-  font-size: 14px;
-  letter-spacing: -0.01em;
-}
-.container { max-width: 1280px; margin: 0 auto; }
-
-/* Modal */
-.modal-overlay {
-  display: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.75);
-  backdrop-filter: blur(4px);
-  z-index: 1000;
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
-}
-.modal-overlay.active { display: flex; }
-.modal {
-  background: rgba(22, 27, 34, 0.98);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 16px;
-  max-width: 500px;
-  width: 100%;
-  max-height: 80vh;
-  overflow-y: auto;
-  animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-  backdrop-filter: blur(20px);
-  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-}
-@keyframes slideUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-.modal-header {
-  padding: 18px 20px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-.modal-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #e6edf3;
-  letter-spacing: -0.01em;
-}
-.modal-id {
-  font-size: 14px;
-  color: #60a5fa;
-  font-family: 'SF Mono', 'Fira Code', monospace;
-  margin-top: 4px;
-  font-weight: 700;
-}
-.modal-close {
-  background: none;
-  border: none;
-  color: #6e7681;
-  font-size: 22px;
-  cursor: pointer;
-  padding: 0 8px;
-  transition: color 0.15s;
-}
-.modal-close:hover { color: #c9d1d9; }
-.modal-body { padding: 18px 20px; }
-.modal-section {
-  margin-bottom: 14px;
-}
-.modal-section:last-child { margin-bottom: 0; }
-.modal-label {
-  font-size: 10px;
-  text-transform: uppercase;
-  color: #6e7681;
-  margin-bottom: 6px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-}
-.modal-content {
-  font-size: 13px;
-  color: #c9d1d9;
-  line-height: 1.55;
-  background: rgba(0,0,0,0.2);
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.04);
-}
-.modal-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: #58a6ff;
-  text-decoration: none;
-  background: rgba(88,166,255,0.1);
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 13px;
-}
-.modal-link:hover { background: rgba(88,166,255,0.2); }
-.modal-status {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
-}
-.modal-status.done { background: rgba(63,185,80,0.15); color: #3fb950; }
-.modal-status.pending { background: rgba(139,148,158,0.15); color: #8b949e; }
-.modal-status.in-progress { background: rgba(63,185,80,0.25); color: #3fb950; }
-.container { max-width: 1200px; margin: 0 auto; }
-
-/* Header */
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-.header-controls {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  max-width: min(100%, 980px);
-}
-.header h1 {
-  font-size: 18px;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #e6edf3;
-  letter-spacing: -0.02em;
-}
-.status-badge {
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-.status-badge.working { 
-  background: rgba(74, 222, 128, 0.1); 
-  color: #4ade80;
-  box-shadow: 0 0 20px rgba(74, 222, 128, 0.08);
-}
-.status-badge.idle { 
-  background: rgba(148,163,184,0.08); 
-  color: #94a3b8;
-}
-.live-dot {
-  width: 8px;
-  height: 8px;
-  background: #4ade80;
-  border-radius: 50%;
-  animation: gentlePulse 3s ease-in-out infinite;
-  box-shadow: 0 0 8px rgba(74, 222, 128, 0.4);
-}
-.live-dot.offline {
-  background: #f87171;
-  box-shadow: 0 0 8px rgba(248, 113, 113, 0.4);
-  animation: none;
-}
-.gateway-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(96,165,250,0.35);
-  background: rgba(96,165,250,0.08);
-  color: #93c5fd;
-  font-size: 11px;
-  text-decoration: none;
-  cursor: pointer;
-}
-.gateway-link:hover {
-  background: rgba(96,165,250,0.15);
-}
-.brain-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(167,139,250,0.35);
-  background: rgba(167,139,250,0.08);
-  color: #c4b5fd;
-  font-size: 11px;
-  font-family: 'SF Mono','Fira Code',monospace;
-}
-.brain-pill.runtime-override {
-  border-color: rgba(251, 191, 36, 0.55);
-  background: rgba(251, 191, 36, 0.12);
-  color: #fde68a;
-}
-.model-select {
-  min-width: 200px;
-  max-width: 260px;
-  padding: 6px 30px 6px 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(94, 234, 212, 0.35);
-  background: #0b1220;
-  color: #f8fafc;
-  font-size: 11px;
-  font-family: 'SF Mono','Fira Code',monospace;
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23cbd5e1' d='M5 6L0 0h10z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-}
-.model-select option {
-  background: #0f172a;
-  color: #f8fafc;
-}
-.model-select optgroup {
-  background: #0f172a;
-  color: #cbd5e1;
-}
-.model-select:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
-.model-hint {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  background: rgba(15, 23, 42, 0.75);
-  color: #cbd5e1;
-  font-size: 11px;
-  max-width: 320px;
-  white-space: normal;
-  line-height: 1.25;
-}
-@keyframes gentlePulse { 0%,100% { opacity:1; transform: scale(1); } 50% { opacity:0.6; transform: scale(0.9); } }
-
-/* Deadline Banner - Elegant Pink */
-.deadline-banner {
-  background: linear-gradient(135deg, rgba(236, 72, 153, 0.06) 0%, rgba(168, 85, 247, 0.04) 100%);
-  border: 1px solid rgba(236, 72, 153, 0.15);
-  border-radius: 12px;
-  padding: 16px 22px;
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.deadline-text {
-  font-size: 14px;
-  font-weight: 500;
-  color: #f9a8d4;
-  letter-spacing: -0.01em;
-}
-.deadline-days {
-  font-size: 22px;
-  font-weight: 600;
-  color: #f472b6;
-  letter-spacing: -0.02em;
-}
-
-/* Task Board Grid */
-.task-board {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 14px;
-  margin-bottom: 20px;
-}
-
-/* Lane Cards - Refined */
-.lane {
-  background: rgba(13, 17, 23, 0.7);
-  border: 1px solid rgba(255,255,255,0.04);
-  border-radius: 14px;
-  padding: 16px;
-  min-height: 180px;
-  backdrop-filter: blur(10px);
-  transition: border-color 0.2s ease;
-}
-.lane:hover {
-  border-color: rgba(255,255,255,0.08);
-}
-.lane-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-}
-.lane-title {
-  font-size: 12px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.lane-count {
-  background: rgba(96,165,250,0.2);
-  padding: 3px 10px;
-  border-radius: 10px;
-  font-size: 14px;
-  color: #60a5fa;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-.lane-count:hover {
-  background: rgba(96,165,250,0.4);
-  transform: scale(1.05);
-}
-.lane-tasks {
-  max-height: 600px;
-  overflow-y: auto;
-}
-.expand-hint {
-  text-align: center;
-  font-size: 12px;
-  color: #60a5fa;
-  padding: 10px;
-  cursor: pointer;
-  background: rgba(96,165,250,0.1);
-  border-radius: 8px;
-  margin-top: 8px;
-  transition: background 0.2s;
-}
-.expand-hint:hover {
-  background: rgba(96,165,250,0.2);
-}
-
-/* Bot Current - Soft Green */
-.lane.bot-current {
-  border-color: rgba(74, 222, 128, 0.2);
-  border-left: 2px solid rgba(74, 222, 128, 0.6);
-  background: linear-gradient(135deg, rgba(74, 222, 128, 0.03) 0%, rgba(13, 17, 23, 0.7) 100%);
-}
-.lane.bot-current .lane-title {
-  color: #86efac;
-}
-/* Bot Queue - Soft Amber */
-.lane.bot-queue {
-  border-color: rgba(251, 191, 36, 0.15);
-  border-left: 2px solid rgba(251, 191, 36, 0.5);
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.02) 0%, rgba(13, 17, 23, 0.7) 100%);
-}
-.lane.bot-queue .lane-title {
-  color: #fcd34d;
-}
-
-/* Human Lane - Soft Blue */
-.lane.human {
-  border-color: rgba(96, 165, 250, 0.15);
-  border-left: 2px solid rgba(96, 165, 250, 0.5);
-  background: linear-gradient(135deg, rgba(96, 165, 250, 0.02) 0%, rgba(13, 17, 23, 0.7) 100%);
-}
-.lane.human .lane-title {
-  color: #93c5fd;
-}
-
-/* Task Items - Refined Cards */
-.task-item {
-  background: rgba(22, 27, 34, 0.6);
-  border-radius: 10px;
-  padding: 12px 14px;
-  margin-bottom: 8px;
-  border: 1px solid rgba(255,255,255,0.03);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-.task-item:hover {
-  background: rgba(30, 35, 44, 0.8);
-  border-color: rgba(255,255,255,0.08);
-  transform: translateY(-1px);
-}
-.task-item.in-progress {
-  border-left: 2px solid rgba(74, 222, 128, 0.7);
-  background: linear-gradient(90deg, rgba(74, 222, 128, 0.04) 0%, rgba(22, 27, 34, 0.6) 100%);
-}
-.task-item.pending { border-color: rgba(255,255,255,0.05); }
-
-/* Epistemic Verification Status Badges */
-.verification-badge {
-  font-size: 9px;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-.verification-badge.claimed {
-  background: rgba(251, 191, 36, 0.15);
-  color: #fbbf24;
-  border: 1px solid rgba(251, 191, 36, 0.3);
-}
-.verification-badge.evidence {
-  background: rgba(96, 165, 250, 0.15);
-  color: #60a5fa;
-  border: 1px solid rgba(96, 165, 250, 0.3);
-}
-.verification-badge.human-verified {
-  background: rgba(74, 222, 128, 0.15);
-  color: #4ade80;
-  border: 1px solid rgba(74, 222, 128, 0.3);
-}
-.verification-badge.automated {
-  background: rgba(139, 92, 246, 0.15);
-  color: #a78bfa;
-  border: 1px solid rgba(139, 92, 246, 0.3);
-}
-/* Verification rate in header */
-.verification-rate {
-  font-size: 11px;
-  color: #8b949e;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  background: rgba(255,255,255,0.04);
-  border-radius: 8px;
-}
-.verification-rate .rate-good { color: #4ade80; }
-.verification-rate .rate-warn { color: #fbbf24; }
-.verification-rate .rate-bad { color: #f87171; }
-.task-item.human-task { 
-  border-color: rgba(96, 165, 250, 0.1);
-  border-left: 2px solid rgba(96, 165, 250, 0.4);
-}
-
-.task-id {
-  font-size: 13px;
-  color: #60a5fa;
-  margin-bottom: 4px;
-  font-family: 'SF Mono', 'Fira Code', monospace;
-  letter-spacing: 0.02em;
-  font-weight: 700;
-  cursor: pointer;
-  display: inline-block;
-  padding: 2px 6px;
-  margin-left: -6px;
-  border-radius: 4px;
-  transition: all 0.15s ease;
-}
-.task-id:hover {
-  background: rgba(96, 165, 250, 0.15);
-  color: #93c5fd;
-  text-decoration: underline;
-}
-.task-title-text {
-  font-size: 13px;
-  color: #e6edf3;
-  margin-bottom: 8px;
-  font-weight: 500;
-  line-height: 1.4;
-  letter-spacing: -0.01em;
-}
-.task-meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-/* Progress bar for multi-step tasks */
-.task-progress {
-  width: 100%;
-  height: 2px;
-  background: rgba(255,255,255,0.06);
-  border-radius: 2px;
-  margin: 8px 0 4px;
-  overflow: hidden;
-}
-.task-progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #4ade80 0%, #86efac 100%);
-  border-radius: 2px;
-  transition: width 0.3s ease;
-}
-.task-step-text {
-  font-size: 11px;
-  color: #86efac;
-  font-weight: 600;
-}
-.task-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  margin-left: auto;
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.04);
-  border-radius: 6px;
-  padding: 3px 5px;
-}
-.task-plan {
-  font-size: 10px;
-  color: #58a6ff;
-  text-decoration: none;
-  background: rgba(88,166,255,0.08);
-  padding: 2px 6px;
-  border-radius: 4px;
-  transition: all 0.15s;
-}
-.task-plan:hover { background: rgba(88,166,255,0.15); }
-.task-estimate {
-  font-size: 10px;
-  color: #8b949e;
-  background: rgba(255,255,255,0.05);
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-.complete-btn {
-  font-size: 10px;
-  color: #3fb950;
-  background: rgba(63,185,80,0.1);
-  border: 1px solid rgba(63,185,80,0.2);
-  padding: 3px 7px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.15s;
-  white-space: nowrap;
-  font-weight: 500;
-}
-.complete-btn:hover {
-  background: rgba(63,185,80,0.2);
-  border-color: rgba(63,185,80,0.4);
-}
-.complete-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.complete-btn.pending {
-  color: #d4a574;
-  background: rgba(212,165,116,0.1);
-  border-color: rgba(212,165,116,0.2);
-}
-.reorder-btn {
-  font-size: 10px;
-  color: #6e7681;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
-  padding: 3px 5px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.reorder-btn:hover {
-  color: #58a6ff;
-  background: rgba(88,166,255,0.1);
-  border-color: rgba(88,166,255,0.2);
-}
-.reorder-btn:disabled {
-  opacity: 0.25;
-  cursor: not-allowed;
-}
-.reorder-controls {
-  display: flex;
-  gap: 2px;
-}
-.delete-btn {
-  font-size: 12px;
-  font-weight: 500;
-  color: #f87171;
-  background: rgba(248,113,113,0.08);
-  border: 1px solid rgba(248,113,113,0.15);
-  padding: 3px 6px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.delete-btn:hover {
-  background: rgba(248,113,113,0.15);
-  border-color: rgba(248,113,113,0.3);
-}
-.transfer-btn {
-  font-size: 10px;
-  color: #58a6ff;
-  background: rgba(88,166,255,0.08);
-  border: 1px solid rgba(88,166,255,0.15);
-  padding: 3px 7px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.15s;
-  font-weight: 500;
-}
-.transfer-btn:hover {
-  background: rgba(88,166,255,0.15);
-  border-color: rgba(88,166,255,0.3);
-}
-.pause-btn {
-  color: #fb923c;
-  border: 1px solid rgba(251,146,60,0.2);
-  background: rgba(251,146,60,0.08);
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 1px;
-}
-.pause-btn:hover {
-  background: rgba(251,146,60,0.15);
-  border-color: rgba(251,146,60,0.3);
-}
-.confirm-bubble {
-  display: none;
-  position: fixed;
-  background: rgba(22, 27, 34, 0.98);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 12px;
-  padding: 14px;
-  text-align: center;
-  width: 200px;
-  z-index: 2000;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
-  animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  backdrop-filter: blur(16px);
-}
-.confirm-bubble.active { display: block; }
-.confirm-bubble::before {
-  content: '';
-  position: absolute;
-  top: -7px;
-  right: 20px;
-  border-left: 7px solid transparent;
-  border-right: 7px solid transparent;
-  border-bottom: 7px solid rgba(255,255,255,0.1);
-}
-.confirm-bubble::after {
-  content: '';
-  position: absolute;
-  top: -5px;
-  right: 21px;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-bottom: 6px solid rgba(22, 27, 34, 0.98);
-}
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-8px) scale(0.95); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
-}
-.confirm-bubble .confirm-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: #e6edf3;
-  margin-bottom: 6px;
-}
-.confirm-bubble .confirm-message {
-  font-size: 11px;
-  color: #8b949e;
-  margin-bottom: 12px;
-  line-height: 1.4;
-}
-.confirm-buttons {
-  display: flex;
-  gap: 6px;
-  justify-content: center;
-}
-.confirm-btn {
-  padding: 6px 14px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.confirm-btn.cancel {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.1);
-  color: #c9d1d9;
-}
-.confirm-btn.cancel:hover {
-  background: rgba(255,255,255,0.1);
-}
-.confirm-btn.delete {
-  background: rgba(248,113,113,0.15);
-  border: 1px solid rgba(248,113,113,0.3);
-  color: #f87171;
-}
-.confirm-btn.delete:hover {
-  background: rgba(248,113,113,0.25);
-}
-
-/* Done Section */
-/* Know Me Game Section */
-.knowme-section {
-  background: rgba(13, 17, 23, 0.5);
-  border: 1px solid rgba(251,191,36,0.2);
-  border-radius: 14px;
-  padding: 14px;
-  margin-bottom: 16px;
-}
-.knowme-content.collapsed { display: none; }
-.cat-btn {
-  padding: 16px 20px;
-  background: rgba(255,255,255,0.08);
-  border: 2px solid rgba(255,255,255,0.15);
-  border-radius: 12px;
-  color: #e6edf3;
-  font-size: 16px;
-  cursor: pointer;
-  transition: all 0.15s;
-  min-width: 120px;
-  text-align: center;
-}
-.cat-btn:hover, .cat-btn:active {
-  background: rgba(139,92,246,0.3);
-  border-color: rgba(139,92,246,0.6);
-  color: #fff;
-  transform: scale(1.02);
-}
-.qa-score-btn {
-  padding: 12px 16px;
-  background: rgba(255,255,255,0.06);
-  border: 2px solid rgba(255,255,255,0.1);
-  border-radius: 10px;
-  color: #c9d1d9;
-  font-size: 18px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.15s;
-  min-width: 60px;
-  text-align: center;
-}
-.qa-score-btn span {
-  font-size: 9px;
-  font-weight: 400;
-  display: block;
-  margin-top: 2px;
-  color: #8b949e;
-}
-.qa-score-btn:hover, .qa-score-btn.active {
-  background: rgba(139,92,246,0.3);
-  border-color: rgba(139,92,246,0.6);
-  color: #fff;
-}
-.qa-score-btn.active span { color: #c9d1d9; }
-.qa-history-item {
-  padding: 10px;
-  background: rgba(0,0,0,0.2);
-  border-radius: 6px;
-  margin-bottom: 8px;
-  font-size: 12px;
-}
-.qa-history-item .category { color: #a78bfa; font-size: 10px; text-transform: uppercase; }
-.qa-history-item .question { color: #c9d1d9; margin: 4px 0; }
-.qa-history-item .prediction { color: #fbbf24; font-size: 11px; }
-.qa-history-item .answer { color: #3fb950; font-size: 11px; margin-top: 4px; }
-.qa-history-item .score { color: #f472b6; font-size: 11px; }
-
-/* Predictions Section */
-.predictions-section {
-  background: rgba(13, 17, 23, 0.5);
-  border: 1px solid rgba(139,92,246,0.15);
-  border-radius: 14px;
-  padding: 14px;
-  margin-bottom: 16px;
-}
-.predictions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 10px;
-  margin-top: 12px;
-}
-.predictions-grid.collapsed { display: none; }
-.prediction-card {
-  background: rgba(22, 27, 34, 0.6);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 10px;
-  padding: 12px;
-}
-.prediction-card.scored-1, .prediction-card.scored-2 {
-  border-color: rgba(248,113,113,0.4);
-  background: rgba(248,113,113,0.05);
-}
-.prediction-card.scored-3 {
-  border-color: rgba(251,191,36,0.4);
-  background: rgba(251,191,36,0.05);
-}
-.prediction-card.scored-4, .prediction-card.scored-5 {
-  border-color: rgba(63,185,80,0.4);
-  background: rgba(63,185,80,0.05);
-}
-.prediction-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 8px;
-}
-.prediction-id {
-  font-size: 10px;
-  color: #8b949e;
-  background: rgba(139,92,246,0.15);
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-.prediction-confidence {
-  font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-.prediction-confidence.HIGH { background: rgba(63,185,80,0.2); color: #3fb950; }
-.prediction-confidence.MEDIUM { background: rgba(251,191,36,0.2); color: #fbbf24; }
-.prediction-confidence.LOW { background: rgba(248,113,113,0.2); color: #f87171; }
-.prediction-text {
-  font-size: 13px;
-  color: #e6edf3;
-  margin-bottom: 6px;
-  line-height: 1.4;
-}
-.prediction-rationale {
-  font-size: 11px;
-  color: #8b949e;
-  margin-bottom: 10px;
-}
-.prediction-actions {
-  display: flex;
-  gap: 8px;
-}
-.score-btn {
-  flex: 1;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-.score-btn.rating {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.1);
-  color: #8b949e;
-  min-width: 36px;
-  padding: 8px 4px;
-}
-.score-btn.rating:hover { 
-  background: rgba(139,92,246,0.2); 
-  border-color: rgba(139,92,246,0.4);
-  color: #a78bfa;
-}
-.score-btn.rating.active { 
-  background: rgba(139,92,246,0.4); 
-  border-color: rgba(139,92,246,0.6);
-  color: #fff;
-}
-.score-btn.correct {
-  background: rgba(63,185,80,0.15);
-  border: 1px solid rgba(63,185,80,0.3);
-  color: #3fb950;
-}
-.score-btn.correct:hover { background: rgba(63,185,80,0.25); }
-.score-btn.correct.active { background: rgba(63,185,80,0.4); }
-.score-btn.wrong {
-  background: rgba(248,113,113,0.15);
-  border: 1px solid rgba(248,113,113,0.3);
-  color: #f87171;
-}
-.score-btn.wrong:hover { background: rgba(248,113,113,0.25); }
-.score-btn.wrong.active { background: rgba(248,113,113,0.4); }
-.predictions-history.collapsed { display: none; }
-.game-stats.collapsed { display: none; }
-
-/* Predictions Modal */
-.predictions-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.8);
-  display: none;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 20px;
-  z-index: 1000;
-  overflow-y: auto;
-}
-.predictions-modal-overlay.active { display: flex; }
-.predictions-modal {
-  background: #161b22;
-  border: 1px solid rgba(139,92,246,0.3);
-  border-radius: 16px;
-  width: 100%;
-  max-width: 900px;
-  max-height: 90vh;
-  overflow-y: auto;
-  margin: auto;
-}
-.predictions-modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-  position: sticky;
-  top: 0;
-  background: #161b22;
-  z-index: 10;
-}
-.predictions-modal-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #e6edf3;
-}
-.predictions-modal-close {
-  background: none;
-  border: none;
-  color: #8b949e;
-  font-size: 24px;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
-  transition: all 0.15s;
-}
-.predictions-modal-close:hover {
-  background: rgba(255,255,255,0.1);
-  color: #fff;
-}
-.predictions-modal-body {
-  padding: 20px;
-}
-.predictions-btn {
-  background: rgba(139,92,246,0.15);
-  border: 1px solid rgba(139,92,246,0.3);
-  color: #a78bfa;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.15s;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.predictions-btn:hover {
-  background: rgba(139,92,246,0.25);
-  border-color: rgba(139,92,246,0.5);
-}
-.history-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px;
-  background: rgba(0,0,0,0.2);
-  border-radius: 6px;
-  margin-bottom: 6px;
-  font-size: 12px;
-}
-.history-item .date { color: #6e7681; min-width: 80px; }
-.history-item .pred-id { color: #a78bfa; font-weight: 600; min-width: 30px; }
-.history-item .score-correct { color: #3fb950; }
-.history-item .score-neutral { color: #fbbf24; }
-.history-item .score-wrong { color: #f87171; }
-.history-item .note { color: #8b949e; flex: 1; }
-
-.done-section {
-  background: rgba(13, 17, 23, 0.5);
-  border: 1px solid rgba(255,255,255,0.04);
-  border-radius: 14px;
-  padding: 14px;
-  margin-bottom: 16px;
-}
-.done-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-bottom: 10px;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-.done-header-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-}
-.done-date-filter {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.date-btn {
-  font-size: 10px;
-  color: #8b949e;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
-  padding: 4px 10px;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-weight: 500;
-}
-.date-btn:hover {
-  background: rgba(255,255,255,0.08);
-  color: #c9d1d9;
-}
-.date-btn.active {
-  background: rgba(63, 185, 80, 0.15);
-  border-color: rgba(63, 185, 80, 0.3);
-  color: #3fb950;
-}
-.date-input {
-  font-size: 10px;
-  color: #c9d1d9;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
-  padding: 4px 8px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-.date-input::-webkit-calendar-picker-indicator {
-  filter: invert(0.7);
-}
-.done-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 6px;
-}
-.done-grid.collapsed { display: none; }
-.done-item {
-  background: rgba(255,255,255,0.02);
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 12px;
-  color: #8b949e;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.15s ease;
-}
-.done-item .check { color: #3fb950; font-size: 11px; }
-.done-item:hover { background: rgba(255,255,255,0.05); color: #c9d1d9; }
-
-/* Scheduled Section */
-.scheduled-section {
-  background: rgba(13, 17, 23, 0.5);
-  border: 1px solid rgba(255,255,255,0.04);
-  border-radius: 14px;
-  padding: 14px;
-}
-.scheduled-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: 6px;
-}
-.scheduled-item {
-  background: rgba(255,255,255,0.02);
-  padding: 10px 12px;
-  border-radius: 10px;
-  font-size: 12px;
-  transition: all 0.2s;
-  border: 1px solid transparent;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.scheduled-item:hover {
-  background: rgba(255,255,255,0.05);
-  border-color: rgba(255,255,255,0.06);
-}
-.scheduled-content {
-  flex: 1;
-  cursor: pointer;
-}
-.scheduled-id { 
-  color: #60a5fa; 
-  font-size: 11px; 
-  font-family: 'SF Mono', 'Fira Code', monospace; 
-  font-weight: 700; 
-  margin-bottom: 2px;
-  cursor: pointer;
-}
-.scheduled-id:hover { text-decoration: underline; }
-.scheduled-title { color: #c9d1d9; margin-bottom: 3px; font-weight: 500; font-size: 12px; }
-.scheduled-time { color: #d4a574; font-size: 10px; margin-bottom: 2px; }
-.scheduled-next { color: #6e7681; font-size: 10px; }
-.scheduled-last { color: #8b949e; font-size: 9px; margin-top: 2px; }
-.scheduled-delete {
-  padding: 3px 5px;
-  font-size: 11px;
-  opacity: 0.6;
-  transition: opacity 0.15s;
-}
-.scheduled-item:hover .scheduled-delete {
-  opacity: 1;
-}
-.trash-section {
-  background: rgba(13, 17, 23, 0.5);
-  border: 1px solid rgba(255,255,255,0.04);
-  border-radius: 14px;
-  padding: 14px;
-  margin-bottom: 14px;
-}
-.trash-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 6px;
-}
-.trash-item {
-  background: rgba(255,255,255,0.02);
-  padding: 8px 12px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 12px;
-  color: #6e7681;
-  border: 1px solid transparent;
-  transition: all 0.15s;
-}
-.trash-item:hover {
-  border-color: rgba(255,255,255,0.06);
-  background: rgba(255,255,255,0.04);
-}
-.trash-item-title {
-  flex: 1;
-  text-decoration: line-through;
-}
-.trash-item-date {
-  font-size: 9px;
-  color: #484f58;
-}
-.restore-btn {
-  font-size: 10px;
-  color: #3fb950;
-  background: rgba(63,185,80,0.08);
-  border: 1px solid rgba(63,185,80,0.15);
-  padding: 3px 7px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.15s;
-  font-weight: 500;
-}
-.restore-btn:hover {
-  background: rgba(63,185,80,0.15);
-}
-.perma-delete-btn {
-  font-size: 11px;
-  color: #f87171;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  transition: color 0.15s;
-}
-.perma-delete-btn:hover {
-  color: #fca5a5;
-}
-.cron-input {
-  width: 100%;
-  background: rgba(0,0,0,0.25);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 8px;
-  padding: 10px 12px;
-  color: #c9d1d9;
-  font-size: 13px;
-  margin-top: 6px;
-  transition: all 0.15s;
-}
-.cron-input:focus {
-  outline: none;
-  border-color: rgba(88,166,255,0.4);
-  background: rgba(0,0,0,0.3);
-}
-
-/* Footer */
-.footer {
-  margin-top: 16px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(255,255,255,0.04);
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  color: #484f58;
-}
-
-/* Mobile responsive */
-@media (max-width: 768px) {
-  body { padding: 12px; }
-  .task-board { grid-template-columns: 1fr; }
-  .deadline-banner { flex-direction: column; gap: 6px; text-align: center; padding: 14px 16px; }
-  .deadline-text { font-size: 13px; }
-  .deadline-days { font-size: 20px; }
-  .lane { padding: 14px; min-height: 150px; }
-  .header h1 { font-size: 16px; }
-}
-
-/* Smooth scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
-
-/* Parallel Execution Panel */
-.parallel-panel {
-  background: linear-gradient(135deg, rgba(139,92,246,0.08) 0%, rgba(13, 17, 23, 0.7) 100%);
-  border: 1px solid rgba(139,92,246,0.2);
-  border-radius: 14px;
-  padding: 14px;
-  margin-bottom: 16px;
-}
-/* Agent Squad Panel - Always Visible */
-.agent-squad-panel {
-  background: rgba(13, 17, 23, 0.8);
-  border: 1px solid rgba(139, 92, 246, 0.2);
-  border-radius: 14px;
-  padding: 16px;
-  margin-bottom: 16px;
-  backdrop-filter: blur(10px);
-}
-.squad-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid rgba(255,255,255,0.06);
-}
-.squad-header .lane-title {
-  color: #a78bfa;
-}
-.squad-status {
-  font-size: 12px;
-  color: #6e7681;
-  padding: 4px 10px;
-  background: rgba(255,255,255,0.05);
-  border-radius: 8px;
-}
-.squad-status.working {
-  color: #4ade80;
-  background: rgba(74, 222, 128, 0.1);
-}
-.squad-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 12px;
-}
-@media (max-width: 900px) {
-  .squad-grid { grid-template-columns: repeat(3, 1fr); }
-}
-@media (max-width: 600px) {
-  .squad-grid { grid-template-columns: repeat(2, 1fr); }
-}
-.squad-agent {
-  background: rgba(22, 27, 34, 0.6);
-  border: 1px solid rgba(255,255,255,0.05);
-  border-radius: 10px;
-  padding: 14px;
-  display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-.squad-agent:hover {
-  border-color: rgba(139, 92, 246, 0.3);
-  transform: translateY(-2px);
-}
-.squad-agent.working {
-  border-color: rgba(74, 222, 128, 0.4);
-  background: linear-gradient(135deg, rgba(74, 222, 128, 0.05) 0%, rgba(22, 27, 34, 0.6) 100%);
-  box-shadow: 0 0 20px rgba(74, 222, 128, 0.1);
-}
-.squad-agent-icon {
-  font-size: 24px;
-  line-height: 1;
-}
-.squad-agent-info {
-  flex: 1;
-  min-width: 0;
-}
-.squad-agent-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: #e6edf3;
-  margin-bottom: 4px;
-}
-.squad-agent-status {
-  font-size: 11px;
-  font-weight: 500;
-  margin-bottom: 4px;
-}
-.squad-agent-status.idle {
-  color: #6e7681;
-}
-.squad-agent-status.working {
-  color: #4ade80;
-}
-.squad-agent-status.completed {
-  color: #60a5fa;
-}
-.squad-agent-task {
-  font-size: 11px;
-  color: #8b949e;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.squad-agent-task a {
-  color: #60a5fa;
-  text-decoration: none;
-}
-.squad-agent-task a:hover {
-  text-decoration: underline;
-}
-
-/* Agent Modal Tabs */
-.agent-tab {
-  padding: 8px 16px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 8px;
-  color: #8b949e;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.agent-tab:hover {
-  background: rgba(255,255,255,0.1);
-  color: #c9d1d9;
-}
-.agent-tab.active {
-  background: rgba(139,92,246,0.2);
-  border-color: rgba(139,92,246,0.4);
-  color: #a78bfa;
-}
-#agentProfile h1, #agentProfile h2, #agentProfile h3 {
-  color: #a78bfa;
-  margin-top: 16px;
-  margin-bottom: 8px;
-}
-#agentProfile h1 { font-size: 18px; }
-#agentProfile h2 { font-size: 15px; }
-#agentProfile h3 { font-size: 13px; }
-#agentProfile code {
-  background: rgba(139,92,246,0.15);
-  padding: 2px 6px;
-  border-radius: 4px;
-  color: #c9a0ff;
-}
-#agentProfile strong {
-  color: #e6edf3;
-}
-
-.parallel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-.parallel-agents {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-.agent-card {
-  background: rgba(22, 27, 34, 0.8);
-  border: 1px solid rgba(139,92,246,0.3);
-  border-radius: 10px;
-  padding: 12px 16px;
-  min-width: 200px;
-  flex: 1;
-  max-width: 300px;
-}
-.agent-card.active {
-  border-color: rgba(74, 222, 128, 0.5);
-  box-shadow: 0 0 12px rgba(74, 222, 128, 0.1);
-}
-.agent-card .agent-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: #e6edf3;
-  margin-bottom: 4px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.agent-card .agent-task {
-  font-size: 12px;
-  color: #8b949e;
-}
-.agent-card .agent-task a {
-  color: #60a5fa;
-  text-decoration: none;
-}
-.agent-card .agent-time {
-  font-size: 10px;
-  color: #6e7681;
-  margin-top: 4px;
-}
-.parallel-details.collapsed { display: none; }
-.specialty-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid rgba(255,255,255,0.06);
-}
-.specialty-badge {
-  font-size: 10px;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-weight: 500;
-}
-.specialty-badge.research { background: rgba(96,165,250,0.15); color: #60a5fa; }
-.specialty-badge.content { background: rgba(251,191,36,0.15); color: #fbbf24; }
-.specialty-badge.audit { background: rgba(74,222,128,0.15); color: #4ade80; }
-.specialty-badge.analytics { background: rgba(167,139,250,0.15); color: #a78bfa; }
-.specialty-badge.code { background: rgba(248,113,113,0.15); color: #f87171; }
-.specialty-badge.general { background: rgba(139,148,158,0.15); color: #8b949e; }
-
-/* Priority Badges */
-.priority-badge {
-  font-size: 9px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-.priority-badge.P0 { background: rgba(248,113,113,0.3); color: #f87171; border: 1px solid rgba(248,113,113,0.5); animation: pulse-red 2s infinite; }
-.priority-badge.P1 { background: rgba(251,146,60,0.25); color: #fb923c; border: 1px solid rgba(251,146,60,0.4); }
-.priority-badge.P2 { background: rgba(251,191,36,0.2); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
-.priority-badge.P3 { background: rgba(139,148,158,0.15); color: #8b949e; }
-.priority-badge.P4 { background: rgba(75,85,99,0.15); color: #6b7280; }
-
-@keyframes pulse-red {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(248,113,113,0.4); }
-  50% { box-shadow: 0 0 8px 2px rgba(248,113,113,0.2); }
-}
-
-/* Claimed task indicator */
-.task-item.claimed {
-  border-left: 2px solid rgba(139,92,246,0.6);
-  background: linear-gradient(90deg, rgba(139,92,246,0.04) 0%, rgba(22, 27, 34, 0.6) 100%);
-}
-.claimed-badge {
-  font-size: 9px;
-  color: #a78bfa;
-  background: rgba(139,92,246,0.15);
-  padding: 2px 6px;
-  border-radius: 8px;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🦞 Model Switcher</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --card: #161b22;
+            --border: #30363d;
+            --text: #e6edf3;
+            --text-muted: #8b949e;
+            --accent: #58a6ff;
+            --success: #3fb950;
+            --warning: #d29922;
+            --error: #f85149;
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        
+        .header p {
+            color: var(--text-muted);
+        }
+        
+        .quick-ref {
+            background: linear-gradient(135deg, #1a1f29, #161b22);
+            border: 2px solid var(--accent);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 30px;
+        }
+        
+        .quick-ref h2 {
+            font-size: 20px;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        
+        .quick-ref-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+        }
+        
+        .quick-item {
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+        
+        .quick-item:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+        
+        .quick-item .emoji {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+        
+        .quick-item .name {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+        
+        .quick-item .desc {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        
+        .quick-item.default {
+            border-color: var(--success);
+            background: rgba(63, 185, 80, 0.1);
+        }
+        
+        .commands-box {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .commands-box h2 {
+            font-size: 16px;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+        
+        .command-examples {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .command {
+            background: rgba(88, 166, 255, 0.15);
+            border: 1px solid var(--accent);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-family: monospace;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .command:hover {
+            background: rgba(88, 166, 255, 0.3);
+        }
+        
+        .command:active {
+            transform: scale(0.95);
+        }
+        
+        .copied-toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--success);
+            color: #000;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        
+        .copied-toast.show {
+            opacity: 1;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+        }
+        
+        .model-card {
+            background: var(--card);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .model-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+        }
+        
+        .model-card.default { border-color: var(--success); }
+        
+        .model-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+        
+        .model-name {
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .model-alias {
+            background: var(--accent);
+            color: #000;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 700;
+            font-family: monospace;
+        }
+        
+        .model-desc {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 16px;
+            line-height: 1.5;
+        }
+        
+        .model-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .tag {
+            background: rgba(255,255,255,0.1);
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        
+        .tag.good { background: rgba(63, 185, 80, 0.2); color: var(--success); }
+        .tag.warn { background: rgba(210, 153, 34, 0.2); color: var(--warning); }
+        .tag.bad { background: rgba(248, 81, 73, 0.2); color: var(--error); }
+        
+        .trust-section {
+            margin-bottom: 16px;
+        }
+        
+        .trust-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+        
+        .trust-bar {
+            height: 6px;
+            background: var(--border);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .trust-fill {
+            height: 100%;
+            background: var(--success);
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+        
+        .use-when {
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            padding: 12px;
+        }
+        
+        .use-when-title {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+        
+        .use-when-list {
+            list-style: none;
+            font-size: 13px;
+        }
+        
+        .use-when-list li {
+            padding: 4px 0;
+            padding-left: 16px;
+            position: relative;
+        }
+        
+        .use-when-list li::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+        }
+        
+        .click-hint {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-top: 6px;
+        }
+        
+        .decision-tree {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+        
+        .decision-tree h2 {
+            font-size: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .decision-tree pre {
+            font-family: monospace;
+            font-size: 13px;
+            line-height: 1.8;
+            color: var(--text-muted);
+            overflow-x: auto;
+        }
+        
+        .decision-tree code {
+            color: var(--accent);
+        }
+    </style>
 </head>
 <body>
-<!-- Predictions Modal -->
-<div class="predictions-modal-overlay" id="predictionsModal" onclick="closePredictionsModal(event)">
-  <div class="predictions-modal" onclick="event.stopPropagation()">
-    <div class="predictions-modal-header">
-      <div class="predictions-modal-title">🎮 Prediction Game <span class="lane-count" id="predStats">0/0</span></div>
-      <button class="predictions-modal-close" onclick="closePredictionsModal()">&times;</button>
+    <div class="header">
+        <h1>🦞 Model Switcher</h1>
+        <p>Click any card to copy the switch command, then paste in Telegram</p>
     </div>
-    <div class="predictions-modal-body">
-      <!-- Game Stats -->
-      <div id="gameStats">
-        <div style="display:flex;gap:12px;flex-wrap:wrap;padding:12px;background:rgba(139,92,246,0.08);border-radius:10px;margin-bottom:12px;">
-          <div style="text-align:center;min-width:60px;">
-            <div style="font-size:20px;font-weight:700;color:#a78bfa;" id="gameLevel">1</div>
-            <div style="font-size:9px;color:#8b949e;text-transform:uppercase;">Level</div>
-          </div>
-          <div style="text-align:center;min-width:60px;">
-            <div style="font-size:20px;font-weight:700;color:#fbbf24;" id="gameStreak">0</div>
-            <div style="font-size:9px;color:#8b949e;text-transform:uppercase;">🔥 Streak</div>
-          </div>
-          <div style="text-align:center;min-width:60px;">
-            <div style="font-size:20px;font-weight:700;color:#3fb950;" id="gameAccuracy">0%</div>
-            <div style="font-size:9px;color:#8b949e;text-transform:uppercase;">Accuracy</div>
-          </div>
-          <div style="text-align:center;min-width:60px;">
-            <div style="font-size:20px;font-weight:700;color:#60a5fa;" id="gameToday">0</div>
-            <div style="font-size:9px;color:#8b949e;text-transform:uppercase;">Today</div>
-          </div>
-          <div style="text-align:center;min-width:60px;">
-            <div style="font-size:20px;font-weight:700;color:#c9d1d9;" id="gameXP">0</div>
-            <div style="font-size:9px;color:#8b949e;text-transform:uppercase;">XP</div>
-          </div>
-          <div style="text-align:center;min-width:60px;">
-            <div style="font-size:20px;font-weight:700;color:#f472b6;" id="gameTotal">0</div>
-            <div style="font-size:9px;color:#8b949e;text-transform:uppercase;">Total</div>
-          </div>
-        </div>
-        <div style="padding:12px;background:rgba(0,0,0,0.3);border-radius:8px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <div style="text-align:center;flex:1;">
-              <div style="font-size:10px;color:#8b949e;text-transform:uppercase;">🤖 Bot Score</div>
-              <div style="font-size:24px;font-weight:700;color:#3fb950;" id="botScore">0</div>
-              <div style="font-size:9px;color:#6e7681;">avg rating received</div>
+    
+    <!-- QUICK REFERENCE BOX -->
+    <div class="quick-ref">
+        <h2>⚡ Quick Reference</h2>
+        <div class="quick-ref-grid">
+            <div class="quick-item default" onclick="copy('/model Best')">
+                <div class="emoji">🏆</div>
+                <div class="name">Best</div>
+                <div class="desc">Smartest (Claude)</div>
             </div>
-            <div style="font-size:20px;color:#6e7681;">⚔️</div>
-            <div style="text-align:center;flex:1;">
-              <div style="font-size:10px;color:#8b949e;text-transform:uppercase;">👤 Human Score</div>
-              <div style="font-size:24px;font-weight:700;color:#f472b6;" id="humanScore">0</div>
-              <div style="font-size:9px;color:#6e7681;">blind spots found</div>
+            <div class="quick-item" onclick="copy('/model Fast')">
+                <div class="emoji">⚡</div>
+                <div class="name">Fast</div>
+                <div class="desc">Quick Claude</div>
             </div>
-          </div>
-          <div style="text-align:center;margin-top:8px;font-size:11px;color:#8b949e;">
-            🤖 I win if avg ≥ 4 | 👤 You win by finding my mistakes (scores 1-2)
-          </div>
-        </div>
-      </div>
-      <!-- Predictions Grid -->
-      <div class="predictions-grid" id="predictionsGrid" style="margin-top:16px;"></div>
-      <!-- Scoring History -->
-      <div id="predictionsHistory" style="margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <span style="font-size:12px;color:#8b949e;font-weight:600;">📜 Scoring History</span>
-          <button onclick="loadPredictionsHistory()" style="font-size:10px;padding:4px 8px;background:rgba(139,92,246,0.15);border:1px solid rgba(139,92,246,0.3);color:#a78bfa;border-radius:4px;cursor:pointer;">Refresh</button>
-        </div>
-        <div id="historyList" style="max-height:300px;overflow-y:auto;"></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Delete Confirm Bubble -->
-<div class="confirm-bubble" id="confirmBubble">
-  <div class="confirm-title" id="confirmTitle">Delete this task?</div>
-  <div class="confirm-message" id="confirmMessage">Task name</div>
-  <div class="confirm-buttons">
-    <button class="confirm-btn cancel" onclick="cancelDelete()">Cancel</button>
-    <button class="confirm-btn delete" onclick="confirmDelete()">Delete</button>
-  </div>
-</div>
-
-<!-- Cron Detail Modal -->
-<div class="modal-overlay" id="cronModal" onclick="closeCronModal(event)">
-  <div class="modal" onclick="event.stopPropagation()" style="max-width:600px;">
-    <div class="modal-header">
-      <div>
-        <div class="modal-title" id="cronModalTitle">Cron Job</div>
-        <div class="modal-id" id="cronModalId">CRON-xxx</div>
-      </div>
-      <button class="modal-close" onclick="closeCronModal()">&times;</button>
-    </div>
-    <div class="modal-body">
-      <div class="modal-section">
-        <div class="modal-label">💡 What This Does</div>
-        <div class="modal-content" id="cronSummary" style="font-size:14px;line-height:1.5;"></div>
-      </div>
-      <div class="modal-section">
-        <div class="modal-label">⏰ Schedule</div>
-        <input type="text" class="cron-input" id="cronSchedule" placeholder="e.g. 9 AM daily">
-      </div>
-      <div class="modal-section">
-        <div class="modal-label">📅 Next Run</div>
-        <input type="datetime-local" class="cron-input" id="cronNextRun">
-      </div>
-      <div class="modal-section">
-        <div class="modal-label">📄 Plan/Procedure File</div>
-        <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
-          <input type="text" class="cron-input" id="cronPlan" placeholder="path/to/procedure.md" style="flex:1;margin:0;">
-          <button class="confirm-btn cancel" onclick="viewPlanFile()" style="white-space:nowrap;">📖 View File</button>
-        </div>
-      </div>
-      <div class="modal-section" id="planFileSection" style="display:none;">
-        <div class="modal-label">📋 Plan File Contents</div>
-        <div class="modal-content" id="planFileContent" style="max-height:300px;overflow-y:auto;font-size:12px;white-space:pre-wrap;font-family:monospace;"></div>
-      </div>
-      <div class="modal-section" style="margin-top: 20px;">
-        <button class="confirm-btn delete" style="width:100%;" onclick="saveCronChanges()">💾 Save Changes</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Task Detail Modal -->
-<div class="modal-overlay" id="taskModal" onclick="closeModal(event)">
-  <div class="modal" onclick="event.stopPropagation()">
-    <div class="modal-header">
-      <div>
-        <div class="modal-title" id="modalTitle">Task Title</div>
-        <div class="modal-id" id="modalId">T001</div>
-      </div>
-      <button class="modal-close" onclick="closeModal()">&times;</button>
-    </div>
-    <div class="modal-body">
-      <!-- Epistemic Motto - Our Operating Principle -->
-      <div class="modal-section" style="background:linear-gradient(135deg, rgba(139,92,246,0.12) 0%, rgba(88,166,255,0.08) 100%);border:1px solid rgba(139,92,246,0.25);border-radius:10px;padding:14px;margin-bottom:16px;text-align:center;">
-        <div style="font-size:11px;color:#a78bfa;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;font-weight:600;">OUR OPERATING PRINCIPLE</div>
-        <div style="font-size:12px;color:#c9d1d9;line-height:1.6;">
-          EVERY response I give<br>
-          EVERY analysis I make<br>
-          EVERY recommendation I offer<br>
-          EVERY claim I accept<br>
-          EVERY action I take<br>
-          <span style="font-size:16px;color:#60a5fa;display:block;margin:6px 0;">↓</span>
-          <strong style="color:#3fb950;font-size:13px;">SOUND LOGIC</strong><br>
-          <strong style="color:#fbbf24;font-size:13px;">VERIFIED EVIDENCE</strong><br>
-          <strong style="color:#f472b6;font-size:13px;">NO FALLACIES</strong>
-        </div>
-      </div>
-      
-      <div class="modal-section">
-        <div class="modal-label">Status</div>
-        <span class="modal-status" id="modalStatus">pending</span>
-      </div>
-      <div class="modal-section" id="modalContextSection">
-        <div class="modal-label">💡 Context / Why This Exists</div>
-        <div class="modal-content" id="modalContext"></div>
-      </div>
-      <div class="modal-section" id="modalEpistemicSection" style="display:none;">
-        <div class="modal-label">🔬 Epistemic Status (Evidence & Verification)</div>
-        <div class="modal-content" id="modalEpistemic"></div>
-      </div>
-      <div class="modal-section" id="modalStepsSection">
-        <div class="modal-label">📋 Steps Progress</div>
-        <div class="modal-content" id="modalSteps"></div>
-      </div>
-      <div class="modal-section" id="modalApproachSection">
-        <div class="modal-label">🎯 Approach / How</div>
-        <div class="modal-content" id="modalApproach"></div>
-      </div>
-      <div class="modal-section" id="modalNotesSection">
-        <div class="modal-label">📝 Notes</div>
-        <div class="modal-content" id="modalNotes"></div>
-      </div>
-      <div class="modal-section" id="modalLearningsSection" style="display:none;">
-        <div class="modal-label">🧠 Council Learnings</div>
-        <div class="modal-content" id="modalLearnings"></div>
-      </div>
-      <div class="modal-section" id="modalPlanSection">
-        <div class="modal-label">📄 Plan Document</div>
-        <a class="modal-link" id="modalPlanLink" href="#" target="_blank">
-          <span>📄</span> <span id="modalPlanName">plan.md</span>
-        </a>
-      </div>
-      <div class="modal-section" id="modalTimelineSection">
-        <div class="modal-label">📅 Timeline</div>
-        <div class="modal-content" id="modalTimeline"></div>
-      </div>
-      <div class="modal-section" id="modalDiscussionSection">
-        <div class="modal-label">💬 Discussion / Audit Trail</div>
-        <div class="modal-content" id="modalDiscussion" style="max-height:300px;overflow-y:auto;"></div>
-        <div style="margin-top:12px;display:flex;gap:8px;">
-          <input type="text" id="commentInput" placeholder="Add a comment..." style="flex:1;padding:10px 12px;border:1px solid #30363d;border-radius:6px;background:#161b22;color:#e6edf3;font-size:14px;">
-          <button onclick="submitComment()" style="padding:10px 16px;background:#238636;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:500;">Send</button>
-        </div>
-      </div>
-      <!-- Action Buttons - shows for human tasks -->
-      <div class="modal-section" id="modalActionsSection" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1);">
-        <button id="modalCompleteBtn" onclick="completeFromModal()" style="width:100%;padding:14px 20px;background:linear-gradient(135deg,#238636,#2ea043);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;">
-          ✅ Approve & Mark Complete
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Agent Profile Modal -->
-<div class="modal-overlay" id="agentModal" onclick="closeAgentModal(event)">
-  <div class="modal" style="max-width:700px;max-height:85vh;" onclick="event.stopPropagation()">
-    <div class="modal-header">
-      <div>
-        <div class="modal-title" id="agentModalTitle">🔬 Research Agent</div>
-        <div class="modal-id" id="agentModalFile">agents/research-agent.md</div>
-      </div>
-      <button class="modal-close" onclick="closeAgentModal()">&times;</button>
-    </div>
-    <div class="modal-body" style="padding:0;">
-      <div style="display:flex;gap:8px;padding:16px;border-bottom:1px solid rgba(255,255,255,0.06);">
-        <button id="agentViewBtn" onclick="setAgentView('view')" class="agent-tab active">📖 View Profile</button>
-        <button id="agentEditBtn" onclick="setAgentView('edit')" class="agent-tab">✏️ Edit Rules</button>
-        <button id="agentTasksBtn" onclick="setAgentView('tasks')" class="agent-tab">📋 Tasks</button>
-      </div>
-      <div id="agentViewContent" style="padding:16px;max-height:55vh;overflow-y:auto;">
-        <div id="agentProfile" style="font-family:'SF Mono','Fira Code',monospace;font-size:12px;line-height:1.6;white-space:pre-wrap;color:#c9d1d9;"></div>
-      </div>
-      <div id="agentEditContent" style="padding:16px;display:none;">
-        <textarea id="agentEditArea" style="width:100%;height:400px;background:#0d1117;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:12px;font-family:'SF Mono','Fira Code',monospace;font-size:12px;color:#c9d1d9;resize:vertical;"></textarea>
-        <button onclick="saveAgentProfile()" style="margin-top:12px;padding:10px 20px;background:linear-gradient(135deg,#238636,#2ea043);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;">💾 Save Changes</button>
-      </div>
-      <div id="agentTasksContent" style="padding:16px;display:none;">
-        <div id="agentTasksList" style="font-size:13px;"></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="container">
-  <div class="header">
-    <h1><span class="live-dot" id="liveDot"></span> Mission Control</h1>
-    <div class="header-controls">
-      <a id="gatewayLink" class="gateway-link" href="http://127.0.0.1:18789" target="_blank" rel="noopener">⚙ Gateway</a>
-      <select id="modelSelect" class="model-select" title="Default model for new runs" onchange="setDefaultModel(this.value)">
-        <option value="">Loading models…</option>
-      </select>
-      <span id="modelHint" class="model-hint">Model usage hint will appear here</span>
-      <span id="brainModel" class="brain-pill">🧠 runtime --</span>
-      <!-- Task Search -->
-      <div style="position:relative;">
-        <input type="text" id="taskSearch" placeholder="🔍 T001..." 
-          style="width:90px;padding:6px 10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#e6edf3;font-size:12px;font-family:'SF Mono','Fira Code',monospace;transition:all 0.2s;"
-          onfocus="this.style.width='140px';this.style.borderColor='rgba(96,165,250,0.5)'"
-          onblur="if(!this.value)this.style.width='90px';this.style.borderColor='rgba(255,255,255,0.1)'"
-          onkeyup="handleTaskSearch(event)">
-        <div id="searchResults" style="display:none;position:absolute;top:100%;left:0;right:0;background:#161b22;border:1px solid rgba(96,165,250,0.3);border-radius:8px;margin-top:4px;max-height:200px;overflow-y:auto;z-index:100;box-shadow:0 8px 24px rgba(0,0,0,0.4);"></div>
-      </div>
-      <span id="lastActivity" style="font-size:10px;color:#6e7681;">⏱ --</span>
-      <button class="predictions-btn" onclick="openPredictionsModal()">🎮 Predictions <span id="predBadge" style="background:rgba(139,92,246,0.4);padding:2px 6px;border-radius:10px;font-size:10px;">0</span></button>
-      <div class="status-badge working" id="globalStatus">WORKING</div>
-    </div>
-  </div>
-
-  <div class="deadline-banner">
-    <span class="deadline-text">💕 Valentine's Day Order Cutoff</span>
-    <span class="deadline-days" id="deadlineDays">-- days</span>
-  </div>
-
-  <!-- Agent Squad Panel - ALWAYS VISIBLE -->
-  <div class="agent-squad-panel" id="agentSquadPanel">
-    <div class="squad-header">
-      <span class="lane-title">🏢 Agent Squad</span>
-      <span class="squad-status" id="squadStatus">All Idle</span>
-    </div>
-    <div class="squad-grid" id="squadGrid">
-      <div class="squad-agent" id="agent-research" data-agent="research" onclick="openAgentModal('research')" title="Click to view Research Agent profile">
-        <div class="squad-agent-icon">🔬</div>
-        <div class="squad-agent-info">
-          <div class="squad-agent-name">Research</div>
-          <div class="squad-agent-status idle">Idle</div>
-          <div class="squad-agent-task" id="research-task">—</div>
-        </div>
-      </div>
-      <div class="squad-agent" id="agent-content" data-agent="content" onclick="openAgentModal('content')" title="Click to view Content Agent profile">
-        <div class="squad-agent-icon">✍️</div>
-        <div class="squad-agent-info">
-          <div class="squad-agent-name">Content</div>
-          <div class="squad-agent-status idle">Idle</div>
-          <div class="squad-agent-task" id="content-task">—</div>
-        </div>
-      </div>
-      <div class="squad-agent" id="agent-audit" data-agent="audit" onclick="openAgentModal('audit')" title="Click to view Audit Agent profile">
-        <div class="squad-agent-icon">🔍</div>
-        <div class="squad-agent-info">
-          <div class="squad-agent-name">Audit</div>
-          <div class="squad-agent-status idle">Idle</div>
-          <div class="squad-agent-task" id="audit-task">—</div>
-        </div>
-      </div>
-      <div class="squad-agent" id="agent-analytics" data-agent="analytics" onclick="openAgentModal('analytics')" title="Click to view Analytics Agent profile">
-        <div class="squad-agent-icon">📊</div>
-        <div class="squad-agent-info">
-          <div class="squad-agent-name">Analytics</div>
-          <div class="squad-agent-status idle">Idle</div>
-          <div class="squad-agent-task" id="analytics-task">—</div>
-        </div>
-      </div>
-      <div class="squad-agent" id="agent-code" data-agent="code" onclick="openAgentModal('code')" title="Click to view Code Agent profile">
-        <div class="squad-agent-icon">💻</div>
-        <div class="squad-agent-info">
-          <div class="squad-agent-name">Code</div>
-          <div class="squad-agent-status idle">Idle</div>
-          <div class="squad-agent-task" id="code-task">—</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Parallel Execution Panel (legacy - hidden if no active) -->
-  <div class="parallel-panel" id="parallelPanel" style="display:none;">
-    <div class="parallel-header">
-      <span class="lane-title">🔄 Parallel Execution <span class="lane-count" id="activeAgentCount">0</span></span>
-      <span id="parallelToggle" style="cursor:pointer;font-size:11px;color:#8b949e;" onclick="toggleParallelDetails()">▼ Details</span>
-    </div>
-    <div class="parallel-agents" id="parallelAgents"></div>
-    <div class="parallel-details collapsed" id="parallelDetails">
-      <div class="specialty-legend">
-        <span class="specialty-badge research">🔬 Research</span>
-        <span class="specialty-badge content">✍️ Content</span>
-        <span class="specialty-badge audit">🔍 Audit</span>
-        <span class="specialty-badge analytics">📊 Analytics</span>
-        <span class="specialty-badge code">💻 Code</span>
-        <span class="specialty-badge general">🤖 General</span>
-      </div>
-    </div>
-  </div>
-
-  <div class="task-board" id="taskBoard">
-    <!-- Bot Current -->
-    <div class="lane bot-current">
-      <div class="lane-header">
-        <span class="lane-title">🤖 Bot - Working Now</span>
-        <span class="lane-count" id="botCurrentCount" onclick="toggleLane('botCurrentTasks')" title="Click to expand/collapse">0</span>
-      </div>
-      <div id="botCurrentTasks" class="lane-tasks">Loading...</div>
-      <div class="expand-hint" onclick="toggleLane('botCurrentTasks')">▼ Click to see all</div>
-    </div>
-
-    <!-- Bot Queue -->
-    <div class="lane bot-queue">
-      <div class="lane-header">
-        <span class="lane-title">📋 Bot - Queue</span>
-        <span class="lane-count" id="botQueueCount" onclick="toggleLane('botQueueTasks')" title="Click to expand/collapse">0</span>
-      </div>
-      <div id="botQueueTasks" class="lane-tasks">Loading...</div>
-      <div class="expand-hint" onclick="toggleLane('botQueueTasks')">▼ Click to see all 26</div>
-    </div>
-
-    <!-- Human Tasks -->
-    <div class="lane human">
-      <div class="lane-header">
-        <span class="lane-title">👤 Francisco - Your Tasks</span>
-        <span class="lane-count" id="humanCount" onclick="toggleLane('humanTasks')" title="Click to expand/collapse">0</span>
-      </div>
-      <div id="humanTasks" class="lane-tasks">Loading...</div>
-      <div class="expand-hint" onclick="toggleLane('humanTasks')">▼ Click to see all</div>
-    </div>
-  </div>
-
-  <!-- Done Section with Date Filter -->
-  <div class="done-section">
-    <div class="done-header">
-      <div class="done-header-left" onclick="toggleDone()">
-        <span class="lane-title">✅ Done <span class="lane-count" id="doneCount">0</span></span>
-        <span id="doneToggle">▼ Show</span>
-      </div>
-      <div class="done-date-filter">
-        <button class="date-btn" onclick="showDoneDate('yesterday')">Yesterday</button>
-        <button class="date-btn active" onclick="showDoneDate('today')">Today</button>
-        <input type="date" id="doneDate" class="date-input" onchange="showDoneDate(this.value)">
-      </div>
-    </div>
-    <div class="done-grid collapsed" id="doneTasks"></div>
-  </div>
-
-  <!-- Know Me Game -->
-  <div class="knowme-section" id="knowmeSection">
-    <div class="lane-header" onclick="toggleKnowMe()" style="cursor:pointer;">
-      <span class="lane-title">🎮 Know Me Game</span>
-      <span id="knowmeToggle" style="font-size:11px;color:#8b949e;">▼ Show</span>
-    </div>
-    <div class="knowme-content collapsed" id="knowmeContent">
-      <div style="padding:12px;background:rgba(139,92,246,0.08);border-radius:10px;margin-bottom:12px;">
-        <div style="font-size:12px;color:#c9d1d9;margin-bottom:10px;">Choose a category and I'll create a scenario:</div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;" id="categoryButtons">
-          <button class="cat-btn" onclick="getScenario('decisions')">🧠 Decisions</button>
-          <button class="cat-btn" onclick="getScenario('values')">❤️ Values</button>
-          <button class="cat-btn" onclick="getScenario('reactions')">😤 Reactions</button>
-          <button class="cat-btn" onclick="getScenario('preferences')">🎯 Preferences</button>
-          <button class="cat-btn" onclick="getScenario('family')">👨‍👩‍👧‍👦 Family</button>
-          <button class="cat-btn" onclick="getScenario('business')">💼 Business</button>
-          <button class="cat-btn" onclick="getScenario('fun')">🎮 Fun</button>
-          <button class="cat-btn" onclick="getScenario('past')">📖 Past</button>
-          <button class="cat-btn" onclick="getScenario('future')">🔮 Future</button>
-        </div>
-      </div>
-      
-      <div id="currentScenario" style="display:none;padding:14px;background:rgba(0,0,0,0.3);border-radius:10px;margin-bottom:12px;">
-        <div style="font-size:10px;color:#a78bfa;text-transform:uppercase;margin-bottom:6px;">Current Scenario</div>
-        <div id="scenarioText" style="font-size:14px;color:#e6edf3;line-height:1.5;margin-bottom:10px;"></div>
-        <div id="botPrediction" style="font-size:12px;color:#fbbf24;margin-bottom:12px;padding:8px;background:rgba(251,191,36,0.1);border-radius:6px;"></div>
-        <div style="margin-bottom:10px;">
-          <div style="font-size:11px;color:#8b949e;margin-bottom:6px;">Your answer:</div>
-          <textarea id="userAnswer" placeholder="What would you actually do/say?" style="width:100%;padding:10px;font-size:13px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#c9d1d9;min-height:60px;resize:vertical;"></textarea>
-        </div>
-        <div style="margin-bottom:12px;">
-          <div style="font-size:12px;color:#8b949e;margin-bottom:8px;">Score my prediction:</div>
-          <div style="display:flex;gap:8px;justify-content:center;">
-            <button class="qa-score-btn" onclick="selectQAScore(1)">1<br><span>Wrong</span></button>
-            <button class="qa-score-btn" onclick="selectQAScore(2)">2<br><span>Off</span></button>
-            <button class="qa-score-btn" onclick="selectQAScore(3)">3<br><span>Close</span></button>
-            <button class="qa-score-btn" onclick="selectQAScore(4)">4<br><span>Good</span></button>
-            <button class="qa-score-btn" onclick="selectQAScore(5)">5<br><span>Spot on</span></button>
-          </div>
-        </div>
-        <button onclick="submitQAResponse()" style="width:100%;padding:10px;background:rgba(139,92,246,0.3);border:1px solid rgba(139,92,246,0.5);border-radius:6px;color:#fff;font-weight:600;cursor:pointer;">Submit & Next</button>
-      </div>
-      
-      <div style="padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <span style="font-size:12px;color:#8b949e;font-weight:600;">📜 Q&A History</span>
-          <span style="font-size:11px;color:#6e7681;" id="qaCount">0 rounds played</span>
-        </div>
-        <div id="qaHistory" style="max-height:200px;overflow-y:auto;"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Trash -->
-  <div class="trash-section" id="trashSection" style="display:none;">
-    <div class="lane-header">
-      <span class="lane-title">🗑 Trash <span class="lane-count" id="trashCount">0</span></span>
-      <span style="font-size:11px;color:#8b949e;">Auto-empties after 7 days</span>
-    </div>
-    <div class="trash-grid" id="trashTasks"></div>
-  </div>
-
-  <!-- Scheduled -->
-  <div class="scheduled-section">
-    <div class="lane-header">
-      <span class="lane-title">⏰ Scheduled (Cron Jobs)</span>
-    </div>
-    <div class="scheduled-grid" id="scheduledTasks">Loading...</div>
-  </div>
-
-  <div class="footer">
-    <span>Auto-refreshes every 15 seconds</span>
-    <span id="lastUpdate"></span>
-  </div>
-</div>
-
-<script>
-let allTasks = {};  // Store tasks globally for modal access
-let allLanes = {};  // Store lanes globally for checking task ownership
-
-// Track lane expanded states
-const laneExpanded = {
-  botCurrentTasks: false,
-  botQueueTasks: false,
-  humanTasks: false
-};
-
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function escapeJsString(value) {
-  return String(value ?? '')
-    .replace(/\\/g, '\\\\')
-    .replace(/'/g, "\\'")
-    .replace(/\r/g, '\\r')
-    .replace(/\n/g, '\\n')
-    .replace(/\u2028/g, '\\u2028')
-    .replace(/\u2029/g, '\\u2029');
-}
-
-function escapeCssClass(value) {
-  return String(value ?? '').replace(/[^a-zA-Z0-9_-]/g, '');
-}
-
-function buildSafeDomId(prefix, value) {
-  return `${prefix}-${String(value ?? '').replace(/[^a-zA-Z0-9_-]/g, '_')}`;
-}
-
-// Toggle lane expand/collapse and re-render
-function toggleLane(laneId) {
-  laneExpanded[laneId] = !laneExpanded[laneId];
-  loadTaskBoard(); // Re-render with new state
-}
-
-let currentConfiguredModel = null;
-let currentRuntimeModel = null;
-let lastModelSelectorRefreshMs = 0;
-const MODEL_HINTS = {
-  'openai-codex/gpt-5.2': 'Balanced default: planning, research, and general execution.',
-  'openai-codex/gpt-5.2-codex': 'Code-heavy work: refactors, debugging, and implementation.',
-  'openai-codex/gpt-5.1': 'Fast chat mode: lightweight planning and quick replies.',
-  'openai-codex/gpt-5.1-codex-max': 'Deep coding: complex architecture and hard bug hunts.',
-  'openai-codex/gpt-5.1-codex-mini': 'Lowest latency coding: small edits and tight loops.',
-  'anthropic/claude-opus-4-5': 'Long-form reasoning: strategy, large-context synthesis.',
-  'anthropic/claude-sonnet-4-5': 'General purpose Claude: good speed/quality balance.',
-  'ollama/llama3.1:8b': 'Local zero-cost fast mode: drafts and routine automation.',
-  'ollama/gpt-oss:20b': 'Local deeper mode: better quality without cloud spend.',
-};
-const MODEL_BADGES = {
-  'openai-codex/gpt-5.2': 'Plan/Research',
-  'openai-codex/gpt-5.2-codex': 'Coding (deep)',
-  'openai-codex/gpt-5.1': 'Drafting (fast)',
-  'openai-codex/gpt-5.1-codex-max': 'Coding (max)',
-  'openai-codex/gpt-5.1-codex-mini': 'Coding (fast loop)',
-  'anthropic/claude-opus-4-5': 'Long reasoning',
-  'anthropic/claude-sonnet-4-5': 'Balanced alt',
-  'ollama/llama3.1:8b': 'Local fast ($0)',
-  'ollama/gpt-oss:20b': 'Local quality ($0)',
-};
-
-function getModelHint(modelKey) {
-  return MODEL_HINTS[modelKey] || 'Pick a model by workload: fast, deep, or local.';
-}
-
-function updateModelHint(runtimeKey) {
-  const hint = document.getElementById('modelHint');
-  if (!hint) return;
-  const effective = runtimeKey || currentRuntimeModel || currentConfiguredModel || '';
-  const text = getModelHint(effective);
-  hint.textContent = text;
-  hint.title = effective ? `${effective} - ${text}` : text;
-}
-
-async function loadModelSelector() {
-  const select = document.getElementById('modelSelect');
-  if (!select) return;
-  const previous = select.value;
-  try {
-    const resp = await fetch('/api/models?' + Date.now());
-    const data = await resp.json();
-    if (data.loading && (!Array.isArray(data.models) || data.models.length === 0)) {
-      select.innerHTML = '<option value="">Loading models…</option>';
-      select.disabled = true;
-      setTimeout(() => loadModelSelector(), 2500);
-      return;
-    }
-    const models = Array.isArray(data.models) ? data.models : [];
-    currentConfiguredModel = data.defaultModel || null;
-
-    select.innerHTML = '';
-    if (models.length === 0) {
-      const emptyOption = document.createElement('option');
-      emptyOption.value = '';
-      emptyOption.textContent = 'No configured models';
-      select.appendChild(emptyOption);
-      select.disabled = true;
-      return;
-    }
-
-    for (const model of models) {
-      const key = model.key || '';
-      if (!key) continue;
-      const option = document.createElement('option');
-      option.value = key;
-      const baseLabel = model.name ? `${model.name} [${key}]` : key;
-      const badge = MODEL_BADGES[key];
-      const label = badge ? `${baseLabel} - ${badge}` : baseLabel;
-      option.textContent = label;
-      option.title = getModelHint(key);
-      select.appendChild(option);
-    }
-
-    const desiredValue = currentConfiguredModel || previous;
-    if (desiredValue && Array.from(select.options).some(opt => opt.value === desiredValue)) {
-      select.value = desiredValue;
-    } else {
-      currentConfiguredModel = select.value;
-    }
-    updateModelHint(currentRuntimeModel);
-    select.disabled = false;
-    lastModelSelectorRefreshMs = Date.now();
-  } catch (e) {
-    select.innerHTML = '<option value="">Model list unavailable</option>';
-    select.disabled = true;
-    updateModelHint(currentRuntimeModel);
-  }
-}
-
-async function setDefaultModel(modelKey) {
-  const select = document.getElementById('modelSelect');
-  if (!select || !modelKey || modelKey === currentConfiguredModel) {
-    return;
-  }
-
-  select.disabled = true;
-  try {
-    const resp = await fetch('/api/model-select', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: modelKey })
-    });
-    const data = await resp.json();
-    if (!resp.ok || data.error) {
-      throw new Error(data.error || `Failed to set model (${resp.status})`);
-    }
-    currentConfiguredModel = data.defaultModel || modelKey;
-    await loadModelSelector();
-    await loadStatusBar();
-  } catch (e) {
-    alert(`Model change failed: ${e.message || e}`);
-    await loadModelSelector();
-  } finally {
-    if (select) select.disabled = false;
-  }
-}
-
-async function loadStatusBar() {
-  const liveDot = document.getElementById('liveDot');
-  const gatewayLink = document.getElementById('gatewayLink');
-  const brainModel = document.getElementById('brainModel');
-  const modelSelect = document.getElementById('modelSelect');
-  try {
-    const resp = await fetch('/api/status?' + Date.now());
-    const data = await resp.json();
-    const online = !!data.online;
-    liveDot.classList.toggle('offline', !online);
-
-    if (data.gateway && data.gateway.url) {
-      gatewayLink.href = data.gateway.url;
-    }
-
-    const info = data.sessionInfo || {};
-    const provider = info.provider || '';
-    const model = info.model || '--';
-    const runtimeLabel = model.includes('/') ? model : `${provider || 'unknown'}/${model}`;
-    const runtimeKey = model.includes('/') ? model : (provider ? `${provider}/${model}` : '');
-    currentRuntimeModel = runtimeKey || null;
-    const runtimeDiff = !!runtimeKey && !!currentConfiguredModel && runtimeKey !== currentConfiguredModel;
-    brainModel.textContent = runtimeDiff
-      ? `🧠 runtime ${runtimeLabel} (override)`
-      : `🧠 runtime ${runtimeLabel}`;
-    brainModel.classList.toggle('runtime-override', runtimeDiff);
-    if (modelSelect) {
-      const effectiveKey = runtimeDiff ? runtimeKey : (currentConfiguredModel || runtimeKey);
-      const recommendation = effectiveKey ? getModelHint(effectiveKey) : '';
-      if (runtimeDiff) {
-        modelSelect.title = `Default: ${currentConfiguredModel} | Runtime: ${runtimeKey}${recommendation ? ` | ${recommendation}` : ''}`;
-      } else if (runtimeKey) {
-        modelSelect.title = `Default model for new runs (runtime: ${runtimeKey})${recommendation ? ` | ${recommendation}` : ''}`;
-      }
-    }
-    if (info.source) {
-      brainModel.title = `Runtime source: ${info.source}`;
-    }
-    updateModelHint(runtimeKey);
-  } catch (e) {
-    liveDot.classList.add('offline');
-    brainModel.textContent = '🧠 runtime disconnected';
-    brainModel.classList.remove('runtime-override');
-    brainModel.removeAttribute('title');
-    currentRuntimeModel = null;
-    updateModelHint(null);
-  }
-}
-
-async function loadTaskBoard() {
-  try {
-    const resp = await fetch('/api/tasks?' + Date.now());
-    const data = await resp.json();
-    if (data.error) {
-      throw new Error(data.error);
-    }
-
-    const tasks = data.tasks || {};
-    allTasks = tasks;  // Store for modal
-    const lanes = data.lanes || {};
-    allLanes = lanes;  // Store for modal ownership check
-    
-    // Update last activity timestamp
-    const lastActivityEl = document.getElementById('lastActivity');
-    if (data.updated_at) {
-      const lastUpdate = new Date(data.updated_at);
-      const now = new Date();
-      const diffSec = Math.floor((now - lastUpdate) / 1000);
-      let timeAgo;
-      if (diffSec < 60) timeAgo = diffSec + 's ago';
-      else if (diffSec < 3600) timeAgo = Math.floor(diffSec/60) + 'm ago';
-      else timeAgo = Math.floor(diffSec/3600) + 'h ago';
-      lastActivityEl.textContent = '⏱ ' + timeAgo;
-      lastActivityEl.title = 'Last state update: ' + lastUpdate.toLocaleString();
-      // Visual indicator if stale (>5min)
-      if (diffSec > 300) {
-        lastActivityEl.style.color = '#fbbf24';
-      } else {
-        lastActivityEl.style.color = '#4ade80';
-      }
-    }
-
-    // Calculate deadline
-    const deadline = new Date('2026-02-10');
-    const today = new Date();
-    const daysLeft = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24));
-    document.getElementById('deadlineDays').textContent = daysLeft + ' days';
-
-    // Render Bot Current (handle both string and array formats)
-    let botCurrentIds = lanes.bot_current || [];
-    if (typeof botCurrentIds === 'string') {
-      botCurrentIds = botCurrentIds ? [botCurrentIds] : [];
-    }
-    document.getElementById('botCurrentCount').textContent = botCurrentIds.length;
-    const botCurrentLimit = laneExpanded.botCurrentTasks ? botCurrentIds.length : 2;
-    const botCurrentVisible = botCurrentIds.slice(0, botCurrentLimit);
-    const botCurrentHidden = botCurrentIds.length - botCurrentLimit;
-    document.getElementById('botCurrentTasks').innerHTML = botCurrentVisible.map(id => {
-      const t = tasks[id];
-      if (!t) return '';
-      return renderTask(id, t, 'in-progress');
-    }).join('') || '<div style="color:#6e7681;font-size:12px;">No active task</div>';
-    // Update expand hint for bot current
-    const botCurrentHint = document.querySelector('#botCurrentTasks + .expand-hint');
-    if (botCurrentHint) {
-      if (laneExpanded.botCurrentTasks || botCurrentHidden <= 0) {
-        botCurrentHint.style.display = 'none';
-      } else {
-        botCurrentHint.textContent = '▼ Click to see ' + botCurrentHidden + ' more';
-        botCurrentHint.style.display = 'block';
-      }
-    }
-
-    // Update global status badge
-    const statusBadge = document.getElementById('globalStatus');
-    if (botCurrentIds.length > 0) {
-      statusBadge.textContent = 'WORKING';
-      statusBadge.className = 'status-badge working';
-    } else {
-      statusBadge.textContent = 'IDLE';
-      statusBadge.className = 'status-badge idle';
-    }
-
-    // Render Bot Queue
-    const botQueueIds = lanes.bot_queue || [];
-    document.getElementById('botQueueCount').textContent = botQueueIds.length;
-    const botQueueLimit = laneExpanded.botQueueTasks ? botQueueIds.length : 2;
-    const botQueueVisible = botQueueIds.slice(0, botQueueLimit);
-    const botQueueHidden = botQueueIds.length - botQueueLimit;
-    document.getElementById('botQueueTasks').innerHTML = botQueueVisible.map((id, idx) => {
-      const t = tasks[id];
-      if (!t) return '';
-      return renderTask(id, t, 'pending', idx === 0 ? 'NEXT' : null, {index: idx, total: botQueueIds.length});
-    }).join('') || '<div style="color:#8b949e;font-size:13px;">Queue empty 🎉</div>';
-    // Update expand hint for bot queue
-    const botQueueHint = document.querySelector('#botQueueTasks + .expand-hint');
-    if (botQueueHint) {
-      if (laneExpanded.botQueueTasks || botQueueHidden <= 0) {
-        botQueueHint.style.display = 'none';
-      } else {
-        botQueueHint.textContent = '▼ Click to see ' + botQueueHidden + ' more';
-        botQueueHint.style.display = 'block';
-      }
-    }
-
-    // Render Human Tasks
-    const humanIds = lanes.human || [];
-    document.getElementById('humanCount').textContent = humanIds.length;
-    const humanLimit = laneExpanded.humanTasks ? humanIds.length : 2;
-    const humanVisible = humanIds.slice(0, humanLimit);
-    const humanHidden = humanIds.length - humanLimit;
-    document.getElementById('humanTasks').innerHTML = humanVisible.map(id => {
-      const t = tasks[id];
-      if (!t) return '';
-      return renderTask(id, t, 'human-task');
-    }).join('') || '<div style="color:#8b949e;font-size:13px;">All done! 🎉</div>';
-    // Update expand hint for human tasks
-    const humanHint = document.querySelector('#humanTasks + .expand-hint');
-    if (humanHint) {
-      if (laneExpanded.humanTasks || humanHidden <= 0) {
-        humanHint.style.display = 'none';
-      } else {
-        humanHint.textContent = '▼ Click to see ' + humanHidden + ' more';
-        humanHint.style.display = 'block';
-      }
-    }
-
-    // Store lanes for filtering
-    currentLanes = lanes;
-
-    // Render Done with date filter
-    renderDoneTasks();
-
-    // Render Trash
-    const trashIds = lanes.trash || [];
-    const trashSection = document.getElementById('trashSection');
-    if (trashIds.length > 0) {
-      trashSection.style.display = 'block';
-      document.getElementById('trashCount').textContent = trashIds.length;
-      document.getElementById('trashTasks').innerHTML = trashIds.map(id => {
-        const t = tasks[id];
-        if (!t) return '';
-        const deletedDate = t.deleted_at ? new Date(t.deleted_at).toLocaleDateString() : '';
-        return `
-          <div class="trash-item">
-            <span class="trash-item-title">${escapeHtml(t.title)}</span>
-            <span class="trash-item-date">${escapeHtml(deletedDate)}</span>
-            <button class="restore-btn" onclick="restoreTask('${escapeJsString(id)}')">↩ Restore</button>
-            <button class="perma-delete-btn" onclick="permanentDelete('${escapeJsString(id)}')" title="Delete forever">✕</button>
-          </div>
-        `;
-      }).join('');
-    } else {
-      trashSection.style.display = 'none';
-    }
-
-    // Render Scheduled (Cron Jobs) - fetch from actual Clawdbot cron system
-    loadCronJobs();
-    
-    // Render Parallel Execution Panel
-    renderParallelExecution(data);
-
-    document.getElementById('lastUpdate').textContent = 'Updated: ' + new Date().toLocaleTimeString();
-
-    // Update Agent Squad panel
-    updateAgentSquad(tasks, lanes);
-    
-  } catch(e) {
-    console.error('Failed to load tasks:', e);
-    document.getElementById('botCurrentTasks').innerHTML = '<div style="color:#f85149;">Failed to load tasks.json</div>';
-  }
-}
-
-// Update Agent Squad panel based on claimed tasks and sessions
-function updateAgentSquad(tasks, lanes) {
-  const agents = ['research', 'content', 'audit', 'analytics', 'code'];
-  let workingCount = 0;
-  
-  // Find tasks claimed by each agent type
-  const agentTasks = {};
-  agents.forEach(a => agentTasks[a] = null);
-  
-  // Check bot_current and bot_queue for claimed or required_agent tasks
-  const activeLanes = [...(lanes.bot_current || []), ...(lanes.bot_queue || [])];
-  
-  activeLanes.forEach(taskId => {
-    const task = tasks[taskId];
-    if (!task) return;
-    
-    // Check if claimed by a specific agent
-    if (task.claimed_by && task.claimed_by.specialty) {
-      const specialty = task.claimed_by.specialty;
-      if (agents.includes(specialty) && !agentTasks[specialty]) {
-        agentTasks[specialty] = { id: taskId, title: task.title, status: 'working' };
-      }
-    }
-    // Or check required_agent on active tasks
-    else if (task.required_agent && agents.includes(task.required_agent)) {
-      const specialty = task.required_agent;
-      if (!agentTasks[specialty] && task.status === 'in_progress') {
-        agentTasks[specialty] = { id: taskId, title: task.title, status: 'working' };
-      }
-    }
-  });
-  
-  // Update UI for each agent
-  agents.forEach(agentType => {
-    const el = document.getElementById(`agent-${agentType}`);
-    const taskEl = document.getElementById(`${agentType}-task`);
-    const statusEl = el.querySelector('.squad-agent-status');
-    
-    if (agentTasks[agentType]) {
-      const task = agentTasks[agentType];
-      el.classList.add('working');
-      el.classList.remove('idle');
-      statusEl.textContent = 'Working';
-      statusEl.className = 'squad-agent-status working';
-      const safeTaskId = escapeJsString(task.id);
-      const safeTaskLabel = escapeHtml(task.id);
-      const safeTitle = escapeHtml((task.title || '').substring(0, 25));
-      taskEl.innerHTML = `<a href="#" onclick="showTaskDetail('${safeTaskId}');return false;">${safeTaskLabel}</a>: ${safeTitle}...`;
-      workingCount++;
-    } else {
-      el.classList.remove('working');
-      el.classList.add('idle');
-      statusEl.textContent = 'Idle';
-      statusEl.className = 'squad-agent-status idle';
-      taskEl.textContent = '—';
-    }
-  });
-  
-  // Update squad status badge
-  const statusEl = document.getElementById('squadStatus');
-  if (workingCount > 0) {
-    statusEl.textContent = `${workingCount} Working`;
-    statusEl.classList.add('working');
-  } else {
-    statusEl.textContent = 'All Idle';
-    statusEl.classList.remove('working');
-  }
-}
-
-// Load actual cron jobs from Clawdbot gateway
-async function loadCronJobs() {
-  const container = document.getElementById('scheduledTasks');
-  try {
-    const resp = await fetch('/api/cron-jobs?' + Date.now());
-    const data = await resp.json();
-    
-    if (data.error && !data.jobs?.length) {
-      container.innerHTML = `<div style="color:#f85149;font-size:11px;">Error: ${escapeHtml(data.error)}</div>`;
-      return;
-    }
-    
-    const jobs = data.jobs || [];
-    if (jobs.length === 0) {
-      container.innerHTML = '<div style="color:#8b949e;">No cron jobs configured</div>';
-      return;
-    }
-    
-    // Format next run time nicely
-    function formatNextRun(nextRunMs) {
-      if (!nextRunMs) return 'Not scheduled';
-      const now = Date.now();
-      const diff = nextRunMs - now;
-      if (diff < 0) return 'Overdue';
-      if (diff < 3600000) return Math.round(diff / 60000) + ' min';
-      if (diff < 86400000) return Math.round(diff / 3600000) + ' hrs';
-      return new Date(nextRunMs).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-    }
-    
-    // Format last run
-    function formatLastRun(lastRunMs, lastStatus) {
-      if (!lastRunMs) return '';
-      const status = lastStatus === 'ok' ? '✅' : '❌';
-      const date = new Date(lastRunMs);
-      return `<div class="scheduled-last">${status} Last: ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>`;
-    }
-    
-    container.innerHTML = jobs.filter(j => j.enabled).map(job => `
-      <div class="scheduled-item" onclick="showCronDetail('${escapeJsString(job.id)}')" title="${escapeHtml(job.description || job.name || '')}">
-        <div class="scheduled-content">
-          <div class="scheduled-id">${escapeHtml(job.id)}</div>
-          <div class="scheduled-title">${escapeHtml(job.name || '')}</div>
-          <div class="scheduled-time">⏰ ${escapeHtml(job.schedule || '')}</div>
-          <div class="scheduled-next">Next: ${formatNextRun(job.nextRunMs)}</div>
-          ${formatLastRun(job.lastRunMs, job.lastStatus)}
-        </div>
-        <button class="delete-btn scheduled-delete" onclick="event.stopPropagation(); deleteCronJob('${escapeJsString(job.id)}')" title="Delete">✕</button>
-      </div>
-    `).join('');
-    
-  } catch(e) {
-    console.error('Failed to load cron jobs:', e);
-    container.innerHTML = '<div style="color:#f85149;font-size:11px;">Failed to load cron jobs</div>';
-  }
-}
-
-async function deleteCronJob(id) {
-  if (!confirm('Delete cron job ' + id + '? This cannot be undone.')) return;
-  
-  // TODO: Call API to delete cron job
-  alert('Delete functionality coming soon. For now, tell the bot to remove cron job ' + id);
-}
-
-function renderTask(id, task, statusClass, badge, queueInfo) {
-  const safeId = escapeJsString(id);
-  const safeIdLabel = escapeHtml(id);
-  const safeTitle = escapeHtml(task.title || '');
-  const planName = task.plan ? String(task.plan).split('/').pop() : '';
-  const planLink = planName ? `<span class="task-plan">📄 ${escapeHtml(planName)}</span>` : '';
-  const estimate = task.estimate ? `<span class="task-estimate">⏱ ${escapeHtml(task.estimate)}</span>` : '';
-  
-  // Priority and claim badges for pool system
-  const priorityBadge = getPriorityBadge(task);
-  const claimedBadge = getClaimedBadge(task);
-  const isClaimed = task.claimed_by && task.claimed_by.agent_id;
-  const claimedClass = isClaimed ? ' claimed' : '';
-  
-  // Required agent specialty badge
-  let specialtyBadge = '';
-  if (task.required_agent && task.required_agent !== 'general') {
-    const emoji = getSpecialtyEmoji(task.required_agent);
-    const specialtyClass = escapeCssClass(task.required_agent);
-    specialtyBadge = `<span class="specialty-badge ${specialtyClass}" style="font-size:9px;padding:2px 6px;">${emoji}</span>`;
-  }
-
-  // Epistemic verification status badge
-  let verificationBadge = '';
-  if (task.epistemic && task.epistemic.verification_status) {
-    const vstatus = task.epistemic.verification_status;
-    let vIcon = '🟡', vClass = 'claimed', vText = 'CLAIMED';
-    if (vstatus === 'evidence_provided') { vIcon = '🔵'; vClass = 'evidence'; vText = 'EVIDENCE'; }
-    else if (vstatus === 'human_verified') { vIcon = '🟢'; vClass = 'human-verified'; vText = 'VERIFIED'; }
-    else if (vstatus === 'automated_verified') { vIcon = '🟣'; vClass = 'automated'; vText = 'AUTO-OK'; }
-    verificationBadge = `<span class="verification-badge ${vClass}">${vIcon} ${vText}</span>`;
-  } else if (task.status === 'done') {
-    // Default: completed tasks without epistemic data are "claimed"
-    verificationBadge = `<span class="verification-badge claimed">🟡 CLAIMED</span>`;
-  }
-
-  // Check for verification badge (human-completed task awaiting bot verification)
-  let badgeHtml = '';
-  if (task.needs_verification) {
-    badgeHtml = `<span class="task-estimate" style="background:#7c3aed;color:#fff;">🔍 VERIFY</span>`;
-  } else if (badge) {
-    badgeHtml = `<span class="task-estimate" style="background:#238636;color:#fff;">${escapeHtml(badge)}</span>`;
-  }
-
-  // Step progress indicator
-  let stepProgress = '';
-  if (task.steps && task.steps.length > 0) {
-    const currentStep = task.current_step || 0;
-    const doneSteps = task.steps.filter(s => s.status === 'done').length;
-    const totalSteps = task.steps.length;
-    const currentStepInfo = task.steps[currentStep];
-    const stepStatus = currentStepInfo ? currentStepInfo.status : 'pending';
-
-    let stepIcon = '📋';
-    let stepColor = '#8b949e';
-    if (stepStatus === 'waiting') {
-      stepIcon = '⏳';
-      stepColor = '#d29922';
-    } else if (stepStatus === 'in_progress') {
-      stepIcon = '⚡';
-      stepColor = '#f0883e';
-    } else if (stepStatus === 'blocked') {
-      stepIcon = '🚫';
-      stepColor = '#f85149';
-    }
-
-    stepProgress = `<span class="task-estimate" style="background:rgba(88,166,255,0.15);color:${stepColor};">${stepIcon} Step ${currentStep + 1}/${totalSteps}</span>`;
-  }
-
-  // Mark Complete button for human tasks
-  const completeBtn = statusClass === 'human-task'
-    ? `<button class="complete-btn" onclick="event.stopPropagation(); requestComplete('${safeId}', this)">✓ Mark Complete</button>`
-    : '';
-
-  // Transfer buttons - move between lanes
-  let transferBtn = '';
-  if (statusClass === 'human-task') {
-    transferBtn = `<button class="transfer-btn" onclick="event.stopPropagation(); transferTask('${safeId}', 'human', 'bot_queue')" title="Move to Bot Queue">🤖←</button>`;
-  } else if (statusClass === 'in-progress') {
-    // Pause button - move from Working back to Queue
-    transferBtn = `<button class="transfer-btn pause-btn" onclick="event.stopPropagation(); transferTask('${safeId}', 'bot_current', 'bot_queue')" title="Pause - Move back to Queue">❚❚</button>`;
-  } else if (queueInfo) {
-    transferBtn = `<button class="transfer-btn" onclick="event.stopPropagation(); transferTask('${safeId}', 'bot_queue', 'human')" title="Move to Human Tasks">→👤</button>`;
-  }
-
-  // Reorder buttons for queue tasks
-  let reorderBtns = '';
-  if (queueInfo) {
-    const upDisabled = queueInfo.index === 0 ? 'disabled' : '';
-    const downDisabled = queueInfo.index === queueInfo.total - 1 ? 'disabled' : '';
-    reorderBtns = `
-      <div class="reorder-controls">
-        <button class="reorder-btn" ${upDisabled} onclick="event.stopPropagation(); reorderTask('${safeId}', 'up')" title="Move up">▲</button>
-        <button class="reorder-btn" ${downDisabled} onclick="event.stopPropagation(); reorderTask('${safeId}', 'down')" title="Move down">▼</button>
-      </div>
-    `;
-  }
-
-  // Delete button for all tasks
-  const deleteBtn = `<button class="delete-btn" onclick="event.stopPropagation(); deleteTask('${safeId}', event)" title="Remove task">✕</button>`;
-
-  // Build toolbar with all action buttons
-  let toolbar = '';
-  const hasActions = completeBtn || transferBtn || reorderBtns || deleteBtn;
-  if (hasActions) {
-    toolbar = `<div class="task-toolbar">${completeBtn}${transferBtn}${reorderBtns}${deleteBtn}</div>`;
-  }
-
-  return `
-    <div class="task-item ${statusClass}${claimedClass}" onclick="showTaskDetail('${safeId}')">
-      <div class="task-id" onclick="event.stopPropagation(); askAboutTask('${safeId}')" title="Click to ask about this task">${safeIdLabel}</div>
-      <div class="task-title-text">${safeTitle}</div>
-      <div class="task-meta">
-        ${priorityBadge}
-        ${specialtyBadge}
-        ${claimedBadge}
-        ${verificationBadge}
-        ${stepProgress}
-        ${planLink}
-        ${estimate}
-        ${badgeHtml}
-        ${toolbar}
-      </div>
-    </div>
-  `;
-}
-
-// Ask the bot about a specific task - adds a comment to trigger bot response
-async function askAboutTask(taskId) {
-  const message = `What is happening with ${taskId}?`;
-  
-  try {
-    const response = await fetch('/api/task-comment', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ taskId, message })
-    });
-    
-    if (response.ok) {
-      // Show quick feedback
-      const toast = document.createElement('div');
-      toast.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#3fb950;color:#fff;padding:12px 20px;border-radius:8px;z-index:9999;animation:fadeIn 0.3s';
-      toast.textContent = `✓ Asked about ${taskId} - check Telegram!`;
-      document.body.appendChild(toast);
-      setTimeout(() => toast.remove(), 3000);
-    }
-  } catch (err) {
-    console.error('Failed to ask about task:', err);
-  }
-}
-
-async function loadTaskDetail(id) {
-  const existing = allTasks[id];
-  if (existing && !existing.__summary) {
-    return existing;
-  }
-  if (existing && existing.status === 'missing') {
-    return existing;
-  }
-  const resp = await fetch('/api/task?id=' + encodeURIComponent(id) + '&' + Date.now());
-  const data = await resp.json();
-  if (!resp.ok || data.error || !data.task) {
-    throw new Error(data.error || `Unable to load task ${id}`);
-  }
-  allTasks[id] = data.task;
-  return data.task;
-}
-
-async function showTaskDetail(id) {
-  let task = allTasks[id];
-  if (!task) return;
-  if (task.__summary && task.status !== 'missing') {
-    try {
-      task = await loadTaskDetail(id);
-    } catch (e) {
-      console.warn('Falling back to summary task payload:', e);
-    }
-  }
-  const safeTaskId = escapeJsString(id);
-  const html = escapeHtml;
-
-  document.getElementById('modalTitle').textContent = task.title;
-  document.getElementById('modalId').textContent = id;
-
-  // Status
-  const statusEl = document.getElementById('modalStatus');
-  const status = task.status || 'pending';
-  statusEl.textContent = status;
-  statusEl.className = 'modal-status ' + (status === 'done' ? 'done' : status === 'in_progress' ? 'in-progress' : 'pending');
-
-  // Context (the WHY)
-  const contextSection = document.getElementById('modalContextSection');
-  if (task.context && (task.context.summary || task.context.why_exists)) {
-    let contextHtml = '';
-
-    // Why it exists (priority display for cron tasks)
-    if (task.context.why_exists) {
-      contextHtml += '<div style="margin-bottom:12px;padding:10px;background:rgba(136,192,208,0.15);border-radius:6px;border-left:3px solid #88c0d0;">';
-      contextHtml += '<strong>❓ Why This Exists:</strong><br>' + html(task.context.why_exists);
-      contextHtml += '</div>';
-    }
-
-    // Benefit to you (priority display for cron tasks)
-    if (task.context.benefit_to_you) {
-      contextHtml += '<div style="margin-bottom:12px;padding:10px;background:rgba(163,190,140,0.15);border-radius:6px;border-left:3px solid #a3be8c;">';
-      contextHtml += '<strong>✅ Benefit To You:</strong><br>' + html(task.context.benefit_to_you);
-      contextHtml += '</div>';
-    }
-
-    // Schedule if present
-    if (task.context.schedule) {
-      contextHtml += '<div style="margin-bottom:12px;font-size:13px;"><strong>⏰ Schedule:</strong> ' + html(task.context.schedule) + '</div>';
-    }
-
-    // Summary (fallback or additional)
-    if (task.context.summary && !task.context.why_exists) {
-      contextHtml += html(task.context.summary);
-    }
-
-    // Add decisions if present
-    if (task.context.decisions && task.context.decisions.length > 0) {
-      contextHtml += '<div style="margin-top:12px;font-size:12px;"><strong>Key Decisions:</strong><ul style="margin:4px 0 0 16px;">';
-      task.context.decisions.forEach(d => {
-        contextHtml += '<li>' + html(d) + '</li>';
-      });
-      contextHtml += '</ul></div>';
-    }
-    // Add constraints if present
-    if (task.context.constraints && task.context.constraints.length > 0) {
-      contextHtml += '<div style="margin-top:8px;font-size:12px;"><strong>Constraints:</strong><ul style="margin:4px 0 0 16px;">';
-      task.context.constraints.forEach(c => {
-        contextHtml += '<li>' + html(c) + '</li>';
-      });
-      contextHtml += '</ul></div>';
-    }
-    document.getElementById('modalContext').innerHTML = contextHtml;
-    contextSection.style.display = 'block';
-  } else {
-    contextSection.style.display = 'none';
-  }
-
-  // Epistemic Section (ROUND 2 - Show verification status, claims, evidence, outcome)
-  const epistemicSection = document.getElementById('modalEpistemicSection');
-  if (task.epistemic || task.outcome) {
-    let epiHtml = '';
-    
-    // Verification Status Badge
-    if (task.epistemic && task.epistemic.verification_status) {
-      const vs = task.epistemic.verification_status;
-      let badge = '🟡 CLAIMED', badgeColor = '#fbbf24';
-      if (vs === 'evidence_provided') { badge = '🔵 EVIDENCE PROVIDED'; badgeColor = '#60a5fa'; }
-      else if (vs === 'human_verified') { badge = '🟢 HUMAN VERIFIED'; badgeColor = '#4ade80'; }
-      else if (vs === 'automated_verified') { badge = '🟣 AUTO VERIFIED'; badgeColor = '#a78bfa'; }
-      epiHtml += `<div style="margin-bottom:12px;"><span style="background:rgba(${badgeColor === '#fbbf24' ? '251,191,36' : badgeColor === '#60a5fa' ? '96,165,250' : badgeColor === '#4ade80' ? '74,222,128' : '167,139,250'},0.2);color:${badgeColor};padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;">${badge}</span></div>`;
-    }
-    
-    // Claims vs Verified
-    if (task.epistemic && task.epistemic.claims) {
-      epiHtml += '<div style="margin-bottom:8px;"><strong style="color:#fbbf24;">📋 Claims:</strong><ul style="margin:4px 0 0 16px;font-size:12px;">';
-      task.epistemic.claims.forEach(c => { epiHtml += '<li>' + html(c) + '</li>'; });
-      epiHtml += '</ul></div>';
-    }
-    if (task.epistemic && task.epistemic.verified && task.epistemic.verified.length > 0) {
-      epiHtml += '<div style="margin-bottom:8px;"><strong style="color:#4ade80;">✅ Verified:</strong><ul style="margin:4px 0 0 16px;font-size:12px;">';
-      task.epistemic.verified.forEach(v => { epiHtml += '<li>' + html(v) + '</li>'; });
-      epiHtml += '</ul></div>';
-    }
-    
-    // Outcome
-    if (task.outcome) {
-      epiHtml += '<div style="margin-top:12px;padding:10px;background:rgba(96,165,250,0.1);border-radius:6px;border-left:3px solid #60a5fa;">';
-      if (task.outcome.intended_effect) epiHtml += '<div style="font-size:12px;"><strong>🎯 Intended:</strong> ' + html(task.outcome.intended_effect) + '</div>';
-      if (task.outcome.success_metric) epiHtml += '<div style="font-size:12px;margin-top:4px;"><strong>📏 Metric:</strong> ' + html(task.outcome.success_metric) + '</div>';
-      if (task.outcome.measured_effect) epiHtml += '<div style="font-size:12px;margin-top:4px;"><strong>📊 Measured:</strong> ' + html(task.outcome.measured_effect) + '</div>';
-      if (task.outcome.success !== null && task.outcome.success !== undefined) {
-        const successIcon = task.outcome.success === true ? '✅' : task.outcome.success === 'partial' ? '⚠️' : '❌';
-        epiHtml += '<div style="font-size:12px;margin-top:4px;"><strong>Result:</strong> ' + successIcon + '</div>';
-      }
-      epiHtml += '</div>';
-    }
-    
-    document.getElementById('modalEpistemic').innerHTML = epiHtml;
-    epistemicSection.style.display = 'block';
-  } else {
-    epistemicSection.style.display = 'none';
-  }
-
-  // Steps Progress
-  const stepsSection = document.getElementById('modalStepsSection');
-  if (task.steps && task.steps.length > 0) {
-    const currentStep = task.current_step || 0;
-    let stepsHtml = '<div style="display:flex;flex-direction:column;gap:8px;">';
-    task.steps.forEach((step, idx) => {
-      let icon, color, bgColor;
-      switch(step.status) {
-        case 'done':
-          icon = '✅'; color = '#3fb950'; bgColor = 'rgba(63,185,80,0.1)';
-          break;
-        case 'in_progress':
-          icon = '⚡'; color = '#f0883e'; bgColor = 'rgba(240,136,62,0.1)';
-          break;
-        case 'waiting':
-          icon = '⏳'; color = '#d29922'; bgColor = 'rgba(210,153,34,0.1)';
-          break;
-        case 'blocked':
-          icon = '🚫'; color = '#f85149'; bgColor = 'rgba(248,81,73,0.1)';
-          break;
-        default:
-          icon = '⬜'; color = '#8b949e'; bgColor = 'transparent';
-      }
-      const isCurrent = idx === currentStep && step.status !== 'done';
-      const border = isCurrent ? 'border: 1px solid ' + color + ';' : '';
-      let stepInfo = html(step.step || '');
-      if (step.waiting_for) {
-        stepInfo += '<div style="font-size:11px;color:#d29922;margin-top:4px;">⏳ Waiting for: ' + html(step.waiting_for) + '</div>';
-      }
-      if (step.completed_at) {
-        const completedTime = new Date(step.completed_at).toLocaleString();
-        stepInfo += '<div style="font-size:10px;color:#8b949e;margin-top:2px;">✓ ' + completedTime + '</div>';
-      }
-      stepsHtml += `
-        <div style="display:flex;gap:10px;padding:8px;border-radius:6px;background:${bgColor};${border}">
-          <span style="font-size:16px;">${icon}</span>
-          <div style="flex:1;">
-            <div style="color:${step.status === 'done' ? '#8b949e' : '#e6edf3'};${step.status === 'done' ? 'text-decoration:line-through;' : ''}">${stepInfo}</div>
-          </div>
-          <span style="font-size:11px;color:#8b949e;">${idx + 1}/${task.steps.length}</span>
-        </div>
-      `;
-    });
-    stepsHtml += '</div>';
-    // Add retry count if exists
-    if (task.retry_count && task.retry_count > 0) {
-      stepsHtml += `<div style="margin-top:8px;font-size:11px;color:#f85149;">⚠️ Retry count: ${task.retry_count}/3</div>`;
-    }
-    document.getElementById('modalSteps').innerHTML = stepsHtml;
-    stepsSection.style.display = 'block';
-  } else {
-    stepsSection.style.display = 'none';
-  }
-
-  // Approach
-  const approachSection = document.getElementById('modalApproachSection');
-  if (task.approach) {
-    document.getElementById('modalApproach').textContent = task.approach;
-    approachSection.style.display = 'block';
-  } else {
-    approachSection.style.display = 'none';
-  }
-
-  // Notes
-  const notesSection = document.getElementById('modalNotesSection');
-  if (task.notes) {
-    document.getElementById('modalNotes').textContent = task.notes;
-    notesSection.style.display = 'block';
-  } else {
-    notesSection.style.display = 'none';
-  }
-
-  // Learnings (for Council tasks)
-  const learningsSection = document.getElementById('modalLearningsSection');
-  if (task.learnings) {
-    let learningsHtml = '';
-    if (task.learnings.question) {
-      learningsHtml += '<div style="margin-bottom:12px;"><strong>Question:</strong> ' + html(task.learnings.question) + '</div>';
-    }
-    if (task.learnings.verdict) {
-      learningsHtml += '<div style="margin-bottom:12px;padding:10px;background:rgba(163,113,247,0.15);border-radius:6px;border-left:3px solid #a371f7;"><strong>Verdict:</strong> ' + html(task.learnings.verdict) + '</div>';
-    }
-    if (task.learnings.outcomes && task.learnings.outcomes.length > 0) {
-      learningsHtml += '<div style="margin-bottom:8px;"><strong>Outcomes:</strong><ul style="margin:4px 0 0 16px;">';
-      task.learnings.outcomes.forEach(function(o) { learningsHtml += '<li>' + html(o) + '</li>'; });
-      learningsHtml += '</ul></div>';
-    }
-    if (task.learnings.actionsTaken && task.learnings.actionsTaken.length > 0) {
-      learningsHtml += '<div><strong>Actions Taken:</strong><ul style="margin:4px 0 0 16px;">';
-      task.learnings.actionsTaken.forEach(function(a) { learningsHtml += '<li>' + html(a) + '</li>'; });
-      learningsHtml += '</ul></div>';
-    }
-    document.getElementById('modalLearnings').innerHTML = learningsHtml;
-    learningsSection.style.display = 'block';
-  } else {
-    learningsSection.style.display = 'none';
-  }
-
-  // Plan link
-  const planSection = document.getElementById('modalPlanSection');
-  if (task.plan) {
-    const planPath = String(task.plan);
-    document.getElementById('modalPlanLink').href = '../' + encodeURI(planPath);
-    document.getElementById('modalPlanName').textContent = planPath;
-    planSection.style.display = 'block';
-  } else {
-    planSection.style.display = 'none';
-  }
-
-  // Timeline (created + completed)
-  const timelineSection = document.getElementById('modalTimelineSection');
-  let timelineHtml = '';
-  if (task.created) {
-    const createdDate = new Date(task.created).toLocaleString();
-    timelineHtml += `<div style="margin-bottom:8px;">📝 <strong>Created:</strong> ${createdDate}</div>`;
-    timelineHtml += `<div style="font-size:11px;color:#8b949e;margin-bottom:8px;">↑ Find this time in Telegram to see original conversation</div>`;
-  }
-  if (task.completed) {
-    const completedDate = new Date(task.completed).toLocaleString();
-    timelineHtml += `<div>✅ <strong>Completed:</strong> ${completedDate}</div>`;
-    // Calculate duration if both exist
-    if (task.created) {
-      const duration = new Date(task.completed) - new Date(task.created);
-      const hours = Math.floor(duration / (1000 * 60 * 60));
-      const mins = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
-      if (hours > 0 || mins > 0) {
-        timelineHtml += `<div style="margin-top:8px;color:#8b949e;">⏱ Duration: ${hours > 0 ? hours + 'h ' : ''}${mins}m</div>`;
-      }
-    }
-  }
-  if (timelineHtml) {
-    document.getElementById('modalTimeline').innerHTML = timelineHtml;
-    timelineSection.style.display = 'block';
-  } else {
-    timelineSection.style.display = 'none';
-  }
-
-  // Discussion / Audit Trail
-  const discussionSection = document.getElementById('modalDiscussionSection');
-  const discussionEl = document.getElementById('modalDiscussion');
-  if (task.discussion && task.discussion.length > 0) {
-    let discussionHtml = '';
-    task.discussion.forEach((msg, idx) => {
-      const time = msg.ts ? new Date(msg.ts).toLocaleString() : '';
-      const isHuman = msg.author === 'human';
-      const authorIcon = isHuman ? '👤' : '🤖';
-      const authorName = isHuman ? 'Francisco' : 'Bot';
-      const bgColor = isHuman ? 'rgba(56,139,253,0.1)' : 'rgba(139,148,158,0.1)';
-      const borderColor = isHuman ? '#388bfd' : '#8b949e';
-      const isCrossedOut = msg.crossed_out === true;
-      const strikeStyle = isCrossedOut ? 'text-decoration:line-through;opacity:0.5;' : '';
-      const btnText = isCrossedOut ? '↩️' : '✕';
-      const btnTitle = isCrossedOut ? 'Restore' : 'Cross out';
-      discussionHtml += `
-        <div style="margin-bottom:10px;padding:10px;background:${bgColor};border-left:3px solid ${borderColor};border-radius:4px;${strikeStyle}">
-          <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-            <span style="font-weight:500;">${authorIcon} ${authorName}</span>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span style="font-size:11px;color:#8b949e;">${html(time || '')}</span>
-              <button onclick="toggleCrossOut('${safeTaskId}', ${idx})" title="${html(btnTitle)}" style="background:none;border:none;cursor:pointer;font-size:12px;opacity:0.6;padding:2px 4px;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6">${btnText}</button>
+            <div class="quick-item" onclick="copy('/model Free')">
+                <div class="emoji">💰</div>
+                <div class="name">Free</div>
+                <div class="desc">Local, no cost</div>
             </div>
-          </div>
-          <div style="font-size:13px;white-space:pre-wrap;">${html(msg.message || '')}</div>
+            <div class="quick-item" onclick="copy('/model Quick')">
+                <div class="emoji">🚀</div>
+                <div class="name">Quick</div>
+                <div class="desc">Fastest local</div>
+            </div>
+            <div class="quick-item" onclick="copy('/model Eyes')">
+                <div class="emoji">👁️</div>
+                <div class="name">Eyes</div>
+                <div class="desc">Sees images</div>
+            </div>
+            <div class="quick-item" onclick="copy('/model Code')">
+                <div class="emoji">💻</div>
+                <div class="name">Code</div>
+                <div class="desc">Programming</div>
+            </div>
+            <div class="quick-item" onclick="copy('/model Think')">
+                <div class="emoji">🧠</div>
+                <div class="name">Think</div>
+                <div class="desc">Math & logic</div>
+            </div>
         </div>
-      `;
-    });
-    discussionEl.innerHTML = discussionHtml;
-    discussionSection.style.display = 'block';
-    // Scroll to bottom of discussion
-    discussionEl.scrollTop = discussionEl.scrollHeight;
-  } else {
-    discussionEl.innerHTML = '<div style="color:#8b949e;font-style:italic;">No discussion yet. Add a comment to start the audit trail.</div>';
-    discussionSection.style.display = 'block';
-  }
-
-  // Store current task ID for comment submission
-  window.currentTaskId = id;
-
-  // Show/hide action buttons based on task owner/lane and status
-  const actionsSection = document.getElementById('modalActionsSection');
-  const isHumanTask = task.owner === 'francisco' || (allLanes && allLanes.human && allLanes.human.includes(id));
-  const isNotDone = task.status !== 'done';
-  if (isHumanTask && isNotDone) {
-    actionsSection.style.display = 'block';
-  } else {
-    actionsSection.style.display = 'none';
-  }
-
-  document.getElementById('taskModal').classList.add('active');
-}
-
-function closeModal(event) {
-  if (event && event.target !== event.currentTarget) return;
-  document.getElementById('taskModal').classList.remove('active');
-}
-
-async function completeFromModal() {
-  const taskId = window.currentTaskId;
-  if (!taskId) return;
-  
-  const btn = document.getElementById('modalCompleteBtn');
-  btn.disabled = true;
-  btn.innerHTML = '⏳ Completing...';
-  
-  try {
-    // Use transfer-task to move from human to done_today
-    const response = await fetch('/api/transfer-task', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ taskId, fromLane: 'human', toLane: 'done_today' })
-    });
+    </div>
     
-    if (response.ok) {
-      btn.innerHTML = '✅ Done!';
-      btn.style.background = '#1a7f37';
-      showToast('Task approved and completed!', 'success');
-      // Close modal and refresh after brief delay
-      setTimeout(() => {
-        closeModal();
-        loadTaskBoard();
-      }, 800);
-    } else {
-      const data = await response.json();
-      showToast(data.error || 'Failed to complete', 'error');
-      btn.innerHTML = '✅ Approve & Mark Complete';
-      btn.disabled = false;
-    }
-  } catch (err) {
-    showToast('Error: ' + err.message, 'error');
-    btn.innerHTML = '✅ Approve & Mark Complete';
-    btn.disabled = false;
-  }
-}
-
-async function submitComment() {
-  const input = document.getElementById('commentInput');
-  const message = input.value.trim();
-  if (!message || !window.currentTaskId) return;
-
-  const taskId = window.currentTaskId;
-  
-  try {
-    const response = await fetch('/api/task-comment', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ taskId, message })
-    });
-    
-    if (response.ok) {
-      input.value = '';
-      // Refresh task data and re-render
-      await loadTaskBoard();
-      showTaskDetail(taskId);
-      showToast('Comment added');
-    } else {
-      showToast('Failed to add comment', true);
-    }
-  } catch (err) {
-    console.error('Comment error:', err);
-    showToast('Failed to add comment', true);
-  }
-}
-
-async function toggleCrossOut(taskId, commentIdx) {
-  try {
-    const response = await fetch('/api/toggle-crossout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ taskId, commentIdx })
-    });
-    
-    if (response.ok) {
-      // Refresh task data and re-render
-      await loadTaskBoard();
-      showTaskDetail(taskId);
-    } else {
-      showToast('Failed to toggle strikethrough', true);
-    }
-  } catch (err) {
-    console.error('Toggle crossout error:', err);
-    showToast('Failed to toggle strikethrough', true);
-  }
-}
-
-let currentDoneFilter = 'today';
-
-function toggleDone() {
-  const grid = document.getElementById('doneTasks');
-  const toggle = document.getElementById('doneToggle');
-  if (grid.classList.contains('collapsed')) {
-    grid.classList.remove('collapsed');
-    toggle.textContent = '▲ Hide';
-  } else {
-    grid.classList.add('collapsed');
-    toggle.textContent = '▼ Show';
-  }
-}
-
-// === KNOW ME GAME ===
-let currentQAScore = null;
-let currentScenarioData = null;
-
-function toggleKnowMe() {
-  const content = document.getElementById('knowmeContent');
-  const toggle = document.getElementById('knowmeToggle');
-  if (content.classList.contains('collapsed')) {
-    content.classList.remove('collapsed');
-    toggle.textContent = '▲ Hide';
-    loadQAHistory();
-  } else {
-    content.classList.add('collapsed');
-    toggle.textContent = '▼ Show';
-  }
-}
-
-async function getScenario(category) {
-  document.getElementById('currentScenario').style.display = 'block';
-  document.getElementById('scenarioText').innerHTML = '<em>Loading scenario...</em>';
-  document.getElementById('botPrediction').innerHTML = '';
-  document.getElementById('userAnswer').value = '';
-  currentQAScore = null;
-  document.querySelectorAll('#currentScenario .qa-score-btn').forEach(btn => btn.classList.remove('active'));
-  
-  try {
-    const resp = await fetch('/api/generate-scenario', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      credentials: 'same-origin',
-      body: JSON.stringify({category})
-    });
-    if (!resp.ok) {
-      throw new Error('Server returned ' + resp.status);
-    }
-    const data = await resp.json();
-    if (data.scenario) {
-      currentScenarioData = data;
-      document.getElementById('scenarioText').textContent = data.scenario;
-      document.getElementById('botPrediction').innerHTML =
-        '🤖 <strong>My prediction:</strong> ' + escapeHtml(data.prediction);
-    } else if (data.error) {
-      document.getElementById('scenarioText').innerHTML =
-        '<em style="color:#f87171;">Error: ' + escapeHtml(data.error) + '</em>';
-    }
-  } catch (e) {
-    document.getElementById('scenarioText').innerHTML =
-      '<em style="color:#f87171;">Failed: ' + escapeHtml(e.message) + '. Try refreshing the page.</em>';
-  }
-}
-
-function selectQAScore(score) {
-  currentQAScore = score;
-  document.querySelectorAll('#currentScenario .qa-score-btn').forEach((btn, i) => {
-    btn.classList.toggle('active', i + 1 === score);
-  });
-}
-
-async function submitQAResponse() {
-  const answer = document.getElementById('userAnswer').value.trim();
-  if (!answer) { alert('Please enter your answer'); return; }
-  if (!currentQAScore) { alert('Please select a score 1-5'); return; }
-  if (!currentScenarioData) { alert('No scenario loaded'); return; }
-  
-  try {
-    const resp = await fetch('/api/submit-qa', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        category: currentScenarioData.category,
-        scenario: currentScenarioData.scenario,
-        prediction: currentScenarioData.prediction,
-        answer: answer,
-        score: currentQAScore
-      })
-    });
-    const result = await resp.json();
-    if (result.ok) {
-      // Reset form
-      document.getElementById('userAnswer').value = '';
-      currentQAScore = null;
-      document.querySelectorAll('#currentScenario .score-btn').forEach(btn => btn.classList.remove('active'));
-      document.getElementById('selectedScore').textContent = '';
-      document.getElementById('currentScenario').style.display = 'none';
-      loadQAHistory();
-    }
-  } catch (e) {
-    alert('Failed to submit. Try again.');
-  }
-}
-
-async function loadQAHistory() {
-  try {
-    const resp = await fetch('/api/qa-history?' + Date.now());
-    const data = await resp.json();
-    const entries = data.entries || [];
-    
-    document.getElementById('qaCount').textContent = entries.length + ' rounds played';
-    
-    if (entries.length === 0) {
-      document.getElementById('qaHistory').innerHTML = '<div style="color:#6e7681;font-size:11px;padding:8px;">No rounds yet. Pick a category above!</div>';
-      return;
-    }
-    
-    let html = '';
-    for (const e of entries.slice(0, 20)) {
-      const stars = '★'.repeat(e.score || 0) + '☆'.repeat(5 - (e.score || 0));
-      html += `
-        <div class="qa-history-item">
-          <div class="category">${escapeHtml(e.category || 'general')}</div>
-          <div class="question">${escapeHtml(e.scenario || '')}</div>
-          <div class="prediction">🤖 Predicted: ${escapeHtml(e.prediction || '')}</div>
-          <div class="answer">✅ You said: ${escapeHtml(e.answer || '')}</div>
-          <div class="score">Score: ${stars}</div>
+    <div class="commands-box">
+        <h2>Commands (click to copy)</h2>
+        <div class="command-examples">
+            <span class="command" onclick="copy('/model Best')">/model Best</span>
+            <span class="command" onclick="copy('/model Fast')">/model Fast</span>
+            <span class="command" onclick="copy('/model Free')">/model Free</span>
+            <span class="command" onclick="copy('/model Quick')">/model Quick</span>
+            <span class="command" onclick="copy('/model Eyes')">/model Eyes</span>
+            <span class="command" onclick="copy('/model Code')">/model Code</span>
+            <span class="command" onclick="copy('/model Think')">/model Think</span>
         </div>
-      `;
-    }
-    document.getElementById('qaHistory').innerHTML = html;
-  } catch (e) {
-    document.getElementById('qaHistory').innerHTML = '<div style="color:#f87171;">Failed to load history</div>';
-  }
-}
-
-// === PREDICTIONS (Reinforcement Learning) ===
-let predictionsData = null;
-
-function openPredictionsModal() {
-  document.getElementById('predictionsModal').classList.add('active');
-  document.body.style.overflow = 'hidden';
-  loadPredictions();
-  loadPredictionsHistory();
-}
-
-function closePredictionsModal(event) {
-  if (event && event.target !== event.currentTarget) return;
-  document.getElementById('predictionsModal').classList.remove('active');
-  document.body.style.overflow = '';
-}
-
-// Keep old function for backwards compatibility but redirect to modal
-function togglePredictions() {
-  openPredictionsModal();
-}
-
-async function loadPredictions() {
-  try {
-    const resp = await fetch('/api/predictions?' + Date.now());
-    predictionsData = await resp.json();
-    renderPredictions();
-  } catch (e) {
-    document.getElementById('predictionsGrid').innerHTML = '<div style="color:#f87171;">Failed to load predictions</div>';
-  }
-}
-
-function renderPredictions() {
-  if (!predictionsData) return;
-  
-  const stats = predictionsData.stats || {correct: 0, wrong: 0, pending: 0};
-  document.getElementById('predStats').textContent = `✓${stats.correct} ✗${stats.wrong} ⏳${stats.pending}`;
-  // Update header badge
-  const badge = document.getElementById('predBadge');
-  if (badge) badge.textContent = stats.pending || 0;
-  
-  // Update game stats
-  const game = predictionsData.game || {};
-  document.getElementById('gameLevel').textContent = game.level || 1;
-  document.getElementById('gameStreak').textContent = game.streak || 0;
-  document.getElementById('gameAccuracy').textContent = (game.accuracy || 0) + '%';
-  document.getElementById('gameToday').textContent = game.today_scored || 0;
-  document.getElementById('gameXP').textContent = game.xp || 0;
-  document.getElementById('gameTotal').textContent = game.total_scored || 0;
-  
-  // Battle scores
-  document.getElementById('botScore').textContent = game.bot_score || '0.0';
-  document.getElementById('humanScore').textContent = game.blind_spots_found || 0;
-  
-  const preds = predictionsData.predictions || [];
-  const grid = document.getElementById('predictionsGrid');
-  
-  // Group by category
-  const byCategory = {priority: [], behavior: [], decision: []};
-  preds.forEach(p => {
-    if (byCategory[p.category]) byCategory[p.category].push(p);
-  });
-  
-  let html = '';
-  for (const [cat, items] of Object.entries(byCategory)) {
-    if (items.length === 0) continue;
-    const catEmoji = cat === 'priority' ? '🎯' : cat === 'behavior' ? '⏰' : '🧭';
-    html += `<div style="grid-column:1/-1;font-size:11px;color:#8b949e;text-transform:uppercase;margin-top:8px;">${catEmoji} ${escapeHtml(cat)}</div>`;
-    items.forEach(p => {
-      const scoreClass = p.score ? `scored-${p.score}` : '';
-      const confidenceClass = escapeCssClass(p.confidence);
-      const safePredId = escapeJsString(p.id);
-      const feedbackInputId = buildSafeDomId('feedback', p.id);
-      html += `
-        <div class="prediction-card ${scoreClass}">
-          <div class="prediction-header">
-            <span class="prediction-id">${escapeHtml(p.id)}</span>
-            <span class="prediction-confidence ${confidenceClass}">${escapeHtml(p.confidence)}</span>
-          </div>
-          <div class="prediction-text">${escapeHtml(p.prediction)}</div>
-          <div class="prediction-rationale">${escapeHtml(p.rationale)}</div>
-          <div class="prediction-actions">
-            <button class="score-btn rating ${p.score === 1 ? 'active' : ''}" onclick="scorePrediction('${safePredId}', 1)" title="Completely wrong">1</button>
-            <button class="score-btn rating ${p.score === 2 ? 'active' : ''}" onclick="scorePrediction('${safePredId}', 2)" title="Mostly wrong">2</button>
-            <button class="score-btn rating ${p.score === 3 ? 'active' : ''}" onclick="scorePrediction('${safePredId}', 3)" title="Partially right">3</button>
-            <button class="score-btn rating ${p.score === 4 ? 'active' : ''}" onclick="scorePrediction('${safePredId}', 4)" title="Mostly right">4</button>
-            <button class="score-btn rating ${p.score === 5 ? 'active' : ''}" onclick="scorePrediction('${safePredId}', 5)" title="Spot on!">5</button>
-          </div>
-          <div class="prediction-feedback" style="margin-top:8px;">
-            <input type="text" class="feedback-input" id="${feedbackInputId}" placeholder="Why? (optional feedback)" 
-              style="width:100%;padding:6px 10px;font-size:11px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#c9d1d9;"
-              onkeypress="if(event.key==='Enter')saveFeedback('${safePredId}')">
-            ${p.feedback ? '<div style="font-size:10px;color:#a78bfa;margin-top:4px;">💬 ' + escapeHtml(p.feedback) + '</div>' : ''}
-          </div>
+    </div>
+    
+    <div class="grid">
+        <!-- Claude Opus 4.5 - Best -->
+        <div class="model-card default" onclick="copy('/model Best')">
+            <div class="model-header">
+                <span class="model-name">🏆 Claude Opus 4.5</span>
+                <span class="model-alias">Best</span>
+            </div>
+            <div class="model-desc">
+                The gold standard. Best reasoning, instruction following, and writing quality. 
+                Your paid model — included in Claude Max.
+            </div>
+            <div class="model-tags">
+                <span class="tag good">Best Quality</span>
+                <span class="tag good">Complex Tasks</span>
+                <span class="tag">Paid</span>
+            </div>
+            <div class="trust-section">
+                <div class="trust-label">Trust Level</div>
+                <div class="trust-bar"><div class="trust-fill" style="width: 100%"></div></div>
+            </div>
+            <div class="use-when">
+                <div class="use-when-title">Use for</div>
+                <ul class="use-when-list">
+                    <li>Strategy & planning</li>
+                    <li>Important communications</li>
+                    <li>Nuanced judgment calls</li>
+                    <li>When accuracy matters most</li>
+                </ul>
+            </div>
+            <div class="click-hint">Click to copy switch command</div>
         </div>
-      `;
-    });
-  }
-  
-  grid.innerHTML = html || '<div style="color:#6e7681;">No predictions yet</div>';
-}
-
-async function scorePrediction(id, score) {
-  try {
-    const resp = await fetch('/api/score-prediction', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({id, score})
-    });
-    const result = await resp.json();
-    if (result.ok) {
-      // Update local data and re-render
-      const pred = predictionsData.predictions.find(p => p.id === id);
-      if (pred) {
-        pred.score = score;
-        pred.scored_at = new Date().toISOString();
-      }
-      predictionsData.stats = result.stats;
-      renderPredictions();
-      loadPredictionsHistory(); // Refresh history
-    }
-  } catch (e) {
-    console.error('Failed to score prediction:', e);
-  }
-}
-
-async function saveFeedback(id) {
-  const input = document.getElementById(buildSafeDomId('feedback', id));
-  if (!input) return;
-  const feedback = input.value.trim();
-  if (!feedback) return;
-  
-  try {
-    const resp = await fetch('/api/prediction-feedback', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({id, feedback})
-    });
-    const result = await resp.json();
-    if (result.ok) {
-      input.value = '';
-      loadPredictions(); // Refresh to show feedback
-    }
-  } catch (e) {
-    console.error('Failed to save feedback:', e);
-  }
-}
-
-async function loadPredictionsHistory() {
-  try {
-    const resp = await fetch('/api/predictions-history?' + Date.now());
-    const data = await resp.json();
-    const entries = data.entries || [];
+        
+        <!-- Claude Sonnet - Fast -->
+        <div class="model-card" onclick="copy('/model Fast')">
+            <div class="model-header">
+                <span class="model-name">⚡ Claude Sonnet 4.5</span>
+                <span class="model-alias">Fast</span>
+            </div>
+            <div class="model-desc">
+                Faster and cheaper than Opus. Still Claude quality but quicker responses.
+                Good for simpler tasks.
+            </div>
+            <div class="model-tags">
+                <span class="tag good">Fast</span>
+                <span class="tag good">Good Quality</span>
+                <span class="tag">Paid</span>
+            </div>
+            <div class="trust-section">
+                <div class="trust-label">Trust Level</div>
+                <div class="trust-bar"><div class="trust-fill" style="width: 90%"></div></div>
+            </div>
+            <div class="use-when">
+                <div class="use-when-title">Use for</div>
+                <ul class="use-when-list">
+                    <li>Quick questions</li>
+                    <li>Simple tasks</li>
+                    <li>When speed matters</li>
+                    <li>Everyday help</li>
+                </ul>
+            </div>
+            <div class="click-hint">Click to copy switch command</div>
+        </div>
+        
+        <!-- Code - Devstral -->
+        <div class="model-card" onclick="copy('/model Code')">
+            <div class="model-header">
+                <span class="model-name">💻 Devstral 24B</span>
+                <span class="model-alias">Code</span>
+            </div>
+            <div class="model-desc">
+                Mistral's coding specialist. Trained specifically for code generation, debugging, 
+                and refactoring. Fast and free (runs locally).
+            </div>
+            <div class="model-tags">
+                <span class="tag good">Coding Expert</span>
+                <span class="tag good">Fast</span>
+                <span class="tag good">Free (Local)</span>
+            </div>
+            <div class="trust-section">
+                <div class="trust-label">Trust Level</div>
+                <div class="trust-bar"><div class="trust-fill" style="width: 80%"></div></div>
+            </div>
+            <div class="use-when">
+                <div class="use-when-title">Use for</div>
+                <ul class="use-when-list">
+                    <li>Writing new code</li>
+                    <li>Debugging & refactoring</li>
+                    <li>Code reviews</li>
+                    <li>Script generation</li>
+                </ul>
+            </div>
+            <div class="click-hint">Click to copy switch command</div>
+        </div>
+        
+        <!-- Think - R1 -->
+        <div class="model-card" onclick="copy('/model Think')">
+            <div class="model-header">
+                <span class="model-name">🧠 DeepSeek R1 14B</span>
+                <span class="model-alias">Think</span>
+            </div>
+            <div class="model-desc">
+                Reasoning specialist. Shows step-by-step thinking process. 
+                Excellent for math, logic puzzles, and verifying reasoning chains.
+            </div>
+            <div class="model-tags">
+                <span class="tag good">Deep Reasoning</span>
+                <span class="tag good">Math & Logic</span>
+                <span class="tag warn">Slower</span>
+                <span class="tag good">Free (Local)</span>
+            </div>
+            <div class="trust-section">
+                <div class="trust-label">Trust Level</div>
+                <div class="trust-bar"><div class="trust-fill" style="width: 80%"></div></div>
+            </div>
+            <div class="use-when">
+                <div class="use-when-title">Use for</div>
+                <ul class="use-when-list">
+                    <li>Complex logic problems</li>
+                    <li>Math calculations</li>
+                    <li>Verifying reasoning</li>
+                    <li>Step-by-step analysis</li>
+                </ul>
+            </div>
+            <div class="click-hint">Click to copy switch command</div>
+        </div>
+        
+        <!-- Free - Qwen -->
+        <div class="model-card" onclick="copy('/model Free')">
+            <div class="model-header">
+                <span class="model-name">💰 Qwen3 32B</span>
+                <span class="model-alias">Free</span>
+            </div>
+            <div class="model-desc">
+                Solid general-purpose model. Good at research, summaries, and analysis. 
+                A capable free alternative when you don't need the best.
+            </div>
+            <div class="model-tags">
+                <span class="tag">General Purpose</span>
+                <span class="tag">Research</span>
+                <span class="tag good">Free (Local)</span>
+            </div>
+            <div class="trust-section">
+                <div class="trust-label">Trust Level</div>
+                <div class="trust-bar"><div class="trust-fill" style="width: 60%"></div></div>
+            </div>
+            <div class="use-when">
+                <div class="use-when-title">Use for</div>
+                <ul class="use-when-list">
+                    <li>Research & summaries</li>
+                    <li>Background tasks</li>
+                    <li>Simple conversations</li>
+                    <li>When free + capable matters</li>
+                </ul>
+            </div>
+            <div class="click-hint">Click to copy switch command</div>
+        </div>
+        
+        <!-- Quick - QwenFast -->
+        <div class="model-card" onclick="copy('/model Quick')">
+            <div class="model-header">
+                <span class="model-name">🚀 Qwen3 30B MoE</span>
+                <span class="model-alias">Quick</span>
+            </div>
+            <div class="model-desc">
+                Speed priority. Uses Mixture-of-Experts for fastest responses. 
+                Good enough for simple tasks, drafts, and quick questions.
+            </div>
+            <div class="model-tags">
+                <span class="tag good">Fastest</span>
+                <span class="tag warn">Lower Quality</span>
+                <span class="tag good">Free (Local)</span>
+            </div>
+            <div class="trust-section">
+                <div class="trust-label">Trust Level</div>
+                <div class="trust-bar"><div class="trust-fill" style="width: 40%"></div></div>
+            </div>
+            <div class="use-when">
+                <div class="use-when-title">Use for</div>
+                <ul class="use-when-list">
+                    <li>Quick questions</li>
+                    <li>Simple formatting</li>
+                    <li>Initial drafts</li>
+                    <li>Bulk processing</li>
+                </ul>
+            </div>
+            <div class="click-hint">Click to copy switch command</div>
+        </div>
+        
+        <!-- Eyes - Vision -->
+        <div class="model-card" onclick="copy('/model Eyes')">
+            <div class="model-header">
+                <span class="model-name">👁️ Qwen3 VL 30B</span>
+                <span class="model-alias">Eyes</span>
+            </div>
+            <div class="model-desc">
+                The only model that can see images. Use for screenshots, 
+                image analysis, and visual tasks. Switch here when images are involved.
+            </div>
+            <div class="model-tags">
+                <span class="tag good">Image Analysis</span>
+                <span class="tag good">Screenshots</span>
+                <span class="tag good">Free (Local)</span>
+            </div>
+            <div class="trust-section">
+                <div class="trust-label">Trust Level</div>
+                <div class="trust-bar"><div class="trust-fill" style="width: 60%"></div></div>
+            </div>
+            <div class="use-when">
+                <div class="use-when-title">Use for</div>
+                <ul class="use-when-list">
+                    <li>Screenshot analysis</li>
+                    <li>Image descriptions</li>
+                    <li>Visual debugging</li>
+                    <li>Reading text from images</li>
+                </ul>
+            </div>
+            <div class="click-hint">Click to copy switch command</div>
+        </div>
+    </div>
     
-    const list = document.getElementById('historyList');
-    if (entries.length === 0) {
-      list.innerHTML = '<div style="color:#6e7681;font-size:11px;padding:8px;">No scores yet. Click ✓ or ✗ on predictions above!</div>';
-      return;
-    }
+    <div class="decision-tree">
+        <h2>🌳 Quick Decision Tree</h2>
+        <pre>
+Need to see an <code>image</code>?
+├── Yes → <code>Eyes</code> 👁️
+└── No
+    └── Is this a <code>coding</code> task?
+        ├── Yes → <code>Code</code> 💻
+        └── No
+            └── Does it need deep <code>math/logic</code>?
+                ├── Yes → <code>Think</code> 🧠
+                └── No
+                    └── Is this <code>important</code>?
+                        ├── Yes → <code>Best</code> 🏆
+                        └── No
+                            └── Need it <code>fast</code>?
+                                ├── Yes → <code>Quick</code> 🚀
+                                └── No → <code>Free</code> 💰
+        </pre>
+    </div>
     
-    let html = '';
-    for (const e of entries.slice(0, 50)) { // Show last 50
-      if (e.event === 'score') {
-        const scoreNum = parseInt(e.score) || 0;
-        const scoreClass = scoreNum >= 4 ? 'score-correct' : scoreNum === 3 ? 'score-neutral' : 'score-wrong';
-        const stars = '★'.repeat(scoreNum) + '☆'.repeat(5 - scoreNum);
-        html += `
-          <div class="history-item">
-            <span class="date">${escapeHtml(e.date)} ${escapeHtml(e.time || '')}</span>
-            <span class="pred-id">${escapeHtml(e.prediction_id)}</span>
-            <span class="${scoreClass}">${stars}</span>
-          </div>
-        `;
-      } else if (e.event === 'system_created') {
-        html += `
-          <div class="history-item">
-            <span class="date">${escapeHtml(e.date)}</span>
-            <span class="note">🚀 ${escapeHtml(e.note || 'System created')}</span>
-          </div>
-        `;
-      }
-    }
-    list.innerHTML = html;
-  } catch (e) {
-    document.getElementById('historyList').innerHTML = '<div style="color:#f87171;">Failed to load history</div>';
-  }
-}
-
-function showDoneDate(filter) {
-  currentDoneFilter = filter;
-
-  // Update button states
-  document.querySelectorAll('.date-btn').forEach(btn => btn.classList.remove('active'));
-  if (filter === 'today') {
-    document.querySelector('.date-btn:nth-child(2)').classList.add('active');
-  } else if (filter === 'yesterday') {
-    document.querySelector('.date-btn:nth-child(1)').classList.add('active');
-  }
-
-  renderDoneTasks();
-}
-
-function getDateString(date) {
-  return date.toISOString().split('T')[0];
-}
-
-function renderDoneTasks() {
-  const doneIds = currentLanes.done_today || [];
-
-  let filterDate;
-  const now = new Date();
-
-  if (currentDoneFilter === 'today') {
-    filterDate = getDateString(now);
-  } else if (currentDoneFilter === 'yesterday') {
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    filterDate = getDateString(yesterday);
-  } else {
-    filterDate = currentDoneFilter; // Custom date from picker
-  }
-
-  // Filter tasks by completion date
-  const filteredIds = doneIds.filter(id => {
-    const task = allTasks[id];
-    if (!task || !task.completed) return currentDoneFilter === 'today'; // Show if no date and viewing today
-    const completedDate = task.completed.split('T')[0];
-    return completedDate === filterDate;
-  });
-
-  document.getElementById('doneCount').textContent = filteredIds.length;
-  document.getElementById('doneTasks').innerHTML = filteredIds.map(id => {
-    const t = allTasks[id];
-    if (!t) return '';
-    return `<div class="done-item" onclick="showTaskDetail('${escapeJsString(id)}')" style="cursor:pointer;"><span class="check">✓</span>${escapeHtml(t.title)}</div>`;
-  }).join('') || `<div class="done-item">Nothing completed on ${escapeHtml(filterDate)}</div>`;
-}
-
-let currentLanes = {};
-
-loadTaskBoard();
-loadPredictions(); // Load predictions to update badge
-loadStatusBar();
-setTimeout(() => loadModelSelector(), 600);
-
-// Smart auto-refresh: only refresh when modal is NOT open
-setInterval(() => {
-  const modal = document.getElementById('taskModal');
-  const isModalOpen = modal && modal.classList.contains('active');
-  if (!isModalOpen) {
-    loadTaskBoard();
-  }
-  loadStatusBar();
-  if (Date.now() - lastModelSelectorRefreshMs > 60000) {
-    loadModelSelector();
-  }
-  // If modal is open, skip refresh to preserve user's work
-}, 15000);
-
-// Delete task/cron with custom confirm bubble
-let pendingDeleteId = null;
-let pendingDeleteType = 'task'; // 'task' or 'cron'
-
-function deleteCron(cronId, event) {
-  pendingDeleteType = 'cron';
-  deleteTask(cronId, event);
-}
-
-function deleteTask(taskId, event) {
-  // Close any existing bubble
-  cancelDelete();
-
-  pendingDeleteId = taskId;
-  const task = allTasks[taskId];
-  const title = task ? task.title : taskId;
-
-  const bubble = document.getElementById('confirmBubble');
-  document.getElementById('confirmTitle').textContent = `Delete this task?`;
-  document.getElementById('confirmMessage').innerHTML = `<strong>${escapeHtml(taskId)}</strong><br>${escapeHtml(title)}`;
-
-  // Position near the clicked button
-  const btn = event.target.closest('.delete-btn');
-  const rect = btn.getBoundingClientRect();
-
-  bubble.style.top = (rect.bottom + 10) + 'px';
-  bubble.style.left = (rect.right - 220) + 'px';
-
-  // Keep on screen
-  if (parseInt(bubble.style.left) < 10) {
-    bubble.style.left = '10px';
-  }
-
-  bubble.classList.add('active');
-
-  // Close when clicking outside
-  setTimeout(() => {
-    document.addEventListener('click', closeOnClickOutside);
-  }, 10);
-}
-
-function closeOnClickOutside(e) {
-  const bubble = document.getElementById('confirmBubble');
-  if (!bubble.contains(e.target) && !e.target.closest('.delete-btn')) {
-    cancelDelete();
-  }
-}
-
-function cancelDelete() {
-  pendingDeleteId = null;
-  document.getElementById('confirmBubble').classList.remove('active');
-  document.removeEventListener('click', closeOnClickOutside);
-}
-
-async function confirmDelete() {
-  const itemId = pendingDeleteId;
-  const isCron = pendingDeleteType === 'cron';
-  document.getElementById('confirmBubble').classList.remove('active');
-  document.removeEventListener('click', closeOnClickOutside);
-
-  if (!itemId) return;
-
-  try {
-    const endpoint = isCron ? '/api/delete-cron' : '/api/delete-task';
-    const bodyData = isCron ? { cronId: itemId } : { taskId: itemId };
-    const resp = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(bodyData)
-    });
-    const data = await resp.json();
-
-    if (data.success) {
-      showToast(`🗑 ${itemId} removed`);
-      loadTaskBoard();
-    } else {
-      showToast(`Error: ${data.error || 'Failed to delete'}`, 'error');
-    }
-  } catch(e) {
-    showToast('Failed to delete', 'error');
-  }
-  pendingDeleteId = null;
-  pendingDeleteType = 'task';
-}
-
-// Restore task from trash
-async function restoreTask(taskId) {
-  try {
-    const resp = await fetch('/api/restore-task', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ taskId })
-    });
-    const data = await resp.json();
-
-    if (data.success) {
-      showToast(`↩ ${taskId} restored to ${data.restoredTo}`);
-      loadTaskBoard();
-    } else {
-      showToast(`Error: ${data.error}`, 'error');
-    }
-  } catch(e) {
-    showToast('Failed to restore', 'error');
-  }
-}
-
-// Permanent delete from trash
-async function permanentDelete(taskId) {
-  if (!confirm(`Permanently delete ${taskId}? This cannot be undone.`)) return;
-
-  try {
-    const resp = await fetch('/api/permanent-delete', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ taskId })
-    });
-    const data = await resp.json();
-
-    if (data.success) {
-      showToast(`🗑 ${taskId} permanently deleted`);
-      loadTaskBoard();
-    } else {
-      showToast(`Error: ${data.error}`, 'error');
-    }
-  } catch(e) {
-    showToast('Failed to delete', 'error');
-  }
-}
-
-// Transfer task between lanes
-async function transferTask(taskId, fromLane, toLane) {
-  try {
-    const resp = await fetch('/api/transfer-task', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ taskId, fromLane, toLane })
-    });
-    const data = await resp.json();
-
-    if (data.success) {
-      const icon = toLane === 'bot_queue' ? '🤖' : '👤';
-      showToast(`${icon} ${taskId} moved to ${toLane === 'bot_queue' ? 'Bot Queue' : 'Human Tasks'}`);
-      loadTaskBoard();
-    } else {
-      showToast(`Error: ${data.error || 'Failed to transfer'}`, 'error');
-    }
-  } catch(e) {
-    showToast('Failed to transfer task', 'error');
-  }
-}
-
-// Reorder task in queue
-async function reorderTask(taskId, direction) {
-  try {
-    const resp = await fetch('/api/reorder-task', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ taskId, direction })
-    });
-    const data = await resp.json();
-
-    if (data.success) {
-      showToast(`${direction === 'up' ? '⬆️' : '⬇️'} ${taskId} moved ${direction}`);
-      loadTaskBoard(); // Refresh the board
-    } else {
-      showToast(`Error: ${data.error || 'Failed to reorder'}`, 'error');
-    }
-  } catch(e) {
-    showToast('Failed to reorder task', 'error');
-  }
-}
-
-// Request task completion verification
-async function requestComplete(taskId, btn) {
-  btn.disabled = true;
-  btn.textContent = '⏳ Verifying...';
-  btn.classList.add('pending');
-
-  try {
-    const resp = await fetch('/api/request-complete', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ taskId })
-    });
-    const data = await resp.json();
-
-    if (data.success) {
-      // Human verification is final - task goes directly to done
-      btn.textContent = '✅ Done!';
-      showToast(`✅ ${taskId} marked complete!`);
-      setTimeout(() => loadTasks(), 500);
-    } else {
-      btn.textContent = '❌ Error';
-      btn.classList.remove('pending');
-      showToast(`Error: ${data.error || 'Unknown error'}`, 'error');
-      setTimeout(() => {
-        btn.textContent = '✓ Mark Complete';
-        btn.disabled = false;
-      }, 2000);
-    }
-  } catch(e) {
-    btn.textContent = '❌ Failed';
-    btn.classList.remove('pending');
-    showToast('Failed to send request', 'error');
-    setTimeout(() => {
-      btn.textContent = '✓ Mark Complete';
-      btn.disabled = false;
-    }, 2000);
-  }
-}
-
-// Toast notification
-function showToast(message, type = 'info') {
-  // Remove existing toast
-  const existing = document.querySelector('.toast');
-  if (existing) existing.remove();
-
-  const toast = document.createElement('div');
-  toast.className = 'toast';
-  toast.style.cssText = `
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: ${type === 'error' ? '#f85149' : '#238636'};
-    color: white;
-    padding: 12px 24px;
-    border-radius: 8px;
-    font-size: 14px;
-    z-index: 2000;
-    animation: slideUp 0.3s ease;
-    max-width: 90%;
-    text-align: center;
-  `;
-  toast.textContent = message;
-  document.body.appendChild(toast);
-
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transition = 'opacity 0.3s';
-    setTimeout(() => toast.remove(), 300);
-  }, 4000);
-}
-
-// Cron modal functions
-let currentCronId = null;
-
-// Cron job summaries (plain English descriptions)
-const cronSummaries = {
-  'CRON-research': '🔍 <strong>Daily AI Research Brief</strong><br><br>Every morning at 9 AM, I scan Twitter/X for the latest AI news, agent developments, Claude updates, and tips from experts. I compile a brief of the most important findings so you stay current on AI trends without having to scroll through feeds yourself.',
-  'CRON-curiosity': '🧠 <strong>Curiosity Engine</strong><br><br>At 9 PM each night, I look for opportunities to improve the business - competitor moves, seasonal trends, new product ideas, marketing angles. I research and document findings so we always have fresh ideas in the pipeline.',
-  'CRON-learn': '📚 <strong>Compound Loop: LEARN</strong><br><br>At 10:30 PM, I review what happened today - what worked, what failed, what we learned. I extract lessons and add them to our knowledge base so we keep getting smarter and don\'t repeat mistakes.',
-  'CRON-ship': '🚀 <strong>Compound Loop: SHIP</strong><br><br>Late night, I check the backlog for tasks that are ready to execute autonomously. If something is safe to do without approval (like SEO fixes, drafts, research), I do it overnight so you wake up to completed work.',
-  'CRON-backup': '💾 <strong>Daily Git Backup</strong><br><br>At 11 PM, I automatically commit all workspace changes to GitHub. This ensures nothing is ever lost and we have a full history of everything we\'ve done.',
-  'CRON-consolidation': '📦 <strong>Memory Consolidation</strong><br><br>At 3 AM, I clean up and organize the day\'s memory files. I extract the important stuff into the knowledge base, generate the recall pack for tomorrow, and archive raw logs. Keeps the system fast and focused.'
-};
-
-function showCronDetail(id) {
-  currentCronId = id;
-  const cron = allTasks[id];
-  if (!cron) return;
-
-  document.getElementById('cronModalTitle').textContent = cron.title;
-  document.getElementById('cronModalId').textContent = id;
-  document.getElementById('cronSchedule').value = cron.schedule || '';
-  document.getElementById('cronPlan').value = cron.plan || '';
-
-  // Show summary
-  const summary =
-    cronSummaries[id] ||
-    escapeHtml(cron.description || 'No description available. Add one by editing the cron job.');
-  document.getElementById('cronSummary').innerHTML = summary;
-
-  if (cron.nextRun) {
-    const dt = new Date(cron.nextRun);
-    const local = new Date(dt.getTime() - dt.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-    document.getElementById('cronNextRun').value = local;
-  } else {
-    document.getElementById('cronNextRun').value = '';
-  }
-
-  // Hide plan file content until requested
-  document.getElementById('planFileSection').style.display = 'none';
-
-  document.getElementById('cronModal').classList.add('active');
-}
-
-async function viewPlanFile() {
-  const planPath = document.getElementById('cronPlan').value;
-  if (!planPath) {
-    showToast('No plan file specified', 'error');
-    return;
-  }
-
-  try {
-    const resp = await fetch('/api/read-file', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path: planPath })
-    });
-    const data = await resp.json();
-
-    if (data.success) {
-      document.getElementById('planFileContent').textContent = data.content;
-      document.getElementById('planFileSection').style.display = 'block';
-    } else {
-      showToast(`Error: ${data.error}`, 'error');
-    }
-  } catch(e) {
-    showToast('Failed to read file', 'error');
-  }
-}
-
-function closeCronModal(event) {
-  if (event && event.target !== event.currentTarget) return;
-  document.getElementById('cronModal').classList.remove('active');
-  currentCronId = null;
-}
-
-async function saveCronChanges() {
-  if (!currentCronId) return;
-
-  const schedule = document.getElementById('cronSchedule').value;
-  const plan = document.getElementById('cronPlan').value;
-  const nextRunInput = document.getElementById('cronNextRun').value;
-  const nextRun = nextRunInput ? new Date(nextRunInput).toISOString() : null;
-
-  try {
-    const resp = await fetch('/api/update-cron', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cronId: currentCronId, schedule, plan, nextRun })
-    });
-    const data = await resp.json();
-
-    if (data.success) {
-      showToast(`✅ ${currentCronId} updated`);
-      closeCronModal();
-      loadTaskBoard();
-    } else {
-      showToast(`Error: ${data.error}`, 'error');
-    }
-  } catch(e) {
-    showToast('Failed to save changes', 'error');
-  }
-}
-
-// Close modal on Escape key
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    closeModal();
-    closeCronModal();
-    document.getElementById('searchResults').style.display = 'none';
-  }
-});
-
-// ==================== TASK SEARCH ====================
-function handleTaskSearch(event) {
-  const input = document.getElementById('taskSearch');
-  const resultsDiv = document.getElementById('searchResults');
-  const query = input.value.trim().toUpperCase();
-  
-  // Enter key = jump to first result
-  if (event.key === 'Enter' && query) {
-    const firstResult = resultsDiv.querySelector('.search-result-item');
-    if (firstResult) {
-      firstResult.click();
-      return;
-    }
-    // Try exact match
-    if (allTasks[query]) {
-      showTaskDetail(query);
-      input.value = '';
-      resultsDiv.style.display = 'none';
-      return;
-    }
-  }
-  
-  if (!query || query.length < 1) {
-    resultsDiv.style.display = 'none';
-    return;
-  }
-  
-  // Search through all tasks
-  const matches = [];
-  for (const [id, task] of Object.entries(allTasks)) {
-    const idMatch = id.toUpperCase().includes(query);
-    const titleMatch = task.title && task.title.toUpperCase().includes(query);
-    if (idMatch || titleMatch) {
-      // Find which lane this task is in
-      let lane = 'unknown';
-      for (const [laneName, ids] of Object.entries(allLanes)) {
-        if (Array.isArray(ids) && ids.includes(id)) {
-          lane = laneName;
-          break;
-        } else if (ids === id) {
-          lane = laneName;
-          break;
+    <div class="copied-toast" id="toast">✓ Copied! Paste in Telegram</div>
+    
+    <script>
+        function copy(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                const toast = document.getElementById('toast');
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 2000);
+            });
         }
-      }
-      matches.push({ id, task, lane, idMatch });
-    }
-  }
-  
-  // Sort: exact ID matches first, then by ID
-  matches.sort((a, b) => {
-    if (a.id.toUpperCase() === query) return -1;
-    if (b.id.toUpperCase() === query) return 1;
-    if (a.idMatch && !b.idMatch) return -1;
-    if (!a.idMatch && b.idMatch) return 1;
-    return a.id.localeCompare(b.id);
-  });
-  
-  // Limit results
-  const limited = matches.slice(0, 8);
-  
-  if (limited.length === 0) {
-    resultsDiv.innerHTML = '<div style="padding:10px;color:#8b949e;font-size:11px;">No tasks found</div>';
-    resultsDiv.style.display = 'block';
-    return;
-  }
-  
-  // Render results
-  const laneColors = {
-    'bot_current': '#4ade80',
-    'bot_queue': '#fbbf24',
-    'human': '#60a5fa',
-    'done_today': '#3fb950',
-    'trash': '#6e7681'
-  };
-  const laneLabels = {
-    'bot_current': '🤖 Working',
-    'bot_queue': '📋 Queue',
-    'human': '👤 Human',
-    'done_today': '✅ Done',
-    'trash': '🗑 Trash'
-  };
-  
-  resultsDiv.innerHTML = limited.map(m => {
-    const color = laneColors[m.lane] || '#8b949e';
-    const label = laneLabels[m.lane] || m.lane;
-    const rawTitle = String(m.task.title || '');
-    const title = rawTitle.length > 35 ? rawTitle.substring(0, 35) + '...' : rawTitle;
-    return `
-      <div class="search-result-item" onclick="jumpToTask('${escapeJsString(m.id)}')" 
-        style="padding:12px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.08);transition:background 0.15s;"
-        onmouseover="this.style.background='rgba(96,165,250,0.15)'" 
-        onmouseout="this.style.background='transparent'">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
-          <span style="font-family:'SF Mono','Fira Code',monospace;color:#58a6ff;font-weight:800;font-size:18px;text-shadow:0 0 10px rgba(88,166,255,0.3);">${escapeHtml(m.id)}</span>
-          <span style="font-size:10px;color:${color};text-transform:uppercase;font-weight:600;">${escapeHtml(label)}</span>
-        </div>
-        <div style="font-size:12px;color:#e6edf3;margin-top:6px;">${escapeHtml(title)}</div>
-      </div>
-    `;
-  }).join('');
-  
-  if (matches.length > 8) {
-    resultsDiv.innerHTML += `<div style="padding:8px 12px;color:#6e7681;font-size:10px;text-align:center;">+${matches.length - 8} more results</div>`;
-  }
-  
-  resultsDiv.style.display = 'block';
-}
-
-function jumpToTask(taskId) {
-  const input = document.getElementById('taskSearch');
-  const resultsDiv = document.getElementById('searchResults');
-  
-  // Clear search
-  input.value = '';
-  input.style.width = '90px';
-  resultsDiv.style.display = 'none';
-  
-  // Open the task modal
-  showTaskDetail(taskId);
-}
-
-// Close search results when clicking outside
-document.addEventListener('click', (e) => {
-  const searchContainer = document.getElementById('taskSearch').parentElement;
-  if (!searchContainer.contains(e.target)) {
-    document.getElementById('searchResults').style.display = 'none';
-  }
-});
-
-// ==================== PARALLEL EXECUTION ====================
-function renderParallelExecution(data) {
-  const panel = document.getElementById('parallelPanel');
-  const agentsDiv = document.getElementById('parallelAgents');
-  const countEl = document.getElementById('activeAgentCount');
-  
-  if (!data.parallel_execution || !data.parallel_execution.active_agents || data.parallel_execution.active_agents.length === 0) {
-    panel.style.display = 'none';
-    return;
-  }
-  
-  panel.style.display = 'block';
-  const agents = data.parallel_execution.active_agents;
-  const tasksById = data.tasks || {};
-  countEl.textContent = agents.length + '/' + (data.parallel_execution.max_concurrent || 5);
-  
-  const specialtyEmojis = {
-    'research': '🔬',
-    'content': '✍️',
-    'audit': '🔍',
-    'analytics': '📊',
-    'code': '💻',
-    'general': '🤖'
-  };
-  
-  agentsDiv.innerHTML = agents.map(agent => {
-    const task = tasksById[agent.current_task];
-    const taskTitle = task ? task.title : 'Unknown task';
-    const emoji = specialtyEmojis[agent.specialty] || '🤖';
-    const safeTaskId = escapeJsString(agent.current_task);
-    
-    // Calculate time since started
-    let timeText = '';
-    if (agent.started_at) {
-      const started = new Date(agent.started_at);
-      const mins = Math.floor((Date.now() - started) / 60000);
-      if (mins < 60) timeText = mins + 'm ago';
-      else timeText = Math.floor(mins / 60) + 'h ' + (mins % 60) + 'm';
-    }
-    
-    // Check if stale (last heartbeat > 5 min)
-    let staleWarning = '';
-    if (agent.last_heartbeat) {
-      const lastHb = new Date(agent.last_heartbeat);
-      const minsSinceHb = (Date.now() - lastHb) / 60000;
-      if (minsSinceHb > 5) {
-        staleWarning = '<span style="color:#fbbf24;font-size:9px;margin-left:6px;">⚠️ stale</span>';
-      }
-    }
-    
-    return `
-      <div class="agent-card active">
-        <div class="agent-name">${emoji} ${escapeHtml(agent.agent_name)} ${staleWarning}</div>
-        <div class="agent-task">
-          <a href="#" onclick="showTaskDetail('${safeTaskId}'); return false;">${escapeHtml(agent.current_task)}</a>: ${escapeHtml(taskTitle.substring(0, 40))}${taskTitle.length > 40 ? '...' : ''}
-        </div>
-        <div class="agent-time">⏱ Started ${timeText}</div>
-      </div>
-    `;
-  }).join('');
-}
-
-function toggleParallelDetails() {
-  const details = document.getElementById('parallelDetails');
-  const toggle = document.getElementById('parallelToggle');
-  if (details.classList.contains('collapsed')) {
-    details.classList.remove('collapsed');
-    toggle.textContent = '▲ Hide';
-  } else {
-    details.classList.add('collapsed');
-    toggle.textContent = '▼ Details';
-  }
-}
-
-// Get specialty emoji for task display
-function getSpecialtyEmoji(specialty) {
-  const emojis = {
-    'research': '🔬',
-    'content': '✍️',
-    'audit': '🔍',
-    'analytics': '📊',
-    'code': '💻',
-    'general': '🤖'
-  };
-  return emojis[specialty] || '';
-}
-
-// Get priority badge HTML
-function getPriorityBadge(task) {
-  if (!task.priority || !task.priority.priority_level) return '';
-  const level = task.priority.priority_level;
-  return `<span class="priority-badge ${escapeCssClass(level)}">${escapeHtml(level)}</span>`;
-}
-
-// Get claimed badge HTML
-function getClaimedBadge(task) {
-  if (!task.claimed_by || !task.claimed_by.agent_name) return '';
-  const emoji = getSpecialtyEmoji(task.claimed_by.specialty);
-  return `<span class="claimed-badge">${emoji} ${escapeHtml(task.claimed_by.agent_name)}</span>`;
-}
-
-// ============ AGENT PROFILE MODAL ============
-const agentConfig = {
-  research: { name: 'Research Agent', emoji: '🔬', file: 'agents/research-agent.md' },
-  content: { name: 'Content Agent', emoji: '✍️', file: 'agents/content-agent.md' },
-  audit: { name: 'Audit Agent', emoji: '🔍', file: 'agents/audit-agent.md' },
-  analytics: { name: 'Analytics Agent', emoji: '📊', file: 'agents/analytics-agent.md' },
-  code: { name: 'Code Agent', emoji: '💻', file: 'agents/code-agent.md' }
-};
-
-let currentAgentType = null;
-let currentAgentContent = '';
-
-async function openAgentModal(agentType) {
-  const config = agentConfig[agentType];
-  if (!config) return;
-  
-  currentAgentType = agentType;
-  document.getElementById('agentModalTitle').textContent = `${config.emoji} ${config.name}`;
-  document.getElementById('agentModalFile').textContent = config.file;
-  document.getElementById('agentProfile').innerHTML = '<div style="color:#8b949e;">Loading agent profile...</div>';
-  document.getElementById('agentModal').classList.add('active');
-  setAgentView('view');
-  
-  try {
-    const resp = await fetch('/api/agent-profile?agent=' + agentType + '&t=' + Date.now());
-    const data = await resp.json();
-    
-    if (data.error) {
-      document.getElementById('agentProfile').innerHTML = `<div style="color:#f85149;">Error: ${escapeHtml(data.error)}</div>`;
-      return;
-    }
-    
-    currentAgentContent = data.content || '';
-    // Simple markdown rendering
-    const html = renderMarkdown(currentAgentContent);
-    document.getElementById('agentProfile').innerHTML = html;
-    document.getElementById('agentEditArea').value = currentAgentContent;
-    
-    // Load agent's tasks
-    loadAgentTasks(agentType);
-    
-  } catch(e) {
-    document.getElementById('agentProfile').innerHTML = `<div style="color:#f85149;">Failed to load: ${escapeHtml(e.message)}</div>`;
-  }
-}
-
-function closeAgentModal(e) {
-  if (e && e.target !== e.currentTarget) return;
-  document.getElementById('agentModal').classList.remove('active');
-  currentAgentType = null;
-}
-
-function setAgentView(view) {
-  document.querySelectorAll('.agent-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('agentViewContent').style.display = view === 'view' ? 'block' : 'none';
-  document.getElementById('agentEditContent').style.display = view === 'edit' ? 'block' : 'none';
-  document.getElementById('agentTasksContent').style.display = view === 'tasks' ? 'block' : 'none';
-  
-  if (view === 'view') document.getElementById('agentViewBtn').classList.add('active');
-  if (view === 'edit') document.getElementById('agentEditBtn').classList.add('active');
-  if (view === 'tasks') document.getElementById('agentTasksBtn').classList.add('active');
-}
-
-function renderMarkdown(md) {
-  // Basic markdown rendering over escaped text to avoid script injection.
-  const escaped = escapeHtml(md ?? '');
-  return escaped
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/^- (.+)$/gm, '• $1')
-    .replace(/\n\n/g, '<br><br>')
-    .replace(/\n/g, '<br>');
-}
-
-function loadAgentTasks(agentType) {
-  const tasksList = document.getElementById('agentTasksList');
-  const tasks = Object.entries(allTasks || {}).filter(([id, task]) => {
-    return task.required_agent === agentType || 
-           (task.claimed_by && task.claimed_by.specialty === agentType);
-  });
-  
-  if (tasks.length === 0) {
-    tasksList.innerHTML = '<div style="color:#8b949e;">No tasks assigned to this agent</div>';
-    return;
-  }
-  
-  tasksList.innerHTML = tasks.map(([id, task]) => {
-    const status = task.status === 'in_progress' ? '🟢' : task.status === 'done' ? '✅' : '⏳';
-    return `<div style="padding:8px;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;" onclick="showTaskDetail('${escapeJsString(id)}')">
-      ${status} <strong>${escapeHtml(id)}</strong>: ${escapeHtml(task.title)}
-    </div>`;
-  }).join('');
-}
-
-async function saveAgentProfile() {
-  const content = document.getElementById('agentEditArea').value;
-  if (!currentAgentType || !content) return;
-  
-  try {
-    const resp = await fetch('/api/agent-profile', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ agent: currentAgentType, content: content })
-    });
-    const data = await resp.json();
-    
-    if (data.ok) {
-      alert('✅ Agent profile saved!');
-      currentAgentContent = content;
-      document.getElementById('agentProfile').innerHTML = renderMarkdown(content);
-      setAgentView('view');
-    } else {
-      alert('❌ Save failed: ' + (data.error || 'Unknown error'));
-    }
-  } catch(e) {
-    alert('❌ Save failed: ' + e.message);
-  }
-}
-</script>
+    </script>
 </body>
 </html>
