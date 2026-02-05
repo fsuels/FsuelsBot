@@ -1,6 +1,12 @@
-# HEARTBEAT.md
+# HEARTBEAT.md — Control Loop (Proactive, Non-Stop Execution)
+_Last reviewed: 2026-02-04_
 
-## 🧭 EPISTEMIC HEALTH CHECK (EVERY HEARTBEAT — FIRST)
+Purpose: The heartbeat is a fast control loop that keeps the system safe, truthful, and continuously executing tasks. It must be resilient to partial tool failure and must never claim actions without receipts.
+
+---
+
+## 0) Epistemic Health Check (FIRST — every heartbeat)
+Motto:
 
 ```
 EVERY response I give
@@ -14,181 +20,190 @@ EVERY action I take
    NO FALLACIES
 ```
 
-**Before any action in this heartbeat, verify:**
+Before any action:
 - [ ] Am I making assumptions without evidence?
-- [ ] Am I falling for a fallacy (bandwagon, authority, false cause)?
-- [ ] Would my actions pass the motto test?
+- [ ] Am I at risk of a known fallacy (authority, bandwagon, false cause)?
+- [ ] If I cannot verify, will I explicitly say NO_CITABLE_EVIDENCE / INSUFFICIENT_EVIDENCE?
+- [ ] Will I avoid claiming actions without receipts?
 
-**If uncertain → pause, verify, then proceed.**
+If uncertain → verify (tools/logs) or downgrade confidence. Never guess.
 
 ---
 
-## Predictions Review (check every heartbeat)
-- Read `memory/predictions-log.jsonl` for new scores since last check
-- If Francisco scored predictions ✗ Wrong:
-  1. Note WHAT was wrong
-  2. Update my behavior accordingly
-  3. Log the learning to `memory/predictions.md` Surprisal Log
-- Daily at end of day: summarize scores and learnings
+## 1) Heartbeat Time Budget (non-negotiable)
+- Heartbeat overhead work budget: **<= 90 seconds**
+- If overhead exceeds budget: stop overhead and return to task execution.
+- Goal: do not starve the task queue.
 
-## Infrastructure (check every heartbeat)
-- **Update health state** — Mark session as active for crash detection:
-  ```powershell
-  @{status="active"; lastSeen=(Get-Date).ToString("o"); pid=$PID} | ConvertTo-Json | Set-Content "memory/last-healthy-state.json"
-  ```
-- **Mission Control server** — Is port 8765 listening? If not, restart: `Start-ScheduledTask -TaskName "MissionControlServer"`
-- If you had to restart it, send Francisco the mobile URL via Telegram:
-  **📱 Dashboard:** http://192.168.4.25:8765?key=a6132abf77194fd10a77317a094771f1
-- **URLs:** localhost:8765 (PC) | 192.168.4.25:8765 (mobile on WiFi)
+---
 
-## Combined Heartbeat Checks (MANDATORY — 4x faster than old method)
-Run EVERY heartbeat: `powershell -ExecutionPolicy Bypass -File "C:\dev\FsuelsBot\workspace\scripts\heartbeat-checks.ps1" -Quiet`
+## 2) Tier-0 Combined Checks (EVERY heartbeat)
+Run the combined script once per heartbeat:
 
-## Tasks.json Integrity (BEFORE ANY WRITE)
-**RULE:** Before ANY modification to tasks.json, validate integrity:
 ```powershell
-powershell -ExecutionPolicy Bypass -File "scripts/validate-tasks-integrity.ps1"
+powershell -ExecutionPolicy Bypass -File "C:\dev\FsuelsBot\workspace\scripts\heartbeat-checks.ps1" -Quiet
 ```
-If validation fails, DO NOT WRITE. Alert Francisco immediately.
-**Root cause (2026-02-01):** Lane arrays referenced task IDs without definitions = corruption.
 
-This single script performs ALL of the following in ~700ms (vs 3s+ for individual scripts):
-- ✅ Updates health state (last-healthy-state.json)
-- ✅ Checks Mission Control is running (port 8765)
-- ✅ Saves checkpoint (state.json, tasks.json, active-thread.md)
-- ✅ Quick error count from Clawdbot log
-- ✅ Checks for unanswered discussion comments
+Receipts rule:
+- Treat the returned JSON as the only source of truth for what happened.
+- If the script errors or returns invalid JSON: record the error and continue with minimal safe mode (Section 5).
 
-Returns JSON with results: `{"healthState":"updated","missionControl":"running",...}`
+Expected output (example):
+`{"healthState":"updated","missionControl":"running",...}`
 
-**ENFORCEMENT CHECK INCLUDED:**
-- `unverifiedCompletions` — Tasks completed without verification (since 2026-01-31)
-- If > 0: **STOP AND FIX** — Add epistemic fields before continuing
-- This MUST be zero. No exceptions.
+---
 
-## Disconnect Investigation Protocol (ALARM — not optional)
-**Every disconnect is an alarm. Treat it seriously.**
-1. **Immediately** check terminal output for errors
-2. **Identify** the root cause (timeout? memory? file missing? network?)
-3. **Log** the cause to learnings.db with prevention strategy
-4. **Fix** immediately if possible, or create task if complex
-5. **Update** procedures to prevent recurrence
+## 3) Tasks.json Integrity Gate (BEFORE ANY WRITE)
+Before ANY modification to tasks.json, validate integrity:
 
-**Common disconnect causes:**
-- Context truncation (conversation too long) → Save state more frequently
-- Network timeout (API calls) → Normal, Clawdbot handles gracefully
-- Missing files (renamed/moved) → Update references
-- Memory pressure (node process) → Monitor WorkingSet64
+```powershell
+powershell -ExecutionPolicy Bypass -File "scripts\validate-tasks-integrity.ps1"
+```
 
-## Memory Integrity (check every heartbeat)
-Run validator: `powershell -ExecutionPolicy Bypass -File "C:\dev\FsuelsBot\workspace\tests\validators\memory-integrity.ps1"`
-- If any ERRORS: alert Francisco immediately
-- If warnings only: note them, continue
-- Log results in memory/heartbeat-state.json under "memoryCheck"
+Rules:
+- If validation fails: **DO NOT WRITE** to tasks.json.
+- Immediately notify Francisco with the error output + suspected root cause.
+- Move any work that requires tasks.json writes into WAITING_HUMAN.
 
-## Core Loops (check every heartbeat)
+Root cause record (2026-02-01):
+- Lane arrays referenced task IDs without definitions = corruption.
 
-### ⚡ OBLIGATION SCAN (PRIMARY — Not "How can I help?")
-1. **Load work-ledger.jsonl** — What commitments are OPEN?
-2. **Check deadlines** — Anything expiring in <48h? → Execute NOW
-3. **Check blocked items** — Can I unblock any? → Execute or escalate with minimal ask
-4. **Check opportunities** — Sales dip? Competitor move? Seasonal event? → Action, not report
-5. **RULE:** Every heartbeat produces at least ONE action OR a blocker report with alternate paths
+---
 
-### 🚨 IDLE CHECK (MANDATORY)
-**If `bot_current` has tasks, I MUST be executing.** Check:
-1. Is there a task in bot_current? → I should be working on it RIGHT NOW
-2. Did my last response contain "want me to" / "shall I" / "let me know"? → VIOLATION
-3. Am I waiting for permission when the queue already gave it? → VIOLATION
+## 4) Mission Control / Infra Checks (Capability-Gated)
+Mission Control is critical, but do not claim it’s running unless you have receipts.
 
-**If violation detected:** Resume work immediately. Don't explain, don't apologize — just execute.
+- Prefer to trust `heartbeat-checks.ps1` output for Mission Control status.
+- If port 8765 is down and the runtime supports restart:
+  - `Start-ScheduledTask -TaskName "MissionControlServer"`
+- If a restart occurred AND Telegram send is available:
+  - Send Francisco the mobile URL.
 
-### Pressure Loop Check
-- Any sub-agent tasks completed since last heartbeat? → Run pressure check
-- Any errors logged? → Check for patterns in .learnings/
-- 3+ similar tasks this week? → Propose template/automation
-- Review recent outputs for improvement opportunities
+Dashboard URLs:
+- PC: `http://localhost:8765`
+- Mobile (WiFi): `http://192.168.4.25:8765?key=a6132abf77194fd10a77317a094771f1`
 
-### Research Loop Check
-- Any pending research briefs to deliver?
-- Seasonal events approaching (<30 days)? → Research opportunities
-- Competitor changes detected? → Alert + response proposal
-- If no research done today → light opportunity scan
+Receipts rule:
+- If you cannot confirm restart + send, report BLOCKER instead of claiming completion.
 
-### Dispatch Check
-- Backlog items scoring 12+? → Execute immediately
-- Backlog items scoring 8-11? → Queue as priority for today
-- Uncommitted git changes? → Commit and push
+---
 
-### Discussion Reply Check (MANDATORY)
-Run: `powershell -ExecutionPolicy Bypass -File "C:\dev\FsuelsBot\workspace\scripts\check-discussion-comments.ps1" -Quiet`
-- Detects unanswered human comments in task discussions
-- If found: respond in discussion + send Telegram notification with [TaskID] prefix
-- Example: "[T041] Hello! Responding to your card comment..."
+## 5) Minimal Safe Mode (when scripts/tools fail)
+If Tier-0 checks fail (PowerShell blocked, script missing, JSON invalid):
+1) Do not write to tasks.json
+2) Do not claim infra status
+3) Continue task execution only for tasks that do not require:
+   - browser automation
+   - external sends
+   - destructive ops
+   - state persistence writes
+4) Report one-line blocker:
+   - BLOCKER: heartbeat checks unavailable (include error) — continuing with safe tasks only.
 
-### 🎯 Backlog Generation Check (DAILY)
-**Procedure:** `procedures/backlog-generator.md`
-**Script:** `python scripts/backlog-generator.py`
+---
 
-**Daily at 6 AM (via cron), verify:**
-- Check `memory/backlog-reports/YYYY-MM-DD.json` for today's run
-- If no report exists, run: `python scripts/backlog-generator.py --scan-all`
+## 6) The Non-Stop Task Runner Loop (PRIMARY PURPOSE)
+Heartbeat is not a report generator; it is the dispatcher.
 
-**Heartbeat quick checks (supplement cron):**
-1. **Seasonal urgency** — Any events <7 days out without prep task?
-   - If yes: `python scripts/backlog-generator.py --source seasonal`
-2. **Error patterns** — 3+ similar errors today?
-   - If yes: `python scripts/backlog-generator.py --source error_pattern`
-3. **High-scoring opportunities** — Any in reports with score ≥15 not yet executed?
-   - If yes: Prioritize in bot_current
+### Task state machine (required)
+Process tasks in this order until no runnable tasks remain:
+- Runnable: NEW, IN_PROGRESS
+- Non-runnable: WAITING_HUMAN, WAITING_EXTERNAL, DONE, FAILED
 
-**Sources scanned by backlog generator:**
-- `website_audit` — SEO issues, broken links, missing meta
-- `error_pattern` — Recurring errors in logs
-- `seasonal` — Upcoming holidays/events (30-day lookahead)
-- `content_gap` — Collections/products needing copy
-- `analytics` — Traffic/conversion alerts
-- `competitor` — Competitor changes detected
+### Rule: Never stop on blockers
+If a task hits a blocker that requires a human:
+- Move task to WAITING_HUMAN (“human column”)
+- Record the minimum needed input (1–3 items) + one direct question + two options
+- Notify Francisco concisely
+- Immediately continue to the next runnable task
 
-**Output:** Tasks auto-created in `tasks.json` bot_queue with:
-- `auto_generated: true` tag
-- `agent_type` for specialist routing
-- Full `context.summary` and `evidence`
+If a task is blocked by rate limits/vendor delays:
+- Move to WAITING_EXTERNAL with a retry note/backoff
+- Continue
 
-## Complete Requests (Task Verification)
-- Check `memory/complete-requests/` for pending verification files
-- For each request file (e.g., `T006.json`):
-  1. **VERIFY** the work is actually complete (check the relevant system/screenshot/etc.)
-  2. If complete: Move task to `done_today` in tasks.json, delete the request file
-  3. If NOT complete: Message Francisco with what's still missing, delete the request file
-- This is how the Mission Control "Mark Complete" button works — it requests verification, you verify
+### Atomic step discipline
+Each execution slice:
+- <= 1–3 tool calls OR <= ~5 minutes of work per task before yielding
+- Always write receipts (diff, command output, screenshot ref, log line)
 
-## Periodic Checks (rotate through, 2-4x daily)
+### Completion rule
+A task can only be marked DONE when receipts exist.
+Never claim completion without observable artifacts.
 
-### Self-Improvement (weekly)
-- Check for Moltbot updates: `clawdbot --version` vs `npm view clawdbot version`
-- Check for skill updates: `clawdhub update --all`
-- Review `.learnings/` files for patterns and promote insights
-- Review recent `memory/` files and update MEMORY.md with key takeaways
-- Check ClawdHub for new relevant skills
-- Review earn/kill metrics for all agents
+---
 
-### Quick Checks (daily)
-- Weather in Naples FL (if human might be going out)
-- Any pending DLM Shopify tasks from memory files
+## 7) Obligation Scan (lightweight, every heartbeat)
+Goal: prevent broken promises without drowning the loop.
 
-### AI Research (daily via cron at 9 AM, supplement during heartbeats)
-- Scan X feed (@Cogitolux) for AI agent news, tricks, discoveries
-- Watch for Clawdbot/Moltbot updates, new skills, community insights
-- Check Claude/Anthropic announcements
-- Note expert tips and improvement opportunities
-- See RESEARCH-BRIEF.md for full format
+1) Check work-ledger.jsonl (if available): open commitments
+2) Deadlines <48h → bump priority or execute immediately
+3) Blocked items → attempt unblock or escalate with minimal ask
 
-### Git Backup (auto via cron at 11 PM)
-- Workspace auto-commits and pushes to github.com/fsuels/FsuelsBot
-- If heartbeat, check if there are uncommitted changes and push
+If work-ledger is unavailable:
+- Do not claim it was checked; proceed with queue-driven execution.
 
-## Dashboard Discipline
-- ALWAYS update current-task.json when starting/finishing tasks
-- ALWAYS update team.json status when dispatching/completing work
-- Include: description, benefit, progress, steps, strategy for every task
+---
+
+## 8) Disconnect Investigation Protocol (ALARM)
+Every disconnect is an alarm.
+
+1) Check terminal output/logs for error text
+2) Identify root cause category: timeout, missing file, network, memory pressure, permission, rate limit
+3) Record learning (learnings.db if available; otherwise message Francisco with prevention)
+4) Fix now if simple; otherwise create a task and continue
+
+Common causes:
+- Context truncation → save state more frequently
+- Network timeout → backoff/retry
+- Missing files → update references
+- Memory pressure → monitor WorkingSet64 (if available)
+
+---
+
+## 9) Discussion Reply Check (every heartbeat if cheap; otherwise rotate)
+If available and fast, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "C:\dev\FsuelsBot\workspace\scripts\check-discussion-comments.ps1" -Quiet
+```
+
+If unanswered comments found:
+- Respond in discussion + send Telegram note with [TaskID] prefix
+
+If the script is slow, rotate it (Section 10).
+
+---
+
+## 10) Rotation Checks (2–4x daily, not every heartbeat)
+Run these on a rotation schedule to avoid heartbeat overload:
+
+- Memory integrity validator:
+  ```powershell
+  powershell -ExecutionPolicy Bypass -File "C:\dev\FsuelsBot\workspace\tests\validators\memory-integrity.ps1"
+  ```
+- Backlog generator verification (daily 6 AM job exists; heartbeat only confirms output file exists)
+- AI research brief supplement (light scan if no research done today)
+- Git hygiene: check uncommitted changes; commit/push only if allowed by policy
+
+Rule:
+- If rotating checks are unavailable, do not claim they ran.
+
+---
+
+## 11) Complete Requests (Verification Queue)
+Check `memory/complete-requests/` for pending verification files (e.g., `T006.json`):
+1) Verify the work is actually complete (receipts/system check)
+2) If complete: move to done_today in tasks.json + delete request file
+3) If not complete: message Francisco with what’s missing + delete request file
+
+This is how Mission Control “Mark Complete” works: it requests verification; you verify.
+
+---
+
+## 12) Dashboard Discipline (when runtime supports it)
+- Update current-task.json when starting/finishing tasks
+- Update team.json status when dispatching/completing work
+- Include: description, benefit, progress, steps, strategy
+- If files are unavailable: do not claim updates; report BLOCKER.
+
+---
