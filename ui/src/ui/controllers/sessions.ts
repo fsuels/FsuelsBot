@@ -72,6 +72,15 @@ export async function patchSession(
   }
 }
 
+export async function switchSessionModel(
+  state: SessionsState,
+  sessionKey: string,
+  model: string,
+) {
+  if (!state.client || !state.connected) return;
+  await patchSession(state, sessionKey, { model });
+}
+
 export async function deleteSession(state: SessionsState, key: string) {
   if (!state.client || !state.connected) return;
   if (state.sessionsLoading) return;

@@ -40,6 +40,7 @@ function createProps(overrides: Partial<SessionsProps> = {}): SessionsProps {
     onRefresh: () => undefined,
     onPatch: () => undefined,
     onDelete: () => undefined,
+    onSwitchModel: () => undefined,
     ...overrides,
   };
 }

@@ -33,6 +33,7 @@ export type SessionsProps = {
     },
   ) => void;
   onDelete: (key: string) => void;
+  onSwitchModel: (key: string, model: string) => void;
 };
 
 const THINK_LEVELS = ["", "off", "minimal", "low", "medium", "high"] as const;
@@ -206,6 +207,7 @@ export function renderSessions(props: SessionsProps) {
                 props.basePath,
                 props.onPatch,
                 props.onDelete,
+                props.onSwitchModel,
                 props.loading,
               ),
             )}
@@ -221,6 +223,7 @@ function renderRow(
   basePath: string,
   onPatch: SessionsProps["onPatch"],
   onDelete: SessionsProps["onDelete"],
+  onSwitchModel: SessionsProps["onSwitchModel"],
   disabled: boolean,
 ) {
   const updated = row.updatedAt ? formatAgo(row.updatedAt) : "n/a";
@@ -268,6 +271,10 @@ function renderRow(
           @change=${(e: Event) => {
             const value = (e.target as HTMLSelectElement).value;
             onPatch(row.key, { model: value || null });
+            // Also switch the model immediately if a model was selected
+            if (value) {
+              onSwitchModel(row.key, value);
+            }
           }}
         >
           <option value="">${inheritModelLabel}</option>

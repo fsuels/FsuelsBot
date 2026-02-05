@@ -53,7 +53,7 @@ import { renderSkills } from "./views/skills";
 import { renderChatControls, renderTab, renderThemeToggle } from "./app-render.helpers";
 import { loadChannels } from "./controllers/channels";
 import { loadPresence } from "./controllers/presence";
-import { deleteSession, loadSessions, patchSession } from "./controllers/sessions";
+import { deleteSession, loadSessions, patchSession, switchSessionModel } from "./controllers/sessions";
 import {
   installSkill,
   loadSkills,
@@ -129,15 +129,25 @@ export function renderApp(state: AppViewState) {
           </button>
           <div class="brand">
             <div class="brand-logo">
-              <img src="https://mintcdn.com/clawdhub/4rYvG-uuZrMK_URE/assets/pixel-lobster.svg?fit=max&auto=format&n=4rYvG-uuZrMK_URE&q=85&s=da2032e9eac3b5d9bfe7eb96ca6a8a26" alt="Moltbot" />
+              <img src="https://mintcdn.com/clawdhub/4rYvG-uuZrMK_URE/assets/pixel-lobster.svg?fit=max&auto=format&n=4rYvG-uuZrMK_URE&q=85&s=da2032e9eac3b5d9bfe7eb96ca6a8a26" alt="OpenClaw" />
             </div>
             <div class="brand-text">
-              <div class="brand-title">MOLTBOT</div>
+              <div class="brand-title">OPENCLAW</div>
               <div class="brand-sub">Gateway Dashboard</div>
             </div>
           </div>
         </div>
         <div class="topbar-status">
+          <a
+            href="http://localhost:8765"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="pill pill--link"
+            title="Open Mission Control"
+          >
+            <span class="pill__icon">${icons.rocket}</span>
+            <span>Mission Control</span>
+          </a>
           <div class="pill">
             <span class="statusDot ${state.connected ? "ok" : ""}"></span>
             <span>Health</span>
@@ -302,6 +312,7 @@ export function renderApp(state: AppViewState) {
 	              onRefresh: () => loadSessions(state),
 	              onPatch: (key, patch) => patchSession(state, key, patch),
 	              onDelete: (key) => deleteSession(state, key),
+	              onSwitchModel: (key, model) => switchSessionModel(state, key, model),
 	            })
 	          : nothing}
 

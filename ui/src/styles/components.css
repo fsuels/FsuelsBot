@@ -201,6 +201,33 @@
   color: var(--danger);
 }
 
+.pill--link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.pill--link:hover {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+.pill__icon {
+  display: flex;
+  width: 16px;
+  height: 16px;
+}
+
+.pill__icon svg {
+  width: 100%;
+  height: 100%;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
+
 /* ===========================================
    Theme Toggle
    =========================================== */

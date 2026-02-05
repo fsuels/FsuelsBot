@@ -130,13 +130,18 @@ def load_gateway_info():
 
 
 def resolve_cli_binary():
-    """Prefer openclaw, then fall back to clawdbot."""
+    """Prefer moltbot, then openclaw, then fall back to clawdbot."""
     home = Path.home()
     candidates = [
+        # Mac/Linux paths
+        shutil.which("moltbot"),
+        str(home / "Projects" / "FsuelsBot" / "moltbot.mjs"),
         shutil.which("openclaw"),
+        shutil.which("clawdbot"),
+        # Windows paths
+        shutil.which("moltbot.cmd"),
         shutil.which("openclaw.cmd"),
         str(home / "AppData" / "Roaming" / "npm" / "openclaw.cmd"),
-        shutil.which("clawdbot"),
         shutil.which("clawdbot.cmd"),
         str(home / "AppData" / "Roaming" / "npm" / "clawdbot.cmd"),
     ]
