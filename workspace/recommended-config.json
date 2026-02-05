@@ -1,0 +1,23 @@
+{
+  "_comment": "Copy these settings to ~/.clawdbot/moltbot.json to maximize proactivity",
+
+  "agents": {
+    "defaults": {
+      "heartbeat": {
+        "every": "5m",
+        "prompt": "Read HEARTBEAT.md. If bot_current has tasks, EXECUTE IMMEDIATELY (no HEARTBEAT_OK). If empty, run checks then reply HEARTBEAT_OK.",
+        "ackMaxChars": 500
+      },
+      "queue": {
+        "mode": "auto",
+        "drainDelayMs": 2000,
+        "dropPolicy": "warn"
+      }
+    }
+  },
+
+  "session": {
+    "maxIdleMinutes": 5,
+    "autoResumeOnIdle": true
+  }
+}

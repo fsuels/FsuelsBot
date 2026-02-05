@@ -1,5 +1,32 @@
 # HEARTBEAT.md
 
+## 🔥 AUTO-CONTINUE PROTOCOL (ABSOLUTE FIRST — BEFORE EVERYTHING)
+
+**THIS CHECK RUNS BEFORE ALL OTHER HEARTBEAT ACTIONS.**
+
+```powershell
+# Check if bot_current has tasks
+$tasks = Get-Content "memory/tasks.json" -Raw | ConvertFrom-Json
+$botCurrent = $tasks.lanes.bot_current
+```
+
+**If `bot_current` has ANY tasks:**
+1. ❌ DO NOT run epistemic checks
+2. ❌ DO NOT run infrastructure checks
+3. ❌ DO NOT run predictions review
+4. ❌ DO NOT reply HEARTBEAT_OK
+5. ✅ IMMEDIATELY execute the first task in `bot_current`
+6. ✅ Only run other heartbeat checks when `bot_current` is EMPTY
+
+**The heartbeat exists to EXECUTE, not to "check in".**
+
+**If you just finished a task:**
+1. Check if more tasks exist in `bot_current`
+2. If YES → Start next task immediately (no heartbeat checks needed)
+3. If NO → Run full heartbeat checks below
+
+---
+
 ## 🧭 EPISTEMIC HEALTH CHECK (EVERY HEARTBEAT — FIRST)
 
 ```

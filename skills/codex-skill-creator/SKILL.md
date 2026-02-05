@@ -1,9 +1,9 @@
 ---
-name: skill-creator
-description: Create or update AgentSkills. Use when designing, structuring, or packaging skills with scripts, references, and assets.
+name: codex-skill-creator
+description: Create or update Codex AgentSkills. Use when designing, structuring, or packaging skills specifically for Codex with scripts, references, and assets. (Codex-specific version with --resources and --examples flags.)
 ---
 
-# Skill Creator
+# Codex Skill Creator
 
 This skill provides guidance for creating effective skills.
 
