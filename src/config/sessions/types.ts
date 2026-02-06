@@ -5,6 +5,8 @@ import type { NormalizedChatType } from "../../channels/chat-type.js";
 import type { ChannelId } from "../../channels/plugins/types.js";
 import type { DeliveryContext } from "../../utils/delivery-context.js";
 import type { TtsAutoMode } from "../types.tts.js";
+import type { CorrectionEvent } from "../../agents/drift-detection.js";
+import type { CoherenceEntry } from "../../agents/coherence-log.js";
 
 export type SessionScope = "per-sender" | "global";
 
@@ -127,6 +129,16 @@ export type SessionEntry = {
   lastThreadId?: string | number;
   skillsSnapshot?: SessionSkillSnapshot;
   systemPromptReport?: SessionSystemPromptReport;
+  // -- Drift Detection (RSC v2.0) --
+  driftEvents?: CorrectionEvent[];
+  driftBaselineRate?: number;
+  driftBaselineTurns?: number;
+  driftLevel?: string;
+  driftLevelChangedAt?: number;
+  driftResponseCount?: number;
+  // -- Coherence Log (RSC v2.0 capture) --
+  coherenceEntries?: CoherenceEntry[];
+  coherencePinned?: CoherenceEntry[];
 };
 
 export function mergeSessionEntry(

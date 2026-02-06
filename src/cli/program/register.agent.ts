@@ -7,6 +7,7 @@ import {
   agentsListCommand,
   agentsSetIdentityCommand,
 } from "../../commands/agents.js";
+import { driftStatusCommand } from "../../commands/drift-status.js";
 import { setVerbose } from "../../globals.js";
 import { defaultRuntime } from "../../runtime.js";
 import { formatDocsLink } from "../../terminal/links.js";
@@ -196,6 +197,25 @@ ${formatHelpExamples([
             id: String(id),
             force: Boolean(opts.force),
             json: Boolean(opts.json),
+          },
+          defaultRuntime,
+        );
+      });
+    });
+
+  agents
+    .command("drift-status")
+    .description("Show drift detection and coherence log status for sessions")
+    .option("--session <key>", "Show status for a specific session key")
+    .option("--json", "Output JSON", false)
+    .option("--all", "Show all sessions (including those with no drift data)", false)
+    .action(async (opts) => {
+      await runCommandWithRuntime(defaultRuntime, async () => {
+        await driftStatusCommand(
+          {
+            sessionKey: opts.session as string | undefined,
+            json: Boolean(opts.json),
+            all: Boolean(opts.all),
           },
           defaultRuntime,
         );

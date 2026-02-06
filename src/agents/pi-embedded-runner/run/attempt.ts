@@ -365,6 +365,8 @@ export async function runEmbeddedAttempt(
       userTime,
       userTimeFormat,
       contextFiles,
+      contextPressure: params.contextPressure,
+      driftInjection: params.driftInjection,
     });
     const systemPromptReport = buildSystemPromptReport({
       source: "run",

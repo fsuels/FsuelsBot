@@ -2,6 +2,7 @@ import type { ReasoningLevel, ThinkLevel } from "../auto-reply/thinking.js";
 import { SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
 import { listDeliverableMessageChannels } from "../utils/message-channel.js";
 import type { ResolvedTimeFormat } from "./date-time.js";
+import type { DriftPromptInjection } from "./drift-detection.js";
 import type { EmbeddedContextFile } from "./pi-embedded-helpers.js";
 
 /**
@@ -49,17 +50,17 @@ function buildTaskClaritySection(isMinimal: boolean) {
   return [
     "## Task Clarity",
     "Use plain, non-technical language when talking about memory.",
-    "If user asks how memory works, explain briefly: \"I remember best when we work on one topic at a time. Tell me when you start something new or switch topics.\"",
+    'If user asks how memory works, explain briefly: "I remember best when we work on one topic at a time. Tell me when you start something new or switch topics."',
     "When appropriate, open with one of these exact one-liners:",
-    "- \"Before we begin - what are we working on today?\"",
-    "- \"It looks like we might be switching topics. Is this a new task, or should I continue the previous one?\"",
-    "- \"Would you like me to save where we are so we can continue later?\"",
-    "- \"I will start fresh now. Your saved tasks and important details will still be remembered.\"",
-    "- \"I remember this task. Do you want me to continue from where we left off?\"",
-    "- \"Got it. I will treat this as important and remember it.\"",
-    "- \"Just checking - should I treat this as one ongoing task?\"",
+    '- "Before we begin - what are we working on today?"',
+    '- "It looks like we might be switching topics. Is this a new task, or should I continue the previous one?"',
+    '- "Would you like me to save where we are so we can continue later?"',
+    '- "I will start fresh now. Your saved tasks and important details will still be remembered."',
+    '- "I remember this task. Do you want me to continue from where we left off?"',
+    '- "Got it. I will treat this as important and remember it."',
+    '- "Just checking - should I treat this as one ongoing task?"',
     "If no nudge is needed, skip it and answer normally.",
-    "Friendly reminder line (optional): \"Tell me what you are working on, tell me when you switch, and tell me what matters.\"",
+    'Friendly reminder line (optional): "Tell me what you are working on, tell me when you switch, and tell me what matters."',
     "",
   ];
 }
@@ -198,6 +199,14 @@ export function buildAgentSystemPrompt(params: {
     level: "minimal" | "extensive";
     channel: string;
   };
+  /** Context exhaustion projection: estimated turns remaining before overflow. */
+  contextPressure?: {
+    turnsRemaining: number;
+    tokensBudget: number;
+    tokensUsed: number;
+  };
+  /** Drift detection prompt injection (stability warnings). */
+  driftInjection?: DriftPromptInjection;
 }) {
   const coreToolSummaries: Record<string, string> = {
     read: "Read file contents",
@@ -512,6 +521,34 @@ export function buildAgentSystemPrompt(params: {
           ].join("\n");
     lines.push("## Reactions", guidanceText, "");
   }
+  // RSC v2.0: Context exhaustion projection
+  if (!isMinimal && params.contextPressure && params.contextPressure.turnsRemaining <= 5) {
+    const { turnsRemaining, tokensBudget, tokensUsed } = params.contextPressure;
+    const pct = Math.round((tokensUsed / tokensBudget) * 100);
+    lines.push(
+      "## Context Pressure",
+      `Context usage: ${pct}% (approximately ${turnsRemaining} turn${turnsRemaining === 1 ? "" : "s"} remaining before overflow).`,
+      turnsRemaining <= 2
+        ? "URGENT: Summarize all progress and open items now. Save critical state to memory before context is lost."
+        : "Consider summarizing progress and saving important state to memory soon.",
+      "",
+    );
+  }
+
+  // RSC v2.0: Drift detection injection
+  if (!isMinimal && params.driftInjection) {
+    lines.push(params.driftInjection.text, "");
+  }
+
+  // RSC v2.0: Confidence annotation (always active for full mode)
+  if (!isMinimal) {
+    lines.push(
+      "## Decision Confidence",
+      "If you are about to take an action based on an assumption you cannot verify, state the assumption in one sentence before proceeding. Do not hedge on routine operations.",
+      "",
+    );
+  }
+
   if (reasoningHint) {
     lines.push("## Reasoning Format", reasoningHint, "");
   }

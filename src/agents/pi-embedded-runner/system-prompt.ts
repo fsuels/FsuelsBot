@@ -1,5 +1,6 @@
 import type { AgentTool } from "@mariozechner/pi-agent-core";
 import type { ResolvedTimeFormat } from "../date-time.js";
+import type { DriftPromptInjection } from "../drift-detection.js";
 import type { EmbeddedContextFile } from "../pi-embedded-helpers.js";
 import { buildAgentSystemPrompt, type PromptMode } from "../system-prompt.js";
 import { buildToolSummaryMap } from "../tool-summaries.js";
@@ -45,6 +46,14 @@ export function buildEmbeddedSystemPrompt(params: {
   userTime?: string;
   userTimeFormat?: ResolvedTimeFormat;
   contextFiles?: EmbeddedContextFile[];
+  /** Context exhaustion projection (RSC v2.0). */
+  contextPressure?: {
+    turnsRemaining: number;
+    tokensBudget: number;
+    tokensUsed: number;
+  };
+  /** Drift detection prompt injection (RSC v2.0). */
+  driftInjection?: DriftPromptInjection;
 }): string {
   return buildAgentSystemPrompt({
     workspaceDir: params.workspaceDir,
@@ -70,6 +79,8 @@ export function buildEmbeddedSystemPrompt(params: {
     userTime: params.userTime,
     userTimeFormat: params.userTimeFormat,
     contextFiles: params.contextFiles,
+    contextPressure: params.contextPressure,
+    driftInjection: params.driftInjection,
   });
 }
 

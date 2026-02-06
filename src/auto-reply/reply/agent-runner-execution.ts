@@ -20,6 +20,7 @@ import {
   updateSessionStore,
 } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
+import { resolveDriftInjectionForSession } from "./drift-coherence-update.js";
 import { emitAgentEvent, registerAgentRunContext } from "../../infra/agent-events.js";
 import { defaultRuntime } from "../../runtime.js";
 import {
@@ -222,6 +223,23 @@ export async function runAgentTurnWithFallback(params: {
             provider === params.followupRun.run.provider
               ? params.followupRun.run.authProfileId
               : undefined;
+
+          // RSC v2.0: Compute context pressure and drift injection from session state.
+          const activeEntry = params.getActiveSessionEntry();
+          const contextPressure = (() => {
+            const budget = activeEntry?.contextTokens;
+            const used = activeEntry?.totalTokens;
+            if (!budget || !used || used <= 0) return undefined;
+            // Estimate average tokens per turn (~2000 is a reasonable default)
+            const responseCount = activeEntry?.driftResponseCount ?? 1;
+            const avgPerTurn = Math.max(500, Math.floor(used / Math.max(1, responseCount)));
+            const remaining = Math.max(0, budget - used);
+            const turnsRemaining = Math.floor(remaining / avgPerTurn);
+            if (turnsRemaining > 5) return undefined; // Only inject when pressure is real
+            return { turnsRemaining, tokensBudget: budget, tokensUsed: used };
+          })();
+          const driftInjection = resolveDriftInjectionForSession(activeEntry);
+
           return runEmbeddedPiAgent({
             sessionId: params.followupRun.run.sessionId,
             sessionKey: params.sessionKey,
@@ -393,6 +411,8 @@ export async function runAgentTurnWithFallback(params: {
                     await blockReplyPipeline.flush({ force: true });
                   }
                 : undefined,
+            contextPressure,
+            driftInjection: driftInjection ?? undefined,
             shouldEmitToolResult: params.shouldEmitToolResult,
             shouldEmitToolOutput: params.shouldEmitToolOutput,
             onToolResult: onToolResult

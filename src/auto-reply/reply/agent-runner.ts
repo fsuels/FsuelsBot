@@ -37,6 +37,7 @@ import { createFollowupRunner } from "./followup-runner.js";
 import { enqueueFollowupRun, type FollowupRun, type QueueSettings } from "./queue.js";
 import { createReplyToModeFilterForChannel, resolveReplyToMode } from "./reply-threading.js";
 import { persistSessionUsageUpdate } from "./session-usage.js";
+import { persistDriftCoherenceUpdate } from "./drift-coherence-update.js";
 import { incrementCompactionCount } from "./session-updates.js";
 import type { TypingController } from "./typing.js";
 import { createTypingSignaler } from "./typing-mode.js";
@@ -386,6 +387,22 @@ export async function runReplyAgent(params: {
       contextTokensUsed,
       systemPromptReport: runResult.meta.systemPromptReport,
       cliSessionId,
+    });
+
+    const errorKind = runResult.meta.error?.kind;
+    await persistDriftCoherenceUpdate({
+      storePath,
+      sessionKey,
+      signals: {
+        modelFallback: !!(fallbackProvider || fallbackModel),
+        autoCompaction: autoCompactionCompleted,
+        contextOverflow: errorKind === "context_overflow" || errorKind === "compaction_failure",
+        sessionReset: activeIsNewSession && !isNewSession,
+        fallbackModel: fallbackModel ?? modelUsed,
+        defaultModel,
+      },
+      taskId: followupRun.run.taskId,
+      toolMetas: runResult.toolMetas,
     });
 
     // Drain any late tool/block deliveries before deciding there's "nothing to send".

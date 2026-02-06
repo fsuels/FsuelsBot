@@ -8,6 +8,7 @@ import type { AgentStreamParams } from "../../../commands/agent/types.js";
 import type { ExecElevatedDefaults, ExecToolDefaults } from "../../bash-tools.js";
 import type { MessagingToolSend } from "../../pi-embedded-messaging.js";
 import type { BlockReplyChunking, ToolResultFormat } from "../../pi-embedded-subscribe.js";
+import type { DriftPromptInjection } from "../../drift-detection.js";
 import type { SkillSnapshot } from "../../skills.js";
 import type { SessionSystemPromptReport } from "../../../config/sessions/types.js";
 import type { ClientToolDefinition } from "./params.js";
@@ -88,6 +89,14 @@ export type EmbeddedRunAttemptParams = {
   streamParams?: AgentStreamParams;
   ownerNumbers?: string[];
   enforceFinalTag?: boolean;
+  /** Context exhaustion projection for system prompt (RSC v2.0). */
+  contextPressure?: {
+    turnsRemaining: number;
+    tokensBudget: number;
+    tokensUsed: number;
+  };
+  /** Drift detection prompt injection for system prompt (RSC v2.0). */
+  driftInjection?: DriftPromptInjection;
 };
 
 export type EmbeddedRunAttemptResult = {

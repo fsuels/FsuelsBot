@@ -49,6 +49,8 @@ export type EmbeddedPiRunResult = {
   messagingToolSentTexts?: string[];
   // Messaging tool targets that successfully sent a message during the run.
   messagingToolSentTargets?: MessagingToolSend[];
+  /** Tool calls executed during the run, for post-turn coherence logging. */
+  toolMetas?: Array<{ toolName: string; meta?: string }>;
 };
 
 export type EmbeddedPiCompactResult = {
