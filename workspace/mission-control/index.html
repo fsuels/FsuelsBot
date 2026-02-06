@@ -1983,7 +1983,7 @@ const MODEL_HINTS = {
   'openai-codex/gpt-5.1': 'Fast chat mode: lightweight planning and quick replies.',
   'openai-codex/gpt-5.1-codex-max': 'Deep coding: complex architecture and hard bug hunts.',
   'openai-codex/gpt-5.1-codex-mini': 'Lowest latency coding: small edits and tight loops.',
-  'anthropic/claude-opus-4-5': '⭐⭐⭐⭐⭐ BEST - Smartest AI. Strategy, complex tasks, important decisions.',
+  'anthropic/claude-opus-4-5': '⭐⭐⭐⭐⭐ OPUS 4.6 (Newest & Best) - Smartest AI. Strategy, complex tasks, important decisions.',
   'anthropic/claude-sonnet-4-5': '⭐⭐⭐⭐ FAST - Quick & smart. Good for everyday tasks.',
   'ollama/llama3.1:8b': 'Local zero-cost fast mode: drafts and routine automation.',
   'ollama/gpt-oss:20b': 'Local deeper mode: better quality without cloud spend.',
@@ -1993,13 +1993,17 @@ const MODEL_HINTS = {
   'lmstudio/mistralai_devstral-small-2-24b-instruct-2512-mlx': '⭐⭐⭐⭐ CODE - Programming expert. Write, debug, explain code.',
   'lmstudio/deepseek-r1-distill-qwen-14b': '⭐⭐⭐⭐ THINK - Shows step-by-step reasoning. Math, logic, analysis.',
 };
+const MODEL_NAMES = {
+  'anthropic/claude-opus-4-5': 'Opus 4.6 (Newest & Best)',
+  'anthropic/claude-sonnet-4-5': 'Sonnet 4.5 (Fast)',
+};
 const MODEL_BADGES = {
   'openai-codex/gpt-5.2': 'Plan/Research',
   'openai-codex/gpt-5.2-codex': 'Coding (deep)',
   'openai-codex/gpt-5.1': 'Drafting (fast)',
   'openai-codex/gpt-5.1-codex-max': 'Coding (max)',
   'openai-codex/gpt-5.1-codex-mini': 'Coding (fast loop)',
-  'anthropic/claude-opus-4-5': '⭐⭐⭐⭐⭐ Best',
+  'anthropic/claude-opus-4-5': '⭐⭐⭐⭐⭐ Opus 4.6',
   'anthropic/claude-sonnet-4-5': '⭐⭐⭐⭐ Fast',
   'ollama/llama3.1:8b': 'Local fast ($0)',
   'ollama/gpt-oss:20b': 'Local quality ($0)',
@@ -2049,12 +2053,24 @@ async function loadModelSelector() {
       return;
     }
 
+    // Sort: Opus 4.6 first, then Sonnet, then others
+    const MODEL_ORDER = ['anthropic/claude-opus-4-5', 'anthropic/claude-sonnet-4-5'];
+    models.sort((a, b) => {
+      const aIdx = MODEL_ORDER.indexOf(a.key);
+      const bIdx = MODEL_ORDER.indexOf(b.key);
+      if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
+      if (aIdx !== -1) return -1;
+      if (bIdx !== -1) return 1;
+      return 0;
+    });
+
     for (const model of models) {
       const key = model.key || '';
       if (!key) continue;
       const option = document.createElement('option');
       option.value = key;
-      const baseLabel = model.name ? `${model.name} [${key}]` : key;
+      const customName = MODEL_NAMES[key];
+      const baseLabel = customName ? `${customName} [${key}]` : (model.name ? `${model.name} [${key}]` : key);
       const badge = MODEL_BADGES[key];
       const label = badge ? `${baseLabel} - ${badge}` : baseLabel;
       option.textContent = label;
@@ -2124,8 +2140,8 @@ async function loadStatusBar() {
     const info = data.sessionInfo || {};
     const provider = info.provider || '';
     const model = info.model || '--';
-    const runtimeLabel = model.includes('/') ? model : `${provider || 'unknown'}/${model}`;
     const runtimeKey = model.includes('/') ? model : (provider ? `${provider}/${model}` : '');
+    const runtimeLabel = MODEL_NAMES[runtimeKey] || (model.includes('/') ? model : `${provider || 'unknown'}/${model}`);
     currentRuntimeModel = runtimeKey || null;
     const runtimeDiff = !!runtimeKey && !!currentConfiguredModel && runtimeKey !== currentConfiguredModel;
     brainModel.textContent = runtimeDiff

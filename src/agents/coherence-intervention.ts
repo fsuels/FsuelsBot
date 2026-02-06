@@ -14,6 +14,8 @@ import {
   resolveCoherenceLog,
   selectEventsForInjection,
   formatEventMemoryInjection,
+  pruneRetiredPromotedEvents,
+  formatPromotedEventsInjection,
 } from "./coherence-log.js";
 import {
   resolveToolFailureState,
@@ -22,6 +24,7 @@ import {
   buildFailureMemoryHint,
 } from "./tool-failure-tracker.js";
 import type { SessionEntry } from "../config/sessions/types.js";
+import { resolveThreadParentSessionKey } from "../sessions/session-key-utils.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -78,11 +81,20 @@ export function buildCoherenceIntervention(state: CoherenceLogState): CoherenceI
 
 /**
  * Resolve coherence intervention for a session entry.
- * Combines coherence log, tool avoidance, and failure memory into a single injection.
- * Called pre-turn in agent-runner-execution.ts.
+ * Combines coherence log, tool avoidance, failure memory, and cross-session memory
+ * into a single injection. Called pre-turn in agent-runner-execution.ts.
+ *
+ * The optional `opts` parameter enables cross-session event promotion (RSC v3.1).
+ * When provided, the function loads the parent session's promoted events and injects
+ * them as a separate section. This is backward-compatible — omitting opts disables
+ * cross-session memory without breaking existing callers.
  */
 export function resolveCoherenceInterventionForSession(
   entry?: SessionEntry,
+  opts?: {
+    sessionStore?: Record<string, SessionEntry>;
+    sessionKey?: string;
+  },
 ): CoherenceIntervention | null {
   if (!entry) return null;
 
@@ -105,6 +117,21 @@ export function resolveCoherenceInterventionForSession(
     sections.push(eventInjection);
   }
 
+  // RSC v3.1: Cross-session promoted events
+  if (opts?.sessionStore && opts.sessionKey) {
+    const promotedEvents = resolvePromotedEventsForSession(
+      opts.sessionStore,
+      opts.sessionKey,
+      entry,
+    );
+    if (promotedEvents) {
+      const injection = formatPromotedEventsInjection(promotedEvents);
+      if (injection) {
+        sections.push(injection);
+      }
+    }
+  }
+
   // Tool avoidance section (RSC v2.1 item 3)
   const toolState = resolveToolFailureState({ toolFailures: entry.toolFailures });
   const avoidance = buildToolAvoidanceInjection(toolState);
@@ -121,4 +148,31 @@ export function resolveCoherenceInterventionForSession(
 
   if (sections.length === 0) return null;
   return { text: sections.join("\n\n") };
+}
+
+/**
+ * Resolve promoted events for a session by checking self and parent session.
+ * Returns the promoted events array (already pruned of retired events), or null if none.
+ */
+function resolvePromotedEventsForSession(
+  sessionStore: Record<string, SessionEntry>,
+  sessionKey: string,
+  entry: SessionEntry,
+): import("../config/sessions/types.js").PromotedEvent[] | null {
+  // Check self first
+  const selfPromoted = entry.promotedEvents;
+  if (selfPromoted && selfPromoted.length > 0) {
+    return pruneRetiredPromotedEvents(selfPromoted);
+  }
+
+  // Check parent session
+  const parentKey = resolveThreadParentSessionKey(sessionKey);
+  if (parentKey && parentKey !== sessionKey) {
+    const parentEntry = sessionStore[parentKey];
+    if (parentEntry?.promotedEvents && parentEntry.promotedEvents.length > 0) {
+      return pruneRetiredPromotedEvents(parentEntry.promotedEvents);
+    }
+  }
+
+  return null;
 }

@@ -10,6 +10,11 @@ import {
   resolveCoherenceLog,
   formatCoherenceLog,
   formatEventMemoryStatus,
+  analyzeVerbTaxonomy,
+  formatVerbTaxonomyReport,
+  computeTrustSignals,
+  formatTrustStatus,
+  formatPromotedEventsStatus,
 } from "../agents/coherence-log.js";
 import { loadSessionStore, resolveStorePath } from "../config/sessions.js";
 import { loadConfig } from "../config/config.js";
@@ -48,6 +53,9 @@ export async function driftStatusCommand(
     driftStatus: string;
     coherenceStatus: string;
     eventMemoryStatus: string;
+    taxonomyStatus: string;
+    trustStatus: string;
+    promotionStatus: string;
     level: string;
   }> = [];
 
@@ -77,11 +85,22 @@ export async function driftStatusCommand(
       continue;
     }
 
+    // RSC v3.1: Taxonomy analysis, trust signals, promotion status
+    const allEvents = [...coherenceState.pinned, ...coherenceState.entries];
+    const taxonomyReport = analyzeVerbTaxonomy(allEvents);
+    const trustSignals = computeTrustSignals(allEvents);
+
     results.push({
       sessionKey: key,
       driftStatus: formatDriftStatus(driftState),
       coherenceStatus: formatCoherenceLog(coherenceState),
       eventMemoryStatus: formatEventMemoryStatus(coherenceState),
+      taxonomyStatus: formatVerbTaxonomyReport(taxonomyReport),
+      trustStatus: formatTrustStatus(trustSignals),
+      promotionStatus: formatPromotedEventsStatus(
+        entry.promotedEvents ?? [],
+        entry.promotionCandidates ?? [],
+      ),
       level: driftState.level,
     });
   }
@@ -106,5 +125,11 @@ export async function driftStatusCommand(
     runtime.log(result.coherenceStatus);
     runtime.log("");
     runtime.log(result.eventMemoryStatus);
+    runtime.log("");
+    runtime.log(result.taxonomyStatus);
+    runtime.log("");
+    runtime.log(result.trustStatus);
+    runtime.log("");
+    runtime.log(result.promotionStatus);
   }
 }

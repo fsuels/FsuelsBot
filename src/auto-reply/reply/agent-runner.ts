@@ -38,6 +38,7 @@ import { enqueueFollowupRun, type FollowupRun, type QueueSettings } from "./queu
 import { createReplyToModeFilterForChannel, resolveReplyToMode } from "./reply-threading.js";
 import { persistSessionUsageUpdate } from "./session-usage.js";
 import { persistDriftCoherenceUpdate } from "./drift-coherence-update.js";
+import { isUserCorrection } from "../../agents/coherence-log.js";
 import { incrementCompactionCount } from "./session-updates.js";
 import type { TypingController } from "./typing.js";
 import { createTypingSignaler } from "./typing-mode.js";
@@ -404,6 +405,7 @@ export async function runReplyAgent(params: {
       taskId: followupRun.run.taskId,
       toolMetas: runResult.toolMetas,
       lastToolError: runResult.lastToolError,
+      userCorrectionHint: isUserCorrection(commandBody) ? commandBody : undefined,
     });
 
     // Drain any late tool/block deliveries before deciding there's "nothing to send".

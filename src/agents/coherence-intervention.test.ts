@@ -203,4 +203,159 @@ describe("resolveCoherenceInterventionForSession", () => {
     const sections = text.split("\n\n");
     expect(sections.length).toBeGreaterThanOrEqual(2);
   });
+
+  // -----------------------------------------------------------------------
+  // RSC v3.1: Cross-session promoted event injection
+  // -----------------------------------------------------------------------
+
+  it("includes cross-session memory when opts with promoted events are provided", () => {
+    const now = Date.now();
+    const entry = {
+      sessionId: "s1",
+      updatedAt: now,
+      coherenceEntries: [
+        { ts: now - 10_000, source: "tool_call" as const, summary: "Edit: a.ts" },
+        { ts: now - 8_000, source: "tool_call" as const, summary: "Edit: b.ts" },
+        { ts: now - 5_000, source: "tool_call" as const, summary: "Exec: npm test" },
+      ],
+      coherencePinned: [],
+      promotedEvents: [
+        {
+          verb: EventVerb.FAILED,
+          subject: "npm test",
+          outcome: "timeout",
+          occurrences: 4,
+          firstSeenTs: now - 86_400_000 * 3,
+          lastSeenTs: now - 3600_000,
+          sourceSessionKeys: ["s1", "s2", "s3", "s4"],
+          retireAfterTs: now + 86_400_000 * 14,
+        },
+      ],
+    } as SessionEntry;
+
+    const sessionStore = { "agent:main": entry };
+    const result = resolveCoherenceInterventionForSession(entry, {
+      sessionStore,
+      sessionKey: "agent:main",
+    });
+
+    expect(result).not.toBeNull();
+    expect(result!.text).toContain("## Cross-Session Memory");
+    expect(result!.text).toContain("FAILED");
+    expect(result!.text).toContain("npm test");
+    expect(result!.text).toContain("timeout");
+  });
+
+  it("resolves promoted events from parent session", () => {
+    const now = Date.now();
+    const childEntry = {
+      sessionId: "child1",
+      updatedAt: now,
+      coherenceEntries: [
+        { ts: now - 10_000, source: "tool_call" as const, summary: "Edit: a.ts" },
+        { ts: now - 8_000, source: "tool_call" as const, summary: "Edit: b.ts" },
+        { ts: now - 5_000, source: "tool_call" as const, summary: "Exec: npm test" },
+      ],
+      coherencePinned: [],
+    } as SessionEntry;
+
+    const parentEntry = {
+      sessionId: "parent1",
+      updatedAt: now,
+      promotedEvents: [
+        {
+          verb: EventVerb.DECIDED,
+          subject: "use vitest",
+          outcome: "switched",
+          occurrences: 3,
+          firstSeenTs: now - 86_400_000 * 5,
+          lastSeenTs: now - 7200_000,
+          sourceSessionKeys: ["s1", "s2", "s3"],
+          retireAfterTs: now + 86_400_000 * 14,
+        },
+      ],
+    } as SessionEntry;
+
+    const sessionStore: Record<string, SessionEntry> = {
+      "agent:main": parentEntry,
+      "agent:main:topic:99": childEntry,
+    };
+
+    const result = resolveCoherenceInterventionForSession(childEntry, {
+      sessionStore,
+      sessionKey: "agent:main:topic:99",
+    });
+
+    expect(result).not.toBeNull();
+    expect(result!.text).toContain("## Cross-Session Memory");
+    expect(result!.text).toContain("DECIDED");
+    expect(result!.text).toContain("use vitest");
+  });
+
+  it("omits cross-session section when opts not provided (backward compat)", () => {
+    const now = Date.now();
+    const entry = {
+      sessionId: "s1",
+      updatedAt: now,
+      coherenceEntries: [
+        { ts: now - 10_000, source: "tool_call" as const, summary: "Edit: a.ts" },
+        { ts: now - 8_000, source: "tool_call" as const, summary: "Edit: b.ts" },
+        { ts: now - 5_000, source: "tool_call" as const, summary: "Exec: npm test" },
+      ],
+      coherencePinned: [],
+      promotedEvents: [
+        {
+          verb: EventVerb.FAILED,
+          subject: "npm test",
+          outcome: "timeout",
+          occurrences: 4,
+          firstSeenTs: now - 86_400_000 * 3,
+          lastSeenTs: now - 3600_000,
+          sourceSessionKeys: ["s1", "s2", "s3", "s4"],
+          retireAfterTs: now + 86_400_000 * 14,
+        },
+      ],
+    } as SessionEntry;
+
+    // Call without opts — should not include cross-session memory
+    const result = resolveCoherenceInterventionForSession(entry);
+    expect(result).not.toBeNull();
+    expect(result!.text).not.toContain("## Cross-Session Memory");
+  });
+
+  it("prunes retired promoted events from injection", () => {
+    const now = Date.now();
+    const entry = {
+      sessionId: "s1",
+      updatedAt: now,
+      coherenceEntries: [
+        { ts: now - 10_000, source: "tool_call" as const, summary: "Edit: a.ts" },
+        { ts: now - 8_000, source: "tool_call" as const, summary: "Edit: b.ts" },
+        { ts: now - 5_000, source: "tool_call" as const, summary: "Exec: npm test" },
+      ],
+      coherencePinned: [],
+      promotedEvents: [
+        {
+          verb: EventVerb.FAILED,
+          subject: "npm test",
+          outcome: "timeout",
+          occurrences: 4,
+          firstSeenTs: now - 86_400_000 * 30,
+          lastSeenTs: now - 86_400_000 * 20,
+          sourceSessionKeys: ["s1", "s2", "s3", "s4"],
+          retireAfterTs: now - 1000, // already expired
+        },
+      ],
+    } as SessionEntry;
+
+    const sessionStore = { "agent:main": entry };
+    const result = resolveCoherenceInterventionForSession(entry, {
+      sessionStore,
+      sessionKey: "agent:main",
+    });
+
+    // Should not include cross-session memory (event is expired)
+    expect(result).not.toBeNull();
+    expect(result!.text).not.toContain("## Cross-Session Memory");
+  });
 });

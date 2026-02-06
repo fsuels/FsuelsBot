@@ -11,6 +11,10 @@
  * v3.0: Event Memory — structured verb/subject/outcome fields for
  *        associative recall. Entries are indexed by verb at query time
  *        and scored by relevance (not just recency) for pre-turn injection.
+ *
+ * Design principle: Event memory exists to support judgment, not
+ * explanation. The system records what happened to inform future
+ * decisions — it does not narrate or justify past behavior.
  */
 
 // ---------------------------------------------------------------------------
@@ -46,6 +50,10 @@ export const EventVerb = {
 } as const;
 export type EventVerb = (typeof EventVerb)[keyof typeof EventVerb];
 
+// TODO(v3.2): Add a unique `id` field (e.g. nanoid) to CoherenceEntry.
+// Current deduplication relies on ts + summary, which is brittle under
+// sub-millisecond concurrency. Tracked as tech debt — not blocking.
+
 /** A single captured decision entry. */
 export type CoherenceEntry = {
   /** Timestamp (ms) when the decision was captured. */
@@ -77,6 +85,72 @@ export type CoherenceLogState = {
   entries: CoherenceEntry[];
   /** Reserved entries for task-defining decisions (persist until task completes). */
   pinned: CoherenceEntry[];
+};
+
+// ---------------------------------------------------------------------------
+// RSC v3.1 — Verb Taxonomy Analysis types
+// ---------------------------------------------------------------------------
+
+/** Current taxonomy schema version. Bump only on human-approved changes. */
+export const VERB_TAXONOMY_VERSION = 1;
+
+/** Hard cap on total verbs allowed. */
+const MAX_VERB_COUNT = 10;
+
+/** Analysis result for a single verb. */
+export type VerbAnalysis = {
+  verb: string;
+  count: number;
+  /** Shannon entropy of subject values (bits). */
+  subjectEntropy: number;
+  /** Shannon entropy of outcome values (bits). */
+  outcomeEntropy: number;
+  /** Diagnostic classification. */
+  diagnostic: "normal" | "too-broad" | "low-information";
+};
+
+export type VerbCoOccurrence = {
+  verbA: string;
+  verbB: string;
+  /** Fraction of turn-windows where both verbs appear (0-1). */
+  coOccurrenceRate: number;
+};
+
+export type TaxonomySuggestion = {
+  kind: "split" | "add" | "redundant";
+  description: string;
+  evidence: string;
+};
+
+export type VerbTaxonomyReport = {
+  analyses: VerbAnalysis[];
+  coOccurrences: VerbCoOccurrence[];
+  suggestions: TaxonomySuggestion[];
+};
+
+// ---------------------------------------------------------------------------
+// RSC v3.1 — Trust Accumulation types
+// ---------------------------------------------------------------------------
+
+export type TrustTier = "new" | "emerging" | "established" | "proven";
+
+export type TrustSignals = {
+  tier: TrustTier;
+  totalEvents: number;
+  positiveSignals: number;
+  negativeSignals: number;
+  /** DECIDED events not followed by REJECTED on same subject within 5 turns. */
+  decisionsHeld: number;
+  /** FAILED followed by CHANGED on same subject within 3 turns. */
+  failuresRecovered: number;
+  /** BLOCKED followed by different approach within 2 turns. */
+  blocksSurfacedEarly: number;
+  /** DECIDED then REJECTED on same subject. */
+  contradictions: number;
+  /** Same FAILED pattern 3+ times. */
+  repeatedFailures: number;
+  /** Total ESCALATED events. */
+  escalations: number;
 };
 
 // ---------------------------------------------------------------------------
@@ -296,6 +370,52 @@ export function buildSystemEventEntry(params: {
 }
 
 // ---------------------------------------------------------------------------
+// RSC v3.1-patch — User Correction Detection
+// ---------------------------------------------------------------------------
+
+/** Max user message length to consider for correction detection. */
+const USER_CORRECTION_MAX_LENGTH = 200;
+
+/** Patterns that indicate the user is correcting/rejecting previous agent behavior. */
+const USER_CORRECTION_PATTERNS = [
+  /\b(no|nope|wrong|incorrect|undo|revert|rollback|go back|start over|that'?s not)\b/i,
+  /\b(don'?t|stop|cancel|abort|never mind|nevermind)\b/i,
+  /\b(actually|instead|rather|not what I)\b/i,
+];
+
+/**
+ * Detect whether a user message contains correction language.
+ * Short messages (<200 chars) matching correction patterns are treated
+ * as intent corrections. Longer messages are assumed to be new instructions
+ * that happen to contain negation words.
+ */
+export function isUserCorrection(message: string): boolean {
+  if (!message || message.length > USER_CORRECTION_MAX_LENGTH) return false;
+  return USER_CORRECTION_PATTERNS.some((p) => p.test(message));
+}
+
+/**
+ * Build a REJECTED coherence entry from a user correction.
+ */
+export function buildUserCorrectionEntry(params: {
+  messagePreview: string;
+  taskId?: string;
+  now?: number;
+}): CoherenceEntry {
+  const now = params.now ?? Date.now();
+  const preview = params.messagePreview.slice(0, 60);
+  return {
+    ts: now,
+    source: "session_reset",
+    summary: `REJECTED user correction → ${preview}`,
+    taskId: params.taskId,
+    verb: EventVerb.REJECTED,
+    subject: "user correction",
+    outcome: preview,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Event Memory — scoring, selection, injection (RSC v3.0)
 // ---------------------------------------------------------------------------
 
@@ -493,8 +613,611 @@ export function formatCoherenceLog(state: CoherenceLogState): string {
 }
 
 // ---------------------------------------------------------------------------
+// RSC v3.1 — Verb Taxonomy Analysis
+// ---------------------------------------------------------------------------
+
+/** Threshold: verb is "too broad" if it has >60% of events AND subject entropy >2.0 bits. */
+const TOO_BROAD_FREQUENCY_RATIO = 0.6;
+const TOO_BROAD_ENTROPY_THRESHOLD = 2.0;
+
+/** Threshold: verb is "low information" if outcome entropy < 0.1 bits (all same outcome). */
+const LOW_INFO_OUTCOME_ENTROPY = 0.1;
+
+/** Threshold: two verbs are "redundant" if co-occurrence > 0.8. */
+const REDUNDANT_CO_OCCURRENCE = 0.8;
+
+/** Window (ms) for grouping events into turn windows for co-occurrence. */
+const CO_OCCURRENCE_WINDOW_MS = 2000;
+
+/** Patterns in CHANGED outcomes that suggest a missing verb. */
+const ANOMALOUS_OUTCOME_PATTERNS = /revert|undo|rollback|timeout|error/i;
+
+/** Minimum anomalous outcomes to suggest a new verb. */
+const ANOMALOUS_SUGGESTION_THRESHOLD = 5;
+
+/**
+ * Analyze the verb taxonomy health from a set of coherence entries.
+ * Pure function. Read-only — never modifies the taxonomy.
+ */
+export function analyzeVerbTaxonomy(entries: CoherenceEntry[]): VerbTaxonomyReport {
+  const structured = entries.filter(isStructuredEvent);
+  if (structured.length === 0) {
+    return { analyses: [], coOccurrences: [], suggestions: [] };
+  }
+
+  const totalCount = structured.length;
+
+  // Group entries by verb
+  const byVerb = new Map<string, CoherenceEntry[]>();
+  for (const e of structured) {
+    const list = byVerb.get(e.verb) ?? [];
+    list.push(e);
+    byVerb.set(e.verb, list);
+  }
+
+  // Compute per-verb analysis
+  const analyses: VerbAnalysis[] = [];
+  for (const [verb, events] of byVerb) {
+    const count = events.length;
+    const subjects = events.map((e) => e.subject ?? "").filter(Boolean);
+    const outcomes = events.map((e) => e.outcome ?? "").filter(Boolean);
+    const subjectEntropy = shannonEntropy(subjects);
+    const outcomeEntropy = shannonEntropy(outcomes);
+
+    const frequencyRatio = count / totalCount;
+    let diagnostic: VerbAnalysis["diagnostic"] = "normal";
+    if (
+      frequencyRatio > TOO_BROAD_FREQUENCY_RATIO &&
+      subjectEntropy > TOO_BROAD_ENTROPY_THRESHOLD
+    ) {
+      diagnostic = "too-broad";
+    } else if (outcomeEntropy < LOW_INFO_OUTCOME_ENTROPY && count >= 5) {
+      diagnostic = "low-information";
+    }
+
+    analyses.push({ verb, count, subjectEntropy, outcomeEntropy, diagnostic });
+  }
+
+  // Sort by count descending
+  analyses.sort((a, b) => b.count - a.count);
+
+  // Compute co-occurrence in turn windows
+  const coOccurrences: VerbCoOccurrence[] = [];
+  const windows = groupIntoTurnWindows(structured, CO_OCCURRENCE_WINDOW_MS);
+  if (windows.length >= 3) {
+    const verbs = [...byVerb.keys()];
+    for (let i = 0; i < verbs.length; i++) {
+      for (let j = i + 1; j < verbs.length; j++) {
+        const verbA = verbs[i]!;
+        const verbB = verbs[j]!;
+        let both = 0;
+        let either = 0;
+        for (const win of windows) {
+          const hasA = win.some((e) => e.verb === verbA);
+          const hasB = win.some((e) => e.verb === verbB);
+          if (hasA || hasB) either++;
+          if (hasA && hasB) both++;
+        }
+        if (either > 0) {
+          const rate = both / either;
+          if (rate > 0.3) {
+            coOccurrences.push({ verbA, verbB, coOccurrenceRate: rate });
+          }
+        }
+      }
+    }
+    coOccurrences.sort((a, b) => b.coOccurrenceRate - a.coOccurrenceRate);
+  }
+
+  // Generate suggestions
+  const suggestions: TaxonomySuggestion[] = [];
+
+  // Check for too-broad verbs
+  for (const a of analyses) {
+    if (a.diagnostic === "too-broad") {
+      suggestions.push({
+        kind: "split",
+        description: `${a.verb} is too broad (${a.count} events, subject entropy ${a.subjectEntropy.toFixed(1)} bits)`,
+        evidence: `${a.count}/${totalCount} events (${((a.count / totalCount) * 100).toFixed(0)}%) with high subject diversity`,
+      });
+    }
+  }
+
+  // Check for redundant verb pairs
+  for (const co of coOccurrences) {
+    if (co.coOccurrenceRate > REDUNDANT_CO_OCCURRENCE) {
+      suggestions.push({
+        kind: "redundant",
+        description: `${co.verbA} and ${co.verbB} co-occur ${(co.coOccurrenceRate * 100).toFixed(0)}% of the time`,
+        evidence: `High co-occurrence suggests these verbs may be indistinguishable`,
+      });
+    }
+  }
+
+  // Check for missing verbs via anomalous CHANGED outcomes
+  const changedEvents = byVerb.get(EventVerb.CHANGED) ?? [];
+  const anomalous = changedEvents.filter(
+    (e) => e.outcome && ANOMALOUS_OUTCOME_PATTERNS.test(e.outcome),
+  );
+  if (anomalous.length >= ANOMALOUS_SUGGESTION_THRESHOLD) {
+    // Group by matching pattern
+    const patterns = new Map<string, number>();
+    for (const e of anomalous) {
+      const match = e.outcome?.match(ANOMALOUS_OUTCOME_PATTERNS)?.[0]?.toLowerCase() ?? "unknown";
+      patterns.set(match, (patterns.get(match) ?? 0) + 1);
+    }
+    for (const [pattern, count] of patterns) {
+      if (count >= ANOMALOUS_SUGGESTION_THRESHOLD) {
+        suggestions.push({
+          kind: "add",
+          description: `Consider adding verb for "${pattern}" — ${count} CHANGED events have this outcome pattern`,
+          evidence: `${count} events with outcome matching "${pattern}"`,
+        });
+      }
+    }
+  }
+
+  // Check for FAILED→same-subject CHANGED (retry pattern)
+  let retryCount = 0;
+  for (let i = 0; i < structured.length; i++) {
+    const e = structured[i]!;
+    if (e.verb !== EventVerb.FAILED) continue;
+    for (let j = i + 1; j < Math.min(i + 3, structured.length); j++) {
+      const next = structured[j]!;
+      if (next.verb === EventVerb.CHANGED && next.subject === e.subject) {
+        retryCount++;
+        break;
+      }
+    }
+  }
+  if (retryCount >= ANOMALOUS_SUGGESTION_THRESHOLD) {
+    suggestions.push({
+      kind: "add",
+      description: `Consider adding RETRIED — ${retryCount} FAILED events followed by same-subject CHANGED within 2 turns`,
+      evidence: `${retryCount} retry patterns detected`,
+    });
+  }
+
+  return { analyses, coOccurrences, suggestions };
+}
+
+/**
+ * Format verb taxonomy report for CLI display.
+ */
+export function formatVerbTaxonomyReport(report: VerbTaxonomyReport): string {
+  if (report.analyses.length === 0) {
+    return "Verb Taxonomy: no structured events to analyze";
+  }
+
+  const lines: string[] = [
+    `Verb Taxonomy Health (v${VERB_TAXONOMY_VERSION}, ${Object.keys(EventVerb).length}/${MAX_VERB_COUNT} verbs):`,
+  ];
+
+  for (const a of report.analyses) {
+    const icon = a.diagnostic === "normal" ? "ok" : "! ";
+    const detail =
+      a.diagnostic === "too-broad"
+        ? `subject entropy ${a.subjectEntropy.toFixed(1)} (too-broad)`
+        : a.diagnostic === "low-information"
+          ? `outcome entropy ${a.outcomeEntropy.toFixed(1)} (low-information)`
+          : "stable";
+    lines.push(`  ${icon} ${a.verb}: ${a.count} events, ${detail}`);
+  }
+
+  if (report.suggestions.length > 0) {
+    lines.push("");
+    for (const s of report.suggestions) {
+      lines.push(`  Suggestion [${s.kind}]: ${s.description}`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
+// ---------------------------------------------------------------------------
+// RSC v3.1 — Trust Accumulation
+// ---------------------------------------------------------------------------
+
+/**
+ * Compute trust signals from structured event history.
+ * Pure function, single pass. Evaluates decisions held, failures recovered, etc.
+ */
+export function computeTrustSignals(events: CoherenceEntry[]): TrustSignals {
+  const structured = events.filter(isStructuredEvent);
+
+  let decisionsHeld = 0;
+  let failuresRecovered = 0;
+  let blocksSurfacedEarly = 0;
+  let contradictions = 0;
+  let escalations = 0;
+
+  // Track repeated failure subjects
+  const failedSubjects = new Map<string, number>();
+
+  for (let i = 0; i < structured.length; i++) {
+    const e = structured[i]!;
+
+    if (e.verb === EventVerb.DECIDED) {
+      // Check if this decision held (no REJECTED on same subject within 5 events)
+      let rejected = false;
+      for (let j = i + 1; j < Math.min(i + 6, structured.length); j++) {
+        const next = structured[j]!;
+        if (next.verb === EventVerb.REJECTED && next.subject === e.subject) {
+          rejected = true;
+          break;
+        }
+      }
+      if (rejected) contradictions++;
+      else decisionsHeld++;
+    }
+
+    if (e.verb === EventVerb.FAILED) {
+      // Track for repeated failures
+      const key = `${e.subject}:${e.outcome}`;
+      failedSubjects.set(key, (failedSubjects.get(key) ?? 0) + 1);
+
+      // Check if this failure was recovered (CHANGED on same subject within 3 events)
+      for (let j = i + 1; j < Math.min(i + 4, structured.length); j++) {
+        const next = structured[j]!;
+        if (next.verb === EventVerb.CHANGED && next.subject === e.subject) {
+          failuresRecovered++;
+          break;
+        }
+      }
+    }
+
+    if (e.verb === EventVerb.BLOCKED) {
+      // Check if block was surfaced early (different approach within 2 events)
+      for (let j = i + 1; j < Math.min(i + 3, structured.length); j++) {
+        const next = structured[j]!;
+        if (
+          (next.verb === EventVerb.CHANGED || next.verb === EventVerb.DECIDED) &&
+          next.subject !== e.subject
+        ) {
+          blocksSurfacedEarly++;
+          break;
+        }
+      }
+    }
+
+    if (e.verb === EventVerb.ESCALATED) {
+      escalations++;
+    }
+  }
+
+  // Count repeated failure groups
+  let repeatedFailures = 0;
+  for (const count of failedSubjects.values()) {
+    if (count >= 3) repeatedFailures++;
+  }
+
+  const positiveSignals = decisionsHeld + failuresRecovered + blocksSurfacedEarly;
+  const negativeSignals = contradictions + repeatedFailures + escalations;
+
+  const tier = resolveTrustTier({
+    totalEvents: structured.length,
+    decisionsHeld,
+    failuresRecovered,
+    contradictions,
+    positiveSignals,
+    negativeSignals,
+  });
+
+  return {
+    tier,
+    totalEvents: structured.length,
+    positiveSignals,
+    negativeSignals,
+    decisionsHeld,
+    failuresRecovered,
+    blocksSurfacedEarly,
+    contradictions,
+    repeatedFailures,
+    escalations,
+  };
+}
+
+function resolveTrustTier(s: {
+  totalEvents: number;
+  decisionsHeld: number;
+  failuresRecovered: number;
+  contradictions: number;
+  positiveSignals: number;
+  negativeSignals: number;
+}): TrustTier {
+  if (
+    s.totalEvents >= 100 &&
+    s.decisionsHeld >= 30 &&
+    s.negativeSignals > 0 &&
+    s.positiveSignals / s.negativeSignals > 3
+  ) {
+    return "proven";
+  }
+  if (
+    s.totalEvents >= 30 &&
+    s.decisionsHeld >= 10 &&
+    s.failuresRecovered >= 3 &&
+    s.contradictions < 5
+  ) {
+    return "established";
+  }
+  if (s.totalEvents >= 10 && s.decisionsHeld >= 3 && s.contradictions < 3) {
+    return "emerging";
+  }
+  return "new";
+}
+
+/**
+ * Format trust status for CLI display.
+ */
+export function formatTrustStatus(signals: TrustSignals): string {
+  const lines: string[] = [
+    `Trust: ${signals.tier} (${signals.totalEvents} events, ${signals.decisionsHeld} decisions held, ${signals.failuresRecovered} failures recovered)`,
+  ];
+  lines.push(
+    `  Positive: ${signals.positiveSignals} (${signals.decisionsHeld} held, ${signals.failuresRecovered} recovered, ${signals.blocksSurfacedEarly} early blocks)`,
+  );
+  lines.push(
+    `  Negative: ${signals.negativeSignals} (${signals.contradictions} contradictions, ${signals.repeatedFailures} repeated failures, ${signals.escalations} escalations)`,
+  );
+  return lines.join("\n");
+}
+
+// ---------------------------------------------------------------------------
+// RSC v3.1 — Cross-Session Event Promotion
+// ---------------------------------------------------------------------------
+
+import type { PromotedEvent, PromotionCandidate } from "../config/sessions/types.js";
+
+/** Max promoted events per agent-level session. */
+const MAX_PROMOTED_EVENTS = 10;
+/** Max promotion candidates tracked. */
+const MAX_PROMOTION_CANDIDATES = 30;
+/** Sessions required for promotion (standard). */
+const PROMOTION_SESSION_THRESHOLD = 3;
+/** Sessions required for pinned promotion. */
+const PROMOTION_PINNED_THRESHOLD = 2;
+/** Promoted events expire after 14 days without reinforcement. */
+const PROMOTION_RETIRE_MS = 14 * 24 * 60 * 60 * 1000;
+/** Candidate observations must be within this window. */
+const PROMOTION_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+/** Only these verbs are promotion-eligible. */
+const PROMOTION_ELIGIBLE_VERBS = new Set<EventVerb>([
+  EventVerb.FAILED,
+  EventVerb.DECIDED,
+  EventVerb.BLOCKED,
+]);
+
+/** Max promoted event lines to inject in pre-turn prompt. */
+const MAX_PROMOTED_INJECTION_LINES = 3;
+
+/**
+ * Evaluate session events for promotion to the parent/agent-level session.
+ * Updates candidates and promotes when thresholds are met.
+ */
+export function evaluatePromotionCandidates(params: {
+  sessionKey: string;
+  events: CoherenceEntry[];
+  pinned: CoherenceEntry[];
+  existingCandidates: PromotionCandidate[];
+  existingPromoted: PromotedEvent[];
+  now?: number;
+}): { candidates: PromotionCandidate[]; promoted: PromotedEvent[] } {
+  const now = params.now ?? Date.now();
+  const windowStart = now - PROMOTION_WINDOW_MS;
+
+  // Start with copies
+  let candidates = [...params.existingCandidates];
+  let promoted = pruneRetiredPromotedEvents(params.existingPromoted, now);
+
+  // Extract promotion-eligible structured events from this session
+  const eligible = params.events
+    .filter(isStructuredEvent)
+    .filter((e) => PROMOTION_ELIGIBLE_VERBS.has(e.verb));
+
+  // Also check pinned entries
+  const pinnedEligible = params.pinned
+    .filter(isStructuredEvent)
+    .filter((e) => PROMOTION_ELIGIBLE_VERBS.has(e.verb));
+
+  // Process each eligible event
+  const processedKeys = new Set<string>();
+  for (const e of [...eligible, ...pinnedEligible]) {
+    const key = `${e.verb}:${e.subject}:${e.outcome}`;
+    if (processedKeys.has(key)) continue;
+    processedKeys.add(key);
+
+    // Check if already promoted — reinforce if so
+    const existingPromoted = promoted.find(
+      (p) => p.verb === e.verb && p.subject === e.subject && p.outcome === e.outcome,
+    );
+    if (existingPromoted) {
+      existingPromoted.occurrences++;
+      existingPromoted.lastSeenTs = now;
+      existingPromoted.retireAfterTs = now + PROMOTION_RETIRE_MS;
+      if (!existingPromoted.sourceSessionKeys.includes(params.sessionKey)) {
+        existingPromoted.sourceSessionKeys.push(params.sessionKey);
+      }
+      continue;
+    }
+
+    // Find or create candidate
+    let candidate = candidates.find(
+      (c) => c.verb === e.verb && c.subject === e.subject && c.outcome === e.outcome,
+    );
+    if (!candidate) {
+      candidate = {
+        verb: e.verb,
+        subject: e.subject ?? "",
+        outcome: e.outcome ?? "",
+        seenInSessions: [],
+        seenTimestamps: [],
+      };
+      candidates.push(candidate);
+    }
+
+    // Add this session if not already tracked
+    if (!candidate.seenInSessions.includes(params.sessionKey)) {
+      candidate.seenInSessions.push(params.sessionKey);
+      candidate.seenTimestamps.push(now);
+    }
+
+    // Prune old observations outside window
+    candidate.seenTimestamps = candidate.seenTimestamps.filter((ts) => ts >= windowStart);
+    candidate.seenInSessions = candidate.seenInSessions.slice(-candidate.seenTimestamps.length);
+
+    // Check promotion threshold
+    const isPinned = pinnedEligible.some((p) => p.verb === e.verb && p.subject === e.subject);
+    const threshold = isPinned ? PROMOTION_PINNED_THRESHOLD : PROMOTION_SESSION_THRESHOLD;
+
+    if (candidate.seenInSessions.length >= threshold && promoted.length < MAX_PROMOTED_EVENTS) {
+      // Promote!
+      promoted.push({
+        verb: candidate.verb as EventVerb,
+        subject: candidate.subject,
+        outcome: candidate.outcome,
+        occurrences: candidate.seenInSessions.length,
+        firstSeenTs: candidate.seenTimestamps[0] ?? now,
+        lastSeenTs: now,
+        sourceSessionKeys: [...candidate.seenInSessions],
+        retireAfterTs: now + PROMOTION_RETIRE_MS,
+      });
+      // Remove from candidates
+      candidates = candidates.filter(
+        (c) =>
+          !(
+            c.verb === candidate!.verb &&
+            c.subject === candidate!.subject &&
+            c.outcome === candidate!.outcome
+          ),
+      );
+    }
+  }
+
+  // Cap candidates
+  if (candidates.length > MAX_PROMOTION_CANDIDATES) {
+    candidates.sort((a, b) => {
+      const aTs = a.seenTimestamps[0] ?? 0;
+      const bTs = b.seenTimestamps[0] ?? 0;
+      return bTs - aTs;
+    });
+    candidates = candidates.slice(0, MAX_PROMOTION_CANDIDATES);
+  }
+
+  return { candidates, promoted };
+}
+
+/**
+ * Remove promoted events that have expired (retireAfterTs passed).
+ */
+export function pruneRetiredPromotedEvents(events: PromotedEvent[], now?: number): PromotedEvent[] {
+  const ts = now ?? Date.now();
+  return events.filter((e) => e.retireAfterTs > ts);
+}
+
+/**
+ * Format promoted events for pre-turn system prompt injection.
+ * Returns null if no promoted events to inject.
+ */
+export function formatPromotedEventsInjection(
+  events: PromotedEvent[],
+  now?: number,
+): string | null {
+  const active = pruneRetiredPromotedEvents(events, now);
+  if (active.length === 0) return null;
+
+  const lines: string[] = ["## Cross-Session Memory"];
+  const shown = active.slice(0, MAX_PROMOTED_INJECTION_LINES);
+  for (const e of shown) {
+    const verb = e.verb.toUpperCase();
+    lines.push(
+      `- In previous sessions: ${verb} ${e.subject} → ${e.outcome} (seen ${e.occurrences} times)`,
+    );
+  }
+
+  return lines.join("\n");
+}
+
+/**
+ * Format promoted events and candidates for CLI display.
+ */
+export function formatPromotedEventsStatus(
+  events: PromotedEvent[],
+  candidates: PromotionCandidate[],
+): string {
+  const lines: string[] = [];
+
+  if (events.length === 0 && candidates.length === 0) {
+    return "Cross-Session Promotion: no promoted events or candidates";
+  }
+
+  if (events.length > 0) {
+    lines.push(`Promoted Events (${events.length}/${MAX_PROMOTED_EVENTS}):`);
+    for (const e of events) {
+      const daysLeft = Math.max(
+        0,
+        Math.floor((e.retireAfterTs - Date.now()) / (24 * 60 * 60 * 1000)),
+      );
+      lines.push(
+        `  ${e.verb.toUpperCase()} ${e.subject} → ${e.outcome} (${e.occurrences} occurrences across ${e.sourceSessionKeys.length} sessions, retires in ${daysLeft}d)`,
+      );
+    }
+  }
+
+  if (candidates.length > 0) {
+    lines.push(`Promotion Candidates (${candidates.length}/${MAX_PROMOTION_CANDIDATES}):`);
+    for (const c of candidates.slice(0, 5)) {
+      lines.push(
+        `  ${c.verb.toUpperCase()} ${c.subject} → ${c.outcome} (${c.seenInSessions.length}/${PROMOTION_SESSION_THRESHOLD} sessions toward promotion)`,
+      );
+    }
+    if (candidates.length > 5) {
+      lines.push(`  ... and ${candidates.length - 5} more candidates`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
+// ---------------------------------------------------------------------------
 // Internal helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * Shannon entropy in bits.
+ */
+function shannonEntropy(values: string[]): number {
+  if (values.length === 0) return 0;
+  const freq = new Map<string, number>();
+  for (const v of values) freq.set(v, (freq.get(v) ?? 0) + 1);
+  let h = 0;
+  for (const count of freq.values()) {
+    const p = count / values.length;
+    if (p > 0) h -= p * Math.log2(p);
+  }
+  return h;
+}
+
+/**
+ * Group events into turn windows (events within windowMs of each other).
+ */
+function groupIntoTurnWindows(events: CoherenceEntry[], windowMs: number): CoherenceEntry[][] {
+  if (events.length === 0) return [];
+  const sorted = [...events].sort((a, b) => a.ts - b.ts);
+  const windows: CoherenceEntry[][] = [];
+  let current: CoherenceEntry[] = [sorted[0]!];
+
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i]!.ts - sorted[i - 1]!.ts <= windowMs) {
+      current.push(sorted[i]!);
+    } else {
+      windows.push(current);
+      current = [sorted[i]!];
+    }
+  }
+  windows.push(current);
+  return windows;
+}
 
 function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);

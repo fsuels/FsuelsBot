@@ -8,6 +8,37 @@ import type { TtsAutoMode } from "../types.tts.js";
 import type { CorrectionEvent } from "../../agents/drift-detection.js";
 import type { CoherenceEntry } from "../../agents/coherence-log.js";
 import type { ToolFailureRecord, FailureSignature } from "../../agents/tool-failure-tracker.js";
+import type { EventVerb } from "../../agents/coherence-log.js";
+
+// -- Cross-Session Event Promotion (RSC v3.1) --
+
+/** Intermediate tracking for events observed across sessions but not yet promoted. */
+export type PromotionCandidate = {
+  verb: EventVerb;
+  subject: string;
+  outcome: string;
+  /** Session keys where this pattern was observed. */
+  seenInSessions: string[];
+  /** Timestamps of observations. */
+  seenTimestamps: number[];
+};
+
+/** An event pattern promoted to agent-level cross-session memory. */
+export type PromotedEvent = {
+  verb: EventVerb;
+  subject: string;
+  outcome: string;
+  /** How many times this event pattern was seen across sessions. */
+  occurrences: number;
+  /** First time this pattern was seen. */
+  firstSeenTs: number;
+  /** Last time this pattern was seen. */
+  lastSeenTs: number;
+  /** Session keys that contributed to this promotion. */
+  sourceSessionKeys: string[];
+  /** Event retires if not reinforced by this timestamp. */
+  retireAfterTs: number;
+};
 
 export type SessionScope = "per-sender" | "global";
 
@@ -143,6 +174,9 @@ export type SessionEntry = {
   // -- Tool Failure Tracking (RSC v2.1) --
   toolFailures?: ToolFailureRecord[];
   failureSignatures?: FailureSignature[];
+  // -- Cross-Session Event Promotion (RSC v3.1) --
+  promotionCandidates?: PromotionCandidate[];
+  promotedEvents?: PromotedEvent[];
 };
 
 export function mergeSessionEntry(

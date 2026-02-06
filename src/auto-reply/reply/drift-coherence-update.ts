@@ -17,7 +17,9 @@ import {
   buildModelSwitchEntry,
   buildToolMetaCoherenceEntry,
   buildSystemEventEntry,
+  buildUserCorrectionEntry,
   EventVerb,
+  evaluatePromotionCandidates,
 } from "../../agents/coherence-log.js";
 import {
   resolveToolFailureState,
@@ -26,6 +28,7 @@ import {
   resolveFailureSignatures,
 } from "../../agents/tool-failure-tracker.js";
 import { updateSessionStoreEntry, type SessionEntry } from "../../config/sessions.js";
+import { resolveThreadParentSessionKey } from "../../sessions/session-key-utils.js";
 import { logVerbose } from "../../globals.js";
 
 export type TurnCorrectionSignals = {
@@ -47,6 +50,9 @@ export type TurnCorrectionSignals = {
  * Record turn outcome for drift detection and coherence log.
  * Persists updated state to the session store.
  */
+/** Tool calls per turn above which a complexity/thrashing signal is emitted. */
+const TURN_COMPLEXITY_THRESHOLD = 8;
+
 export async function persistDriftCoherenceUpdate(params: {
   storePath?: string;
   sessionKey?: string;
@@ -55,6 +61,8 @@ export async function persistDriftCoherenceUpdate(params: {
   toolMetas?: Array<{ toolName: string; meta?: string }>;
   /** Last tool error from the run attempt (for failure tracking). */
   lastToolError?: { toolName: string; meta?: string; error?: string };
+  /** User message text when a correction was detected (RSC v3.1-patch). */
+  userCorrectionHint?: string;
 }): Promise<void> {
   const { storePath, sessionKey, signals } = params;
   if (!storePath || !sessionKey) return;
@@ -109,6 +117,18 @@ export async function persistDriftCoherenceUpdate(params: {
           coherenceState = appendCoherenceEntry(coherenceState, modelEntry);
         }
 
+        // RSC v3.1-patch: Record user correction as REJECTED event
+        if (params.userCorrectionHint) {
+          coherenceState = appendCoherenceEntry(
+            coherenceState,
+            buildUserCorrectionEntry({
+              messagePreview: params.userCorrectionHint,
+              taskId: params.taskId,
+              now,
+            }),
+          );
+        }
+
         // Append coherence entries for decision-making tool calls
         if (params.toolMetas) {
           for (const tm of params.toolMetas) {
@@ -122,6 +142,21 @@ export async function persistDriftCoherenceUpdate(params: {
               coherenceState = appendCoherenceEntry(coherenceState, entry);
             }
           }
+        }
+
+        // RSC v3.1-patch: Flag turn complexity (thrashing detection)
+        const toolCallCount = params.toolMetas?.length ?? 0;
+        if (toolCallCount >= TURN_COMPLEXITY_THRESHOLD) {
+          coherenceState = appendCoherenceEntry(
+            coherenceState,
+            buildSystemEventEntry({
+              verb: EventVerb.BLOCKED,
+              subject: "turn complexity",
+              outcome: `${toolCallCount} tool calls`,
+              taskId: params.taskId,
+              now,
+            }),
+          );
         }
 
         // RSC v2.1: Update tool failure tracking
@@ -221,6 +256,72 @@ export async function persistDriftCoherenceUpdate(params: {
     });
   } catch (err) {
     logVerbose(`[drift] Failed to persist drift/coherence update: ${String(err)}`);
+  }
+
+  // RSC v3.1: Evaluate promotion candidates on parent/agent-level session
+  try {
+    const parentKey = resolveThreadParentSessionKey(sessionKey) ?? sessionKey;
+    if (parentKey) {
+      await updateSessionStoreEntry({
+        storePath,
+        sessionKey: parentKey,
+        update: async (parentEntry) => {
+          const coherenceState = resolveCoherenceLog({
+            coherenceEntries: params.toolMetas
+              ? params.toolMetas
+                  .map((tm) =>
+                    buildToolMetaCoherenceEntry({
+                      toolName: tm.toolName,
+                      meta: tm.meta,
+                      taskId: params.taskId,
+                      now,
+                    }),
+                  )
+                  .filter(Boolean)
+              : [],
+            coherencePinned: [],
+          });
+
+          // Also include system events from this turn
+          const turnEvents = coherenceState.entries;
+          if (params.lastToolError) {
+            turnEvents.push(
+              buildSystemEventEntry({
+                verb: EventVerb.FAILED,
+                subject: params.lastToolError.toolName,
+                outcome: (params.lastToolError.error ?? "unknown error").slice(0, 80),
+                taskId: params.taskId,
+                now,
+              }),
+            );
+          }
+
+          if (turnEvents.length === 0) return null;
+
+          const { candidates, promoted } = evaluatePromotionCandidates({
+            sessionKey,
+            events: turnEvents,
+            pinned: [],
+            existingCandidates: parentEntry.promotionCandidates ?? [],
+            existingPromoted: parentEntry.promotedEvents ?? [],
+            now,
+          });
+
+          // Only persist if something changed
+          const candidatesChanged =
+            candidates.length !== (parentEntry.promotionCandidates ?? []).length;
+          const promotedChanged = promoted.length !== (parentEntry.promotedEvents ?? []).length;
+          if (!candidatesChanged && !promotedChanged) return null;
+
+          return {
+            promotionCandidates: candidates,
+            promotedEvents: promoted,
+          };
+        },
+      });
+    }
+  } catch (err) {
+    logVerbose(`[drift] Failed to evaluate promotion candidates: ${String(err)}`);
   }
 }
 

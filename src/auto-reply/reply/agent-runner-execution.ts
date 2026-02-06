@@ -240,7 +240,10 @@ export async function runAgentTurnWithFallback(params: {
             return { turnsRemaining, tokensBudget: budget, tokensUsed: used };
           })();
           const driftInjection = resolveDriftInjectionForSession(activeEntry);
-          const coherenceIntervention = resolveCoherenceInterventionForSession(activeEntry);
+          const coherenceIntervention = resolveCoherenceInterventionForSession(activeEntry, {
+            sessionStore: params.activeSessionStore,
+            sessionKey: params.sessionKey,
+          });
 
           return runEmbeddedPiAgent({
             sessionId: params.followupRun.run.sessionId,
