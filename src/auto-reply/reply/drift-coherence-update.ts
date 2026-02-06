@@ -27,6 +27,7 @@ import {
   recordFailureSignature,
   resolveFailureSignatures,
 } from "../../agents/tool-failure-tracker.js";
+import { resolveCapabilityLedger, upsertCapability } from "../../agents/capability-ledger.js";
 import { updateSessionStoreEntry, type SessionEntry } from "../../config/sessions.js";
 import { resolveThreadParentSessionKey } from "../../sessions/session-key-utils.js";
 import { logVerbose } from "../../globals.js";
@@ -237,6 +238,19 @@ export async function persistDriftCoherenceUpdate(params: {
           }
         }
 
+        // RSC v3.2: Update capability ledger from successful tool calls
+        let capabilityLedger = resolveCapabilityLedger({
+          capabilityLedger: entry.capabilityLedger,
+        });
+        if (params.toolMetas) {
+          const failedTool = params.lastToolError?.toolName;
+          for (const tm of params.toolMetas) {
+            if (tm.toolName !== failedTool) {
+              capabilityLedger = upsertCapability(capabilityLedger, tm.toolName, tm.meta, now);
+            }
+          }
+        }
+
         const patch: Partial<SessionEntry> = {
           driftEvents: nextDrift.events,
           driftBaselineRate: nextDrift.baselineRate,
@@ -248,6 +262,7 @@ export async function persistDriftCoherenceUpdate(params: {
           coherencePinned: coherenceState.pinned,
           toolFailures: toolFailureState.records,
           failureSignatures: failureSigs,
+          capabilityLedger,
           updatedAt: now,
         };
 

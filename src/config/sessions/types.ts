@@ -9,6 +9,7 @@ import type { CorrectionEvent } from "../../agents/drift-detection.js";
 import type { CoherenceEntry } from "../../agents/coherence-log.js";
 import type { ToolFailureRecord, FailureSignature } from "../../agents/tool-failure-tracker.js";
 import type { EventVerb } from "../../agents/coherence-log.js";
+import type { CapabilityEntry } from "../../agents/capability-ledger.js";
 
 // -- Cross-Session Event Promotion (RSC v3.1) --
 
@@ -177,6 +178,8 @@ export type SessionEntry = {
   // -- Cross-Session Event Promotion (RSC v3.1) --
   promotionCandidates?: PromotionCandidate[];
   promotedEvents?: PromotedEvent[];
+  // -- Capability Ledger (RSC v3.2) --
+  capabilityLedger?: CapabilityEntry[];
 };
 
 export function mergeSessionEntry(

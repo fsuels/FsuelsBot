@@ -23,6 +23,7 @@ import {
   buildToolAvoidanceInjection,
   buildFailureMemoryHint,
 } from "./tool-failure-tracker.js";
+import { resolveCapabilityLedger, formatCapabilityInjection } from "./capability-ledger.js";
 import type { SessionEntry } from "../config/sessions/types.js";
 import { resolveThreadParentSessionKey } from "../sessions/session-key-utils.js";
 
@@ -130,6 +131,13 @@ export function resolveCoherenceInterventionForSession(
         sections.push(injection);
       }
     }
+  }
+
+  // RSC v3.2: Capability ledger section
+  const capabilityState = resolveCapabilityLedger({ capabilityLedger: entry.capabilityLedger });
+  const capabilityInjection = formatCapabilityInjection(capabilityState);
+  if (capabilityInjection) {
+    sections.push(capabilityInjection);
   }
 
   // Tool avoidance section (RSC v2.1 item 3)
