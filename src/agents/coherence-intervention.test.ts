@@ -358,4 +358,39 @@ describe("resolveCoherenceInterventionForSession", () => {
     expect(result).not.toBeNull();
     expect(result!.text).not.toContain("## Cross-Session Memory");
   });
+
+  // -----------------------------------------------------------------------
+  // RSC v3.4: Trust-tier-aware proactive capability injection
+  // -----------------------------------------------------------------------
+
+  it("includes trust-tier-aware proactivity in capability injection (v3.4)", () => {
+    const now = Date.now();
+    // Build enough structured events for "emerging" trust tier (10+ events, 3+ decisions held)
+    const structuredEntries: CoherenceEntry[] = [];
+    for (let i = 0; i < 12; i++) {
+      structuredEntries.push({
+        ts: now - (12 - i) * 10_000,
+        source: "tool_call",
+        summary: `DECIDED task${i}`,
+        verb: EventVerb.DECIDED,
+        subject: `task${i}`,
+        outcome: "ok",
+      });
+    }
+
+    const entry = {
+      sessionId: "s1",
+      updatedAt: now,
+      coherenceEntries: structuredEntries,
+      coherencePinned: [],
+      capabilityLedger: [
+        { toolName: "exec", how: "pnpm test", lastVerifiedTs: now - 5_000, verifiedCount: 5 },
+      ],
+    } as SessionEntry;
+
+    const result = resolveCoherenceInterventionForSession(entry);
+    expect(result).not.toBeNull();
+    expect(result!.text).toContain("Your trust tier:");
+    expect(result!.text).toContain("## Verified Capabilities");
+  });
 });

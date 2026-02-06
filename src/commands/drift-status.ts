@@ -114,7 +114,7 @@ export async function driftStatusCommand(
         entry.promotionCandidates ?? [],
       ),
       capabilityStatus:
-        formatCapabilityStatus(capabilityLedger, capabilityReliability) ??
+        formatCapabilityStatus(capabilityLedger, capabilityReliability, trustSignals.tier) ??
         "Capability Ledger: (empty)",
       level: driftState.level,
     });

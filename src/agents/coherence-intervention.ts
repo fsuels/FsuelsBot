@@ -16,6 +16,7 @@ import {
   formatEventMemoryInjection,
   pruneRetiredPromotedEvents,
   formatPromotedEventsInjection,
+  computeTrustSignals,
 } from "./coherence-log.js";
 import {
   resolveToolFailureState,
@@ -137,11 +138,16 @@ export function resolveCoherenceInterventionForSession(
     }
   }
 
-  // RSC v3.2 + v3.3: Capability ledger with reliability bands
+  // RSC v3.2 + v3.3 + v3.4: Capability ledger with reliability bands and proactive behavior
   const capabilityState = resolveCapabilityLedger({ capabilityLedger: entry.capabilityLedger });
   const allEvents = [...coherenceState.pinned, ...coherenceState.entries];
   const capabilityReliability = computeCapabilityReliability(capabilityState, allEvents);
-  const capabilityInjection = formatCapabilityInjection(capabilityState, capabilityReliability);
+  const trustSignals = computeTrustSignals(allEvents);
+  const capabilityInjection = formatCapabilityInjection(
+    capabilityState,
+    capabilityReliability,
+    trustSignals.tier,
+  );
   if (capabilityInjection) {
     sections.push(capabilityInjection);
   }

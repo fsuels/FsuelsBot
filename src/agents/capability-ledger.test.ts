@@ -7,6 +7,7 @@ import {
   formatCapabilityStatus,
   MAX_CAPABILITY_ENTRIES,
   resolveCapabilityLedger,
+  resolveProactivityLevel,
   selectCapabilitiesForInjection,
   upsertCapability,
 } from "./capability-ledger.js";
@@ -401,5 +402,250 @@ describe("computeCapabilityReliability", () => {
     const result = computeCapabilityReliability(caps, events);
     expect(result[0]!.recentFailures).toBe(0); // not counted — no verb
     expect(result[0]!.reliabilityBand).toBe("reliable");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// resolveProactivityLevel (RSC v3.4)
+// ---------------------------------------------------------------------------
+
+describe("resolveProactivityLevel (v3.4)", () => {
+  it("reliable + proven → autonomous", () => {
+    expect(resolveProactivityLevel("proven", "reliable")).toBe("autonomous");
+  });
+
+  it("reliable + established → autonomous", () => {
+    expect(resolveProactivityLevel("established", "reliable")).toBe("autonomous");
+  });
+
+  it("reliable + emerging → offer", () => {
+    expect(resolveProactivityLevel("emerging", "reliable")).toBe("offer");
+  });
+
+  it("reliable + new → confirm", () => {
+    expect(resolveProactivityLevel("new", "reliable")).toBe("confirm");
+  });
+
+  it("emerging + proven → offer", () => {
+    expect(resolveProactivityLevel("proven", "emerging")).toBe("offer");
+  });
+
+  it("emerging + established → offer", () => {
+    expect(resolveProactivityLevel("established", "emerging")).toBe("offer");
+  });
+
+  it("emerging + emerging → confirm", () => {
+    expect(resolveProactivityLevel("emerging", "emerging")).toBe("confirm");
+  });
+
+  it("emerging + new → confirm", () => {
+    expect(resolveProactivityLevel("new", "emerging")).toBe("confirm");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// formatCapabilityInjection with trust tier (RSC v3.4)
+// ---------------------------------------------------------------------------
+
+describe("formatCapabilityInjection with trust tier (v3.4)", () => {
+  it("includes trust tier label when provided", () => {
+    const entries: CapabilityEntry[] = [
+      { toolName: "exec", how: "pnpm test", lastVerifiedTs: 1000, verifiedCount: 5 },
+    ];
+    const reliability: CapabilityReliability[] = [
+      {
+        toolName: "exec",
+        verifiedCount: 5,
+        recentFailures: 0,
+        recoveries: 0,
+        reliabilityBand: "reliable",
+      },
+    ];
+    const result = formatCapabilityInjection(entries, reliability, "established")!;
+    expect(result).toContain("Your trust tier: established");
+  });
+
+  it("annotates reliable+established as autonomous", () => {
+    const entries: CapabilityEntry[] = [
+      { toolName: "exec", how: "pnpm test", lastVerifiedTs: 1000, verifiedCount: 5 },
+    ];
+    const reliability: CapabilityReliability[] = [
+      {
+        toolName: "exec",
+        verifiedCount: 5,
+        recentFailures: 0,
+        recoveries: 0,
+        reliabilityBand: "reliable",
+      },
+    ];
+    const result = formatCapabilityInjection(entries, reliability, "established")!;
+    expect(result).toContain("use autonomously when relevant");
+  });
+
+  it("annotates emerging+new as confirm", () => {
+    const entries: CapabilityEntry[] = [
+      { toolName: "browser", how: "navigate", lastVerifiedTs: 1000, verifiedCount: 3 },
+    ];
+    const reliability: CapabilityReliability[] = [
+      {
+        toolName: "browser",
+        verifiedCount: 3,
+        recentFailures: 1,
+        recoveries: 1,
+        reliabilityBand: "emerging",
+      },
+    ];
+    const result = formatCapabilityInjection(entries, reliability, "new")!;
+    expect(result).toContain("confirm before using");
+  });
+
+  it("uses trust-aware footer for established tier", () => {
+    const entries: CapabilityEntry[] = [
+      { toolName: "exec", how: "pnpm test", lastVerifiedTs: 1000, verifiedCount: 5 },
+    ];
+    const reliability: CapabilityReliability[] = [
+      {
+        toolName: "exec",
+        verifiedCount: 5,
+        recentFailures: 0,
+        recoveries: 0,
+        reliabilityBand: "reliable",
+      },
+    ];
+    const result = formatCapabilityInjection(entries, reliability, "established")!;
+    expect(result).toContain("Act on autonomous capabilities without asking");
+  });
+
+  it("uses cautious footer for new tier", () => {
+    const entries: CapabilityEntry[] = [
+      { toolName: "exec", how: "pnpm test", lastVerifiedTs: 1000, verifiedCount: 5 },
+    ];
+    const reliability: CapabilityReliability[] = [
+      {
+        toolName: "exec",
+        verifiedCount: 5,
+        recentFailures: 0,
+        recoveries: 0,
+        reliabilityBand: "reliable",
+      },
+    ];
+    const result = formatCapabilityInjection(entries, reliability, "new")!;
+    expect(result).toContain("Confirm with the user before using them");
+  });
+
+  it("falls back to static footer when trustTier is undefined (backward compat)", () => {
+    const entries: CapabilityEntry[] = [
+      { toolName: "exec", how: "pnpm test", lastVerifiedTs: 1000, verifiedCount: 5 },
+    ];
+    const reliability: CapabilityReliability[] = [
+      {
+        toolName: "exec",
+        verifiedCount: 5,
+        recentFailures: 0,
+        recoveries: 0,
+        reliabilityBand: "reliable",
+      },
+    ];
+    const result = formatCapabilityInjection(entries, reliability)!;
+    expect(result).toContain("Use them proactively when relevant");
+    expect(result).not.toContain("trust tier");
+  });
+
+  it("mixed reliability bands get different proactivity levels", () => {
+    const entries: CapabilityEntry[] = [
+      { toolName: "exec", how: "pnpm test", lastVerifiedTs: 1000, verifiedCount: 10 },
+      { toolName: "browser", how: "navigate", lastVerifiedTs: 1000, verifiedCount: 3 },
+    ];
+    const reliability: CapabilityReliability[] = [
+      {
+        toolName: "exec",
+        verifiedCount: 10,
+        recentFailures: 0,
+        recoveries: 0,
+        reliabilityBand: "reliable",
+      },
+      {
+        toolName: "browser",
+        verifiedCount: 3,
+        recentFailures: 1,
+        recoveries: 1,
+        reliabilityBand: "emerging",
+      },
+    ];
+    const result = formatCapabilityInjection(entries, reliability, "established")!;
+    expect(result).toContain("exec");
+    expect(result).toContain("use autonomously when relevant");
+    expect(result).toContain("browser");
+    expect(result).toContain("offer to use when relevant");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// formatCapabilityStatus with trust tier (RSC v3.4)
+// ---------------------------------------------------------------------------
+
+describe("formatCapabilityStatus with trust tier (v3.4)", () => {
+  it("shows proactivity level alongside reliability band", () => {
+    const now = Date.now();
+    const entries: CapabilityEntry[] = [
+      { toolName: "exec", how: "pnpm test", lastVerifiedTs: now - 30_000, verifiedCount: 10 },
+    ];
+    const reliability: CapabilityReliability[] = [
+      {
+        toolName: "exec",
+        verifiedCount: 10,
+        recentFailures: 0,
+        recoveries: 0,
+        reliabilityBand: "reliable",
+      },
+    ];
+    const result = formatCapabilityStatus(entries, reliability, "established")!;
+    expect(result).toContain("[reliable]");
+    expect(result).toContain("→ autonomous");
+  });
+
+  it("shows proactivity summary line", () => {
+    const now = Date.now();
+    const entries: CapabilityEntry[] = [
+      { toolName: "exec", how: "pnpm test", lastVerifiedTs: now - 30_000, verifiedCount: 10 },
+      { toolName: "browser", how: "navigate", lastVerifiedTs: now - 30_000, verifiedCount: 3 },
+    ];
+    const reliability: CapabilityReliability[] = [
+      {
+        toolName: "exec",
+        verifiedCount: 10,
+        recentFailures: 0,
+        recoveries: 0,
+        reliabilityBand: "reliable",
+      },
+      {
+        toolName: "browser",
+        verifiedCount: 3,
+        recentFailures: 1,
+        recoveries: 1,
+        reliabilityBand: "emerging",
+      },
+    ];
+    const result = formatCapabilityStatus(entries, reliability, "established")!;
+    expect(result).toContain("Proactivity: 1 autonomous, 1 offer, 0 confirm (trust: established)");
+  });
+
+  it("omits proactivity when no trust tier (backward compat)", () => {
+    const now = Date.now();
+    const entries: CapabilityEntry[] = [
+      { toolName: "exec", how: "pnpm test", lastVerifiedTs: now - 30_000, verifiedCount: 10 },
+    ];
+    const reliability: CapabilityReliability[] = [
+      {
+        toolName: "exec",
+        verifiedCount: 10,
+        recentFailures: 0,
+        recoveries: 0,
+        reliabilityBand: "reliable",
+      },
+    ];
+    const result = formatCapabilityStatus(entries, reliability)!;
+    expect(result).not.toContain("Proactivity:");
+    expect(result).not.toContain("→ autonomous");
   });
 });

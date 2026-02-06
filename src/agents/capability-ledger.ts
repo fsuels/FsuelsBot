@@ -12,9 +12,18 @@
  * RSC v3.3 adds derived reliability bands (unproven/emerging/reliable) by
  * cross-referencing the capability ledger with coherence events. Reliability
  * is never stored — always computed on the fly.
+ *
+ * RSC v3.4 adds proactive behavioral directives by combining trust tiers
+ * with reliability bands. The agent sees its trust tier and per-capability
+ * guidance (confirm / offer / autonomous) in the injected prompt.
  */
 
-import { type CoherenceEntry, EventVerb, isStructuredEvent } from "./coherence-log.js";
+import {
+  type CoherenceEntry,
+  type TrustTier,
+  EventVerb,
+  isStructuredEvent,
+} from "./coherence-log.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -43,6 +52,13 @@ export type CapabilityReliability = {
 
 export type ReliabilityBand = "unproven" | "emerging" | "reliable";
 
+/**
+ * Proactive behavior level derived from trust tier + reliability band.
+ * Determines behavioral guidance injected per capability. RSC v3.4.
+ * Never stored — always computed.
+ */
+export type ProactivityLevel = "confirm" | "offer" | "autonomous";
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -52,6 +68,59 @@ export const MAX_CAPABILITY_ENTRIES = 12;
 
 /** Maximum capabilities injected into the prompt per turn. */
 const MAX_CAPABILITY_INJECTION = 8;
+
+// ---------------------------------------------------------------------------
+// Proactivity (RSC v3.4)
+// ---------------------------------------------------------------------------
+
+/** Behavioral directive text per proactivity level. */
+const PROACTIVITY_LINE_SUFFIX: Record<ProactivityLevel, string> = {
+  confirm: "available, confirm before using",
+  offer: "offer to use when relevant",
+  autonomous: "use autonomously when relevant",
+};
+
+/** Footer text per trust tier (replaces v3.3 static footer when tier is known). */
+const TRUST_TIER_FOOTER: Record<TrustTier, string> = {
+  new: "These tools are available. Confirm with the user before using them.",
+  emerging:
+    "You are building a track record. Offer to use these tools when relevant, but confirm before acting.",
+  established:
+    "Act on autonomous capabilities without asking. Offer emerging ones when they fit the task.",
+  proven:
+    "Act on autonomous capabilities without asking. Offer emerging ones when they fit the task.",
+};
+
+/** Trust tier self-description injected into the prompt. */
+const TRUST_TIER_LABEL: Record<TrustTier, string> = {
+  new: "new (building track record)",
+  emerging: "emerging (showing consistent judgment)",
+  established: "established (earned through consistent, reliable behavior)",
+  proven: "proven (extensive track record of sound decisions)",
+};
+
+/**
+ * Derive proactivity level from trust tier and reliability band.
+ * Pure function. RSC v3.4.
+ *
+ * Matrix:
+ *                  new       emerging    established   proven
+ * reliable      confirm      offer      autonomous    autonomous
+ * emerging      confirm      confirm      offer         offer
+ */
+export function resolveProactivityLevel(
+  trustTier: TrustTier,
+  reliabilityBand: ReliabilityBand,
+): ProactivityLevel {
+  if (reliabilityBand === "reliable") {
+    if (trustTier === "established" || trustTier === "proven") return "autonomous";
+    if (trustTier === "emerging") return "offer";
+    return "confirm";
+  }
+  // emerging band (unproven is filtered before reaching here)
+  if (trustTier === "established" || trustTier === "proven") return "offer";
+  return "confirm";
+}
 
 // ---------------------------------------------------------------------------
 // State resolution
@@ -140,10 +209,15 @@ export function selectCapabilitiesForInjection(
  * RSC v3.3: When reliability data is provided, annotates each line with
  * the reliability band and filters out "unproven" capabilities (single-use
  * tools haven't earned a CAN claim).
+ *
+ * RSC v3.4: When trust tier is provided, injects the agent's trust tier,
+ * adds per-capability behavioral directives (confirm/offer/autonomous),
+ * and uses a trust-tier-aware footer.
  */
 export function formatCapabilityInjection(
   capabilities: CapabilityEntry[],
   reliability?: CapabilityReliability[],
+  trustTier?: TrustTier,
 ): string | null {
   const selected = selectCapabilitiesForInjection(capabilities);
   if (selected.length === 0) return null;
@@ -157,24 +231,46 @@ export function formatCapabilityInjection(
   }
 
   const lines: string[] = ["## Verified Capabilities"];
+
+  // RSC v3.4: Inject trust tier self-description
+  if (trustTier) {
+    lines.push(`Your trust tier: ${TRUST_TIER_LABEL[trustTier]}.`);
+  }
+
+  let hasContent = false;
   for (const cap of selected) {
     const band = bandByTool.get(cap.toolName);
     // RSC v3.3: Filter out unproven capabilities when reliability data is available
     if (band === "unproven") continue;
-    if (band) {
+
+    if (band && trustTier) {
+      // RSC v3.4: Full proactivity annotation
+      const level = resolveProactivityLevel(trustTier, band);
+      const suffix = PROACTIVITY_LINE_SUFFIX[level];
+      lines.push(
+        `- CAN use ${cap.toolName}: ${cap.how} (${band}, ${cap.verifiedCount}x) → ${suffix}`,
+      );
+    } else if (band) {
+      // RSC v3.3: Reliability band only (no trust tier)
       lines.push(`- CAN use ${cap.toolName}: ${cap.how} (${band}, ${cap.verifiedCount}x)`);
     } else {
-      // Backward compat: no reliability data → use original format
+      // Backward compat: no reliability data
       lines.push(`- CAN use ${cap.toolName}: ${cap.how} (verified ${cap.verifiedCount}x)`);
     }
+    hasContent = true;
   }
 
   // If all capabilities were filtered out (all unproven), return null
-  if (lines.length <= 1) return null;
+  if (!hasContent) return null;
 
-  lines.push(
-    "These capabilities were confirmed in this session. Use them proactively when relevant.",
-  );
+  // RSC v3.4: Trust-tier-aware footer, or v3.3 static footer
+  if (trustTier) {
+    lines.push(TRUST_TIER_FOOTER[trustTier]);
+  } else {
+    lines.push(
+      "These capabilities were confirmed in this session. Use them proactively when relevant.",
+    );
+  }
 
   return lines.join("\n");
 }
@@ -267,10 +363,14 @@ export function computeCapabilityReliability(
  *
  * RSC v3.3: When reliability data is provided, appends reliability band
  * to each line and includes a summary count.
+ *
+ * RSC v3.4: When trust tier is provided, appends proactivity level per
+ * capability and includes a proactivity summary.
  */
 export function formatCapabilityStatus(
   capabilities: CapabilityEntry[],
   reliability?: CapabilityReliability[],
+  trustTier?: TrustTier,
 ): string | null {
   if (capabilities.length === 0) return null;
 
@@ -293,7 +393,10 @@ export function formatCapabilityStatus(
           : `${Math.floor(age / 3_600_000)}h ago`;
     const band = bandByTool.get(cap.toolName);
     const bandStr = band ? ` [${band}]` : "";
-    lines.push(`  ${cap.toolName}: ${cap.how} (${cap.verifiedCount}x, last ${ageStr})${bandStr}`);
+    const proactivity = band && trustTier ? ` → ${resolveProactivityLevel(trustTier, band)}` : "";
+    lines.push(
+      `  ${cap.toolName}: ${cap.how} (${cap.verifiedCount}x, last ${ageStr})${bandStr}${proactivity}`,
+    );
   }
 
   // RSC v3.3: Append reliability summary
@@ -302,6 +405,18 @@ export function formatCapabilityStatus(
     const emerging = reliability.filter((r) => r.reliabilityBand === "emerging").length;
     const unproven = reliability.filter((r) => r.reliabilityBand === "unproven").length;
     lines.push(`  Reliability: ${reliable} reliable, ${emerging} emerging, ${unproven} unproven`);
+
+    // RSC v3.4: Proactivity summary
+    if (trustTier) {
+      const proactivityCounts = { confirm: 0, offer: 0, autonomous: 0 };
+      for (const r of reliability) {
+        if (r.reliabilityBand === "unproven") continue;
+        proactivityCounts[resolveProactivityLevel(trustTier, r.reliabilityBand)]++;
+      }
+      lines.push(
+        `  Proactivity: ${proactivityCounts.autonomous} autonomous, ${proactivityCounts.offer} offer, ${proactivityCounts.confirm} confirm (trust: ${trustTier})`,
+      );
+    }
   }
 
   return lines.join("\n");
