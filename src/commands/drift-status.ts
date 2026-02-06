@@ -6,7 +6,11 @@
  */
 
 import { resolveDriftState, formatDriftStatus } from "../agents/drift-detection.js";
-import { resolveCoherenceLog, formatCoherenceLog } from "../agents/coherence-log.js";
+import {
+  resolveCoherenceLog,
+  formatCoherenceLog,
+  formatEventMemoryStatus,
+} from "../agents/coherence-log.js";
 import { loadSessionStore, resolveStorePath } from "../config/sessions.js";
 import { loadConfig } from "../config/config.js";
 import type { SessionEntry } from "../config/sessions/types.js";
@@ -43,6 +47,7 @@ export async function driftStatusCommand(
     sessionKey: string;
     driftStatus: string;
     coherenceStatus: string;
+    eventMemoryStatus: string;
     level: string;
   }> = [];
 
@@ -76,6 +81,7 @@ export async function driftStatusCommand(
       sessionKey: key,
       driftStatus: formatDriftStatus(driftState),
       coherenceStatus: formatCoherenceLog(coherenceState),
+      eventMemoryStatus: formatEventMemoryStatus(coherenceState),
       level: driftState.level,
     });
   }
@@ -98,5 +104,7 @@ export async function driftStatusCommand(
     runtime.log(result.driftStatus);
     runtime.log("");
     runtime.log(result.coherenceStatus);
+    runtime.log("");
+    runtime.log(result.eventMemoryStatus);
   }
 }

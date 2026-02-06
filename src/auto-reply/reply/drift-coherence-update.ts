@@ -16,6 +16,8 @@ import {
   appendCoherenceEntry,
   buildModelSwitchEntry,
   buildToolMetaCoherenceEntry,
+  buildSystemEventEntry,
+  EventVerb,
 } from "../../agents/coherence-log.js";
 import {
   resolveToolFailureState,
@@ -133,6 +135,55 @@ export async function persistDriftCoherenceUpdate(params: {
           if (error) {
             failureSigs = recordFailureSignature(failureSigs, toolName, error, now);
           }
+          // RSC v3.0: Log structured FAILED event
+          coherenceState = appendCoherenceEntry(
+            coherenceState,
+            buildSystemEventEntry({
+              verb: EventVerb.FAILED,
+              subject: toolName,
+              outcome: (error ?? "unknown error").slice(0, 80),
+              taskId: params.taskId,
+              now,
+            }),
+          );
+        }
+
+        // RSC v3.0: Log structured system events for turn-level signals
+        if (signals.autoCompaction) {
+          coherenceState = appendCoherenceEntry(
+            coherenceState,
+            buildSystemEventEntry({
+              verb: EventVerb.COMPACTED,
+              subject: "session",
+              outcome: "auto-compacted",
+              taskId: params.taskId,
+              now,
+            }),
+          );
+        }
+        if (signals.contextOverflow) {
+          coherenceState = appendCoherenceEntry(
+            coherenceState,
+            buildSystemEventEntry({
+              verb: EventVerb.BLOCKED,
+              subject: "context",
+              outcome: "overflow",
+              taskId: params.taskId,
+              now,
+            }),
+          );
+        }
+        if (signals.sessionReset) {
+          coherenceState = appendCoherenceEntry(
+            coherenceState,
+            buildSystemEventEntry({
+              verb: EventVerb.REJECTED,
+              subject: "session",
+              outcome: "user reset",
+              taskId: params.taskId,
+              now,
+            }),
+          );
         }
 
         // Record successful tool calls (resets consecutive failure count)

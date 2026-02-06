@@ -9,7 +9,12 @@
  * hints (v2.1 item 4) into a single injection to minimize param threading.
  */
 
-import { type CoherenceLogState, resolveCoherenceLog } from "./coherence-log.js";
+import {
+  type CoherenceLogState,
+  resolveCoherenceLog,
+  selectEventsForInjection,
+  formatEventMemoryInjection,
+} from "./coherence-log.js";
 import {
   resolveToolFailureState,
   resolveFailureSignatures,
@@ -91,6 +96,13 @@ export function resolveCoherenceInterventionForSession(
   const coherence = buildCoherenceIntervention(coherenceState);
   if (coherence) {
     sections.push(coherence.text);
+  }
+
+  // RSC v3.0: Event memory section — verb-indexed associative recall
+  const selectedEvents = selectEventsForInjection(coherenceState);
+  const eventInjection = formatEventMemoryInjection(selectedEvents);
+  if (eventInjection) {
+    sections.push(eventInjection);
   }
 
   // Tool avoidance section (RSC v2.1 item 3)

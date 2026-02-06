@@ -466,7 +466,8 @@ export async function compactEmbeddedPiSessionDirect(
           }
         }
 
-        // RSC v2.1: Append pinned + recent coherence entries to compaction instructions
+        // RSC v2.1 + v3.0: Append pinned + recent coherence entries to compaction instructions.
+        // Structured events (v3.0) use VERB subject → outcome format for clearer compactor context.
         let compactInstructions = params.customInstructions;
         if (
           (params.coherencePinned && params.coherencePinned.length > 0) ||
@@ -474,13 +475,23 @@ export async function compactEmbeddedPiSessionDirect(
         ) {
           let coherenceBlock = "";
           if (params.coherencePinned && params.coherencePinned.length > 0) {
-            const pinnedLines = params.coherencePinned.map((e) => `- ${e.summary}`).join("\n");
+            const pinnedLines = params.coherencePinned
+              .map((e) =>
+                e.verb
+                  ? `- ${e.verb.toUpperCase()} ${e.subject ?? "?"} → ${e.outcome ?? "?"}`
+                  : `- ${e.summary}`,
+              )
+              .join("\n");
             coherenceBlock += `\n\nIMPORTANT: The agent has committed to these decisions that must be preserved in the summary:\n${pinnedLines}`;
           }
           if (params.coherenceRecent && params.coherenceRecent.length > 0) {
             const recentLines = params.coherenceRecent
               .slice(-3)
-              .map((e) => `- ${e.summary}`)
+              .map((e) =>
+                e.verb
+                  ? `- ${e.verb.toUpperCase()} ${e.subject ?? "?"} → ${e.outcome ?? "?"}`
+                  : `- ${e.summary}`,
+              )
               .join("\n");
             coherenceBlock += `\nRecent context (preserve if relevant):\n${recentLines}`;
           }
