@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   type CapabilityEntry,
+  type CapabilityReliability,
+  computeCapabilityReliability,
   formatCapabilityInjection,
   formatCapabilityStatus,
   MAX_CAPABILITY_ENTRIES,
@@ -8,6 +10,7 @@ import {
   selectCapabilitiesForInjection,
   upsertCapability,
 } from "./capability-ledger.js";
+import { type CoherenceEntry, EventVerb } from "./coherence-log.js";
 
 // ---------------------------------------------------------------------------
 // upsertCapability
@@ -174,6 +177,80 @@ describe("formatCapabilityInjection", () => {
 // formatCapabilityStatus
 // ---------------------------------------------------------------------------
 
+describe("formatCapabilityInjection with reliability (v3.3)", () => {
+  it("filters out unproven capabilities", () => {
+    const entries: CapabilityEntry[] = [
+      { toolName: "exec", how: "pnpm test", lastVerifiedTs: 1000, verifiedCount: 5 },
+      { toolName: "tts", how: "speak", lastVerifiedTs: 1000, verifiedCount: 1 },
+    ];
+    const reliability: CapabilityReliability[] = [
+      {
+        toolName: "exec",
+        verifiedCount: 5,
+        recentFailures: 0,
+        recoveries: 0,
+        reliabilityBand: "reliable",
+      },
+      {
+        toolName: "tts",
+        verifiedCount: 1,
+        recentFailures: 0,
+        recoveries: 0,
+        reliabilityBand: "unproven",
+      },
+    ];
+    const result = formatCapabilityInjection(entries, reliability)!;
+    expect(result).toContain("CAN use exec: pnpm test (reliable, 5x)");
+    expect(result).not.toContain("tts");
+  });
+
+  it("shows emerging and reliable bands", () => {
+    const entries: CapabilityEntry[] = [
+      { toolName: "exec", how: "pnpm test", lastVerifiedTs: 1000, verifiedCount: 5 },
+      { toolName: "browser", how: "navigate", lastVerifiedTs: 1000, verifiedCount: 3 },
+    ];
+    const reliability: CapabilityReliability[] = [
+      {
+        toolName: "exec",
+        verifiedCount: 5,
+        recentFailures: 0,
+        recoveries: 0,
+        reliabilityBand: "reliable",
+      },
+      {
+        toolName: "browser",
+        verifiedCount: 3,
+        recentFailures: 1,
+        recoveries: 1,
+        reliabilityBand: "emerging",
+      },
+    ];
+    const result = formatCapabilityInjection(entries, reliability)!;
+    expect(result).toContain("(reliable, 5x)");
+    expect(result).toContain("(emerging, 3x)");
+  });
+
+  it("returns null when all capabilities are unproven", () => {
+    const entries: CapabilityEntry[] = [
+      { toolName: "tts", how: "speak", lastVerifiedTs: 1000, verifiedCount: 1 },
+    ];
+    const reliability: CapabilityReliability[] = [
+      {
+        toolName: "tts",
+        verifiedCount: 1,
+        recentFailures: 0,
+        recoveries: 0,
+        reliabilityBand: "unproven",
+      },
+    ];
+    expect(formatCapabilityInjection(entries, reliability)).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// formatCapabilityStatus
+// ---------------------------------------------------------------------------
+
 describe("formatCapabilityStatus", () => {
   it("returns null for empty capabilities", () => {
     expect(formatCapabilityStatus([])).toBeNull();
@@ -189,5 +266,140 @@ describe("formatCapabilityStatus", () => {
     expect(result).toContain("Capability Ledger (2 entries):");
     expect(result).toContain("exec: pnpm test (10x,");
     expect(result).toContain("browser: navigate (3x,");
+  });
+
+  it("shows reliability bands when provided", () => {
+    const now = Date.now();
+    const entries: CapabilityEntry[] = [
+      { toolName: "exec", how: "pnpm test", lastVerifiedTs: now - 30_000, verifiedCount: 10 },
+    ];
+    const reliability: CapabilityReliability[] = [
+      {
+        toolName: "exec",
+        verifiedCount: 10,
+        recentFailures: 0,
+        recoveries: 0,
+        reliabilityBand: "reliable",
+      },
+    ];
+    const result = formatCapabilityStatus(entries, reliability)!;
+    expect(result).toContain("[reliable]");
+    expect(result).toContain("Reliability: 1 reliable, 0 emerging, 0 unproven");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// computeCapabilityReliability (RSC v3.3)
+// ---------------------------------------------------------------------------
+
+describe("computeCapabilityReliability", () => {
+  const mkEvent = (verb: string, subject: string, ts = 1000): CoherenceEntry => ({
+    ts,
+    source: "tool_call",
+    summary: `${verb} ${subject}`,
+    verb: verb as EventVerb,
+    subject,
+    outcome: "ok",
+  });
+
+  it("returns unproven for tool with 1 use and no failures", () => {
+    const caps: CapabilityEntry[] = [
+      { toolName: "tts", how: "speak", lastVerifiedTs: 1000, verifiedCount: 1 },
+    ];
+    const result = computeCapabilityReliability(caps, []);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.reliabilityBand).toBe("unproven");
+  });
+
+  it("returns emerging for tool with 3 uses, 1 failure, 1 recovery", () => {
+    const caps: CapabilityEntry[] = [
+      { toolName: "exec", how: "pnpm test", lastVerifiedTs: 3000, verifiedCount: 3 },
+    ];
+    const events: CoherenceEntry[] = [
+      mkEvent(EventVerb.FAILED, "exec", 1000),
+      mkEvent(EventVerb.CHANGED, "exec", 1100), // recovery within 3 turns
+    ];
+    const result = computeCapabilityReliability(caps, events);
+    expect(result[0]!.reliabilityBand).toBe("emerging");
+    expect(result[0]!.recentFailures).toBe(1);
+    expect(result[0]!.recoveries).toBe(1);
+  });
+
+  it("returns reliable for tool with 5 uses and 0 failures", () => {
+    const caps: CapabilityEntry[] = [
+      { toolName: "exec", how: "pnpm test", lastVerifiedTs: 5000, verifiedCount: 5 },
+    ];
+    const result = computeCapabilityReliability(caps, []);
+    expect(result[0]!.reliabilityBand).toBe("reliable");
+  });
+
+  it("returns emerging for tool with 10 uses but 2 recent failures", () => {
+    const caps: CapabilityEntry[] = [
+      { toolName: "exec", how: "pnpm test", lastVerifiedTs: 5000, verifiedCount: 10 },
+    ];
+    const events: CoherenceEntry[] = [
+      mkEvent(EventVerb.FAILED, "exec", 1000),
+      mkEvent(EventVerb.FAILED, "exec", 2000),
+    ];
+    const result = computeCapabilityReliability(caps, events);
+    expect(result[0]!.reliabilityBand).toBe("emerging");
+    expect(result[0]!.recentFailures).toBe(2);
+  });
+
+  it("detects FAILED→CHANGED recovery within 3 turns", () => {
+    const caps: CapabilityEntry[] = [
+      { toolName: "write", how: "write file", lastVerifiedTs: 5000, verifiedCount: 5 },
+    ];
+    const events: CoherenceEntry[] = [
+      mkEvent(EventVerb.FAILED, "write", 1000),
+      mkEvent(EventVerb.DECIDED, "task", 1100), // different tool, skip
+      mkEvent(EventVerb.CHANGED, "write", 1200), // recovery at position i+2 (within 3)
+    ];
+    const result = computeCapabilityReliability(caps, events);
+    expect(result[0]!.recoveries).toBe(1);
+  });
+
+  it("does NOT count recovery beyond 3 turns", () => {
+    const caps: CapabilityEntry[] = [
+      { toolName: "write", how: "write file", lastVerifiedTs: 5000, verifiedCount: 5 },
+    ];
+    const events: CoherenceEntry[] = [
+      mkEvent(EventVerb.FAILED, "write", 1000),
+      mkEvent(EventVerb.DECIDED, "task1", 1100),
+      mkEvent(EventVerb.DECIDED, "task2", 1200),
+      mkEvent(EventVerb.DECIDED, "task3", 1300),
+      mkEvent(EventVerb.CHANGED, "write", 1400), // position i+4, beyond window
+    ];
+    const result = computeCapabilityReliability(caps, events);
+    expect(result[0]!.recoveries).toBe(0);
+    expect(result[0]!.recentFailures).toBe(1);
+  });
+
+  it("excludes tools not in capability ledger", () => {
+    const caps: CapabilityEntry[] = [
+      { toolName: "exec", how: "pnpm test", lastVerifiedTs: 1000, verifiedCount: 5 },
+    ];
+    const events: CoherenceEntry[] = [
+      mkEvent(EventVerb.FAILED, "browser", 1000), // not in ledger
+    ];
+    const result = computeCapabilityReliability(caps, events);
+    expect(result).toHaveLength(1);
+    expect(result[0]!.toolName).toBe("exec");
+    expect(result[0]!.recentFailures).toBe(0);
+  });
+
+  it("returns empty array for empty capabilities", () => {
+    expect(computeCapabilityReliability([], [])).toEqual([]);
+  });
+
+  it("ignores non-structured events", () => {
+    const caps: CapabilityEntry[] = [
+      { toolName: "exec", how: "pnpm test", lastVerifiedTs: 1000, verifiedCount: 5 },
+    ];
+    // Legacy entry without verb field
+    const events: CoherenceEntry[] = [{ ts: 1000, source: "tool_call", summary: "FAILED exec" }];
+    const result = computeCapabilityReliability(caps, events);
+    expect(result[0]!.recentFailures).toBe(0); // not counted — no verb
+    expect(result[0]!.reliabilityBand).toBe("reliable");
   });
 });

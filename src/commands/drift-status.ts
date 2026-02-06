@@ -16,7 +16,11 @@ import {
   formatTrustStatus,
   formatPromotedEventsStatus,
 } from "../agents/coherence-log.js";
-import { resolveCapabilityLedger, formatCapabilityStatus } from "../agents/capability-ledger.js";
+import {
+  resolveCapabilityLedger,
+  formatCapabilityStatus,
+  computeCapabilityReliability,
+} from "../agents/capability-ledger.js";
 import { loadSessionStore, resolveStorePath } from "../config/sessions.js";
 import { loadConfig } from "../config/config.js";
 import type { SessionEntry } from "../config/sessions/types.js";
@@ -92,10 +96,11 @@ export async function driftStatusCommand(
     const taxonomyReport = analyzeVerbTaxonomy(allEvents);
     const trustSignals = computeTrustSignals(allEvents);
 
-    // RSC v3.2: Capability ledger
+    // RSC v3.2 + v3.3: Capability ledger with reliability
     const capabilityLedger = resolveCapabilityLedger({
       capabilityLedger: entry.capabilityLedger,
     });
+    const capabilityReliability = computeCapabilityReliability(capabilityLedger, allEvents);
 
     results.push({
       sessionKey: key,
@@ -108,7 +113,9 @@ export async function driftStatusCommand(
         entry.promotedEvents ?? [],
         entry.promotionCandidates ?? [],
       ),
-      capabilityStatus: formatCapabilityStatus(capabilityLedger) ?? "Capability Ledger: (empty)",
+      capabilityStatus:
+        formatCapabilityStatus(capabilityLedger, capabilityReliability) ??
+        "Capability Ledger: (empty)",
       level: driftState.level,
     });
   }

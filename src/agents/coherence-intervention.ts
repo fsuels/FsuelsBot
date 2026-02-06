@@ -23,7 +23,11 @@ import {
   buildToolAvoidanceInjection,
   buildFailureMemoryHint,
 } from "./tool-failure-tracker.js";
-import { resolveCapabilityLedger, formatCapabilityInjection } from "./capability-ledger.js";
+import {
+  resolveCapabilityLedger,
+  formatCapabilityInjection,
+  computeCapabilityReliability,
+} from "./capability-ledger.js";
 import type { SessionEntry } from "../config/sessions/types.js";
 import { resolveThreadParentSessionKey } from "../sessions/session-key-utils.js";
 
@@ -133,9 +137,11 @@ export function resolveCoherenceInterventionForSession(
     }
   }
 
-  // RSC v3.2: Capability ledger section
+  // RSC v3.2 + v3.3: Capability ledger with reliability bands
   const capabilityState = resolveCapabilityLedger({ capabilityLedger: entry.capabilityLedger });
-  const capabilityInjection = formatCapabilityInjection(capabilityState);
+  const allEvents = [...coherenceState.pinned, ...coherenceState.entries];
+  const capabilityReliability = computeCapabilityReliability(capabilityState, allEvents);
+  const capabilityInjection = formatCapabilityInjection(capabilityState, capabilityReliability);
   if (capabilityInjection) {
     sections.push(capabilityInjection);
   }
