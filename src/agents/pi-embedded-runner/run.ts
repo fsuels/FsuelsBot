@@ -358,6 +358,7 @@ export async function runEmbeddedPiAgent(
             enforceFinalTag: params.enforceFinalTag,
             contextPressure: params.contextPressure,
             driftInjection: params.driftInjection,
+            coherenceIntervention: params.coherenceIntervention,
           });
 
           const { aborted, promptError, timedOut, sessionIdUsed, lastAssistant } = attempt;
@@ -676,6 +677,7 @@ export async function runEmbeddedPiAgent(
             messagingToolSentTexts: attempt.messagingToolSentTexts,
             messagingToolSentTargets: attempt.messagingToolSentTargets,
             toolMetas: attempt.toolMetas,
+            lastToolError: attempt.lastToolError,
           };
         }
       } finally {

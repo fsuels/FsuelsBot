@@ -8,6 +8,7 @@ import type { AgentStreamParams } from "../../../commands/agent/types.js";
 import type { ExecElevatedDefaults, ExecToolDefaults } from "../../bash-tools.js";
 import type { MessagingToolSend } from "../../pi-embedded-messaging.js";
 import type { BlockReplyChunking, ToolResultFormat } from "../../pi-embedded-subscribe.js";
+import type { CoherenceIntervention } from "../../coherence-intervention.js";
 import type { DriftPromptInjection } from "../../drift-detection.js";
 import type { SkillSnapshot } from "../../skills.js";
 import type { SessionSystemPromptReport } from "../../../config/sessions/types.js";
@@ -97,6 +98,8 @@ export type EmbeddedRunAttemptParams = {
   };
   /** Drift detection prompt injection for system prompt (RSC v2.0). */
   driftInjection?: DriftPromptInjection;
+  /** Coherence intervention for system prompt (RSC v2.1). */
+  coherenceIntervention?: CoherenceIntervention;
 };
 
 export type EmbeddedRunAttemptResult = {

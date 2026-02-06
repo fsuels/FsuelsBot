@@ -4,6 +4,7 @@ import type { MoltbotConfig } from "../../../config/config.js";
 import type { AgentStreamParams } from "../../../commands/agent/types.js";
 import type { enqueueCommand } from "../../../process/command-queue.js";
 import type { ExecElevatedDefaults, ExecToolDefaults } from "../../bash-tools.js";
+import type { CoherenceIntervention } from "../../coherence-intervention.js";
 import type { DriftPromptInjection } from "../../drift-detection.js";
 import type { BlockReplyChunking, ToolResultFormat } from "../../pi-embedded-subscribe.js";
 import type { SkillSnapshot } from "../../skills.js";
@@ -106,4 +107,6 @@ export type RunEmbeddedPiAgentParams = {
   };
   /** Drift detection prompt injection for system prompt (RSC v2.0). */
   driftInjection?: DriftPromptInjection;
+  /** Coherence intervention for system prompt (RSC v2.1). */
+  coherenceIntervention?: CoherenceIntervention;
 };

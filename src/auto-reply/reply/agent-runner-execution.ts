@@ -20,6 +20,7 @@ import {
   updateSessionStore,
 } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
+import { resolveCoherenceInterventionForSession } from "../../agents/coherence-intervention.js";
 import { resolveDriftInjectionForSession } from "./drift-coherence-update.js";
 import { emitAgentEvent, registerAgentRunContext } from "../../infra/agent-events.js";
 import { defaultRuntime } from "../../runtime.js";
@@ -239,6 +240,7 @@ export async function runAgentTurnWithFallback(params: {
             return { turnsRemaining, tokensBudget: budget, tokensUsed: used };
           })();
           const driftInjection = resolveDriftInjectionForSession(activeEntry);
+          const coherenceIntervention = resolveCoherenceInterventionForSession(activeEntry);
 
           return runEmbeddedPiAgent({
             sessionId: params.followupRun.run.sessionId,
@@ -413,6 +415,7 @@ export async function runAgentTurnWithFallback(params: {
                 : undefined,
             contextPressure,
             driftInjection: driftInjection ?? undefined,
+            coherenceIntervention: coherenceIntervention ?? undefined,
             shouldEmitToolResult: params.shouldEmitToolResult,
             shouldEmitToolOutput: params.shouldEmitToolOutput,
             onToolResult: onToolResult

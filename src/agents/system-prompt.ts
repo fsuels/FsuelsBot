@@ -2,6 +2,7 @@ import type { ReasoningLevel, ThinkLevel } from "../auto-reply/thinking.js";
 import { SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
 import { listDeliverableMessageChannels } from "../utils/message-channel.js";
 import type { ResolvedTimeFormat } from "./date-time.js";
+import type { CoherenceIntervention } from "./coherence-intervention.js";
 import type { DriftPromptInjection } from "./drift-detection.js";
 import type { EmbeddedContextFile } from "./pi-embedded-helpers.js";
 
@@ -207,6 +208,8 @@ export function buildAgentSystemPrompt(params: {
   };
   /** Drift detection prompt injection (stability warnings). */
   driftInjection?: DriftPromptInjection;
+  /** Coherence intervention (RSC v2.1 — recent decisions + tool avoidance). */
+  coherenceIntervention?: CoherenceIntervention;
 }) {
   const coreToolSummaries: Record<string, string> = {
     read: "Read file contents",
@@ -521,6 +524,13 @@ export function buildAgentSystemPrompt(params: {
           ].join("\n");
     lines.push("## Reactions", guidanceText, "");
   }
+  // RSC injection ordering (later = higher LLM attention weight due to recency bias):
+  // 1. Context Pressure   — resource awareness (lowest priority, factual)
+  // 2. Drift Injection     — stability warnings (overrides behavioral guidance at critical)
+  // 3. Coherence           — decision consistency + tool avoidance + failure memory
+  // 4. Confidence          — assumption declaration (always active, highest attention)
+  // When instructions conflict: safety > tool reliability > drift > coherence > user request.
+
   // RSC v2.0: Context exhaustion projection
   if (!isMinimal && params.contextPressure && params.contextPressure.turnsRemaining <= 5) {
     const { turnsRemaining, tokensBudget, tokensUsed } = params.contextPressure;
@@ -540,11 +550,17 @@ export function buildAgentSystemPrompt(params: {
     lines.push(params.driftInjection.text, "");
   }
 
+  // RSC v2.1: Coherence intervention (recent decisions + tool avoidance)
+  if (!isMinimal && params.coherenceIntervention) {
+    lines.push(params.coherenceIntervention.text, "");
+  }
+
   // RSC v2.0: Confidence annotation (always active for full mode)
   if (!isMinimal) {
     lines.push(
       "## Decision Confidence",
       "If you are about to take an action based on an assumption you cannot verify, state the assumption in one sentence before proceeding. Do not hedge on routine operations.",
+      "When behavioral instructions in this prompt conflict, prioritize: safety constraints, then tool reliability warnings, then stability guidance, then prior commitments.",
       "",
     );
   }

@@ -7,6 +7,7 @@ import type { DeliveryContext } from "../../utils/delivery-context.js";
 import type { TtsAutoMode } from "../types.tts.js";
 import type { CorrectionEvent } from "../../agents/drift-detection.js";
 import type { CoherenceEntry } from "../../agents/coherence-log.js";
+import type { ToolFailureRecord, FailureSignature } from "../../agents/tool-failure-tracker.js";
 
 export type SessionScope = "per-sender" | "global";
 
@@ -139,6 +140,9 @@ export type SessionEntry = {
   // -- Coherence Log (RSC v2.0 capture) --
   coherenceEntries?: CoherenceEntry[];
   coherencePinned?: CoherenceEntry[];
+  // -- Tool Failure Tracking (RSC v2.1) --
+  toolFailures?: ToolFailureRecord[];
+  failureSignatures?: FailureSignature[];
 };
 
 export function mergeSessionEntry(

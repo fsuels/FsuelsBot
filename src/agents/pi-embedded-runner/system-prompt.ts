@@ -1,5 +1,6 @@
 import type { AgentTool } from "@mariozechner/pi-agent-core";
 import type { ResolvedTimeFormat } from "../date-time.js";
+import type { CoherenceIntervention } from "../coherence-intervention.js";
 import type { DriftPromptInjection } from "../drift-detection.js";
 import type { EmbeddedContextFile } from "../pi-embedded-helpers.js";
 import { buildAgentSystemPrompt, type PromptMode } from "../system-prompt.js";
@@ -54,6 +55,8 @@ export function buildEmbeddedSystemPrompt(params: {
   };
   /** Drift detection prompt injection (RSC v2.0). */
   driftInjection?: DriftPromptInjection;
+  /** Coherence intervention (RSC v2.1). */
+  coherenceIntervention?: CoherenceIntervention;
 }): string {
   return buildAgentSystemPrompt({
     workspaceDir: params.workspaceDir,
@@ -81,6 +84,7 @@ export function buildEmbeddedSystemPrompt(params: {
     contextFiles: params.contextFiles,
     contextPressure: params.contextPressure,
     driftInjection: params.driftInjection,
+    coherenceIntervention: params.coherenceIntervention,
   });
 }
 

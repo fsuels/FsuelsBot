@@ -403,6 +403,7 @@ export async function runReplyAgent(params: {
       },
       taskId: followupRun.run.taskId,
       toolMetas: runResult.toolMetas,
+      lastToolError: runResult.lastToolError,
     });
 
     // Drain any late tool/block deliveries before deciding there's "nothing to send".

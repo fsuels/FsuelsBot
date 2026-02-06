@@ -51,6 +51,8 @@ export type EmbeddedPiRunResult = {
   messagingToolSentTargets?: MessagingToolSend[];
   /** Tool calls executed during the run, for post-turn coherence logging. */
   toolMetas?: Array<{ toolName: string; meta?: string }>;
+  /** Last tool error from the run attempt (for failure tracking, RSC v2.1). */
+  lastToolError?: { toolName: string; meta?: string; error?: string };
 };
 
 export type EmbeddedPiCompactResult = {

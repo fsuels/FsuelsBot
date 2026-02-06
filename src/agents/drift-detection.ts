@@ -259,6 +259,7 @@ export function buildDriftPromptInjection(state: DriftState): DriftPromptInjecti
           "Recent turns show elevated correction activity (model fallbacks, retries, or compactions).",
           "Before proceeding with complex actions: briefly summarize current state and progress so far.",
           "Prefer simpler approaches over multi-step operations until stability improves.",
+          "Before proposing a plan, briefly list known constraints (resource limits, tool availability, context remaining).",
         ].join("\n"),
       };
     case "drift":
@@ -270,6 +271,7 @@ export function buildDriftPromptInjection(state: DriftState): DriftPromptInjecti
           "Before taking action: ask a clarifying question or confirm your understanding of the current goal.",
           "Avoid starting new multi-step operations. Focus on completing or checkpointing current work.",
           "If uncertain about any assumption, state it explicitly before proceeding.",
+          "List all known constraints before proposing any new steps.",
         ].join("\n"),
       };
     case "critical":
@@ -281,6 +283,7 @@ export function buildDriftPromptInjection(state: DriftState): DriftPromptInjecti
           "REQUIRED: Summarize all current progress and open questions before taking any further action.",
           "Do not start new operations. Ask the user to confirm next steps.",
           "If context feels degraded or unclear, suggest starting a fresh session with a summary.",
+          "Include a constraints list: what tools are available, what context remains, what has been tried.",
         ].join("\n"),
       };
     default:

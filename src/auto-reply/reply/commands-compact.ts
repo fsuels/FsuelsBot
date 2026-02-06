@@ -89,6 +89,12 @@ export const handleCompactCommand: CommandHandler = async (params) => {
     },
     customInstructions,
     ownerNumbers: params.command.ownerList.length > 0 ? params.command.ownerList : undefined,
+    coherencePinned: Array.isArray(params.sessionEntry.coherencePinned)
+      ? params.sessionEntry.coherencePinned
+      : undefined,
+    coherenceRecent: Array.isArray(params.sessionEntry.coherenceEntries)
+      ? params.sessionEntry.coherenceEntries
+      : undefined,
   });
 
   const compactLabel = result.ok
@@ -126,8 +132,7 @@ export const handleCompactCommand: CommandHandler = async (params) => {
     ? `${compactLabel}: ${reason} - ${contextSummary}`
     : `${compactLabel} - ${contextSummary}`;
   enqueueSystemEvent(line, { sessionKey: params.sessionKey });
-  const isTelegram =
-    params.command.surface === "telegram" || params.command.channel === "telegram";
+  const isTelegram = params.command.surface === "telegram" || params.command.channel === "telegram";
   if (isTelegram && result.ok && result.compacted) {
     return {
       shouldContinue: false,

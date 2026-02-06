@@ -17,6 +17,12 @@ import {
   buildModelSwitchEntry,
   buildToolMetaCoherenceEntry,
 } from "../../agents/coherence-log.js";
+import {
+  resolveToolFailureState,
+  recordToolOutcome,
+  recordFailureSignature,
+  resolveFailureSignatures,
+} from "../../agents/tool-failure-tracker.js";
 import { updateSessionStoreEntry, type SessionEntry } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
 
@@ -45,6 +51,8 @@ export async function persistDriftCoherenceUpdate(params: {
   signals: TurnCorrectionSignals;
   taskId?: string;
   toolMetas?: Array<{ toolName: string; meta?: string }>;
+  /** Last tool error from the run attempt (for failure tracking). */
+  lastToolError?: { toolName: string; meta?: string; error?: string };
 }): Promise<void> {
   const { storePath, sessionKey, signals } = params;
   if (!storePath || !sessionKey) return;
@@ -114,6 +122,35 @@ export async function persistDriftCoherenceUpdate(params: {
           }
         }
 
+        // RSC v2.1: Update tool failure tracking
+        let toolFailureState = resolveToolFailureState({ toolFailures: entry.toolFailures });
+        let failureSigs = resolveFailureSignatures({ failureSignatures: entry.failureSignatures });
+
+        // Record last tool error as a failure
+        if (params.lastToolError) {
+          const { toolName, error } = params.lastToolError;
+          toolFailureState = recordToolOutcome(toolFailureState, toolName, false, error, now);
+          if (error) {
+            failureSigs = recordFailureSignature(failureSigs, toolName, error, now);
+          }
+        }
+
+        // Record successful tool calls (resets consecutive failure count)
+        if (params.toolMetas) {
+          for (const tm of params.toolMetas) {
+            // If this tool isn't the failed one, it succeeded
+            if (!params.lastToolError || tm.toolName !== params.lastToolError.toolName) {
+              toolFailureState = recordToolOutcome(
+                toolFailureState,
+                tm.toolName,
+                true,
+                undefined,
+                now,
+              );
+            }
+          }
+        }
+
         const patch: Partial<SessionEntry> = {
           driftEvents: nextDrift.events,
           driftBaselineRate: nextDrift.baselineRate,
@@ -123,6 +160,8 @@ export async function persistDriftCoherenceUpdate(params: {
           driftResponseCount: nextDrift.driftResponseCount,
           coherenceEntries: coherenceState.entries,
           coherencePinned: coherenceState.pinned,
+          toolFailures: toolFailureState.records,
+          failureSignatures: failureSigs,
           updatedAt: now,
         };
 

@@ -74,6 +74,8 @@ import {
   resolveSessionTaskId,
   resolveTaskScopedHistoryMessages,
 } from "../../sessions/task-context.js";
+import type { CoherenceEntry } from "../coherence-log.js";
+import { getGlobalHookRunner } from "../../plugins/hook-runner-global.js";
 
 export type CompactEmbeddedPiSessionParams = {
   sessionId: string;
@@ -107,6 +109,10 @@ export type CompactEmbeddedPiSessionParams = {
   enqueue?: typeof enqueueCommand;
   extraSystemPrompt?: string;
   ownerNumbers?: string[];
+  /** Pinned coherence entries to preserve across compaction (RSC v2.1). */
+  coherencePinned?: CoherenceEntry[];
+  /** Recent non-pinned coherence entries to include in compaction context (RSC v2.1 patch). */
+  coherenceRecent?: CoherenceEntry[];
 };
 
 /**
@@ -442,7 +448,68 @@ export async function compactEmbeddedPiSessionDirect(
           getDmHistoryLimitFromSessionKey(params.sessionKey, params.config),
         );
         session.agent.replaceMessages(limited);
-        const result = await session.compact(params.customInstructions);
+
+        // RSC v2.1: Fire before_compaction hook
+        const hookRunner = getGlobalHookRunner();
+        if (hookRunner?.hasHooks("before_compaction")) {
+          try {
+            await hookRunner.runBeforeCompaction(
+              { messageCount: limited.length },
+              {
+                agentId: sessionAgentId,
+                sessionKey: params.sessionKey ?? params.sessionId,
+                workspaceDir: effectiveWorkspace,
+              },
+            );
+          } catch {
+            /* ignore hook failures */
+          }
+        }
+
+        // RSC v2.1: Append pinned + recent coherence entries to compaction instructions
+        let compactInstructions = params.customInstructions;
+        if (
+          (params.coherencePinned && params.coherencePinned.length > 0) ||
+          (params.coherenceRecent && params.coherenceRecent.length > 0)
+        ) {
+          let coherenceBlock = "";
+          if (params.coherencePinned && params.coherencePinned.length > 0) {
+            const pinnedLines = params.coherencePinned.map((e) => `- ${e.summary}`).join("\n");
+            coherenceBlock += `\n\nIMPORTANT: The agent has committed to these decisions that must be preserved in the summary:\n${pinnedLines}`;
+          }
+          if (params.coherenceRecent && params.coherenceRecent.length > 0) {
+            const recentLines = params.coherenceRecent
+              .slice(-3)
+              .map((e) => `- ${e.summary}`)
+              .join("\n");
+            coherenceBlock += `\nRecent context (preserve if relevant):\n${recentLines}`;
+          }
+          compactInstructions = compactInstructions
+            ? compactInstructions + coherenceBlock
+            : coherenceBlock;
+        }
+
+        const result = await session.compact(compactInstructions);
+
+        // RSC v2.1: Fire after_compaction hook
+        if (hookRunner?.hasHooks("after_compaction")) {
+          try {
+            await hookRunner.runAfterCompaction(
+              {
+                messageCount: session.messages.length,
+                compactedCount: limited.length - session.messages.length,
+              },
+              {
+                agentId: sessionAgentId,
+                sessionKey: params.sessionKey ?? params.sessionId,
+                workspaceDir: effectiveWorkspace,
+              },
+            );
+          } catch {
+            /* ignore hook failures */
+          }
+        }
+
         // Estimate tokens after compaction by summing token estimates for remaining messages
         let tokensAfter: number | undefined;
         try {
