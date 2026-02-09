@@ -80,7 +80,17 @@ type TrimBootstrapResult = {
   originalLength: number;
 };
 
-export function resolveBootstrapMaxChars(cfg?: MoltbotConfig): number {
+export function resolveBootstrapMaxChars(cfg?: MoltbotConfig, provider?: string): number {
+  // Check per-provider override first
+  if (provider) {
+    const providerCfg = (
+      cfg?.models?.providers as Record<string, { bootstrapMaxChars?: number }> | undefined
+    )?.[provider];
+    const providerVal = providerCfg?.bootstrapMaxChars;
+    if (typeof providerVal === "number" && Number.isFinite(providerVal) && providerVal > 0) {
+      return Math.floor(providerVal);
+    }
+  }
   const raw = cfg?.agents?.defaults?.bootstrapMaxChars;
   if (typeof raw === "number" && Number.isFinite(raw) && raw > 0) {
     return Math.floor(raw);

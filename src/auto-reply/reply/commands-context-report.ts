@@ -52,12 +52,13 @@ async function resolveContextReport(
   if (existing && existing.source === "run") return existing;
 
   const workspaceDir = params.workspaceDir;
-  const bootstrapMaxChars = resolveBootstrapMaxChars(params.cfg);
+  const bootstrapMaxChars = resolveBootstrapMaxChars(params.cfg, params.provider);
   const { bootstrapFiles, contextFiles: injectedFiles } = await resolveBootstrapContextForRun({
     workspaceDir,
     config: params.cfg,
     sessionKey: params.sessionKey,
     sessionId: params.sessionEntry?.sessionId,
+    provider: params.provider,
   });
   const skillsSnapshot = (() => {
     try {

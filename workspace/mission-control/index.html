@@ -1978,40 +1978,43 @@ let currentConfiguredModel = null;
 let currentRuntimeModel = null;
 let lastModelSelectorRefreshMs = 0;
 const MODEL_HINTS = {
-  'openai-codex/gpt-5.2': 'Balanced default: planning, research, and general execution.',
-  'openai-codex/gpt-5.2-codex': 'Code-heavy work: refactors, debugging, and implementation.',
-  'openai-codex/gpt-5.1': 'Fast chat mode: lightweight planning and quick replies.',
-  'openai-codex/gpt-5.1-codex-max': 'Deep coding: complex architecture and hard bug hunts.',
-  'openai-codex/gpt-5.1-codex-mini': 'Lowest latency coding: small edits and tight loops.',
   'anthropic/claude-opus-4-5': '⭐⭐⭐⭐⭐ OPUS 4.6 (Newest & Best) - Smartest AI. Strategy, complex tasks, important decisions.',
   'anthropic/claude-sonnet-4-5': '⭐⭐⭐⭐ FAST - Quick & smart. Good for everyday tasks.',
-  'ollama/llama3.1:8b': 'Local zero-cost fast mode: drafts and routine automation.',
-  'ollama/gpt-oss:20b': 'Local deeper mode: better quality without cloud spend.',
-  'lmstudio/qwen/qwen3-32b': '⭐⭐⭐ CHAT - General conversation, research, summaries, Q&A.',
-  'lmstudio/qwen/qwen3-30b-a3b': '⭐⭐ DRAFT - Quick drafts, simple questions, fast responses.',
-  'lmstudio/qwen/qwen3-vl-30b': '⭐⭐⭐ EYES - Can SEE images! Analyze screenshots, photos, documents.',
-  'lmstudio/mistralai_devstral-small-2-24b-instruct-2512-mlx': '⭐⭐⭐⭐ CODE - Programming expert. Write, debug, explain code.',
-  'lmstudio/deepseek-r1-distill-qwen-14b': '⭐⭐⭐⭐ THINK - Shows step-by-step reasoning. Math, logic, analysis.',
+  'openai/gpt-5.2': '⭐⭐⭐⭐⭐ GPT-5.2 - OpenAI latest flagship. Best all-around reasoning and generation.',
+  'openai/o3': '⭐⭐⭐⭐⭐ o3 - Deep reasoning. Best for math, science, and coding.',
+  'openai/o3-pro': '⭐⭐⭐⭐⭐ o3-pro - Extended thinking. Most reliable answers on hard problems.',
+  'openai/o3-mini': '⭐⭐⭐ o3-mini - Fast reasoning. Quick math and code at low cost.',
+  'openai/gpt-5.2-pro': '⭐⭐⭐⭐⭐ GPT-5.2 Pro - Premium with deeper thinking.',
+  'lmstudio/qwen/qwen3-30b-a3b': '⭐⭐⭐⭐ LOCAL CHAT - Fast 30B MoE (3B active). General chat, Q&A, writing. Free.',
+  'lmstudio/qwen/qwen3-coder-30b': '⭐⭐⭐⭐ LOCAL CODE - Code-focused 30B MoE. Write, debug, refactor. Free.',
+  'lmstudio/openai/gpt-oss-20b': '⭐⭐⭐⭐ LOCAL GPT - OpenAI open-source 20B MoE (3.6B active). Reasoning + code. Free.',
+  'lmstudio/google/gemma-3-27b': '⭐⭐⭐⭐ LOCAL VISION - Google 27B. Can SEE images! Multimodal. Free.',
 };
 const MODEL_NAMES = {
   'anthropic/claude-opus-4-5': 'Opus 4.6 (Newest & Best)',
   'anthropic/claude-sonnet-4-5': 'Sonnet 4.5 (Fast)',
+  'openai/gpt-5.2': 'GPT-5.2 (Latest Flagship)',
+  'openai/o3': 'o3 (Deep Reasoning)',
+  'openai/o3-pro': 'o3-pro (Max Reasoning)',
+  'openai/o3-mini': 'o3-mini (Fast Reasoning)',
+  'openai/gpt-5.2-pro': 'GPT-5.2 Pro (Premium)',
+  'lmstudio/qwen/qwen3-30b-a3b': 'Qwen3 30B Chat (Local)',
+  'lmstudio/qwen/qwen3-coder-30b': 'Qwen3 Coder 30B (Local)',
+  'lmstudio/openai/gpt-oss-20b': 'GPT-OSS 20B (Local)',
+  'lmstudio/google/gemma-3-27b': 'Gemma 3 27B Vision (Local)',
 };
 const MODEL_BADGES = {
-  'openai-codex/gpt-5.2': 'Plan/Research',
-  'openai-codex/gpt-5.2-codex': 'Coding (deep)',
-  'openai-codex/gpt-5.1': 'Drafting (fast)',
-  'openai-codex/gpt-5.1-codex-max': 'Coding (max)',
-  'openai-codex/gpt-5.1-codex-mini': 'Coding (fast loop)',
   'anthropic/claude-opus-4-5': '⭐⭐⭐⭐⭐ Opus 4.6',
   'anthropic/claude-sonnet-4-5': '⭐⭐⭐⭐ Fast',
-  'ollama/llama3.1:8b': 'Local fast ($0)',
-  'ollama/gpt-oss:20b': 'Local quality ($0)',
-  'lmstudio/qwen/qwen3-32b': '⭐⭐⭐ Chat',
-  'lmstudio/qwen/qwen3-30b-a3b': '⭐⭐ Draft',
-  'lmstudio/qwen/qwen3-vl-30b': '⭐⭐⭐ Eyes',
-  'lmstudio/mistralai_devstral-small-2-24b-instruct-2512-mlx': '⭐⭐⭐⭐ Code',
-  'lmstudio/deepseek-r1-distill-qwen-14b': '⭐⭐⭐⭐ Think',
+  'openai/gpt-5.2': '⭐⭐⭐⭐⭐ Latest Flagship',
+  'openai/o3': '⭐⭐⭐⭐⭐ Reasoning',
+  'openai/o3-pro': '⭐⭐⭐⭐⭐ Max Reasoning',
+  'openai/o3-mini': '⭐⭐⭐ Fast Reasoning',
+  'openai/gpt-5.2-pro': '⭐⭐⭐⭐⭐ Premium',
+  'lmstudio/qwen/qwen3-30b-a3b': '⭐⭐⭐⭐ Local Chat ($0)',
+  'lmstudio/qwen/qwen3-coder-30b': '⭐⭐⭐⭐ Local Code ($0)',
+  'lmstudio/openai/gpt-oss-20b': '⭐⭐⭐⭐ Local GPT ($0)',
+  'lmstudio/google/gemma-3-27b': '⭐⭐⭐⭐ Local Vision ($0)',
 };
 
 function getModelHint(modelKey) {
@@ -2054,7 +2057,7 @@ async function loadModelSelector() {
     }
 
     // Sort: Opus 4.6 first, then Sonnet, then others
-    const MODEL_ORDER = ['anthropic/claude-opus-4-5', 'anthropic/claude-sonnet-4-5'];
+    const MODEL_ORDER = ['anthropic/claude-opus-4-5', 'anthropic/claude-sonnet-4-5', 'openai/gpt-5.2', 'openai/o3', 'openai/o3-pro', 'openai/gpt-5.2-pro', 'openai/o3-mini'];
     models.sort((a, b) => {
       const aIdx = MODEL_ORDER.indexOf(a.key);
       const bIdx = MODEL_ORDER.indexOf(b.key);

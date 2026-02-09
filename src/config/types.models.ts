@@ -41,6 +41,8 @@ export type ModelProviderConfig = {
   headers?: Record<string, string>;
   authHeader?: boolean;
   models: ModelDefinitionConfig[];
+  /** Per-provider override for max bootstrap file chars (overrides agents.defaults.bootstrapMaxChars). */
+  bootstrapMaxChars?: number;
 };
 
 export type BedrockDiscoveryConfig = {

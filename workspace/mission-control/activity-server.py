@@ -171,6 +171,80 @@ def run_models_cli(args, timeout=20):
     return run_cli(["models", *args], timeout=timeout)
 
 
+# --- LM Studio model management ---
+
+LMS_CLI = os.path.join(Path.home(), ".lmstudio", "bin", "lms")
+
+
+def _is_lmstudio_model(model_key):
+    """Check if a model key refers to an LM Studio provider."""
+    if not isinstance(model_key, str):
+        return False
+    return model_key.strip().startswith("lmstudio/")
+
+
+def _lms_available():
+    """Check if the lms CLI is available."""
+    return os.path.isfile(LMS_CLI) and os.access(LMS_CLI, os.X_OK)
+
+
+def lms_unload_all(timeout=15):
+    """Unload all models from LM Studio."""
+    if not _lms_available():
+        return
+    try:
+        subprocess.run(
+            [LMS_CLI, "unload", "--all"],
+            capture_output=True, text=True, timeout=timeout,
+        )
+    except Exception:
+        pass
+
+
+def lms_load_model(model_id, context_length=32768, timeout=120):
+    """Load a specific model in LM Studio by identifier."""
+    if not _lms_available():
+        return
+    args = [LMS_CLI, "load", model_id, "-y",
+            "--context-length", str(context_length)]
+    try:
+        result = subprocess.run(
+            args, capture_output=True, text=True, timeout=timeout,
+        )
+        if result.returncode != 0:
+            err = (result.stderr or result.stdout or "").strip()
+            print(f"[lms] load failed for {model_id}: {err}")
+    except Exception as exc:
+        print(f"[lms] load exception for {model_id}: {exc}")
+
+
+def lms_switch_model(new_model_id, context_length=32768):
+    """Unload all LM Studio models, then load the specified one."""
+    lms_unload_all()
+    lms_load_model(new_model_id, context_length=context_length)
+
+
+def _resolve_lmstudio_context_length(model_id):
+    """Look up contextWindow for an LM Studio model from moltbot config."""
+    for candidate in CONFIG_CANDIDATES:
+        if not os.path.exists(candidate):
+            continue
+        try:
+            cfg = load_json_file(candidate)
+            models = (cfg.get("models", {})
+                        .get("providers", {})
+                        .get("lmstudio", {})
+                        .get("models", []))
+            for m in models:
+                if isinstance(m, dict) and m.get("id") == model_id:
+                    ctx = m.get("contextWindow")
+                    if isinstance(ctx, (int, float)) and ctx > 0:
+                        return int(ctx)
+        except Exception:
+            continue
+    return 32768
+
+
 def _provider_from_model(model):
     if not isinstance(model, str) or not model.strip():
         return None
@@ -203,7 +277,13 @@ def _split_model_key(model_key):
 
 
 def sync_main_session_model_in_stores(model_key):
-    """Force main session metadata to reflect the selected model immediately."""
+    """Force main session metadata to reflect the selected model immediately.
+
+    Moltbot uses ``providerOverride`` and ``modelOverride`` on SessionEntry to
+    pick the active model at runtime (see src/sessions/model-overrides.ts).  The
+    old ``modelProvider`` / ``model`` fields are informational metadata written by
+    the agent *after* a run — they must NOT be used to switch models.
+    """
     provider, model = _split_model_key(model_key)
     if not provider or not model:
         return {"updated": 0, "errors": ["invalid model key"]}
@@ -221,13 +301,11 @@ def sync_main_session_model_in_stores(model_key):
             entry = store.get("agent:main:main")
             if not isinstance(entry, dict):
                 continue
-            entry["modelProvider"] = provider
-            entry["model"] = model
+            # Set the correct override fields that moltbot actually reads
+            entry["providerOverride"] = provider
+            entry["modelOverride"] = model
             entry["updatedAt"] = max(int(entry.get("updatedAt", 0) or 0), now_ms)
-            if "providerOverride" in entry:
-                del entry["providerOverride"]
-            if "modelOverride" in entry:
-                del entry["modelOverride"]
+            # Clear auth profile overrides (model switch resets these)
             if "authProfileOverride" in entry:
                 del entry["authProfileOverride"]
             if "authProfileOverrideSource" in entry:
@@ -283,8 +361,12 @@ def load_runtime_session_info(cache_seconds=5):
             session = _pick_runtime_session_from_store(candidate)
             if not isinstance(session, dict):
                 continue
-            model = session.get("model")
-            provider = session.get("modelProvider") or _provider_from_model(model)
+            # Prefer the override fields (set when user switches model) over
+            # the informational model/modelProvider (set by the agent after a run).
+            model = session.get("modelOverride") or session.get("model")
+            provider = (session.get("providerOverride")
+                        or session.get("modelProvider")
+                        or _provider_from_model(model))
             if not model and not provider:
                 continue
             info = {
@@ -1052,6 +1134,12 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
 
             try:
                 normalized_model = model.strip()
+                # If switching to an LM Studio model, unload current model first
+                # and load the new one (LM Studio can only run one large model at a time)
+                if _is_lmstudio_model(normalized_model):
+                    lms_model_id = normalized_model.split("/", 1)[1]
+                    ctx = _resolve_lmstudio_context_length(lms_model_id)
+                    lms_switch_model(lms_model_id, context_length=ctx)
                 run_models_cli(["set", normalized_model])
                 # Keep runtime session metadata in sync so switching from the UI is immediate.
                 sync_result = sync_main_session_model_in_stores(normalized_model)

@@ -26,4 +26,28 @@ describe("resolveBootstrapMaxChars", () => {
     } as MoltbotConfig;
     expect(resolveBootstrapMaxChars(cfg)).toBe(DEFAULT_BOOTSTRAP_MAX_CHARS);
   });
+  it("uses per-provider override when set", () => {
+    const cfg = {
+      agents: { defaults: { bootstrapMaxChars: 20000 } },
+      models: {
+        providers: {
+          lmstudio: { baseUrl: "http://127.0.0.1:1234/v1", models: [], bootstrapMaxChars: 4000 },
+        },
+      },
+    } as MoltbotConfig;
+    expect(resolveBootstrapMaxChars(cfg, "lmstudio")).toBe(4000);
+  });
+  it("falls back to global when provider has no override", () => {
+    const cfg = {
+      agents: { defaults: { bootstrapMaxChars: 15000 } },
+      models: { providers: { lmstudio: { baseUrl: "http://127.0.0.1:1234/v1", models: [] } } },
+    } as MoltbotConfig;
+    expect(resolveBootstrapMaxChars(cfg, "lmstudio")).toBe(15000);
+  });
+  it("falls back to global when provider not found", () => {
+    const cfg = {
+      agents: { defaults: { bootstrapMaxChars: 15000 } },
+    } as MoltbotConfig;
+    expect(resolveBootstrapMaxChars(cfg, "unknown")).toBe(15000);
+  });
 });

@@ -44,6 +44,7 @@ export async function resolveBootstrapContextForRun(params: {
   sessionKey?: string;
   sessionId?: string;
   agentId?: string;
+  provider?: string;
   warn?: (message: string) => void;
 }): Promise<{
   bootstrapFiles: WorkspaceBootstrapFile[];
@@ -51,7 +52,7 @@ export async function resolveBootstrapContextForRun(params: {
 }> {
   const bootstrapFiles = await resolveBootstrapFilesForRun(params);
   const contextFiles = buildBootstrapContextFiles(bootstrapFiles, {
-    maxChars: resolveBootstrapMaxChars(params.config),
+    maxChars: resolveBootstrapMaxChars(params.config, params.provider),
     warn: params.warn,
   });
   return { bootstrapFiles, contextFiles };
