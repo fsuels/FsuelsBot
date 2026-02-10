@@ -58,6 +58,7 @@ export const ModelProviderSchema = z
     authHeader: z.boolean().optional(),
     models: z.array(ModelDefinitionSchema),
     bootstrapMaxChars: z.number().int().positive().optional(),
+    promptMode: z.enum(["full", "minimal"]).optional(),
   })
   .strict();
 

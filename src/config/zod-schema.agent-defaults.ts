@@ -153,6 +153,15 @@ export const AgentDefaultsSchema = z
       })
       .strict()
       .optional(),
+    delegate: z
+      .object({
+        model: z.string().optional(),
+        maxTokens: z.number().int().positive().optional(),
+        temperature: z.number().min(0).max(2).optional(),
+        timeoutMs: z.number().int().positive().optional(),
+      })
+      .strict()
+      .optional(),
     sandbox: z
       .object({
         mode: z.union([z.literal("off"), z.literal("non-main"), z.literal("all")]).optional(),

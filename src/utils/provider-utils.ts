@@ -32,3 +32,12 @@ export function isReasoningTagProvider(provider: string | undefined | null): boo
 
   return false;
 }
+
+/**
+ * Returns true if the provider hosts models that emit `<think>` blocks by
+ * default (e.g. Qwen3 on LM Studio) and supports `/no_think` to suppress them.
+ */
+export function isNoThinkProvider(provider: string | undefined | null): boolean {
+  if (!provider) return false;
+  return provider.trim().toLowerCase() === "lmstudio";
+}

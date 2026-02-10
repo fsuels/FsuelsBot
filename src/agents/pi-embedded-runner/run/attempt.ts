@@ -17,9 +17,10 @@ import { resolveTelegramInlineButtonsScope } from "../../../telegram/inline-butt
 import { resolveTelegramReactionLevel } from "../../../telegram/reaction-level.js";
 import { resolveSignalReactionLevel } from "../../../signal/reaction-level.js";
 import { normalizeMessageChannel } from "../../../utils/message-channel.js";
-import { isReasoningTagProvider } from "../../../utils/provider-utils.js";
+import { isNoThinkProvider, isReasoningTagProvider } from "../../../utils/provider-utils.js";
 import { isSubagentSessionKey } from "../../../routing/session-key.js";
 import { resolveUserPath } from "../../../utils.js";
+import { tryDelegateRoute } from "./delegate-router.js";
 import { createCacheTrace } from "../../cache-trace.js";
 import { createAnthropicPayloadLogger } from "../../anthropic-payload-log.js";
 import { resolveMoltbotAgentDir } from "../../agent-paths.js";
@@ -30,6 +31,7 @@ import { resolveModelAuthMode } from "../../model-auth.js";
 import {
   isCloudCodeAssistFormatError,
   resolveBootstrapMaxChars,
+  resolveProviderPromptMode,
   validateAnthropicTurns,
   validateGeminiTurns,
 } from "../../pi-embedded-helpers.js";
@@ -332,7 +334,9 @@ export async function runEmbeddedAttempt(
       },
     });
     const isDefaultAgent = sessionAgentId === defaultAgentId;
-    const promptMode = isSubagentSessionKey(params.sessionKey) ? "minimal" : "full";
+    const promptMode = isSubagentSessionKey(params.sessionKey)
+      ? "minimal"
+      : (resolveProviderPromptMode(params.config, params.provider) ?? "full");
     const docsPath = await resolveMoltbotDocsPath({
       workspaceDir: effectiveWorkspace,
       argv1: process.argv[1],
@@ -703,8 +707,18 @@ export async function runEmbeddedAttempt(
       try {
         const promptStartedAt = Date.now();
 
-        // Run before_agent_start hooks to allow plugins to inject context
+        // Suppress Qwen3-style reasoning on LM Studio when thinking is off.
+        // Appending /no_think to the user message tells the model to skip its
+        // internal <think> chain-of-thought, cutting latency by ~5x on local.
         let effectivePrompt = params.prompt;
+        if (
+          isNoThinkProvider(params.provider) &&
+          (!params.thinkLevel || params.thinkLevel === "off")
+        ) {
+          effectivePrompt = `${effectivePrompt} /no_think`;
+        }
+
+        // Run before_agent_start hooks to allow plugins to inject context
         if (hookRunner?.hasHooks("before_agent_start")) {
           try {
             const hookResult = await hookRunner.runBeforeAgentStart(
@@ -752,64 +766,96 @@ export async function runEmbeddedAttempt(
           );
         }
 
-        try {
-          // Detect and load images referenced in the prompt for vision-capable models.
-          // This eliminates the need for an explicit "view" tool call by injecting
-          // images directly into the prompt when the model supports it.
-          // Also scans conversation history to enable follow-up questions about earlier images.
-          const imageResult = await detectAndLoadPromptImages({
-            prompt: effectivePrompt,
-            workspaceDir: effectiveWorkspace,
-            model: params.model,
-            existingImages: params.images,
-            historyMessages: activeSession.messages,
-            maxBytes: MAX_IMAGE_BYTES,
-            // Enforce sandbox path restrictions when sandbox is enabled
-            sandboxRoot: sandbox?.enabled ? sandbox.workspaceDir : undefined,
-          });
-
-          // Inject history images into their original message positions.
-          // This ensures the model sees images in context (e.g., "compare to the first image").
-          const didMutate = injectHistoryImagesIntoMessages(
-            activeSession.messages,
-            imageResult.historyImagesByIndex,
-          );
-          if (didMutate) {
-            // Persist message mutations (e.g., injected history images) so we don't re-scan/reload.
-            activeSession.agent.replaceMessages(activeSession.messages);
-          }
-
-          cacheTrace?.recordStage("prompt:images", {
-            prompt: effectivePrompt,
-            messages: activeSession.messages,
-            note: `images: prompt=${imageResult.images.length} history=${imageResult.historyImagesByIndex.size}`,
-          });
-
-          const shouldTrackCacheTtl =
-            params.config?.agents?.defaults?.contextPruning?.mode === "cache-ttl" &&
-            isCacheTtlEligibleProvider(params.provider, params.modelId);
-          if (shouldTrackCacheTtl) {
-            appendCacheTtlTimestamp(sessionManager, {
-              timestamp: Date.now(),
-              provider: params.provider,
-              modelId: params.modelId,
+        // ── Delegate pre-router ──────────────────────────────────────────
+        // For purely mechanical tasks (translation, summarization, boilerplate, etc.)
+        // route directly to a cheaper model without invoking the main agent at all.
+        // This saves cost & latency for tasks that don't need Opus-level reasoning.
+        let delegateHandled = false;
+        if (!params.images?.length) {
+          try {
+            const delegateResult = await tryDelegateRoute({
+              prompt: effectivePrompt,
+              config: params.config,
+              agentDir,
+              abortSignal: runAbortController.signal,
             });
+            if (delegateResult.delegated) {
+              log.info(
+                `delegate-router: routed to ${delegateResult.model} (${delegateResult.latencyMs}ms, ` +
+                  `in=${delegateResult.usage?.input ?? "?"} out=${delegateResult.usage?.output ?? "?"})`,
+              );
+              // Emit the delegated response through the block reply pipeline
+              assistantTexts.push(delegateResult.text);
+              params.onBlockReply?.({ text: delegateResult.text });
+              params.onBlockReplyFlush?.();
+              delegateHandled = true;
+            }
+          } catch (err) {
+            log.debug(`delegate-router: fallback to main agent: ${err}`);
           }
-
-          // Only pass images option if there are actually images to pass
-          // This avoids potential issues with models that don't expect the images parameter
-          if (imageResult.images.length > 0) {
-            await abortable(activeSession.prompt(effectivePrompt, { images: imageResult.images }));
-          } else {
-            await abortable(activeSession.prompt(effectivePrompt));
-          }
-        } catch (err) {
-          promptError = err;
-        } finally {
-          log.debug(
-            `embedded run prompt end: runId=${params.runId} sessionId=${params.sessionId} durationMs=${Date.now() - promptStartedAt}`,
-          );
         }
+
+        if (!delegateHandled)
+          try {
+            // Detect and load images referenced in the prompt for vision-capable models.
+            // This eliminates the need for an explicit "view" tool call by injecting
+            // images directly into the prompt when the model supports it.
+            // Also scans conversation history to enable follow-up questions about earlier images.
+            const imageResult = await detectAndLoadPromptImages({
+              prompt: effectivePrompt,
+              workspaceDir: effectiveWorkspace,
+              model: params.model,
+              existingImages: params.images,
+              historyMessages: activeSession.messages,
+              maxBytes: MAX_IMAGE_BYTES,
+              // Enforce sandbox path restrictions when sandbox is enabled
+              sandboxRoot: sandbox?.enabled ? sandbox.workspaceDir : undefined,
+            });
+
+            // Inject history images into their original message positions.
+            // This ensures the model sees images in context (e.g., "compare to the first image").
+            const didMutate = injectHistoryImagesIntoMessages(
+              activeSession.messages,
+              imageResult.historyImagesByIndex,
+            );
+            if (didMutate) {
+              // Persist message mutations (e.g., injected history images) so we don't re-scan/reload.
+              activeSession.agent.replaceMessages(activeSession.messages);
+            }
+
+            cacheTrace?.recordStage("prompt:images", {
+              prompt: effectivePrompt,
+              messages: activeSession.messages,
+              note: `images: prompt=${imageResult.images.length} history=${imageResult.historyImagesByIndex.size}`,
+            });
+
+            const shouldTrackCacheTtl =
+              params.config?.agents?.defaults?.contextPruning?.mode === "cache-ttl" &&
+              isCacheTtlEligibleProvider(params.provider, params.modelId);
+            if (shouldTrackCacheTtl) {
+              appendCacheTtlTimestamp(sessionManager, {
+                timestamp: Date.now(),
+                provider: params.provider,
+                modelId: params.modelId,
+              });
+            }
+
+            // Only pass images option if there are actually images to pass
+            // This avoids potential issues with models that don't expect the images parameter
+            if (imageResult.images.length > 0) {
+              await abortable(
+                activeSession.prompt(effectivePrompt, { images: imageResult.images }),
+              );
+            } else {
+              await abortable(activeSession.prompt(effectivePrompt));
+            }
+          } catch (err) {
+            promptError = err;
+          } finally {
+            log.debug(
+              `embedded run prompt end: runId=${params.runId} sessionId=${params.sessionId} durationMs=${Date.now() - promptStartedAt}`,
+            );
+          }
 
         try {
           await waitForCompactionRetry();

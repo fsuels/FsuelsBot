@@ -3,6 +3,7 @@ export {
   DEFAULT_BOOTSTRAP_MAX_CHARS,
   ensureSessionHeader,
   resolveBootstrapMaxChars,
+  resolveProviderPromptMode,
   stripThoughtSignatures,
 } from "./pi-embedded-helpers/bootstrap.js";
 export {

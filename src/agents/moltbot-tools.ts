@@ -7,6 +7,7 @@ import { createBrowserTool } from "./tools/browser-tool.js";
 import { createCanvasTool } from "./tools/canvas-tool.js";
 import type { AnyAgentTool } from "./tools/common.js";
 import { createCronTool } from "./tools/cron-tool.js";
+import { createDelegateTool } from "./tools/delegate-tool.js";
 import { createGatewayTool } from "./tools/gateway-tool.js";
 import { createImageTool } from "./tools/image-tool.js";
 import { createMessageTool } from "./tools/message-tool.js";
@@ -134,6 +135,10 @@ export function createMoltbotTools(options?: {
     createSessionStatusTool({
       agentSessionKey: options?.agentSessionKey,
       config: options?.config,
+    }),
+    createDelegateTool({
+      config: options?.config,
+      agentDir: options?.agentDir,
     }),
     ...(webSearchTool ? [webSearchTool] : []),
     ...(webFetchTool ? [webFetchTool] : []),

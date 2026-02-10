@@ -261,6 +261,31 @@ body {
   white-space: normal;
   line-height: 1.25;
 }
+.telegram-shortcut {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(34, 211, 238, 0.4);
+  background: rgba(34, 211, 238, 0.08);
+  color: #67e8f9;
+  font-size: 12px;
+  font-family: 'SF Mono','Fira Code',monospace;
+  cursor: pointer;
+  user-select: all;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.telegram-shortcut:hover {
+  background: rgba(34, 211, 238, 0.18);
+  border-color: rgba(34, 211, 238, 0.6);
+}
+.telegram-shortcut.copied {
+  border-color: rgba(74, 222, 128, 0.6);
+  background: rgba(74, 222, 128, 0.15);
+  color: #86efac;
+}
 @keyframes gentlePulse { 0%,100% { opacity:1; transform: scale(1); } 50% { opacity:0.6; transform: scale(0.9); } }
 
 /* Deadline Banner - Elegant Pink */
@@ -1716,6 +1741,7 @@ body {
         <option value="">Loading models…</option>
       </select>
       <span id="modelHint" class="model-hint">Model usage hint will appear here</span>
+      <span id="telegramShortcut" class="telegram-shortcut" title="Click to copy Telegram command" onclick="copyTelegramShortcut()">📋 /model ...</span>
       <span id="brainModel" class="brain-pill">🧠 runtime --</span>
       <!-- Task Search -->
       <div style="position:relative;">
@@ -2017,6 +2043,45 @@ const MODEL_BADGES = {
   'lmstudio/google/gemma-3-27b': '⭐⭐⭐⭐ Local Vision ($0)',
 };
 
+const MODEL_ALIASES = {
+  'anthropic/claude-opus-4-5': 'Opus',
+  'anthropic/claude-sonnet-4-5': 'Sonnet',
+  'openai-codex/gpt-5.2': 'GPT',
+  'openai-codex/gpt-5.2-codex': 'Codex',
+  'openai-codex/gpt-5.1-codex-max': 'Codex Max',
+  'lmstudio/qwen/qwen3-30b-a3b': 'Local Chat',
+  'lmstudio/qwen/qwen3-coder-30b': 'Local Code',
+  'lmstudio/glm/glm-4.7-flash': 'Flash',
+};
+function getModelAlias(modelKey) {
+  return MODEL_ALIASES[modelKey] || null;
+}
+function updateTelegramShortcut(modelKey) {
+  const el = document.getElementById('telegramShortcut');
+  if (!el) return;
+  const alias = getModelAlias(modelKey);
+  if (alias) {
+    el.textContent = '\u{1F4CB} /model ' + alias;
+    el.dataset.command = '/model ' + alias;
+    el.style.opacity = '1';
+    el.style.cursor = 'pointer';
+  } else {
+    el.textContent = '\u{1F4CB} /model ...';
+    el.dataset.command = '';
+    el.style.opacity = '0.4';
+    el.style.cursor = 'default';
+  }
+}
+function copyTelegramShortcut() {
+  const el = document.getElementById('telegramShortcut');
+  if (!el || !el.dataset.command) return;
+  navigator.clipboard.writeText(el.dataset.command).then(() => {
+    el.classList.add('copied');
+    const prev = el.textContent;
+    el.textContent = '✅ Copied!';
+    setTimeout(() => { el.textContent = prev; el.classList.remove('copied'); }, 1200);
+  });
+}
 function getModelHint(modelKey) {
   return MODEL_HINTS[modelKey] || 'Pick a model by workload: fast, deep, or local.';
 }
@@ -2028,6 +2093,7 @@ function updateModelHint(runtimeKey) {
   const text = getModelHint(effective);
   hint.textContent = text;
   hint.title = effective ? `${effective} - ${text}` : text;
+  updateTelegramShortcut(effective);
 }
 
 async function loadModelSelector() {
@@ -2088,6 +2154,7 @@ async function loadModelSelector() {
       currentConfiguredModel = select.value;
     }
     updateModelHint(currentRuntimeModel);
+    updateTelegramShortcut(currentRuntimeModel || currentConfiguredModel || select.value);
     select.disabled = false;
     lastModelSelectorRefreshMs = Date.now();
   } catch (e) {
@@ -2104,6 +2171,7 @@ async function setDefaultModel(modelKey) {
   }
 
   select.disabled = true;
+  updateTelegramShortcut(modelKey);
   try {
     const resp = await fetch('/api/model-select', {
       method: 'POST',
@@ -2143,7 +2211,7 @@ async function loadStatusBar() {
     const info = data.sessionInfo || {};
     const provider = info.provider || '';
     const model = info.model || '--';
-    const runtimeKey = model.includes('/') ? model : (provider ? `${provider}/${model}` : '');
+    const runtimeKey = provider ? `${provider}/${model}` : model;
     const runtimeLabel = MODEL_NAMES[runtimeKey] || (model.includes('/') ? model : `${provider || 'unknown'}/${model}`);
     currentRuntimeModel = runtimeKey || null;
     const runtimeDiff = !!runtimeKey && !!currentConfiguredModel && runtimeKey !== currentConfiguredModel;

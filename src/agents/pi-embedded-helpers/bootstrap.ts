@@ -80,6 +80,17 @@ type TrimBootstrapResult = {
   originalLength: number;
 };
 
+export function resolveProviderPromptMode(
+  cfg: MoltbotConfig | undefined,
+  provider: string | undefined,
+): "full" | "minimal" | undefined {
+  if (!provider) return undefined;
+  const providerCfg = (
+    cfg?.models?.providers as Record<string, { promptMode?: "full" | "minimal" }> | undefined
+  )?.[provider];
+  return providerCfg?.promptMode;
+}
+
 export function resolveBootstrapMaxChars(cfg?: MoltbotConfig, provider?: string): number {
   // Check per-provider override first
   if (provider) {

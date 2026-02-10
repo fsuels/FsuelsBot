@@ -205,6 +205,17 @@ export type AgentDefaultsConfig = {
     /** Default model selection for spawned sub-agents (string or {primary,fallbacks}). */
     model?: string | { primary?: string; fallbacks?: string[] };
   };
+  /** Inline delegate settings (one-shot inference on a cheaper/faster model, result returned to orchestrator). */
+  delegate?: {
+    /** Default delegate model (provider/model, e.g. "anthropic/claude-sonnet-4-5"). */
+    model?: string;
+    /** Max output tokens for delegate responses (default: 4096). */
+    maxTokens?: number;
+    /** Temperature for delegate calls (default: 0.3). */
+    temperature?: number;
+    /** Timeout in milliseconds for delegate calls (default: 30000). */
+    timeoutMs?: number;
+  };
   /** Optional sandbox settings for non-main sessions. */
   sandbox?: {
     /** Enable sandboxing for sessions. */

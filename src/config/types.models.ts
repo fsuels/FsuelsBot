@@ -43,6 +43,8 @@ export type ModelProviderConfig = {
   models: ModelDefinitionConfig[];
   /** Per-provider override for max bootstrap file chars (overrides agents.defaults.bootstrapMaxChars). */
   bootstrapMaxChars?: number;
+  /** Per-provider override for system prompt mode ("full" | "minimal"). */
+  promptMode?: "full" | "minimal";
 };
 
 export type BedrockDiscoveryConfig = {

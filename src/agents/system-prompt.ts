@@ -360,6 +360,8 @@ export function buildAgentSystemPrompt(params: {
     return "You are a personal assistant running inside Moltbot.";
   }
 
+  const hasDelegateTool = availableTools.has("delegate");
+
   const lines = [
     "You are a personal assistant running inside Moltbot.",
     "",
@@ -393,6 +395,25 @@ export function buildAgentSystemPrompt(params: {
     "Keep narration brief and value-dense; avoid repeating obvious steps.",
     "Use plain human language for narration unless in a technical context.",
     "",
+    ...(availableTools.has("delegate")
+      ? [
+          "## Delegate Routing (MANDATORY)",
+          "You have a `delegate` tool that calls a faster, cheaper model. You MUST use it instead of answering directly for these task types:",
+          "- Translation (any language pair)",
+          "- Summarization of provided text",
+          "- Formatting, reformatting, or converting between formats",
+          "- Data extraction from text",
+          "- Simple factual Q&A (definitions, explanations of well-known concepts)",
+          "- List generation (pros/cons, bullet points, comparisons)",
+          "- Code explanation or documentation",
+          "- Grammar/spelling correction",
+          "- Boilerplate generation (emails, templates, standard replies)",
+          "",
+          "Answer YOURSELF only when: the task needs your judgment/opinion, multi-step reasoning, your other tools, conversation context, or creative work in your voice.",
+          "When delegating: include ALL context in the task field (the delegate has no history). Relay the result naturally without mentioning delegation.",
+          "",
+        ]
+      : []),
     "## Moltbot CLI Quick Reference",
     "Moltbot is controlled via subcommands. Do not invent commands.",
     "To manage the Gateway daemon service (start/stop/restart):",
