@@ -18,9 +18,8 @@ vi.mock("../../memory/index.js", () => {
           provider: "mock",
           model: "mock-embed",
           requestedProvider: "mock",
-          retrievalVersion: {
+          custom: {
             configHash: "test",
-            embeddingModel: "mock-embed",
             bm25ConfigVersion: "bm25-v1",
           },
         }),
@@ -43,7 +42,7 @@ describe("memory_search task context", () => {
     getTaskRegistryTask.mockResolvedValue(null);
   });
 
-  it("passes task-aware deterministic search options to memory manager", async () => {
+  it("passes search options to memory manager", async () => {
     const cfg = { agents: { list: [{ id: "main", default: true }] } };
     const tool = createMemorySearchTool({
       config: cfg,
@@ -51,7 +50,9 @@ describe("memory_search task context", () => {
       taskId: "task-a",
     });
     expect(tool).not.toBeNull();
-    if (!tool) throw new Error("tool missing");
+    if (!tool) {
+      throw new Error("tool missing");
+    }
 
     await tool.execute("call_1", {
       query: "alpha",
@@ -64,8 +65,6 @@ describe("memory_search task context", () => {
     expect(search).toHaveBeenCalledWith(
       "alpha",
       expect.objectContaining({
-        taskId: "task-b",
-        namespace: "task",
         maxResults: 3,
         minScore: 0.1,
         sessionKey: "agent:main:main",
@@ -74,9 +73,11 @@ describe("memory_search task context", () => {
   });
 
   it("caps linked-task retrieval and labels linked snippets", async () => {
-    search.mockImplementation(async (_query, opts) => {
-      const taskId = (opts as { taskId?: string }).taskId;
-      if (taskId === "task-a") {
+    let callCount = 0;
+    search.mockImplementation(async () => {
+      callCount++;
+      if (callCount === 1) {
+        // primary search
         return [
           {
             path: "memory/tasks/task-a.md",
@@ -88,21 +89,14 @@ describe("memory_search task context", () => {
           },
         ];
       }
+      // linked task searches
       return [
         {
-          path: `memory/tasks/${taskId}.md`,
+          path: `memory/tasks/linked-${callCount}.md`,
           startLine: 1,
           endLine: 2,
           score: 0.8,
-          snippet: `linked from ${taskId}`,
-          source: "memory",
-        },
-        {
-          path: `memory/tasks/${taskId}/notes.md`,
-          startLine: 3,
-          endLine: 4,
-          score: 0.7,
-          snippet: `linked extra ${taskId}`,
+          snippet: `linked from call ${callCount}`,
           source: "memory",
         },
       ];
@@ -118,7 +112,9 @@ describe("memory_search task context", () => {
       taskId: "task-a",
     });
     expect(tool).not.toBeNull();
-    if (!tool) throw new Error("tool missing");
+    if (!tool) {
+      throw new Error("tool missing");
+    }
 
     const result = await tool.execute("call_2", {
       query: "alpha",
@@ -136,18 +132,21 @@ describe("memory_search task context", () => {
   });
 
   it("respects configured linked-task snippet cap", async () => {
-    search.mockImplementation(async (_query, opts) => {
-      const taskId = (opts as { taskId?: string }).taskId;
-      if (taskId === "task-a") {
+    let callCount = 0;
+    search.mockImplementation(async () => {
+      callCount++;
+      if (callCount === 1) {
+        // primary search returns empty
         return [];
       }
+      // linked task searches
       return [
         {
-          path: `memory/tasks/${taskId}.md`,
+          path: `memory/tasks/linked-${callCount}.md`,
           startLine: 1,
           endLine: 2,
           score: 0.8,
-          snippet: `linked from ${taskId}`,
+          snippet: `linked from call ${callCount}`,
           source: "memory",
         },
       ];
@@ -174,7 +173,9 @@ describe("memory_search task context", () => {
       taskId: "task-a",
     });
     expect(tool).not.toBeNull();
-    if (!tool) throw new Error("tool missing");
+    if (!tool) {
+      throw new Error("tool missing");
+    }
 
     const result = await tool.execute("call_3", {
       query: "alpha",

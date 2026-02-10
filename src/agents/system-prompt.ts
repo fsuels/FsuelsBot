@@ -389,8 +389,6 @@ export function buildAgentSystemPrompt(params: {
     return "You are a personal assistant running inside OpenClaw.";
   }
 
-  const hasDelegateTool = availableTools.has("delegate");
-
   const lines = [
     "You are a personal assistant running inside OpenClaw.",
     "",

@@ -681,15 +681,6 @@ export function registerMemoryCli(program: Command) {
               results = await manager.search(query, {
                 maxResults: opts.maxResults,
                 minScore: opts.minScore,
-                taskId: opts.task,
-                namespace:
-                  opts.namespace === "auto" ||
-                  opts.namespace === "any" ||
-                  opts.namespace === "task" ||
-                  opts.namespace === "global"
-                    ? opts.namespace
-                    : undefined,
-                globalFallback: opts.globalFallback,
               });
             } catch (err) {
               const message = formatErrorMessage(err);

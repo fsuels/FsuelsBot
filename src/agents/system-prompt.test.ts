@@ -82,14 +82,14 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain("Voice (TTS) is enabled.");
   });
 
-  it("includes task clarity guidance in full prompts", () => {
+  it("includes memory recall guidance when memory tools available", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/clawd",
+      toolNames: ["memory_search", "memory_get"],
     });
 
-    expect(prompt).toContain("## Task Clarity");
-    expect(prompt).toContain("Before we begin - what are we working on today?");
-    expect(prompt).toContain("Got it. I will treat this as important and remember it.");
+    expect(prompt).toContain("## Memory Recall");
+    expect(prompt).toContain("memory_search");
   });
 
   it("adds reasoning tag hint when enabled", () => {

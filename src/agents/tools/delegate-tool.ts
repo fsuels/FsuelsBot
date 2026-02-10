@@ -1,10 +1,9 @@
-import { Type } from "@sinclair/typebox";
 import { completeSimple, type TextContent } from "@mariozechner/pi-ai";
-
-import type { MoltbotConfig } from "../../config/config.js";
+import { Type } from "@sinclair/typebox";
+import type { OpenClawConfig } from "../../config/config.js";
+import type { AnyAgentTool } from "./common.js";
 import { getApiKeyForModel, requireApiKey } from "../model-auth.js";
 import { resolveModel } from "../pi-embedded-runner/model.js";
-import type { AnyAgentTool } from "./common.js";
 import { jsonResult, readNumberParam, readStringParam } from "./common.js";
 
 const DEFAULT_DELEGATE_MODEL = "anthropic/claude-sonnet-4-5";
@@ -53,7 +52,7 @@ function isTextContent(block: { type: string }): block is TextContent {
 }
 
 export function createDelegateTool(opts?: {
-  config?: MoltbotConfig;
+  config?: OpenClawConfig;
   agentDir?: string;
 }): AnyAgentTool {
   const cfg = opts?.config;

@@ -86,8 +86,6 @@ export function createMemorySearchTool(options: {
           maxResults,
           minScore,
           sessionKey: options.agentSessionKey,
-          taskId: requestedTaskId,
-          namespace: taskNamespace,
         });
         let results = primary;
         if (
@@ -112,28 +110,11 @@ export function createMemorySearchTool(options: {
                   maxResults: Math.max(1, Math.min(2, linkedTaskBudget)),
                   minScore,
                   sessionKey: options.agentSessionKey,
-                  taskId: linkedTaskId,
-                  namespace: "task",
-                  globalFallback: false,
                 });
                 return scoped.map(
                   (entry): MemorySearchResult => ({
                     ...entry,
                     snippet: `[related task: ${linkedTaskId}] ${entry.snippet}`,
-                    provenance: entry.provenance
-                      ? {
-                          ...entry.provenance,
-                          inferred: true,
-                          explicit: false,
-                          taskId: linkedTaskId,
-                        }
-                      : {
-                          source: "task-file",
-                          sourcePath: entry.path,
-                          explicit: false,
-                          inferred: true,
-                          taskId: linkedTaskId,
-                        },
                   }),
                 );
               }),
@@ -169,9 +150,9 @@ export function createMemorySearchTool(options: {
             taskId: requestedTaskId,
             namespace: resolvedNamespace,
             resultCount: finalResults.length,
-            configHash: status.retrievalVersion?.configHash,
-            embeddingModel: status.retrievalVersion?.embeddingModel,
-            bm25ConfigVersion: status.retrievalVersion?.bm25ConfigVersion,
+            configHash: (status.custom?.configHash as string) ?? "unknown",
+            embeddingModel: status.model ?? "unknown",
+            bm25ConfigVersion: (status.custom?.bm25ConfigVersion as string) ?? "unknown",
           });
         }
         return jsonResult({
@@ -179,7 +160,6 @@ export function createMemorySearchTool(options: {
           model: status.model,
           fallback: status.fallback,
           results: finalResults,
-          retrievalVersion: status.retrievalVersion,
           citations: citationsMode,
         });
       } catch (err) {

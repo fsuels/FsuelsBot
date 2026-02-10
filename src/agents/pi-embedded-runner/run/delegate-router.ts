@@ -9,8 +9,7 @@
  */
 
 import { completeSimple, type TextContent } from "@mariozechner/pi-ai";
-
-import type { MoltbotConfig } from "../../../config/config.js";
+import type { OpenClawConfig } from "../../../config/config.js";
 import { getApiKeyForModel, requireApiKey } from "../../model-auth.js";
 import { resolveModel } from "../model.js";
 
@@ -103,34 +102,52 @@ function isTextContent(block: { type: string }): block is TextContent {
 export function classifyForDelegation(prompt: string): string | null {
   // First check negative patterns — if ANY match, never delegate
   for (const pattern of NEVER_DELEGATE_PATTERNS) {
-    if (pattern.test(prompt)) return null;
+    if (pattern.test(prompt)) {
+      return null;
+    }
   }
 
   // Very short messages (< 10 chars) or very long messages (> 2000 chars)
   // are unlikely to be simple delegate tasks
-  if (prompt.length < 10 || prompt.length > 2000) return null;
+  if (prompt.length < 10 || prompt.length > 2000) {
+    return null;
+  }
 
   // Check positive patterns in priority order
   for (const pattern of TRANSLATE_PATTERNS) {
-    if (pattern.test(prompt)) return "translation";
+    if (pattern.test(prompt)) {
+      return "translation";
+    }
   }
   for (const pattern of SUMMARIZE_PATTERNS) {
-    if (pattern.test(prompt)) return "summarization";
+    if (pattern.test(prompt)) {
+      return "summarization";
+    }
   }
   for (const pattern of FORMAT_PATTERNS) {
-    if (pattern.test(prompt)) return "formatting";
+    if (pattern.test(prompt)) {
+      return "formatting";
+    }
   }
   for (const pattern of BOILERPLATE_PATTERNS) {
-    if (pattern.test(prompt)) return "boilerplate";
+    if (pattern.test(prompt)) {
+      return "boilerplate";
+    }
   }
   for (const pattern of GRAMMAR_PATTERNS) {
-    if (pattern.test(prompt)) return "grammar";
+    if (pattern.test(prompt)) {
+      return "grammar";
+    }
   }
   for (const pattern of FACTUAL_QA_PATTERNS) {
-    if (pattern.test(prompt)) return "factual_qa";
+    if (pattern.test(prompt)) {
+      return "factual_qa";
+    }
   }
   for (const pattern of LIST_PATTERNS) {
-    if (pattern.test(prompt)) return "list_generation";
+    if (pattern.test(prompt)) {
+      return "list_generation";
+    }
   }
 
   return null;
@@ -143,7 +160,7 @@ export function classifyForDelegation(prompt: string): string | null {
  */
 export async function tryDelegateRoute(opts: {
   prompt: string;
-  config?: MoltbotConfig;
+  config?: OpenClawConfig;
   agentDir?: string;
   abortSignal?: AbortSignal;
 }): Promise<DelegateRouterResult> {
@@ -151,11 +168,15 @@ export async function tryDelegateRoute(opts: {
 
   // Check if delegate routing is enabled in config
   const delegateCfg = config?.agents?.defaults?.delegate;
-  if (!delegateCfg) return { delegated: false };
+  if (!delegateCfg) {
+    return { delegated: false };
+  }
 
   // Classify the prompt
   const category = classifyForDelegation(prompt);
-  if (!category) return { delegated: false };
+  if (!category) {
+    return { delegated: false };
+  }
 
   const startTime = Date.now();
   const modelRef = delegateCfg.model ?? DEFAULT_DELEGATE_MODEL;
@@ -168,15 +189,20 @@ export async function tryDelegateRoute(opts: {
 
   try {
     const resolved = resolveModel(provider, modelId, agentDir, config);
-    if (!resolved.model) return { delegated: false };
+    if (!resolved.model) {
+      return { delegated: false };
+    }
 
     const auth = await getApiKeyForModel({ model: resolved.model, cfg: config, agentDir });
     const apiKey = requireApiKey(auth, provider);
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
-    if (abortSignal?.aborted) controller.abort();
-    else abortSignal?.addEventListener("abort", () => controller.abort(), { once: true });
+    if (abortSignal?.aborted) {
+      controller.abort();
+    } else {
+      abortSignal?.addEventListener("abort", () => controller.abort(), { once: true });
+    }
 
     try {
       const systemPrompt =
@@ -202,7 +228,9 @@ export async function tryDelegateRoute(opts: {
         .join("\n\n")
         .trim();
 
-      if (!text) return { delegated: false };
+      if (!text) {
+        return { delegated: false };
+      }
 
       return {
         delegated: true,
