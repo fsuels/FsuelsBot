@@ -1,12 +1,14 @@
 import type { AgentTool } from "@mariozechner/pi-agent-core";
-import type { ResolvedTimeFormat } from "../date-time.js";
+import type { AgentSession } from "@mariozechner/pi-coding-agent";
+import type { MemoryCitationsMode } from "../../config/types.memory.js";
 import type { CoherenceIntervention } from "../coherence-intervention.js";
+import type { ResolvedTimeFormat } from "../date-time.js";
 import type { DriftPromptInjection } from "../drift-detection.js";
 import type { EmbeddedContextFile } from "../pi-embedded-helpers.js";
-import { buildAgentSystemPrompt, type PromptMode } from "../system-prompt.js";
-import { buildToolSummaryMap } from "../tool-summaries.js";
 import type { EmbeddedSandboxInfo } from "./types.js";
 import type { ReasoningLevel, ThinkLevel } from "./utils.js";
+import { buildAgentSystemPrompt, type PromptMode } from "../system-prompt.js";
+import { buildToolSummaryMap } from "../tool-summaries.js";
 
 export function buildEmbeddedSystemPrompt(params: {
   workspaceDir: string;
@@ -57,6 +59,7 @@ export function buildEmbeddedSystemPrompt(params: {
   driftInjection?: DriftPromptInjection;
   /** Coherence intervention (RSC v2.1). */
   coherenceIntervention?: CoherenceIntervention;
+  memoryCitationsMode?: MemoryCitationsMode;
 }): string {
   return buildAgentSystemPrompt({
     workspaceDir: params.workspaceDir,
@@ -85,12 +88,27 @@ export function buildEmbeddedSystemPrompt(params: {
     contextPressure: params.contextPressure,
     driftInjection: params.driftInjection,
     coherenceIntervention: params.coherenceIntervention,
+    memoryCitationsMode: params.memoryCitationsMode,
   });
 }
 
 export function createSystemPromptOverride(
   systemPrompt: string,
-): (defaultPrompt: string) => string {
-  const trimmed = systemPrompt.trim();
-  return () => trimmed;
+): (defaultPrompt?: string) => string {
+  const override = systemPrompt.trim();
+  return (_defaultPrompt?: string) => override;
+}
+
+export function applySystemPromptOverrideToSession(
+  session: AgentSession,
+  override: string | ((defaultPrompt?: string) => string),
+) {
+  const prompt = typeof override === "function" ? override() : override.trim();
+  session.agent.setSystemPrompt(prompt);
+  const mutableSession = session as unknown as {
+    _baseSystemPrompt?: string;
+    _rebuildSystemPrompt?: (toolNames: string[]) => string;
+  };
+  mutableSession._baseSystemPrompt = prompt;
+  mutableSession._rebuildSystemPrompt = () => prompt;
 }

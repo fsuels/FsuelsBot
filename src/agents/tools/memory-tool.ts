@@ -1,15 +1,17 @@
 import { Type } from "@sinclair/typebox";
-
-import type { MoltbotConfig } from "../../config/config.js";
+import type { OpenClawConfig } from "../../config/config.js";
+import type { MemoryCitationsMode } from "../../config/types.memory.js";
+import type { MemorySearchResult } from "../../memory/types.js";
+import type { AnyAgentTool } from "./common.js";
 import { emitDiagnosticEvent, isDiagnosticsEnabled } from "../../infra/diagnostic-events.js";
+import { resolveMemoryBackendConfig } from "../../memory/backend-config.js";
 import { getMemorySearchManager } from "../../memory/index.js";
-import type { MemorySearchResult } from "../../memory/manager.js";
 import { normalizeMemoryTaskId } from "../../memory/namespaces.js";
 import { getTaskRegistryTask } from "../../memory/task-memory-system.js";
+import { parseAgentSessionKey } from "../../routing/session-key.js";
 import { resolveSessionAgentId } from "../agent-scope.js";
 import { resolveAgentWorkspaceDir } from "../agent-scope.js";
 import { resolveMemorySearchConfig } from "../memory-search.js";
-import type { AnyAgentTool } from "./common.js";
 import { jsonResult, readNumberParam, readStringParam } from "./common.js";
 
 const MemorySearchSchema = Type.Object({
@@ -27,18 +29,22 @@ const MemoryGetSchema = Type.Object({
 });
 
 export function createMemorySearchTool(options: {
-  config?: MoltbotConfig;
+  config?: OpenClawConfig;
   agentSessionKey?: string;
   taskId?: string;
 }): AnyAgentTool | null {
   const cfg = options.config;
-  if (!cfg) return null;
+  if (!cfg) {
+    return null;
+  }
   const agentId = resolveSessionAgentId({
     sessionKey: options.agentSessionKey,
     config: cfg,
   });
   const memorySearchConfig = resolveMemorySearchConfig(cfg, agentId);
-  if (!memorySearchConfig) return null;
+  if (!memorySearchConfig) {
+    return null;
+  }
   return {
     label: "Memory Search",
     name: "memory_search",
@@ -52,8 +58,12 @@ export function createMemorySearchTool(options: {
       const taskId = normalizeMemoryTaskId(readStringParam(params, "taskId"));
       const taskNamespace = (() => {
         const raw = readStringParam(params, "namespace")?.trim().toLowerCase();
-        if (!raw) return undefined;
-        if (raw === "auto" || raw === "any" || raw === "task" || raw === "global") return raw;
+        if (!raw) {
+          return undefined;
+        }
+        if (raw === "auto" || raw === "any" || raw === "task" || raw === "global") {
+          return raw;
+        }
         return undefined;
       })();
       const { manager, error } = await getMemorySearchManager({
@@ -67,6 +77,11 @@ export function createMemorySearchTool(options: {
         const requestedTaskId = taskId ?? normalizeMemoryTaskId(options.taskId);
         const resolvedNamespace = taskNamespace ?? "auto";
         const max = maxResults ?? 6;
+        const citationsMode = resolveMemoryCitationsMode(cfg);
+        const includeCitations = shouldIncludeCitations({
+          mode: citationsMode,
+          sessionKey: options.agentSessionKey,
+        });
         const primary = await manager.search(query, {
           maxResults,
           minScore,
@@ -128,33 +143,44 @@ export function createMemorySearchTool(options: {
             const seen = new Set<string>();
             for (const entry of [...primary, ...linkedCapped]) {
               const key = `${entry.path}:${entry.startLine}:${entry.endLine}`;
-              if (seen.has(key)) continue;
+              if (seen.has(key)) {
+                continue;
+              }
               seen.add(key);
               deduped.push(entry);
-              if (deduped.length >= max) break;
+              if (deduped.length >= max) {
+                break;
+              }
             }
             results = deduped;
           }
         }
         const status = manager.status();
+        const decorated = decorateCitations(results, includeCitations);
+        const resolvedBackend = resolveMemoryBackendConfig({ cfg, agentId });
+        const finalResults =
+          status.backend === "qmd"
+            ? clampResultsByInjectedChars(decorated, resolvedBackend.qmd?.limits.maxInjectedChars)
+            : decorated;
         if (isDiagnosticsEnabled(cfg)) {
           emitDiagnosticEvent({
             type: "memory.retrieval",
             sessionKey: options.agentSessionKey,
             taskId: requestedTaskId,
             namespace: resolvedNamespace,
-            resultCount: results.length,
-            configHash: status.retrievalVersion.configHash,
-            embeddingModel: status.retrievalVersion.embeddingModel,
-            bm25ConfigVersion: status.retrievalVersion.bm25ConfigVersion,
+            resultCount: finalResults.length,
+            configHash: status.retrievalVersion?.configHash,
+            embeddingModel: status.retrievalVersion?.embeddingModel,
+            bm25ConfigVersion: status.retrievalVersion?.bm25ConfigVersion,
           });
         }
         return jsonResult({
-          results,
           provider: status.provider,
           model: status.model,
           fallback: status.fallback,
+          results: finalResults,
           retrievalVersion: status.retrievalVersion,
+          citations: citationsMode,
         });
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
@@ -165,16 +191,20 @@ export function createMemorySearchTool(options: {
 }
 
 export function createMemoryGetTool(options: {
-  config?: MoltbotConfig;
+  config?: OpenClawConfig;
   agentSessionKey?: string;
 }): AnyAgentTool | null {
   const cfg = options.config;
-  if (!cfg) return null;
+  if (!cfg) {
+    return null;
+  }
   const agentId = resolveSessionAgentId({
     sessionKey: options.agentSessionKey,
     config: cfg,
   });
-  if (!resolveMemorySearchConfig(cfg, agentId)) return null;
+  if (!resolveMemorySearchConfig(cfg, agentId)) {
+    return null;
+  }
   return {
     label: "Memory Get",
     name: "memory_get",
@@ -205,4 +235,87 @@ export function createMemoryGetTool(options: {
       }
     },
   };
+}
+
+function resolveMemoryCitationsMode(cfg: OpenClawConfig): MemoryCitationsMode {
+  const mode = cfg.memory?.citations;
+  if (mode === "on" || mode === "off" || mode === "auto") {
+    return mode;
+  }
+  return "auto";
+}
+
+function decorateCitations(results: MemorySearchResult[], include: boolean): MemorySearchResult[] {
+  if (!include) {
+    return results.map((entry) => ({ ...entry, citation: undefined }));
+  }
+  return results.map((entry) => {
+    const citation = formatCitation(entry);
+    const snippet = `${entry.snippet.trim()}\n\nSource: ${citation}`;
+    return { ...entry, citation, snippet };
+  });
+}
+
+function formatCitation(entry: MemorySearchResult): string {
+  const lineRange =
+    entry.startLine === entry.endLine
+      ? `#L${entry.startLine}`
+      : `#L${entry.startLine}-L${entry.endLine}`;
+  return `${entry.path}${lineRange}`;
+}
+
+function clampResultsByInjectedChars(
+  results: MemorySearchResult[],
+  budget?: number,
+): MemorySearchResult[] {
+  if (!budget || budget <= 0) {
+    return results;
+  }
+  let remaining = budget;
+  const clamped: MemorySearchResult[] = [];
+  for (const entry of results) {
+    if (remaining <= 0) {
+      break;
+    }
+    const snippet = entry.snippet ?? "";
+    if (snippet.length <= remaining) {
+      clamped.push(entry);
+      remaining -= snippet.length;
+    } else {
+      const trimmed = snippet.slice(0, Math.max(0, remaining));
+      clamped.push({ ...entry, snippet: trimmed });
+      break;
+    }
+  }
+  return clamped;
+}
+
+function shouldIncludeCitations(params: {
+  mode: MemoryCitationsMode;
+  sessionKey?: string;
+}): boolean {
+  if (params.mode === "on") {
+    return true;
+  }
+  if (params.mode === "off") {
+    return false;
+  }
+  // auto: show citations in direct chats; suppress in groups/channels by default.
+  const chatType = deriveChatTypeFromSessionKey(params.sessionKey);
+  return chatType === "direct";
+}
+
+function deriveChatTypeFromSessionKey(sessionKey?: string): "direct" | "group" | "channel" {
+  const parsed = parseAgentSessionKey(sessionKey);
+  if (!parsed?.rest) {
+    return "direct";
+  }
+  const tokens = new Set(parsed.rest.toLowerCase().split(":").filter(Boolean));
+  if (tokens.has("channel")) {
+    return "channel";
+  }
+  if (tokens.has("group")) {
+    return "group";
+  }
+  return "direct";
 }

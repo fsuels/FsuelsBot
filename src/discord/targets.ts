@@ -1,3 +1,4 @@
+import type { DirectoryConfigParams } from "../channels/plugins/directory-config.js";
 import {
   buildMessagingTarget,
   ensureTargetId,
@@ -6,8 +7,6 @@ import {
   type MessagingTargetKind,
   type MessagingTargetParseOptions,
 } from "../channels/targets.js";
-import type { DirectoryConfigParams } from "../channels/plugins/directory-config.js";
-
 import { listDiscordDirectoryPeersLive } from "./directory-live.js";
 
 export type DiscordTargetKind = MessagingTargetKind;
@@ -21,7 +20,9 @@ export function parseDiscordTarget(
   options: DiscordTargetParseOptions = {},
 ): DiscordTarget | undefined {
   const trimmed = raw.trim();
-  if (!trimmed) return undefined;
+  if (!trimmed) {
+    return undefined;
+  }
   const mentionMatch = trimmed.match(/^<@!?(\d+)>$/);
   if (mentionMatch) {
     return buildMessagingTarget("user", mentionMatch[1], trimmed);
@@ -70,19 +71,31 @@ export function resolveDiscordChannelId(raw: string): string {
  *
  * @param raw - The username or raw target string (e.g., "john.doe")
  * @param options - Directory configuration params (cfg, accountId, limit)
+ * @param parseOptions - Messaging target parsing options (defaults, ambiguity message)
  * @returns Parsed MessagingTarget with user ID, or undefined if not found
  */
 export async function resolveDiscordTarget(
   raw: string,
   options: DirectoryConfigParams,
+  parseOptions: DiscordTargetParseOptions = {},
 ): Promise<MessagingTarget | undefined> {
   const trimmed = raw.trim();
-  if (!trimmed) return undefined;
+  if (!trimmed) {
+    return undefined;
+  }
 
-  // If already a known format, parse directly
-  const directParse = parseDiscordTarget(trimmed);
-  if (directParse && directParse.kind !== "channel" && !isLikelyUsername(trimmed)) {
+  const likelyUsername = isLikelyUsername(trimmed);
+  const shouldLookup = isExplicitUserLookup(trimmed, parseOptions) || likelyUsername;
+
+  // Parse directly if it's already a known format. Use a safe parse so ambiguous
+  // numeric targets don't throw when we still want to attempt username lookup.
+  const directParse = safeParseDiscordTarget(trimmed, parseOptions);
+  if (directParse && directParse.kind !== "channel" && !likelyUsername) {
     return directParse;
+  }
+
+  if (!shouldLookup) {
+    return directParse ?? parseDiscordTarget(trimmed, parseOptions);
   }
 
   // Try to resolve as a username via directory lookup
@@ -105,7 +118,34 @@ export async function resolveDiscordTarget(
   }
 
   // Fallback to original parsing (for channels, etc.)
-  return parseDiscordTarget(trimmed);
+  return parseDiscordTarget(trimmed, parseOptions);
+}
+
+function safeParseDiscordTarget(
+  input: string,
+  options: DiscordTargetParseOptions,
+): MessagingTarget | undefined {
+  try {
+    return parseDiscordTarget(input, options);
+  } catch {
+    return undefined;
+  }
+}
+
+function isExplicitUserLookup(input: string, options: DiscordTargetParseOptions): boolean {
+  if (/^<@!?(\d+)>$/.test(input)) {
+    return true;
+  }
+  if (/^(user:|discord:)/.test(input)) {
+    return true;
+  }
+  if (input.startsWith("@")) {
+    return true;
+  }
+  if (/^\d+$/.test(input)) {
+    return options.defaultKind === "user";
+  }
+  return false;
 }
 
 /**

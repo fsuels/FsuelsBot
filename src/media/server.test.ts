@@ -1,7 +1,6 @@
-import fs from "node:fs/promises";
 import type { AddressInfo } from "node:net";
+import fs from "node:fs/promises";
 import path from "node:path";
-
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 const MEDIA_DIR = path.join(process.cwd(), "tmp-media-test");
@@ -33,7 +32,9 @@ const waitForFileRemoval = async (file: string, timeoutMs = 200) => {
 };
 
 function isSymlinkUnavailable(error: unknown): boolean {
-  if (!error || typeof error !== "object") return false;
+  if (!error || typeof error !== "object") {
+    return false;
+  }
   const code =
     "code" in error && typeof (error as { code?: unknown }).code === "string"
       ? (error as { code: string }).code
@@ -92,7 +93,9 @@ describe("media server", () => {
     try {
       await fs.symlink(target, link);
     } catch (error) {
-      if (isSymlinkUnavailable(error)) return;
+      if (isSymlinkUnavailable(error)) {
+        return;
+      }
       throw error;
     }
 

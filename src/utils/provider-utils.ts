@@ -8,7 +8,9 @@
  * API fields for reasoning/thinking.
  */
 export function isReasoningTagProvider(provider: string | undefined | null): boolean {
-  if (!provider) return false;
+  if (!provider) {
+    return false;
+  }
   const normalized = provider.trim().toLowerCase();
 
   // Check for exact matches or known prefixes/substrings for reasoning providers
@@ -38,6 +40,8 @@ export function isReasoningTagProvider(provider: string | undefined | null): boo
  * default (e.g. Qwen3 on LM Studio) and supports `/no_think` to suppress them.
  */
 export function isNoThinkProvider(provider: string | undefined | null): boolean {
-  if (!provider) return false;
+  if (!provider) {
+    return false;
+  }
   return provider.trim().toLowerCase() === "lmstudio";
 }

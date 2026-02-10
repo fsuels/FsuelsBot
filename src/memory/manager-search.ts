@@ -1,5 +1,4 @@
 import type { DatabaseSync } from "node:sqlite";
-
 import { truncateUtf16Safe } from "../utils.js";
 import { cosineSimilarity, parseEmbedding } from "./internal.js";
 
@@ -32,7 +31,9 @@ export async function searchVector(params: {
   pathFilterVec?: { sql: string; params: string[] };
   pathFilterChunks?: { sql: string; params: string[] };
 }): Promise<SearchRowResult[]> {
-  if (params.queryVec.length === 0 || params.limit <= 0) return [];
+  if (params.queryVec.length === 0 || params.limit <= 0) {
+    return [];
+  }
   if (await params.ensureVectorReady(params.queryVec.length)) {
     const rows = params.db
       .prepare(
@@ -88,7 +89,7 @@ export async function searchVector(params: {
     }))
     .filter((entry) => Number.isFinite(entry.score));
   return scored
-    .sort((a, b) => b.score - a.score)
+    .toSorted((a, b) => b.score - a.score)
     .slice(0, params.limit)
     .map((entry) => ({
       id: entry.chunk.id,
@@ -124,7 +125,11 @@ export function listChunks(params: {
         `  FROM chunks\n` +
         ` WHERE model = ?${params.sourceFilter.sql}${params.pathFilter?.sql ?? ""}`,
     )
-    .all(params.providerModel, ...params.sourceFilter.params, ...(params.pathFilter?.params ?? [])) as Array<{
+    .all(
+      params.providerModel,
+      ...params.sourceFilter.params,
+      ...(params.pathFilter?.params ?? []),
+    ) as Array<{
     id: string;
     path: string;
     start_line: number;
@@ -159,9 +164,13 @@ export async function searchKeyword(params: {
   buildFtsQuery: (raw: string) => string | null;
   bm25RankToScore: (rank: number) => number;
 }): Promise<Array<SearchRowResult & { textScore: number }>> {
-  if (params.limit <= 0) return [];
+  if (params.limit <= 0) {
+    return [];
+  }
   const ftsQuery = params.buildFtsQuery(params.query);
-  if (!ftsQuery) return [];
+  if (!ftsQuery) {
+    return [];
+  }
 
   const rows = params.db
     .prepare(

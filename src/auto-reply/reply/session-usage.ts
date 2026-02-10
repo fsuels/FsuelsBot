@@ -1,9 +1,10 @@
 import { setCliSessionId } from "../../agents/cli-session.js";
-import { hasNonzeroUsage, type NormalizedUsage } from "../../agents/usage.js";
 import {
-  type SessionSystemPromptReport,
-  updateSessionStoreEntry,
-} from "../../config/sessions.js";
+  deriveSessionTotalTokens,
+  hasNonzeroUsage,
+  type NormalizedUsage,
+} from "../../agents/usage.js";
+import { type SessionSystemPromptReport, updateSessionStoreEntry } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
 import { applySessionTaskUpdate, resolveSessionTaskId } from "../../sessions/task-context.js";
 
@@ -19,7 +20,9 @@ export async function persistSessionUsageUpdate(params: {
   logLabel?: string;
 }): Promise<void> {
   const { storePath, sessionKey } = params;
-  if (!storePath || !sessionKey) return;
+  if (!storePath || !sessionKey) {
+    return;
+  }
 
   const label = params.logLabel ? `${params.logLabel} ` : "";
   if (hasNonzeroUsage(params.usage)) {
@@ -30,9 +33,12 @@ export async function persistSessionUsageUpdate(params: {
         update: async (entry) => {
           const input = params.usage?.input ?? 0;
           const output = params.usage?.output ?? 0;
-          const promptTokens =
-            input + (params.usage?.cacheRead ?? 0) + (params.usage?.cacheWrite ?? 0);
-          const totalTokens = promptTokens > 0 ? promptTokens : (params.usage?.total ?? input);
+          const resolvedContextTokens = params.contextTokensUsed ?? entry.contextTokens;
+          const totalTokens =
+            deriveSessionTotalTokens({
+              usage: params.usage,
+              contextTokens: resolvedContextTokens,
+            }) ?? input;
           let nextEntry = applySessionTaskUpdate(entry, {
             taskId: resolveSessionTaskId({ entry }),
             totalTokens,
@@ -46,7 +52,7 @@ export async function persistSessionUsageUpdate(params: {
             totalTokens,
             modelProvider: params.providerUsed ?? entry.modelProvider,
             model: params.modelUsed ?? entry.model,
-            contextTokens: params.contextTokensUsed ?? entry.contextTokens,
+            contextTokens: resolvedContextTokens,
             systemPromptReport: params.systemPromptReport ?? entry.systemPromptReport,
             updatedAt: Date.now(),
           };

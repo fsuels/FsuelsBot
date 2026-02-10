@@ -1,114 +1,81 @@
 import { render } from "lit";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
+import type { SessionsListResult } from "../types.ts";
+import { renderSessions, type SessionsProps } from "./sessions.ts";
 
-import type { GatewayModelChoice, SessionsListResult } from "../types";
-import { renderSessions, type SessionsProps } from "./sessions";
-
-function createResult(model?: string): SessionsListResult {
+function buildResult(session: SessionsListResult["sessions"][number]): SessionsListResult {
   return {
-    ts: 0,
-    path: "sessions.json",
+    ts: Date.now(),
+    path: "(multiple)",
     count: 1,
-    defaults: { model: "anthropic/claude-opus-4-5", contextTokens: 200_000 },
-    sessions: [
-      {
-        key: "main",
-        kind: "direct",
-        updatedAt: Date.now(),
-        model,
-      },
-    ],
+    defaults: { model: null, contextTokens: null },
+    sessions: [session],
   };
 }
 
-function createProps(overrides: Partial<SessionsProps> = {}): SessionsProps {
-  const models: GatewayModelChoice[] = [
-    { provider: "anthropic", id: "claude-opus-4-5", name: "Opus" },
-    { provider: "openai-codex", id: "gpt-5.2", name: "GPT-5.2" },
-  ];
+function buildProps(result: SessionsListResult): SessionsProps {
   return {
     loading: false,
-    result: createResult(),
-    models,
+    result,
     error: null,
     activeMinutes: "",
     limit: "120",
-    includeGlobal: true,
+    includeGlobal: false,
     includeUnknown: false,
     basePath: "",
     onFiltersChange: () => undefined,
     onRefresh: () => undefined,
     onPatch: () => undefined,
     onDelete: () => undefined,
-    onSwitchModel: () => undefined,
-    ...overrides,
   };
 }
 
 describe("sessions view", () => {
-  it("renders when sessions.list response omits defaults", () => {
+  it("renders verbose=full without falling back to inherit", async () => {
     const container = document.createElement("div");
-    const resultWithoutDefaults = {
-      ts: 0,
-      path: "sessions.json",
-      count: 1,
-      sessions: [
-        {
-          key: "main",
-          kind: "direct",
-          updatedAt: Date.now(),
-        },
-      ],
-    } as unknown as SessionsListResult;
-
     render(
       renderSessions(
-        createProps({
-          result: resultWithoutDefaults,
-        }),
+        buildProps(
+          buildResult({
+            key: "agent:main:main",
+            kind: "direct",
+            updatedAt: Date.now(),
+            verboseLevel: "full",
+          }),
+        ),
       ),
       container,
     );
+    await Promise.resolve();
 
-    expect(container.querySelector(".table-head")).not.toBeNull();
-    expect(container.querySelector('select[data-session-model="main"]')).not.toBeNull();
+    const selects = container.querySelectorAll("select");
+    const verbose = selects[1] as HTMLSelectElement | undefined;
+    expect(verbose?.value).toBe("full");
+    expect(Array.from(verbose?.options ?? []).some((option) => option.value === "full")).toBe(true);
   });
 
-  it("sends model override from dropdown", () => {
+  it("keeps unknown stored values selectable instead of forcing inherit", async () => {
     const container = document.createElement("div");
-    const onPatch = vi.fn();
-    render(renderSessions(createProps({ onPatch })), container);
-
-    const modelSelect = container.querySelector(
-      'select[data-session-model="main"]',
-    ) as HTMLSelectElement | null;
-    expect(modelSelect).not.toBeNull();
-    modelSelect!.value = "openai-codex/gpt-5.2";
-    modelSelect!.dispatchEvent(new Event("change", { bubbles: true }));
-
-    expect(onPatch).toHaveBeenCalledWith("main", { model: "openai-codex/gpt-5.2" });
-  });
-
-  it("sends null model when returning to inherit", () => {
-    const container = document.createElement("div");
-    const onPatch = vi.fn();
     render(
       renderSessions(
-        createProps({
-          onPatch,
-          result: createResult("openai-codex/gpt-5.2"),
-        }),
+        buildProps(
+          buildResult({
+            key: "agent:main:main",
+            kind: "direct",
+            updatedAt: Date.now(),
+            reasoningLevel: "custom-mode",
+          }),
+        ),
       ),
       container,
     );
+    await Promise.resolve();
 
-    const modelSelect = container.querySelector(
-      'select[data-session-model="main"]',
-    ) as HTMLSelectElement | null;
-    expect(modelSelect).not.toBeNull();
-    modelSelect!.value = "";
-    modelSelect!.dispatchEvent(new Event("change", { bubbles: true }));
-
-    expect(onPatch).toHaveBeenCalledWith("main", { model: null });
+    const selects = container.querySelectorAll("select");
+    const reasoning = selects[2] as HTMLSelectElement | undefined;
+    expect(reasoning?.value).toBe("custom-mode");
+    expect(
+      Array.from(reasoning?.options ?? []).some((option) => option.value === "custom-mode"),
+    ).toBe(true);
   });
 });

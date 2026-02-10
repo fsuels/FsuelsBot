@@ -1,8 +1,9 @@
 import { randomUUID } from "node:crypto";
-
-import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../agents/defaults.js";
 import type { ModelCatalogEntry } from "../agents/model-catalog.js";
-import { resolveAllowedModelRef, resolveConfiguredModelRef } from "../agents/model-selection.js";
+import type { OpenClawConfig } from "../config/config.js";
+import type { SessionEntry } from "../config/sessions.js";
+import { resolveDefaultAgentId } from "../agents/agent-scope.js";
+import { resolveAllowedModelRef, resolveDefaultModelForAgent } from "../agents/model-selection.js";
 import { normalizeGroupActivation } from "../auto-reply/group-activation.js";
 import {
   formatThinkingLevels,
@@ -13,13 +14,15 @@ import {
   normalizeUsageDisplay,
   supportsXHighThinking,
 } from "../auto-reply/thinking.js";
-import type { MoltbotConfig } from "../config/config.js";
-import type { SessionEntry } from "../config/sessions.js";
-import { isSubagentSessionKey } from "../routing/session-key.js";
+import {
+  isSubagentSessionKey,
+  normalizeAgentId,
+  parseAgentSessionKey,
+} from "../routing/session-key.js";
 import { applyVerboseOverride, parseVerboseOverride } from "../sessions/level-overrides.js";
+import { applyModelOverrideToSessionEntry } from "../sessions/model-overrides.js";
 import { normalizeSendPolicy } from "../sessions/send-policy.js";
 import { parseSessionLabel } from "../sessions/session-label.js";
-import { applyModelOverrideToSessionEntry } from "../sessions/model-overrides.js";
 import { applySessionTaskUpdate, resolveSessionTaskId } from "../sessions/task-context.js";
 import {
   ErrorCodes,
@@ -57,7 +60,7 @@ function normalizeExecAsk(raw: string): "off" | "on-miss" | "always" | undefined
 }
 
 export async function applySessionsPatchToStore(params: {
-  cfg: MoltbotConfig;
+  cfg: OpenClawConfig;
   store: Record<string, SessionEntry>;
   storeKey: string;
   patch: SessionsPatchParams;
@@ -65,6 +68,9 @@ export async function applySessionsPatchToStore(params: {
 }): Promise<{ ok: true; entry: SessionEntry } | { ok: false; error: ErrorShape }> {
   const { cfg, store, storeKey, patch } = params;
   const now = Date.now();
+  const parsedAgent = parseAgentSessionKey(storeKey);
+  const sessionAgentId = normalizeAgentId(parsedAgent?.agentId ?? resolveDefaultAgentId(cfg));
+  const resolvedDefault = resolveDefaultModelForAgent({ cfg, agentId: sessionAgentId });
 
   const existing = store[storeKey];
   let next: SessionEntry = existing
@@ -77,10 +83,14 @@ export async function applySessionsPatchToStore(params: {
   if ("spawnedBy" in patch) {
     const raw = patch.spawnedBy;
     if (raw === null) {
-      if (existing?.spawnedBy) return invalid("spawnedBy cannot be cleared once set");
+      if (existing?.spawnedBy) {
+        return invalid("spawnedBy cannot be cleared once set");
+      }
     } else if (raw !== undefined) {
       const trimmed = String(raw).trim();
-      if (!trimmed) return invalid("invalid spawnedBy: empty");
+      if (!trimmed) {
+        return invalid("invalid spawnedBy: empty");
+      }
       if (!isSubagentSessionKey(storeKey)) {
         return invalid("spawnedBy is only supported for subagent:* sessions");
       }
@@ -97,9 +107,13 @@ export async function applySessionsPatchToStore(params: {
       delete next.label;
     } else if (raw !== undefined) {
       const parsed = parseSessionLabel(raw);
-      if (!parsed.ok) return invalid(parsed.error);
+      if (!parsed.ok) {
+        return invalid(parsed.error);
+      }
       for (const [key, entry] of Object.entries(store)) {
-        if (key === storeKey) continue;
+        if (key === storeKey) {
+          continue;
+        }
         if (entry?.label === parsed.label) {
           return invalid(`label already in use: ${parsed.label}`);
         }
@@ -115,26 +129,26 @@ export async function applySessionsPatchToStore(params: {
     } else if (raw !== undefined) {
       const normalized = normalizeThinkLevel(String(raw));
       if (!normalized) {
-        const resolvedDefault = resolveConfiguredModelRef({
-          cfg,
-          defaultProvider: DEFAULT_PROVIDER,
-          defaultModel: DEFAULT_MODEL,
-        });
         const hintProvider = existing?.providerOverride?.trim() || resolvedDefault.provider;
         const hintModel = existing?.modelOverride?.trim() || resolvedDefault.model;
         return invalid(
           `invalid thinkingLevel (use ${formatThinkingLevels(hintProvider, hintModel, "|")})`,
         );
       }
-      if (normalized === "off") delete next.thinkingLevel;
-      else next.thinkingLevel = normalized;
+      if (normalized === "off") {
+        delete next.thinkingLevel;
+      } else {
+        next.thinkingLevel = normalized;
+      }
     }
   }
 
   if ("verboseLevel" in patch) {
     const raw = patch.verboseLevel;
     const parsed = parseVerboseOverride(raw);
-    if (!parsed.ok) return invalid(parsed.error);
+    if (!parsed.ok) {
+      return invalid(parsed.error);
+    }
     applyVerboseOverride(next, parsed.value);
   }
 
@@ -147,8 +161,11 @@ export async function applySessionsPatchToStore(params: {
       if (!normalized) {
         return invalid('invalid reasoningLevel (use "on"|"off"|"stream")');
       }
-      if (normalized === "off") delete next.reasoningLevel;
-      else next.reasoningLevel = normalized;
+      if (normalized === "off") {
+        delete next.reasoningLevel;
+      } else {
+        next.reasoningLevel = normalized;
+      }
     }
   }
 
@@ -158,9 +175,14 @@ export async function applySessionsPatchToStore(params: {
       delete next.responseUsage;
     } else if (raw !== undefined) {
       const normalized = normalizeUsageDisplay(String(raw));
-      if (!normalized) return invalid('invalid responseUsage (use "off"|"tokens"|"full")');
-      if (normalized === "off") delete next.responseUsage;
-      else next.responseUsage = normalized;
+      if (!normalized) {
+        return invalid('invalid responseUsage (use "off"|"tokens"|"full")');
+      }
+      if (normalized === "off") {
+        delete next.responseUsage;
+      } else {
+        next.responseUsage = normalized;
+      }
     }
   }
 
@@ -170,7 +192,9 @@ export async function applySessionsPatchToStore(params: {
       delete next.elevatedLevel;
     } else if (raw !== undefined) {
       const normalized = normalizeElevatedLevel(String(raw));
-      if (!normalized) return invalid('invalid elevatedLevel (use "on"|"off"|"ask"|"full")');
+      if (!normalized) {
+        return invalid('invalid elevatedLevel (use "on"|"off"|"ask"|"full")');
+      }
       // Persist "off" explicitly so patches can override defaults.
       next.elevatedLevel = normalized;
     }
@@ -182,7 +206,9 @@ export async function applySessionsPatchToStore(params: {
       delete next.execHost;
     } else if (raw !== undefined) {
       const normalized = normalizeExecHost(String(raw));
-      if (!normalized) return invalid('invalid execHost (use "sandbox"|"gateway"|"node")');
+      if (!normalized) {
+        return invalid('invalid execHost (use "sandbox"|"gateway"|"node")');
+      }
       next.execHost = normalized;
     }
   }
@@ -193,7 +219,9 @@ export async function applySessionsPatchToStore(params: {
       delete next.execSecurity;
     } else if (raw !== undefined) {
       const normalized = normalizeExecSecurity(String(raw));
-      if (!normalized) return invalid('invalid execSecurity (use "deny"|"allowlist"|"full")');
+      if (!normalized) {
+        return invalid('invalid execSecurity (use "deny"|"allowlist"|"full")');
+      }
       next.execSecurity = normalized;
     }
   }
@@ -204,7 +232,9 @@ export async function applySessionsPatchToStore(params: {
       delete next.execAsk;
     } else if (raw !== undefined) {
       const normalized = normalizeExecAsk(String(raw));
-      if (!normalized) return invalid('invalid execAsk (use "off"|"on-miss"|"always")');
+      if (!normalized) {
+        return invalid('invalid execAsk (use "off"|"on-miss"|"always")');
+      }
       next.execAsk = normalized;
     }
   }
@@ -215,18 +245,15 @@ export async function applySessionsPatchToStore(params: {
       delete next.execNode;
     } else if (raw !== undefined) {
       const trimmed = String(raw).trim();
-      if (!trimmed) return invalid("invalid execNode: empty");
+      if (!trimmed) {
+        return invalid("invalid execNode: empty");
+      }
       next.execNode = trimmed;
     }
   }
 
   if ("model" in patch) {
     const raw = patch.model;
-    const resolvedDefault = resolveConfiguredModelRef({
-      cfg,
-      defaultProvider: DEFAULT_PROVIDER,
-      defaultModel: DEFAULT_MODEL,
-    });
     if (raw === null) {
       applyModelOverrideToSessionEntry({
         entry: next,
@@ -238,7 +265,9 @@ export async function applySessionsPatchToStore(params: {
       });
     } else if (raw !== undefined) {
       const trimmed = String(raw).trim();
-      if (!trimmed) return invalid("invalid model: empty");
+      if (!trimmed) {
+        return invalid("invalid model: empty");
+      }
       if (!params.loadGatewayModelCatalog) {
         return {
           ok: false,
@@ -278,7 +307,9 @@ export async function applySessionsPatchToStore(params: {
         nextTaskId = resolveSessionTaskId({ fallbackTaskId: undefined });
       } else if (raw !== undefined) {
         const trimmed = String(raw).trim();
-        if (!trimmed) return invalid("invalid activeTaskId: empty");
+        if (!trimmed) {
+          return invalid("invalid activeTaskId: empty");
+        }
         nextTaskId = trimmed;
       }
     }
@@ -289,10 +320,13 @@ export async function applySessionsPatchToStore(params: {
     };
     if ("activeTaskTitle" in patch) {
       const raw = patch.activeTaskTitle;
-      if (raw === null) update.title = null;
-      else if (raw !== undefined) {
+      if (raw === null) {
+        update.title = null;
+      } else if (raw !== undefined) {
         const trimmed = String(raw).trim();
-        if (!trimmed) return invalid("invalid activeTaskTitle: empty");
+        if (!trimmed) {
+          return invalid("invalid activeTaskTitle: empty");
+        }
         update.title = trimmed;
       }
     }
@@ -317,11 +351,6 @@ export async function applySessionsPatchToStore(params: {
   }
 
   if (next.thinkingLevel === "xhigh") {
-    const resolvedDefault = resolveConfiguredModelRef({
-      cfg,
-      defaultProvider: DEFAULT_PROVIDER,
-      defaultModel: DEFAULT_MODEL,
-    });
     const effectiveProvider = next.providerOverride ?? resolvedDefault.provider;
     const effectiveModel = next.modelOverride ?? resolvedDefault.model;
     if (!supportsXHighThinking(effectiveProvider, effectiveModel)) {
@@ -338,7 +367,9 @@ export async function applySessionsPatchToStore(params: {
       delete next.sendPolicy;
     } else if (raw !== undefined) {
       const normalized = normalizeSendPolicy(String(raw));
-      if (!normalized) return invalid('invalid sendPolicy (use "allow"|"deny")');
+      if (!normalized) {
+        return invalid('invalid sendPolicy (use "allow"|"deny")');
+      }
       next.sendPolicy = normalized;
     }
   }

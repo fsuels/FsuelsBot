@@ -8,7 +8,6 @@ export type HybridVectorResult = {
   source: HybridSource;
   snippet: string;
   vectorScore: number;
-  provenanceTs?: number;
 };
 
 export type HybridKeywordResult = {
@@ -19,7 +18,6 @@ export type HybridKeywordResult = {
   source: HybridSource;
   snippet: string;
   textScore: number;
-  provenanceTs?: number;
 };
 
 export function buildFtsQuery(raw: string): string | null {
@@ -28,7 +26,9 @@ export function buildFtsQuery(raw: string): string | null {
       .match(/[A-Za-z0-9_]+/g)
       ?.map((t) => t.trim())
       .filter(Boolean) ?? [];
-  if (tokens.length === 0) return null;
+  if (tokens.length === 0) {
+    return null;
+  }
   const quoted = tokens.map((t) => `"${t.replaceAll('"', "")}"`);
   return quoted.join(" AND ");
 }
@@ -50,7 +50,6 @@ export function mergeHybridResults(params: {
   score: number;
   snippet: string;
   source: HybridSource;
-  provenanceTs?: number;
 }> {
   const byId = new Map<
     string,
@@ -63,7 +62,6 @@ export function mergeHybridResults(params: {
       snippet: string;
       vectorScore: number;
       textScore: number;
-      provenanceTs?: number;
     }
   >();
 
@@ -77,7 +75,6 @@ export function mergeHybridResults(params: {
       snippet: r.snippet,
       vectorScore: r.vectorScore,
       textScore: 0,
-      provenanceTs: r.provenanceTs,
     });
   }
 
@@ -85,9 +82,8 @@ export function mergeHybridResults(params: {
     const existing = byId.get(r.id);
     if (existing) {
       existing.textScore = r.textScore;
-      if (r.snippet && r.snippet.length > 0) existing.snippet = r.snippet;
-      if (existing.provenanceTs == null && r.provenanceTs != null) {
-        existing.provenanceTs = r.provenanceTs;
+      if (r.snippet && r.snippet.length > 0) {
+        existing.snippet = r.snippet;
       }
     } else {
       byId.set(r.id, {
@@ -99,7 +95,6 @@ export function mergeHybridResults(params: {
         snippet: r.snippet,
         vectorScore: 0,
         textScore: r.textScore,
-        provenanceTs: r.provenanceTs,
       });
     }
   }
@@ -113,9 +108,8 @@ export function mergeHybridResults(params: {
       score,
       snippet: entry.snippet,
       source: entry.source,
-      provenanceTs: entry.provenanceTs,
     };
   });
 
-  return merged.sort((a, b) => b.score - a.score);
+  return merged.toSorted((a, b) => b.score - a.score);
 }

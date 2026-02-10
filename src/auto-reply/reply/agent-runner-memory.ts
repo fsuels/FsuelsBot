@@ -1,12 +1,16 @@
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import type { OpenClawConfig } from "../../config/config.js";
+import type { TemplateContext } from "../templating.js";
+import type { VerboseLevel } from "../thinking.js";
+import type { GetReplyOptions } from "../types.js";
+import type { FollowupRun } from "./queue.js";
 import { resolveAgentModelFallbacksOverride } from "../../agents/agent-scope.js";
 import { runWithModelFallback } from "../../agents/model-fallback.js";
 import { isCliProvider } from "../../agents/model-selection.js";
 import { runEmbeddedPiAgent } from "../../agents/pi-embedded.js";
 import { resolveSandboxConfigForAgent, resolveSandboxRuntimeStatus } from "../../agents/sandbox.js";
-import type { MoltbotConfig } from "../../config/config.js";
 import {
   resolveAgentIdFromSessionKey,
   type SessionEntry,
@@ -14,27 +18,23 @@ import {
 } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
 import { registerAgentRunContext } from "../../infra/agent-events.js";
+import { resolveTaskMemoryFilePath } from "../../memory/namespaces.js";
+import { mergeTaskMemoryFile } from "../../memory/task-memory-merge.js";
 import {
   applySessionTaskUpdate,
   DEFAULT_SESSION_TASK_ID,
   resolveSessionTaskView,
 } from "../../sessions/task-context.js";
-import { mergeTaskMemoryFile } from "../../memory/task-memory-merge.js";
-import { resolveTaskMemoryFilePath } from "../../memory/namespaces.js";
-import type { TemplateContext } from "../templating.js";
-import type { VerboseLevel } from "../thinking.js";
-import type { GetReplyOptions } from "../types.js";
 import { buildThreadingToolContext, resolveEnforceFinalTag } from "./agent-runner-utils.js";
 import {
   resolveMemoryFlushContextWindowTokens,
   resolveMemoryFlushSettings,
   shouldRunMemoryFlush,
 } from "./memory-flush.js";
-import type { FollowupRun } from "./queue.js";
 import { incrementCompactionCount } from "./session-updates.js";
 
 export async function runMemoryFlushIfNeeded(params: {
-  cfg: MoltbotConfig;
+  cfg: OpenClawConfig;
   followupRun: FollowupRun;
   sessionCtx: TemplateContext;
   opts?: GetReplyOptions;
@@ -48,15 +48,21 @@ export async function runMemoryFlushIfNeeded(params: {
   isHeartbeat: boolean;
 }): Promise<SessionEntry | undefined> {
   const memoryFlushSettings = resolveMemoryFlushSettings(params.cfg);
-  if (!memoryFlushSettings) return params.sessionEntry;
+  if (!memoryFlushSettings) {
+    return params.sessionEntry;
+  }
 
   const memoryFlushWritable = (() => {
-    if (!params.sessionKey) return true;
+    if (!params.sessionKey) {
+      return true;
+    }
     const runtime = resolveSandboxRuntimeStatus({
       cfg: params.cfg,
       sessionKey: params.sessionKey,
     });
-    if (!runtime.sandboxed) return true;
+    if (!runtime.sandboxed) {
+      return true;
+    }
     const sandboxCfg = resolveSandboxConfigForAgent(params.cfg, runtime.agentId);
     return sandboxCfg.workspaceAccess === "rw";
   })();
@@ -71,7 +77,9 @@ export async function runMemoryFlushIfNeeded(params: {
         const sourceEntry =
           params.sessionEntry ??
           (params.sessionKey ? params.sessionStore?.[params.sessionKey] : undefined);
-        if (!sourceEntry) return undefined;
+        if (!sourceEntry) {
+          return undefined;
+        }
         const taskView = resolveSessionTaskView({
           entry: sourceEntry,
           taskId: params.followupRun.run.taskId,
@@ -90,7 +98,9 @@ export async function runMemoryFlushIfNeeded(params: {
       softThresholdTokens: memoryFlushSettings.softThresholdTokens,
     });
 
-  if (!shouldFlushMemory) return params.sessionEntry;
+  if (!shouldFlushMemory) {
+    return params.sessionEntry;
+  }
 
   let activeSessionEntry = params.sessionEntry;
   const activeSessionStore = params.sessionStore;
@@ -142,6 +152,7 @@ export async function runMemoryFlushIfNeeded(params: {
           sessionKey: params.sessionKey,
           taskId: params.followupRun.run.taskId,
           taskTitle: params.followupRun.run.taskTitle,
+          agentId: params.followupRun.run.agentId,
           messageProvider: params.sessionCtx.Provider?.trim().toLowerCase() || undefined,
           agentAccountId: params.sessionCtx.AccountId,
           messageTo: params.sessionCtx.OriginatingTo ?? params.sessionCtx.To,
@@ -206,7 +217,8 @@ export async function runMemoryFlushIfNeeded(params: {
     }
     const activeTask = resolveSessionTaskView({
       entry:
-        activeSessionEntry ?? (params.sessionKey ? activeSessionStore?.[params.sessionKey] : undefined),
+        activeSessionEntry ??
+        (params.sessionKey ? activeSessionStore?.[params.sessionKey] : undefined),
       taskId: params.followupRun.run.taskId,
     });
     let memoryFlushCompactionCount = activeTask.compactionCount;

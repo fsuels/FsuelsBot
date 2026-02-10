@@ -1,5 +1,5 @@
-import type { MoltbotConfig } from "../config/config.js";
 import { z } from "zod";
+import type { OpenClawConfig } from "../config/config.js";
 
 export type DiagnosticSessionState = "idle" | "processing" | "waiting";
 export const MEMORY_TURN_CONTROL_EVENT_VERSION = 1 as const;
@@ -334,12 +334,16 @@ function normalizeTransportNumber(
   maximum: number,
 ): number {
   const parsed = Number(value);
-  if (!Number.isFinite(parsed)) return fallback;
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
   return Math.min(maximum, Math.max(minimum, Math.floor(parsed)));
 }
 
 function waitForTransportRetry(delayMs: number): Promise<void> {
-  if (delayMs <= 0) return Promise.resolve();
+  if (delayMs <= 0) {
+    return Promise.resolve();
+  }
   return new Promise((resolve) => setTimeout(resolve, delayMs));
 }
 
@@ -365,10 +369,16 @@ async function postAlertTransport(
         body,
         signal: controller.signal,
       });
-      if (response.ok) return;
-      if (!isRetryableTransportStatus(response.status) || attempt >= attempts) return;
+      if (response.ok) {
+        return;
+      }
+      if (!isRetryableTransportStatus(response.status) || attempt >= attempts) {
+        return;
+      }
     } catch {
-      if (attempt >= attempts) return;
+      if (attempt >= attempts) {
+        return;
+      }
     } finally {
       clearTimeout(timer);
     }
@@ -377,7 +387,9 @@ async function postAlertTransport(
 }
 
 async function dispatchMemoryAlertTransport(alert: DiagnosticMemoryAlertEvent): Promise<void> {
-  if (!alert.breached) return;
+  if (!alert.breached) {
+    return;
+  }
   const timeoutMs = normalizeTransportNumber(
     process.env.MEMORY_ALERT_WEBHOOK_TIMEOUT_MS,
     5_000,
@@ -471,7 +483,9 @@ async function dispatchMemoryAlertTransport(alert: DiagnosticMemoryAlertEvent): 
     );
   }
 
-  if (dispatches.length === 0) return;
+  if (dispatches.length === 0) {
+    return;
+  }
   await Promise.allSettled(dispatches);
 }
 
@@ -498,7 +512,7 @@ function assertDiagnosticEventSchema(event: DiagnosticEventPayload): void {
   }
 }
 
-export function isDiagnosticsEnabled(config?: MoltbotConfig): boolean {
+export function isDiagnosticsEnabled(config?: OpenClawConfig): boolean {
   return config?.diagnostics?.enabled === true;
 }
 
