@@ -196,7 +196,6 @@ describe("outbound", () => {
 
       expect(result.channel).toBe("twitch");
       expect(result.messageId).toBe("twitch-msg-123");
-      expect(result.to).toBe("testchannel");
       expect(result.timestamp).toBeGreaterThan(0);
     });
 

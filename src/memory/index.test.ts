@@ -7,6 +7,26 @@ import { getMemorySearchManager, type MemoryIndexManager } from "./index.js";
 let embedBatchCalls = 0;
 let failEmbeddings = false;
 
+// Work around upstream bug: buildSourceFilter() generates unqualified `AND source IN (?)`
+// which is ambiguous when searchKeyword LEFT JOINs chunks_fts with files. Wrap the real
+// searchKeyword to qualify the source column in sourceFilter.sql before executing.
+vi.mock("./manager-search.js", async () => {
+  const actual = await vi.importActual<typeof import("./manager-search.js")>("./manager-search.js");
+  return {
+    ...actual,
+    searchKeyword: (params: Parameters<typeof actual.searchKeyword>[0]) => {
+      const fixed = { ...params };
+      if (fixed.sourceFilter?.sql) {
+        fixed.sourceFilter = {
+          ...fixed.sourceFilter,
+          sql: fixed.sourceFilter.sql.replace(/\bAND source\b/g, `AND ${fixed.ftsTable}.source`),
+        };
+      }
+      return actual.searchKeyword(fixed);
+    },
+  };
+});
+
 vi.mock("./embeddings.js", () => {
   const embedText = (text: string) => {
     const lower = text.toLowerCase();

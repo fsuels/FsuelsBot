@@ -5,18 +5,17 @@ import { log } from "./logger.js";
 
 /**
  * Maximum share of the context window a single tool result should occupy.
- * This is intentionally conservative – a single tool result should not
- * consume more than 30% of the context window even without other messages.
+ * Reduced from 0.3 to 0.15 to prevent tool results from dominating the
+ * context window and causing overflow errors.
  */
-const MAX_TOOL_RESULT_CONTEXT_SHARE = 0.3;
+const MAX_TOOL_RESULT_CONTEXT_SHARE = 0.15;
 
 /**
  * Hard character limit for a single tool result text block.
- * Even for the largest context windows (~2M tokens), a single tool result
- * should not exceed ~400K characters (~100K tokens).
- * This acts as a safety net when we don't know the context window size.
+ * Reduced from 400K to 40K chars (~10K tokens) to prevent any single tool
+ * result from consuming a disproportionate share of context.
  */
-export const HARD_MAX_TOOL_RESULT_CHARS = 400_000;
+export const HARD_MAX_TOOL_RESULT_CHARS = 40_000;
 
 /**
  * Minimum characters to keep when truncating.

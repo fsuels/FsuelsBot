@@ -92,6 +92,7 @@ import {
   buildEmbeddedSystemPrompt,
   createSystemPromptOverride,
 } from "../system-prompt.js";
+import { truncateOversizedToolResultsInMessages } from "../tool-result-truncation.js";
 import { splitSdkTools } from "../tool-split.js";
 import { describeUnknownError, mapThinkingLevel } from "../utils.js";
 import { tryDelegateRoute } from "./delegate-router.js";
@@ -588,7 +589,18 @@ export async function runEmbeddedAttempt(
           getDmHistoryLimitFromSessionKey(params.sessionKey, params.config),
         );
         cacheTrace?.recordStage("session:limited", { messages: limited });
-        activeSession.agent.replaceMessages(limited);
+
+        // Proactively truncate oversized tool results before sending to API
+        const { messages: truncated, truncatedCount } = truncateOversizedToolResultsInMessages(
+          limited,
+          params.model.contextWindow,
+        );
+        if (truncatedCount > 0) {
+          log.info(
+            `[proactive-truncation] Truncated ${truncatedCount} oversized tool result(s) before prompt`,
+          );
+        }
+        activeSession.agent.replaceMessages(truncated);
       } catch (err) {
         sessionManager.flushPendingToolResults?.();
         activeSession.dispose();
