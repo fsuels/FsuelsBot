@@ -213,6 +213,16 @@ export type DiagnosticMemoryRetrievalEvent = DiagnosticBaseEvent & {
   bm25ConfigVersion: string;
 };
 
+export type DiagnosticMemoryInjectionDetectedEvent = DiagnosticBaseEvent & {
+  type: "memory.injection_detected";
+  sessionKey?: string;
+  path: string;
+  startLine: number;
+  endLine: number;
+  patternCount: number;
+  patterns: string[];
+};
+
 export type DiagnosticEventPayload =
   | DiagnosticUsageEvent
   | DiagnosticWebhookReceivedEvent
@@ -231,7 +241,8 @@ export type DiagnosticEventPayload =
   | DiagnosticMemoryTurnControlEvent
   | DiagnosticMemorySecurityEvent
   | DiagnosticMemoryAlertEvent
-  | DiagnosticMemoryRetrievalEvent;
+  | DiagnosticMemoryRetrievalEvent
+  | DiagnosticMemoryInjectionDetectedEvent;
 
 export type DiagnosticEventInput = DiagnosticEventPayload extends infer Event
   ? Event extends DiagnosticEventPayload
@@ -320,6 +331,20 @@ export const MemoryAlertDiagnosticEventSchema = z
     threshold: z.number().int().positive(),
     criticalCount: z.number().int().nonnegative(),
     breached: z.boolean(),
+  })
+  .strict();
+
+export const MemoryInjectionDetectedDiagnosticEventSchema = z
+  .object({
+    type: z.literal("memory.injection_detected"),
+    ts: z.number().int().nonnegative(),
+    seq: z.number().int().positive(),
+    sessionKey: z.string().optional(),
+    path: z.string().min(1),
+    startLine: z.number().int().nonnegative(),
+    endLine: z.number().int().nonnegative(),
+    patternCount: z.number().int().positive(),
+    patterns: z.array(z.string()).max(5),
   })
   .strict();
 
@@ -508,6 +533,10 @@ function assertDiagnosticEventSchema(event: DiagnosticEventPayload): void {
   }
   if (event.type === "memory.alert") {
     MemoryAlertDiagnosticEventSchema.parse(event);
+    return;
+  }
+  if (event.type === "memory.injection_detected") {
+    MemoryInjectionDetectedDiagnosticEventSchema.parse(event);
     return;
   }
 }
