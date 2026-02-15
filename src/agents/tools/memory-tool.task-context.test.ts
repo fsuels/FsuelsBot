@@ -124,7 +124,7 @@ describe("memory_search task context", () => {
     const payload = result.details as { results?: Array<{ snippet: string }> };
     const results = payload.results ?? [];
     expect(results.length).toBeLessThanOrEqual(4);
-    const linked = results.filter((entry) => entry.snippet.startsWith("[related task:"));
+    const linked = results.filter((entry) => entry.snippet.includes("[related task:"));
     expect(linked.length).toBeLessThanOrEqual(3);
     if (linked.length > 0) {
       expect(linked[0]?.snippet).toContain("[related task:");
@@ -184,7 +184,7 @@ describe("memory_search task context", () => {
     });
     const payload = result.details as { results?: Array<{ snippet: string }> };
     const linked = (payload.results ?? []).filter((entry) =>
-      entry.snippet.startsWith("[related task:"),
+      entry.snippet.includes("[related task:"),
     );
     expect(linked).toHaveLength(1);
   });

@@ -4,6 +4,7 @@ import type { MemoryCitationsMode } from "../../config/types.memory.js";
 import type { MemorySearchResult } from "../../memory/types.js";
 import type { AnyAgentTool } from "./common.js";
 import { emitDiagnosticEvent, isDiagnosticsEnabled } from "../../infra/diagnostic-events.js";
+import { detectMemorySuspiciousPatterns, wrapMemoryContent } from "../../security/external-content.js";
 import { resolveMemoryBackendConfig } from "../../memory/backend-config.js";
 import { getMemorySearchManager } from "../../memory/index.js";
 import { normalizeMemoryTaskId } from "../../memory/namespaces.js";
@@ -139,10 +140,14 @@ export function createMemorySearchTool(options: {
         const status = manager.status();
         const decorated = decorateCitations(results, includeCitations);
         const resolvedBackend = resolveMemoryBackendConfig({ cfg, agentId });
-        const finalResults =
+        const clamped =
           status.backend === "qmd"
             ? clampResultsByInjectedChars(decorated, resolvedBackend.qmd?.limits.maxInjectedChars)
             : decorated;
+        const finalResults = sanitizeMemoryResults(clamped, {
+          sessionKey: options.agentSessionKey,
+          diagnosticsEnabled: isDiagnosticsEnabled(cfg),
+        });
         if (isDiagnosticsEnabled(cfg)) {
           emitDiagnosticEvent({
             type: "memory.retrieval",
@@ -208,7 +213,22 @@ export function createMemoryGetTool(options: {
           from: from ?? undefined,
           lines: lines ?? undefined,
         });
-        return jsonResult(result);
+        const wrappedText = wrapMemoryContent(result.text);
+        if (isDiagnosticsEnabled(cfg)) {
+          const suspicious = detectMemorySuspiciousPatterns(result.text);
+          if (suspicious.length > 0) {
+            emitDiagnosticEvent({
+              type: "memory.injection_detected",
+              sessionKey: options.agentSessionKey,
+              path: result.path,
+              startLine: from ?? 0,
+              endLine: (from ?? 0) + (lines ?? 0),
+              patternCount: suspicious.length,
+              patterns: suspicious.slice(0, 5),
+            });
+          }
+        }
+        return jsonResult({ ...result, text: wrappedText });
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         return jsonResult({ path: relPath, text: "", disabled: true, error: message });
@@ -298,4 +318,32 @@ function deriveChatTypeFromSessionKey(sessionKey?: string): "direct" | "group" |
     return "group";
   }
   return "direct";
+}
+
+/**
+ * Wrap each memory search result snippet with security boundary markers
+ * and log any suspicious patterns detected via diagnostics.
+ */
+function sanitizeMemoryResults(
+  results: MemorySearchResult[],
+  opts?: { sessionKey?: string; diagnosticsEnabled?: boolean },
+): MemorySearchResult[] {
+  return results.map((entry) => {
+    const wrapped = wrapMemoryContent(entry.snippet);
+    if (opts?.diagnosticsEnabled) {
+      const suspicious = detectMemorySuspiciousPatterns(entry.snippet);
+      if (suspicious.length > 0) {
+        emitDiagnosticEvent({
+          type: "memory.injection_detected",
+          sessionKey: opts.sessionKey,
+          path: entry.path,
+          startLine: entry.startLine,
+          endLine: entry.endLine,
+          patternCount: suspicious.length,
+          patterns: suspicious.slice(0, 5),
+        });
+      }
+    }
+    return { ...entry, snippet: wrapped };
+  });
 }
