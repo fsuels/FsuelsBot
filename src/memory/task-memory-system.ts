@@ -18,6 +18,7 @@ export type TaskRegistryRecord = {
   links: string[];
   pinSetId: string;
   schemaVersion: number;
+  deadline?: number;
 };
 
 type TaskRegistryStore = {
@@ -45,7 +46,12 @@ export type MemoryEventType =
   | "PIN_REMOVE_REQUESTED"
   | "PIN_REMOVED"
   | "STATE_PATCH_APPLIED"
-  | "USER_CONFIRMED";
+  | "USER_CONFIRMED"
+  | "GOAL_PUSHED"
+  | "GOAL_POPPED"
+  | "BLOCKER_ADDED"
+  | "BLOCKER_RESOLVED"
+  | "GOAL_PROGRESS_MARKED";
 
 export type MemoryEventActor = "user" | "agent" | "system";
 
@@ -77,6 +83,9 @@ export type CanonicalMemoryState = {
   pins: string[];
   links: string[];
   lastConfirmedAt?: number;
+  goalStack?: string[];
+  blockers?: string[];
+  goalLastProgressAt?: number;
 };
 
 export type MemorySnapshotRecord = {
@@ -187,6 +196,11 @@ const EVENT_TYPE_SET = new Set<MemoryEventType>([
   "PIN_REMOVED",
   "STATE_PATCH_APPLIED",
   "USER_CONFIRMED",
+  "GOAL_PUSHED",
+  "GOAL_POPPED",
+  "BLOCKER_ADDED",
+  "BLOCKER_RESOLVED",
+  "GOAL_PROGRESS_MARKED",
 ]);
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -256,6 +270,18 @@ function validateEventPayloadSchema(type: MemoryEventType, payload: unknown): st
         return "USER_CONFIRMED.source must be string when provided";
       }
       return null;
+    case "GOAL_PUSHED":
+      return readRequiredString(p, "goal") ? null : "GOAL_PUSHED.goal required";
+    case "GOAL_POPPED":
+      // No required payload — pops the top of the goal stack
+      return null;
+    case "BLOCKER_ADDED":
+      return readRequiredString(p, "blocker") ? null : "BLOCKER_ADDED.blocker required";
+    case "BLOCKER_RESOLVED":
+      return readRequiredString(p, "blocker") ? null : "BLOCKER_RESOLVED.blocker required";
+    case "GOAL_PROGRESS_MARKED":
+      // No required payload — marks timestamp of progress
+      return null;
   }
   const unreachable: never = type;
   void unreachable;
@@ -278,6 +304,8 @@ function defaultCanonicalState(): CanonicalMemoryState {
     artifacts: [],
     pins: [],
     links: [],
+    goalStack: [],
+    blockers: [],
   };
 }
 
@@ -1124,6 +1152,12 @@ function normalizeSnapshot(input: unknown): CanonicalMemoryState {
     lastConfirmedAt:
       typeof value.lastConfirmedAt === "number" && Number.isFinite(value.lastConfirmedAt)
         ? Math.floor(value.lastConfirmedAt)
+        : undefined,
+    goalStack: asList("goalStack"),
+    blockers: asList("blockers"),
+    goalLastProgressAt:
+      typeof value.goalLastProgressAt === "number" && Number.isFinite(value.goalLastProgressAt)
+        ? Math.floor(value.goalLastProgressAt)
         : undefined,
   };
 }
@@ -2118,6 +2152,8 @@ function applyEventToState(
     artifacts: [...state.artifacts],
     pins: [...state.pins],
     links: [...state.links],
+    goalStack: [...(state.goalStack ?? [])],
+    blockers: [...(state.blockers ?? [])],
   };
   const getString = (key: string): string | null => {
     const value = event.payload[key];
@@ -2194,6 +2230,7 @@ function applyEventToState(
       } else if ((next.nextAction ?? "").toLowerCase() === action.toLowerCase()) {
         delete next.nextAction;
       }
+      next.goalLastProgressAt = event.timestamp;
       break;
     }
     case "ARTIFACT_LINKED": {
@@ -2231,6 +2268,48 @@ function applyEventToState(
     }
     case "USER_CONFIRMED": {
       next.lastConfirmedAt = event.timestamp;
+      next.goalLastProgressAt = event.timestamp;
+      break;
+    }
+    case "GOAL_PUSHED": {
+      const goal = getString("goal");
+      if (goal) {
+        if (next.goal) {
+          next.goalStack = [...(next.goalStack ?? []), next.goal];
+        }
+        next.goal = goal;
+      }
+      break;
+    }
+    case "GOAL_POPPED": {
+      const stack = next.goalStack ?? [];
+      if (stack.length > 0) {
+        next.goal = stack[stack.length - 1];
+        next.goalStack = stack.slice(0, -1);
+      } else {
+        delete next.goal;
+      }
+      break;
+    }
+    case "BLOCKER_ADDED": {
+      const blocker = getString("blocker");
+      if (blocker) {
+        next.blockers = dedupeNormalized([...(next.blockers ?? []), blocker]);
+      }
+      break;
+    }
+    case "BLOCKER_RESOLVED": {
+      const blocker = getString("blocker");
+      if (blocker) {
+        const blockerNorm = blocker.toLowerCase();
+        next.blockers = (next.blockers ?? []).filter(
+          (b) => b.toLowerCase() !== blockerNorm,
+        );
+      }
+      break;
+    }
+    case "GOAL_PROGRESS_MARKED": {
+      next.goalLastProgressAt = event.timestamp;
       break;
     }
     default:

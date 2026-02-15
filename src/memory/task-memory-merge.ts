@@ -13,6 +13,8 @@ export type TaskMemorySnapshot = {
   keyEntities: string[];
   pinned: string[];
   notes: string[];
+  goalStack?: string[];
+  blockers?: string[];
 };
 
 export type TaskMemoryMergeResult = {
@@ -29,6 +31,8 @@ const EMPTY_SNAPSHOT: TaskMemorySnapshot = {
   keyEntities: [],
   pinned: [],
   notes: [],
+  goalStack: [],
+  blockers: [],
 };
 
 type SnapshotParseState = {
@@ -56,6 +60,10 @@ const KNOWN_SECTIONS: Record<string, keyof TaskMemorySnapshot> = {
   pinned: "pinned",
   pins: "pinned",
   notes: "notes",
+  goalstack: "goalStack",
+  subgoals: "goalStack",
+  blockers: "blockers",
+  blocked: "blockers",
 };
 
 const normalizeText = (value: string): string => value.replace(/\s+/g, " ").trim();
@@ -123,7 +131,10 @@ function appendSectionLine(
     snapshot[section] = next;
     return;
   }
-  snapshot[section].push(cleaned);
+  const arr = snapshot[section];
+  if (Array.isArray(arr)) {
+    arr.push(cleaned);
+  }
 }
 
 function finalizeSnapshot(snapshot: TaskMemorySnapshot): TaskMemorySnapshot {
@@ -136,6 +147,8 @@ function finalizeSnapshot(snapshot: TaskMemorySnapshot): TaskMemorySnapshot {
     keyEntities: dedupe(snapshot.keyEntities),
     pinned: dedupe(snapshot.pinned),
     notes: dedupe(snapshot.notes),
+    goalStack: dedupe(snapshot.goalStack ?? []),
+    blockers: dedupe(snapshot.blockers ?? []),
   };
   if (!next.goal) delete next.goal;
   if (!next.currentState) delete next.currentState;
@@ -153,6 +166,8 @@ export function parseTaskMemorySnapshot(markdown: string): TaskMemorySnapshot | 
     keyEntities: [],
     pinned: [],
     notes: [],
+    goalStack: [],
+    blockers: [],
   };
 
   let section: keyof TaskMemorySnapshot | null = null;
@@ -286,6 +301,19 @@ export function mergeTaskMemorySnapshots(params: {
     keyEntities: mergeEntities(existing.keyEntities, incoming.keyEntities),
     pinned: mergedPinned,
     notes: dedupe([...existing.notes, ...incoming.notes]),
+    goalStack:
+      (incoming.goalStack ?? []).length > 0
+        ? dedupe(incoming.goalStack ?? [])
+        : existing.goalStack ?? [],
+    blockers: (() => {
+      const resolvedBlockers = parseResolvedMarkers(incoming.blockers ?? []);
+      return dedupe([
+        ...(existing.blockers ?? []).filter(
+          (item) => !resolvedBlockers.resolved.has(normalizeText(item).toLowerCase()),
+        ),
+        ...resolvedBlockers.open,
+      ]);
+    })(),
   });
 }
 
@@ -325,6 +353,12 @@ export function renderTaskMemorySnapshot(params: {
     ...renderSection("Key Entities", snapshot.keyEntities),
     ...renderSection("Pinned", snapshot.pinned),
   ];
+  if ((snapshot.goalStack ?? []).length > 0) {
+    lines.push(...renderSection("Goal Stack", snapshot.goalStack ?? []));
+  }
+  if ((snapshot.blockers ?? []).length > 0) {
+    lines.push(...renderSection("Blockers", snapshot.blockers ?? []));
+  }
   if (snapshot.notes.length > 0) {
     lines.push(...renderSection("Notes", snapshot.notes));
   }
@@ -349,7 +383,9 @@ function snapshotFromMarkdown(markdown: string): SnapshotParseState {
     parsed.nextActions.length > 0 ||
     parsed.keyEntities.length > 0 ||
     parsed.pinned.length > 0 ||
-    parsed.notes.length > 0;
+    parsed.notes.length > 0 ||
+    (parsed.goalStack ?? []).length > 0 ||
+    (parsed.blockers ?? []).length > 0;
   return {
     snapshot: parsed,
     hasKnownSection,
