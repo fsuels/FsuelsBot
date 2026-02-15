@@ -2206,6 +2206,10 @@ function applyEventToState(
       if (pinId) next.pins = dedupeNormalized([...next.pins, pinId]);
       break;
     }
+    case "PIN_REMOVE_REQUESTED": {
+      // Audit-only: records intent. Actual removal handled by PIN_REMOVED.
+      break;
+    }
     case "PIN_REMOVED": {
       const pinId = getString("pinId");
       if (pinId) {

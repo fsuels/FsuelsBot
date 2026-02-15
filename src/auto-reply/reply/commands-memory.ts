@@ -16,13 +16,14 @@ import {
 } from "../../memory/task-memory-system.js";
 import {
   cancelMemoryPinRemoveIntent,
-  confirmMemoryPinRemoveIntent,
   createMemoryPinRemoveIntent,
   editMemoryPin,
+  executeMemoryPinRemoveIntent,
   listMemoryPins,
   removeMemoryPin,
   type MemoryPinType,
   upsertMemoryPin,
+  validateMemoryPinRemoveIntent,
 } from "../../memory/pins.js";
 import {
   applySessionTaskUpdate,
@@ -348,43 +349,54 @@ export const handlePinCommand: CommandHandler = async (params, allowTextCommands
     if (!token) {
       return { shouldContinue: false, reply: { text: "Usage: /pin confirm <token>" } };
     }
-    const result = await confirmMemoryPinRemoveIntent({
+    // WAL-first: validate token without mutating pin store
+    const validation = await validateMemoryPinRemoveIntent({
       workspaceDir: params.workspaceDir,
       token,
     });
-    if (!result.pinId) {
+    if (!validation.pinId) {
       return {
         shouldContinue: false,
         reply: { text: "Pin removal token not found. It may be expired or already used." },
       };
     }
-    if (!result.removed) {
+    if (!validation.valid) {
       return {
         shouldContinue: false,
         reply: {
-          text: result.expired
-            ? `Removal token expired for pin ${result.pinId}.`
-            : `Pin ${result.pinId} was already removed.`,
+          text: validation.expired
+            ? `Removal token expired for pin ${validation.pinId}.`
+            : `Pin ${validation.pinId} was already removed.`,
         },
       };
     }
+    // WAL-first: commit durable event BEFORE mutating pin store
     try {
       await commitRequired({
         workspaceDir: params.workspaceDir,
-        writeScope: result.scope ?? "global",
-        taskId: result.taskId,
+        writeScope: validation.scope ?? "global",
+        taskId: validation.taskId,
         actor: "user",
         events: [
-          { type: "PIN_REMOVE_REQUESTED", payload: { pinId: result.pinId } },
-          { type: "PIN_REMOVED", payload: { pinId: result.pinId } },
+          { type: "PIN_REMOVE_REQUESTED", payload: { pinId: validation.pinId } },
+          { type: "PIN_REMOVED", payload: { pinId: validation.pinId } },
         ],
       });
     } catch (error) {
       return durabilityFailureReply("Pin removal", error);
     }
+    // WAL committed — now safe to mutate the pin store
+    const result = await executeMemoryPinRemoveIntent({
+      workspaceDir: params.workspaceDir,
+      token,
+    });
     return {
       shouldContinue: false,
-      reply: { text: `Removed pin ${result.pinId}.` },
+      reply: {
+        text: result.removed
+          ? `Removed pin ${validation.pinId}.`
+          : `Pin ${validation.pinId} removal recorded (pin was already removed).`,
+      },
     };
   }
 
