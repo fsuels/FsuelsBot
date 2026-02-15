@@ -1,10 +1,8 @@
+import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import crypto from "node:crypto";
-
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-
 import {
   commitMemoryEvents,
   getTaskRegistryTask,
@@ -25,15 +23,23 @@ import {
 } from "./task-memory-system.js";
 
 function canonicalizeJson(value: unknown): string {
-  if (value === null) return "null";
-  if (typeof value === "string") return JSON.stringify(value);
-  if (typeof value === "number") return Number.isFinite(value) ? JSON.stringify(value) : "null";
-  if (typeof value === "boolean") return value ? "true" : "false";
+  if (value === null) {
+    return "null";
+  }
+  if (typeof value === "string") {
+    return JSON.stringify(value);
+  }
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? JSON.stringify(value) : "null";
+  }
+  if (typeof value === "boolean") {
+    return value ? "true" : "false";
+  }
   if (Array.isArray(value)) {
     return `[${value.map((entry) => canonicalizeJson(entry)).join(",")}]`;
   }
   if (typeof value === "object") {
-    const entries = Object.entries(value as Record<string, unknown>).sort(([a], [b]) =>
+    const entries = Object.entries(value as Record<string, unknown>).toSorted(([a], [b]) =>
       a.localeCompare(b),
     );
     return `{${entries
@@ -325,7 +331,9 @@ describe("task-memory-system", () => {
     expect(second.committed).toHaveLength(1);
 
     const cutoffId = first.committed[1]?.eventId;
-    if (!cutoffId) throw new Error("missing cutoff event id");
+    if (!cutoffId) {
+      throw new Error("missing cutoff event id");
+    }
     const rebuilt = await rebuildSnapshotFromWal({
       workspaceDir,
       scope: "task",
@@ -1202,5 +1210,150 @@ describe("task-memory-system", () => {
         },
       }),
     ).rejects.toThrow(/timeout acquiring memory wal lock/i);
+  });
+
+  // --- Phase 4: Goal Stack + Blocker + Progress events ---
+
+  it("GOAL_PUSHED pushes current goal to stack and sets new goal", async () => {
+    await upsertTaskRegistryTask({ workspaceDir, taskId: "task-gs", title: "Goal Stack" });
+    await commitMemoryEvents({
+      workspaceDir,
+      writeScope: "task",
+      taskId: "task-gs",
+      actor: "agent",
+      events: [{ type: "GOAL_SET", payload: { goal: "Original goal" } }],
+    });
+    await commitMemoryEvents({
+      workspaceDir,
+      writeScope: "task",
+      taskId: "task-gs",
+      actor: "agent",
+      events: [{ type: "GOAL_PUSHED", payload: { goal: "Sub-goal A" } }],
+    });
+    const snapshot = await readSnapshot({ workspaceDir, scope: "task", taskId: "task-gs" });
+    expect(snapshot.state.goal).toBe("Sub-goal A");
+    expect(snapshot.state.goalStack).toEqual(["Original goal"]);
+  });
+
+  it("GOAL_POPPED restores previous goal from stack", async () => {
+    await upsertTaskRegistryTask({ workspaceDir, taskId: "task-gp", title: "Goal Pop" });
+    await commitMemoryEvents({
+      workspaceDir,
+      writeScope: "task",
+      taskId: "task-gp",
+      actor: "agent",
+      events: [
+        { type: "GOAL_SET", payload: { goal: "Root goal" } },
+        { type: "GOAL_PUSHED", payload: { goal: "Sub-goal 1" } },
+        { type: "GOAL_PUSHED", payload: { goal: "Sub-goal 2" } },
+      ],
+    });
+    let snapshot = await readSnapshot({ workspaceDir, scope: "task", taskId: "task-gp" });
+    expect(snapshot.state.goal).toBe("Sub-goal 2");
+    expect(snapshot.state.goalStack).toEqual(["Root goal", "Sub-goal 1"]);
+
+    await commitMemoryEvents({
+      workspaceDir,
+      writeScope: "task",
+      taskId: "task-gp",
+      actor: "agent",
+      events: [{ type: "GOAL_POPPED", payload: {} }],
+    });
+    snapshot = await readSnapshot({ workspaceDir, scope: "task", taskId: "task-gp" });
+    expect(snapshot.state.goal).toBe("Sub-goal 1");
+    expect(snapshot.state.goalStack).toEqual(["Root goal"]);
+  });
+
+  it("GOAL_POPPED on empty stack clears goal", async () => {
+    await upsertTaskRegistryTask({ workspaceDir, taskId: "task-gpe", title: "Goal Pop Empty" });
+    await commitMemoryEvents({
+      workspaceDir,
+      writeScope: "task",
+      taskId: "task-gpe",
+      actor: "agent",
+      events: [
+        { type: "GOAL_SET", payload: { goal: "Only goal" } },
+        { type: "GOAL_POPPED", payload: {} },
+      ],
+    });
+    const snapshot = await readSnapshot({ workspaceDir, scope: "task", taskId: "task-gpe" });
+    expect(snapshot.state.goal).toBeUndefined();
+    expect(snapshot.state.goalStack ?? []).toEqual([]);
+  });
+
+  it("BLOCKER_ADDED appends and deduplicates blockers", async () => {
+    await upsertTaskRegistryTask({ workspaceDir, taskId: "task-ba", title: "Blockers" });
+    await commitMemoryEvents({
+      workspaceDir,
+      writeScope: "task",
+      taskId: "task-ba",
+      actor: "agent",
+      events: [
+        { type: "BLOCKER_ADDED", payload: { blocker: "Waiting for API keys" } },
+        { type: "BLOCKER_ADDED", payload: { blocker: "CI pipeline broken" } },
+        { type: "BLOCKER_ADDED", payload: { blocker: "Waiting for API keys" } }, // duplicate
+      ],
+    });
+    const snapshot = await readSnapshot({ workspaceDir, scope: "task", taskId: "task-ba" });
+    expect(snapshot.state.blockers).toEqual(["Waiting for API keys", "CI pipeline broken"]);
+  });
+
+  it("BLOCKER_RESOLVED removes matching blocker", async () => {
+    await upsertTaskRegistryTask({ workspaceDir, taskId: "task-br", title: "Resolve Blocker" });
+    await commitMemoryEvents({
+      workspaceDir,
+      writeScope: "task",
+      taskId: "task-br",
+      actor: "agent",
+      events: [
+        { type: "BLOCKER_ADDED", payload: { blocker: "API keys missing" } },
+        { type: "BLOCKER_ADDED", payload: { blocker: "Build broken" } },
+        { type: "BLOCKER_RESOLVED", payload: { blocker: "API keys missing" } },
+      ],
+    });
+    const snapshot = await readSnapshot({ workspaceDir, scope: "task", taskId: "task-br" });
+    expect(snapshot.state.blockers).toEqual(["Build broken"]);
+  });
+
+  it("GOAL_PROGRESS_MARKED sets goalLastProgressAt timestamp", async () => {
+    await upsertTaskRegistryTask({ workspaceDir, taskId: "task-gpm", title: "Progress" });
+    const now = Date.now();
+    await commitMemoryEvents({
+      workspaceDir,
+      writeScope: "task",
+      taskId: "task-gpm",
+      actor: "agent",
+      events: [{ type: "GOAL_PROGRESS_MARKED", payload: {}, timestamp: now }],
+    });
+    const snapshot = await readSnapshot({ workspaceDir, scope: "task", taskId: "task-gpm" });
+    expect(snapshot.state.goalLastProgressAt).toBe(now);
+  });
+
+  it("NEXT_ACTION_COMPLETED and USER_CONFIRMED update goalLastProgressAt", async () => {
+    await upsertTaskRegistryTask({ workspaceDir, taskId: "task-pup", title: "Progress Update" });
+    const t1 = 1_700_000_000_000;
+    const t2 = 1_700_000_060_000;
+    await commitMemoryEvents({
+      workspaceDir,
+      writeScope: "task",
+      taskId: "task-pup",
+      actor: "agent",
+      events: [
+        { type: "NEXT_ACTION_SET", payload: { action: "Write tests" }, timestamp: t1 - 1000 },
+        { type: "NEXT_ACTION_COMPLETED", payload: { action: "Write tests" }, timestamp: t1 },
+      ],
+    });
+    let snapshot = await readSnapshot({ workspaceDir, scope: "task", taskId: "task-pup" });
+    expect(snapshot.state.goalLastProgressAt).toBe(t1);
+
+    await commitMemoryEvents({
+      workspaceDir,
+      writeScope: "task",
+      taskId: "task-pup",
+      actor: "user",
+      events: [{ type: "USER_CONFIRMED", payload: {}, timestamp: t2 }],
+    });
+    snapshot = await readSnapshot({ workspaceDir, scope: "task", taskId: "task-pup" });
+    expect(snapshot.state.goalLastProgressAt).toBe(t2);
   });
 });

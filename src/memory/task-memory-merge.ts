@@ -1,6 +1,5 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-
 import { ensureDir } from "./internal.js";
 import { normalizeMemoryTaskId, resolveTaskMemoryFilePath } from "./namespaces.js";
 
@@ -13,6 +12,8 @@ export type TaskMemorySnapshot = {
   keyEntities: string[];
   pinned: string[];
   notes: string[];
+  goalStack?: string[];
+  blockers?: string[];
 };
 
 export type TaskMemoryMergeResult = {
@@ -29,6 +30,8 @@ const EMPTY_SNAPSHOT: TaskMemorySnapshot = {
   keyEntities: [],
   pinned: [],
   notes: [],
+  goalStack: [],
+  blockers: [],
 };
 
 type SnapshotParseState = {
@@ -56,6 +59,10 @@ const KNOWN_SECTIONS: Record<string, keyof TaskMemorySnapshot> = {
   pinned: "pinned",
   pins: "pinned",
   notes: "notes",
+  goalstack: "goalStack",
+  subgoals: "goalStack",
+  blockers: "blockers",
+  blocked: "blockers",
 };
 
 const normalizeText = (value: string): string => value.replace(/\s+/g, " ").trim();
@@ -81,9 +88,13 @@ function dedupe(items: string[]): string[] {
   const seen = new Set<string>();
   for (const item of items) {
     const normalized = normalizeText(item);
-    if (!normalized) continue;
+    if (!normalized) {
+      continue;
+    }
     const key = normalized.toLowerCase();
-    if (seen.has(key)) continue;
+    if (seen.has(key)) {
+      continue;
+    }
     seen.add(key);
     out.push(normalized);
   }
@@ -92,7 +103,9 @@ function dedupe(items: string[]): string[] {
 
 function parseSectionHeading(line: string): keyof TaskMemorySnapshot | null {
   const headingMatch = line.match(/^\s{0,3}#{1,6}\s+(.+?)\s*$/);
-  if (!headingMatch) return null;
+  if (!headingMatch) {
+    return null;
+  }
   const key = normalizeHeading(headingMatch[1] ?? "");
   return KNOWN_SECTIONS[key] ?? null;
 }
@@ -101,9 +114,13 @@ function parseInlineSectionLine(
   line: string,
 ): { section: keyof TaskMemorySnapshot; value: string } | null {
   const match = line.match(/^\s*([A-Za-z ]+)\s*:\s*(.+)\s*$/);
-  if (!match) return null;
+  if (!match) {
+    return null;
+  }
   const section = KNOWN_SECTIONS[normalizeHeading(match[1] ?? "")];
-  if (!section) return null;
+  if (!section) {
+    return null;
+  }
   return {
     section,
     value: match[2] ?? "",
@@ -116,14 +133,21 @@ function appendSectionLine(
   line: string,
 ): void {
   const cleaned = normalizeListLine(line);
-  if (!cleaned) return;
+  if (!cleaned) {
+    return;
+  }
   if (section === "goal" || section === "currentState") {
     const current = snapshot[section];
     const next = current ? `${current}\n${cleaned}` : cleaned;
     snapshot[section] = next;
     return;
   }
-  snapshot[section].push(cleaned);
+  const arr = snapshot[section];
+  if (Array.isArray(arr)) {
+    arr.push(cleaned);
+  } else {
+    (snapshot as Record<string, unknown>)[section] = [cleaned];
+  }
 }
 
 function finalizeSnapshot(snapshot: TaskMemorySnapshot): TaskMemorySnapshot {
@@ -136,9 +160,21 @@ function finalizeSnapshot(snapshot: TaskMemorySnapshot): TaskMemorySnapshot {
     keyEntities: dedupe(snapshot.keyEntities),
     pinned: dedupe(snapshot.pinned),
     notes: dedupe(snapshot.notes),
+    goalStack: dedupe(snapshot.goalStack ?? []),
+    blockers: dedupe(snapshot.blockers ?? []),
   };
-  if (!next.goal) delete next.goal;
-  if (!next.currentState) delete next.currentState;
+  if (!next.goal) {
+    delete next.goal;
+  }
+  if (!next.currentState) {
+    delete next.currentState;
+  }
+  if (next.goalStack && next.goalStack.length === 0) {
+    delete next.goalStack;
+  }
+  if (next.blockers && next.blockers.length === 0) {
+    delete next.blockers;
+  }
   return next;
 }
 
@@ -153,6 +189,8 @@ export function parseTaskMemorySnapshot(markdown: string): TaskMemorySnapshot | 
     keyEntities: [],
     pinned: [],
     notes: [],
+    goalStack: [],
+    blockers: [],
   };
 
   let section: keyof TaskMemorySnapshot | null = null;
@@ -161,10 +199,16 @@ export function parseTaskMemorySnapshot(markdown: string): TaskMemorySnapshot | 
 
   for (const rawLine of lines) {
     const line = rawLine.trimEnd();
-    if (!line.trim()) continue;
+    if (!line.trim()) {
+      continue;
+    }
     hasNonEmptyContent = true;
-    if (/^\s*#\s+task memory\s*$/i.test(line)) continue;
-    if (!section && /^\s*-\s*taskid\s*:/i.test(line)) continue;
+    if (/^\s*#\s+task memory\s*$/i.test(line)) {
+      continue;
+    }
+    if (!section && /^\s*-\s*taskid\s*:/i.test(line)) {
+      continue;
+    }
     const heading = parseSectionHeading(line);
     if (heading) {
       section = heading;
@@ -184,8 +228,12 @@ export function parseTaskMemorySnapshot(markdown: string): TaskMemorySnapshot | 
     appendSectionLine(snapshot, section, line);
   }
 
-  if (!hasNonEmptyContent) return { ...EMPTY_SNAPSHOT };
-  if (!hasKnownSection) return null;
+  if (!hasNonEmptyContent) {
+    return { ...EMPTY_SNAPSHOT };
+  }
+  if (!hasKnownSection) {
+    return null;
+  }
   return finalizeSnapshot(snapshot);
 }
 
@@ -194,10 +242,14 @@ function parseResolvedMarkers(items: string[]): { open: string[]; resolved: Set<
   const resolved = new Set<string>();
   for (const item of items) {
     const normalized = normalizeText(item);
-    if (!normalized) continue;
+    if (!normalized) {
+      continue;
+    }
     if (/^resolved\s*:/i.test(normalized)) {
       const marker = normalizeText(normalized.replace(/^resolved\s*:/i, ""));
-      if (marker) resolved.add(marker.toLowerCase());
+      if (marker) {
+        resolved.add(marker.toLowerCase());
+      }
       continue;
     }
     open.push(normalized);
@@ -210,10 +262,14 @@ function parsePinMarkers(items: string[]): { pins: string[]; unpins: Set<string>
   const unpins = new Set<string>();
   for (const item of items) {
     const normalized = normalizeText(item);
-    if (!normalized) continue;
+    if (!normalized) {
+      continue;
+    }
     if (/^unpin\s*:/i.test(normalized) || /^remove\s*:/i.test(normalized)) {
       const marker = normalizeText(normalized.replace(/^(unpin|remove)\s*:/i, ""));
-      if (marker) unpins.add(marker.toLowerCase());
+      if (marker) {
+        unpins.add(marker.toLowerCase());
+      }
       continue;
     }
     pins.push(normalized.replace(/^pin\s*:/i, "").trim());
@@ -224,9 +280,13 @@ function parsePinMarkers(items: string[]): { pins: string[]; unpins: Set<string>
 function entityKey(entity: string): string {
   const cleaned = normalizeText(entity);
   const colon = cleaned.indexOf(":");
-  if (colon > 0) return normalizeKey(cleaned.slice(0, colon));
+  if (colon > 0) {
+    return normalizeKey(cleaned.slice(0, colon));
+  }
   const dash = cleaned.indexOf(" - ");
-  if (dash > 0) return normalizeKey(cleaned.slice(0, dash));
+  if (dash > 0) {
+    return normalizeKey(cleaned.slice(0, dash));
+  }
   return normalizeKey(cleaned);
 }
 
@@ -235,13 +295,17 @@ function mergeEntities(existing: string[], incoming: string[]): string[] {
   const indexByKey = new Map<string, number>();
   for (const entity of dedupe(existing)) {
     const key = entityKey(entity);
-    if (!key) continue;
+    if (!key) {
+      continue;
+    }
     indexByKey.set(key, out.length);
     out.push(entity);
   }
   for (const entity of dedupe(incoming)) {
     const key = entityKey(entity);
-    if (!key) continue;
+    if (!key) {
+      continue;
+    }
     const existingIndex = indexByKey.get(key);
     if (existingIndex == null) {
       indexByKey.set(key, out.length);
@@ -261,7 +325,9 @@ export function mergeTaskMemorySnapshots(params: {
   const incoming = params.incoming;
 
   const incomingGoal = incoming.goal ? normalizeText(incoming.goal) : undefined;
-  const incomingCurrentState = incoming.currentState ? normalizeText(incoming.currentState) : undefined;
+  const incomingCurrentState = incoming.currentState
+    ? normalizeText(incoming.currentState)
+    : undefined;
 
   const resolvedQuestions = parseResolvedMarkers(incoming.openQuestions);
   const nextOpenQuestions = dedupe([
@@ -277,15 +343,33 @@ export function mergeTaskMemorySnapshots(params: {
     ...pinMarkers.pins,
   ]);
 
+  // Goal stack: incoming replaces entirely if non-empty, else keep existing
+  const mergedGoalStack =
+    (incoming.goalStack ?? []).length > 0
+      ? dedupe(incoming.goalStack!)
+      : dedupe(existing.goalStack ?? []);
+
+  // Blockers: merge with "resolved:" markers similar to open questions
+  const blockerResolved = parseResolvedMarkers(incoming.blockers ?? []);
+  const mergedBlockers = dedupe([
+    ...(existing.blockers ?? []).filter(
+      (item) => !blockerResolved.resolved.has(normalizeText(item).toLowerCase()),
+    ),
+    ...blockerResolved.open,
+  ]);
+
   return finalizeSnapshot({
     goal: incomingGoal || existing.goal,
     currentState: incomingCurrentState || existing.currentState,
     decisions: dedupe([...existing.decisions, ...incoming.decisions]),
     openQuestions: nextOpenQuestions,
-    nextActions: incoming.nextActions.length > 0 ? dedupe(incoming.nextActions) : existing.nextActions,
+    nextActions:
+      incoming.nextActions.length > 0 ? dedupe(incoming.nextActions) : existing.nextActions,
     keyEntities: mergeEntities(existing.keyEntities, incoming.keyEntities),
     pinned: mergedPinned,
     notes: dedupe([...existing.notes, ...incoming.notes]),
+    goalStack: mergedGoalStack,
+    blockers: mergedBlockers,
   });
 }
 
@@ -325,6 +409,12 @@ export function renderTaskMemorySnapshot(params: {
     ...renderSection("Key Entities", snapshot.keyEntities),
     ...renderSection("Pinned", snapshot.pinned),
   ];
+  if (snapshot.goalStack && snapshot.goalStack.length > 0) {
+    lines.push(...renderSection("Goal Stack", snapshot.goalStack));
+  }
+  if (snapshot.blockers && snapshot.blockers.length > 0) {
+    lines.push(...renderSection("Blockers", snapshot.blockers));
+  }
   if (snapshot.notes.length > 0) {
     lines.push(...renderSection("Notes", snapshot.notes));
   }
@@ -349,6 +439,8 @@ function snapshotFromMarkdown(markdown: string): SnapshotParseState {
     parsed.nextActions.length > 0 ||
     parsed.keyEntities.length > 0 ||
     parsed.pinned.length > 0 ||
+    (parsed.goalStack ?? []).length > 0 ||
+    (parsed.blockers ?? []).length > 0 ||
     parsed.notes.length > 0;
   return {
     snapshot: parsed,
@@ -363,7 +455,9 @@ export async function mergeTaskMemoryFile(params: {
   existingMarkdown?: string;
 }): Promise<TaskMemoryMergeResult> {
   const taskId = normalizeMemoryTaskId(params.taskId);
-  if (!taskId) return { applied: false, changed: false, reason: "missing-task-id" };
+  if (!taskId) {
+    return { applied: false, changed: false, reason: "missing-task-id" };
+  }
   const relPath = resolveTaskMemoryFilePath(taskId);
   const absPath = path.join(params.workspaceDir, relPath);
 

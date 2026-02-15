@@ -79,6 +79,48 @@ export function ensureMemoryIndexSchema(params: {
   params.db.exec(`CREATE INDEX IF NOT EXISTS idx_chunks_path ON chunks(path);`);
   params.db.exec(`CREATE INDEX IF NOT EXISTS idx_chunks_source ON chunks(source);`);
 
+  // Claims table for structured knowledge assertions (Phase 1).
+  params.db.exec(`
+    CREATE TABLE IF NOT EXISTS claims (
+      id TEXT PRIMARY KEY,
+      text TEXT NOT NULL,
+      scope TEXT NOT NULL DEFAULT 'global',
+      task_id TEXT,
+      status TEXT NOT NULL DEFAULT 'unverified',
+      confidence REAL DEFAULT 0.5,
+      claim_type TEXT,
+      evidence_refs TEXT,
+      source_path TEXT,
+      source_lines TEXT,
+      embedding BLOB,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+  `);
+  params.db.exec(`CREATE INDEX IF NOT EXISTS idx_claims_scope ON claims(scope);`);
+  params.db.exec(`CREATE INDEX IF NOT EXISTS idx_claims_status ON claims(status);`);
+  params.db.exec(`CREATE INDEX IF NOT EXISTS idx_claims_task_id ON claims(task_id);`);
+
+  // Q/A pairs table for self-healing answer capture (Phase 3).
+  params.db.exec(`
+    CREATE TABLE IF NOT EXISTS qa_pairs (
+      id TEXT PRIMARY KEY,
+      question TEXT NOT NULL,
+      answer TEXT NOT NULL,
+      question_embedding BLOB,
+      session_key TEXT,
+      task_id TEXT,
+      claim_refs TEXT,
+      chunk_refs TEXT,
+      model TEXT,
+      feedback TEXT,
+      correction TEXT,
+      created_at INTEGER NOT NULL
+    );
+  `);
+  params.db.exec(`CREATE INDEX IF NOT EXISTS idx_qa_pairs_session_key ON qa_pairs(session_key);`);
+  params.db.exec(`CREATE INDEX IF NOT EXISTS idx_qa_pairs_task_id ON qa_pairs(task_id);`);
+
   return { ftsAvailable, ...(ftsError ? { ftsError } : {}) };
 }
 

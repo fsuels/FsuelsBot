@@ -1,10 +1,21 @@
 import crypto from "node:crypto";
-
-import { parseDurationMs } from "../../cli/parse-duration.js";
 import type { SessionEntry } from "../../config/sessions.js";
+import type { CommandHandler } from "./commands-types.js";
+import { parseDurationMs } from "../../cli/parse-duration.js";
 import { updateSessionStore } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
 import { forgetMemoryWorkspace } from "../../memory/forget.js";
+import {
+  cancelMemoryPinRemoveIntent,
+  createMemoryPinRemoveIntent,
+  editMemoryPin,
+  executePinRemoval,
+  listMemoryPins,
+  removeMemoryPin,
+  type MemoryPinType,
+  upsertMemoryPin,
+  validatePinRemoveIntent,
+} from "../../memory/pins.js";
 import {
   commitMemoryEvents,
   getTaskRegistryTask,
@@ -15,21 +26,10 @@ import {
   upsertTaskRegistryTask,
 } from "../../memory/task-memory-system.js";
 import {
-  cancelMemoryPinRemoveIntent,
-  confirmMemoryPinRemoveIntent,
-  createMemoryPinRemoveIntent,
-  editMemoryPin,
-  listMemoryPins,
-  removeMemoryPin,
-  type MemoryPinType,
-  upsertMemoryPin,
-} from "../../memory/pins.js";
-import {
   applySessionTaskUpdate,
   DEFAULT_SESSION_TASK_ID,
   resolveSessionTaskView,
 } from "../../sessions/task-context.js";
-import type { CommandHandler } from "./commands-types.js";
 
 type ParsedArgs = {
   values: string[];
@@ -58,7 +58,9 @@ function parseArgs(raw: string): ParsedArgs {
       continue;
     }
     const key = token.slice(2).trim().toLowerCase();
-    if (!key) continue;
+    if (!key) {
+      continue;
+    }
     const next = tokens[i + 1];
     if (!next || next.startsWith("--")) {
       flags[key] = true;
@@ -92,21 +94,33 @@ function normalizeTaskStatus(
   action: string,
 ): "active" | "paused" | "completed" | "archived" | null {
   const normalized = action.trim().toLowerCase();
-  if (normalized === "active") return "active";
-  if (normalized === "paused" || normalized === "suspended") return "paused";
+  if (normalized === "active") {
+    return "active";
+  }
+  if (normalized === "paused" || normalized === "suspended") {
+    return "paused";
+  }
   if (normalized === "completed" || normalized === "done" || normalized === "closed") {
     return "completed";
   }
-  if (normalized === "archived" || normalized === "archive") return "archived";
+  if (normalized === "archived" || normalized === "archive") {
+    return "archived";
+  }
   return null;
 }
 
 function mapSessionStatusToRegistryStatus(
   status: "active" | "paused" | "completed" | "archived",
 ): TaskRegistryStatus {
-  if (status === "active") return "active";
-  if (status === "paused") return "suspended";
-  if (status === "completed") return "closed";
+  if (status === "active") {
+    return "active";
+  }
+  if (status === "paused") {
+    return "suspended";
+  }
+  if (status === "completed") {
+    return "closed";
+  }
   return "archived";
 }
 
@@ -125,8 +139,12 @@ function ensureSessionEntry(params: {
   sessionKey?: string;
 }): SessionEntry {
   const fromStore = params.sessionKey ? params.sessionStore?.[params.sessionKey] : undefined;
-  if (params.entry) return params.entry;
-  if (fromStore) return fromStore;
+  if (params.entry) {
+    return params.entry;
+  }
+  if (fromStore) {
+    return fromStore;
+  }
   const now = Date.now();
   return {
     sessionId: crypto.randomUUID(),
@@ -148,7 +166,9 @@ async function persistSessionEntry(params: {
   storePath?: string;
   sessionStore?: Record<string, SessionEntry>;
 }): Promise<void> {
-  if (!params.sessionKey) return;
+  if (!params.sessionKey) {
+    return;
+  }
   if (params.sessionStore) {
     params.sessionStore[params.sessionKey] = params.entry;
   }
@@ -164,7 +184,7 @@ async function commitRequired(params: Parameters<typeof commitMemoryEvents>[0]):
     await commitMemoryEvents(params);
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err);
-    throw new Error(`durable memory commit failed: ${detail}`);
+    throw new Error(`durable memory commit failed: ${detail}`, { cause: err });
   }
 }
 
@@ -258,8 +278,12 @@ async function runTaskSwitch(params: {
 }
 
 function rewriteTaskCommand(normalized: string): string | null {
-  if (normalized === "/tasks") return "/task list";
-  if (normalized === "/resume") return "/task set";
+  if (normalized === "/tasks") {
+    return "/task list";
+  }
+  if (normalized === "/resume") {
+    return "/task set";
+  }
   if (normalized.startsWith("/resume ")) {
     return `/task set ${normalized.slice("/resume".length).trim()}`;
   }
@@ -272,32 +296,46 @@ function rewriteTaskCommand(normalized: string): string | null {
   if (normalized.startsWith("/archive ")) {
     return `/task archive ${normalized.slice("/archive".length).trim()}`;
   }
-  if (normalized === "/archive") return "/task archive";
+  if (normalized === "/archive") {
+    return "/task archive";
+  }
   if (normalized.startsWith("/close ")) {
     return `/task close ${normalized.slice("/close".length).trim()}`;
   }
-  if (normalized === "/close") return "/task close";
+  if (normalized === "/close") {
+    return "/task close";
+  }
   if (normalized.startsWith("/link ")) {
     return `/task link ${normalized.slice("/link".length).trim()}`;
   }
-  if (normalized === "/task" || normalized.startsWith("/task ")) return normalized;
+  if (normalized === "/task" || normalized.startsWith("/task ")) {
+    return normalized;
+  }
   return null;
 }
 
 export const handlePinCommand: CommandHandler = async (params, allowTextCommands) => {
-  if (!allowTextCommands) return null;
+  if (!allowTextCommands) {
+    return null;
+  }
   const normalized = params.command.rawBodyNormalized || params.command.commandBodyNormalized;
   const isPinCommand = normalized === "/pin" || normalized.startsWith("/pin ");
   const isPinsAlias = normalized === "/pins" || normalized.startsWith("/pins ");
   const isUnpinAlias = normalized === "/unpin" || normalized.startsWith("/unpin ");
-  if (!isPinCommand && !isPinsAlias && !isUnpinAlias) return null;
+  if (!isPinCommand && !isPinsAlias && !isUnpinAlias) {
+    return null;
+  }
   if (!params.command.isAuthorizedSender) {
     logVerbose(`Ignoring /pin from unauthorized sender: ${params.command.senderId || "<unknown>"}`);
     return { shouldContinue: false };
   }
   const canonical = (() => {
-    if (isPinsAlias) return normalized.replace(/^\/pins\b/, "/pin list");
-    if (isUnpinAlias) return normalized.replace(/^\/unpin\b/, "/pin remove");
+    if (isPinsAlias) {
+      return normalized.replace(/^\/pins\b/, "/pin list");
+    }
+    if (isUnpinAlias) {
+      return normalized.replace(/^\/unpin\b/, "/pin remove");
+    }
     return normalized;
   })();
 
@@ -348,43 +386,57 @@ export const handlePinCommand: CommandHandler = async (params, allowTextCommands
     if (!token) {
       return { shouldContinue: false, reply: { text: "Usage: /pin confirm <token>" } };
     }
-    const result = await confirmMemoryPinRemoveIntent({
+    // WAL-first: validate intent without mutating the pin store.
+    const validation = await validatePinRemoveIntent({
       workspaceDir: params.workspaceDir,
       token,
     });
-    if (!result.pinId) {
+    if (!validation.pinId) {
       return {
         shouldContinue: false,
         reply: { text: "Pin removal token not found. It may be expired or already used." },
       };
     }
-    if (!result.removed) {
+    if (!validation.valid) {
       return {
         shouldContinue: false,
         reply: {
-          text: result.expired
-            ? `Removal token expired for pin ${result.pinId}.`
-            : `Pin ${result.pinId} was already removed.`,
+          text: validation.expired
+            ? `Removal token expired for pin ${validation.pinId}.`
+            : `Pin ${validation.pinId} was already removed.`,
         },
       };
     }
+    // Commit durable event BEFORE mutating the pin store.
     try {
       await commitRequired({
         workspaceDir: params.workspaceDir,
-        writeScope: result.scope ?? "global",
-        taskId: result.taskId,
+        writeScope: validation.scope ?? "global",
+        taskId: validation.taskId,
         actor: "user",
         events: [
-          { type: "PIN_REMOVE_REQUESTED", payload: { pinId: result.pinId } },
-          { type: "PIN_REMOVED", payload: { pinId: result.pinId } },
+          { type: "PIN_REMOVE_REQUESTED", payload: { pinId: validation.pinId } },
+          { type: "PIN_REMOVED", payload: { pinId: validation.pinId } },
         ],
       });
     } catch (error) {
+      // WAL failed — pin store is untouched, intent survives, user can retry.
       return durabilityFailureReply("Pin removal", error);
+    }
+    // WAL succeeded — now perform the actual pin store mutation.
+    try {
+      await executePinRemoval({
+        workspaceDir: params.workspaceDir,
+        token,
+      });
+    } catch (execError) {
+      // WAL is authoritative; pin store will catch up on next replay.
+      const detail = execError instanceof Error ? execError.message : String(execError);
+      logVerbose(`Pin store mutation after WAL commit failed for ${validation.pinId}: ${detail}`);
     }
     return {
       shouldContinue: false,
-      reply: { text: `Removed pin ${result.pinId}.` },
+      reply: { text: `Removed pin ${validation.pinId}.` },
     };
   }
 
@@ -583,9 +635,13 @@ export const handlePinCommand: CommandHandler = async (params, allowTextCommands
 };
 
 export const handleForgetCommand: CommandHandler = async (params, allowTextCommands) => {
-  if (!allowTextCommands) return null;
+  if (!allowTextCommands) {
+    return null;
+  }
   const normalized = params.command.commandBodyNormalized;
-  if (normalized !== "/forget" && !normalized.startsWith("/forget ")) return null;
+  if (normalized !== "/forget" && !normalized.startsWith("/forget ")) {
+    return null;
+  }
   if (!params.command.isAuthorizedSender) {
     logVerbose(
       `Ignoring /forget from unauthorized sender: ${params.command.senderId || "<unknown>"}`,
@@ -688,11 +744,15 @@ export const handleForgetCommand: CommandHandler = async (params, allowTextComma
 };
 
 export const handleTaskCommand: CommandHandler = async (params, allowTextCommands) => {
-  if (!allowTextCommands) return null;
+  if (!allowTextCommands) {
+    return null;
+  }
   const rewritten =
     rewriteTaskCommand(params.command.rawBodyNormalized) ??
     rewriteTaskCommand(params.command.commandBodyNormalized);
-  if (!rewritten) return null;
+  if (!rewritten) {
+    return null;
+  }
   if (!params.command.isAuthorizedSender) {
     logVerbose(
       `Ignoring /task from unauthorized sender: ${params.command.senderId || "<unknown>"}`,
@@ -730,7 +790,7 @@ export const handleTaskCommand: CommandHandler = async (params, allowTextCommand
         .map((task) => `- ${task.taskId} (${task.status})${task.title ? ` - ${task.title}` : ""}`);
       return { shouldContinue: false, reply: { text: `Known tasks:\n${lines.join("\n")}` } };
     }
-    const tasks = Object.entries(entry.taskStateById ?? {}).sort(
+    const tasks = Object.entries(entry.taskStateById ?? {}).toSorted(
       (a, b) => (b[1]?.updatedAt ?? 0) - (a[1]?.updatedAt ?? 0),
     );
     if (!tasks.length) {
@@ -914,9 +974,13 @@ export const handleTaskCommand: CommandHandler = async (params, allowTextCommand
 };
 
 export const handleAutoSwitchCommand: CommandHandler = async (params, allowTextCommands) => {
-  if (!allowTextCommands) return null;
+  if (!allowTextCommands) {
+    return null;
+  }
   const normalized = params.command.commandBodyNormalized;
-  if (normalized !== "/autoswitch" && !normalized.startsWith("/autoswitch ")) return null;
+  if (normalized !== "/autoswitch" && !normalized.startsWith("/autoswitch ")) {
+    return null;
+  }
   if (!params.command.isAuthorizedSender) {
     logVerbose(
       `Ignoring /autoswitch from unauthorized sender: ${params.command.senderId || "<unknown>"}`,
@@ -952,9 +1016,13 @@ export const handleAutoSwitchCommand: CommandHandler = async (params, allowTextC
 };
 
 export const handleMemoryModeCommand: CommandHandler = async (params, allowTextCommands) => {
-  if (!allowTextCommands) return null;
+  if (!allowTextCommands) {
+    return null;
+  }
   const normalized = params.command.commandBodyNormalized;
-  if (normalized !== "/mode" && !normalized.startsWith("/mode ")) return null;
+  if (normalized !== "/mode" && !normalized.startsWith("/mode ")) {
+    return null;
+  }
   if (!params.command.isAuthorizedSender) {
     logVerbose(
       `Ignoring /mode from unauthorized sender: ${params.command.senderId || "<unknown>"}`,

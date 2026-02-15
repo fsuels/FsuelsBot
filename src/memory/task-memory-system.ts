@@ -1,8 +1,7 @@
-import crypto from "node:crypto";
 import { spawnSync } from "node:child_process";
+import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-
 import { emitDiagnosticEvent } from "../infra/diagnostic-events.js";
 import { ensureDir } from "./internal.js";
 import { normalizeMemoryTaskId } from "./namespaces.js";
@@ -18,6 +17,7 @@ export type TaskRegistryRecord = {
   links: string[];
   pinSetId: string;
   schemaVersion: number;
+  deadline?: number;
 };
 
 type TaskRegistryStore = {
@@ -45,7 +45,12 @@ export type MemoryEventType =
   | "PIN_REMOVE_REQUESTED"
   | "PIN_REMOVED"
   | "STATE_PATCH_APPLIED"
-  | "USER_CONFIRMED";
+  | "USER_CONFIRMED"
+  | "GOAL_PUSHED"
+  | "GOAL_POPPED"
+  | "BLOCKER_ADDED"
+  | "BLOCKER_RESOLVED"
+  | "GOAL_PROGRESS_MARKED";
 
 export type MemoryEventActor = "user" | "agent" | "system";
 
@@ -77,6 +82,9 @@ export type CanonicalMemoryState = {
   pins: string[];
   links: string[];
   lastConfirmedAt?: number;
+  goalStack?: string[];
+  blockers?: string[];
+  goalLastProgressAt?: number;
 };
 
 export type MemorySnapshotRecord = {
@@ -187,6 +195,11 @@ const EVENT_TYPE_SET = new Set<MemoryEventType>([
   "PIN_REMOVED",
   "STATE_PATCH_APPLIED",
   "USER_CONFIRMED",
+  "GOAL_PUSHED",
+  "GOAL_POPPED",
+  "BLOCKER_ADDED",
+  "BLOCKER_RESOLVED",
+  "GOAL_PROGRESS_MARKED",
 ]);
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -195,15 +208,21 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 
 function readRequiredString(payload: Record<string, unknown>, key: string): string | null {
   const value = payload[key];
-  if (typeof value !== "string") return null;
+  if (typeof value !== "string") {
+    return null;
+  }
   const trimmed = value.trim();
   return trimmed ? trimmed : null;
 }
 
 function readOptionalString(payload: Record<string, unknown>, key: string): string | undefined {
   const value = payload[key];
-  if (value == null) return undefined;
-  if (typeof value !== "string") return undefined;
+  if (value == null) {
+    return undefined;
+  }
+  if (typeof value !== "string") {
+    return undefined;
+  }
   const trimmed = value.trim();
   return trimmed || undefined;
 }
@@ -215,8 +234,12 @@ function validateEventPayloadSchema(type: MemoryEventType, payload: unknown): st
   const p = payload;
   switch (type) {
     case "TASK_CREATED":
-      if (!readRequiredString(p, "taskId")) return "TASK_CREATED.taskId required";
-      if (!readRequiredString(p, "title")) return "TASK_CREATED.title required";
+      if (!readRequiredString(p, "taskId")) {
+        return "TASK_CREATED.taskId required";
+      }
+      if (!readRequiredString(p, "title")) {
+        return "TASK_CREATED.title required";
+      }
       return null;
     case "TITLE_SET":
       return readRequiredString(p, "title") ? null : "TITLE_SET.title required";
@@ -248,13 +271,27 @@ function validateEventPayloadSchema(type: MemoryEventType, payload: unknown): st
       return readRequiredString(p, "pinId") ? null : `${type}.pinId required`;
     case "STATE_PATCH_APPLIED": {
       const patch = p.patch;
-      if (!isPlainObject(patch)) return "STATE_PATCH_APPLIED.patch object required";
+      if (!isPlainObject(patch)) {
+        return "STATE_PATCH_APPLIED.patch object required";
+      }
       return null;
     }
     case "USER_CONFIRMED":
       if (p.source != null && !readOptionalString(p, "source")) {
         return "USER_CONFIRMED.source must be string when provided";
       }
+      return null;
+    case "GOAL_PUSHED":
+      return readRequiredString(p, "goal") ? null : "GOAL_PUSHED.goal required";
+    case "GOAL_POPPED":
+      // No required payload — pops the top of the goal stack
+      return null;
+    case "BLOCKER_ADDED":
+      return readRequiredString(p, "blocker") ? null : "BLOCKER_ADDED.blocker required";
+    case "BLOCKER_RESOLVED":
+      return readRequiredString(p, "blocker") ? null : "BLOCKER_RESOLVED.blocker required";
+    case "GOAL_PROGRESS_MARKED":
+      // No required payload — marks timestamp of progress
       return null;
   }
   const unreachable: never = type;
@@ -278,6 +315,8 @@ function defaultCanonicalState(): CanonicalMemoryState {
     artifacts: [],
     pins: [],
     links: [],
+    goalStack: [],
+    blockers: [],
   };
 }
 
@@ -382,18 +421,26 @@ let invalidSecurityModeReported = false;
 let invalidKeyProviderReported = false;
 
 function canonicalizeJson(value: unknown): string {
-  if (value === null) return "null";
-  if (typeof value === "string") return JSON.stringify(value);
-  if (typeof value === "number") {
-    if (!Number.isFinite(value)) return "null";
+  if (value === null) {
+    return "null";
+  }
+  if (typeof value === "string") {
     return JSON.stringify(value);
   }
-  if (typeof value === "boolean") return value ? "true" : "false";
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) {
+      return "null";
+    }
+    return JSON.stringify(value);
+  }
+  if (typeof value === "boolean") {
+    return value ? "true" : "false";
+  }
   if (Array.isArray(value)) {
     return `[${value.map((entry) => canonicalizeJson(entry)).join(",")}]`;
   }
   if (typeof value === "object") {
-    const entries = Object.entries(value as Record<string, unknown>).sort(([a], [b]) =>
+    const entries = Object.entries(value as Record<string, unknown>).toSorted(([a], [b]) =>
       a.localeCompare(b),
     );
     return `{${entries
@@ -462,7 +509,9 @@ function runShellCommand(command: string, timeoutMs: number): string {
     timeout: timeoutMs,
     maxBuffer: 1024 * 1024,
   });
-  if (child.error) throw child.error;
+  if (child.error) {
+    throw child.error;
+  }
   if (typeof child.status === "number" && child.status !== 0) {
     throw new Error(`command exited with status ${child.status}: ${(child.stderr ?? "").trim()}`);
   }
@@ -476,7 +525,9 @@ function runCommandWithArgs(executable: string, args: string[], timeoutMs: numbe
     timeout: timeoutMs,
     maxBuffer: 1024 * 1024,
   });
-  if (child.error) throw child.error;
+  if (child.error) {
+    throw child.error;
+  }
   if (typeof child.status === "number" && child.status !== 0) {
     throw new Error(
       `command failed (${executable}) status=${child.status}: ${(child.stderr ?? "").trim()}`,
@@ -490,7 +541,9 @@ function resolveKeyRingPayloadFromString(raw: string): {
   activeSigningKey?: string;
   verificationKeys: Map<string, string>;
 } {
-  if (!raw.trim()) return { verificationKeys: new Map<string, string>() };
+  if (!raw.trim()) {
+    return { verificationKeys: new Map<string, string>() };
+  }
   const parsed = JSON.parse(raw) as unknown;
   return parseResolvedKeyRingPayload(parsed);
 }
@@ -543,7 +596,9 @@ function createJsonMemoryKeyProvider(): MemoryKeyProvider {
     id: "json",
     resolve: () => {
       const raw = String(process.env.MEMORY_WAL_KEYRING_JSON ?? "").trim();
-      if (!raw) return { verificationKeys: new Map<string, string>() };
+      if (!raw) {
+        return { verificationKeys: new Map<string, string>() };
+      }
       try {
         return resolveKeyRingPayloadFromString(raw);
       } catch {
@@ -559,7 +614,9 @@ function createCommandMemoryKeyProvider(): MemoryKeyProvider {
     resolve: () => {
       const command = String(process.env.MEMORY_WAL_KEY_PROVIDER_COMMAND ?? "").trim();
       const timeoutMs = resolveProviderCommandTimeoutMs();
-      if (!command) return { verificationKeys: new Map<string, string>() };
+      if (!command) {
+        return { verificationKeys: new Map<string, string>() };
+      }
       try {
         const raw = runShellCommand(command, timeoutMs);
         return resolveKeyRingPayloadFromString(raw);
@@ -584,9 +641,13 @@ function createAwsSecretsManagerKeyProvider(): MemoryKeyProvider {
       const commandOverride = String(process.env.MEMORY_WAL_AWS_SECRET_COMMAND ?? "").trim();
       try {
         const raw = (() => {
-          if (commandOverride) return runShellCommand(commandOverride, timeoutMs);
+          if (commandOverride) {
+            return runShellCommand(commandOverride, timeoutMs);
+          }
           const secretId = String(process.env.MEMORY_WAL_AWS_SECRET_ID ?? "").trim();
-          if (!secretId) return "";
+          if (!secretId) {
+            return "";
+          }
           const cli = String(process.env.MEMORY_WAL_AWS_CLI ?? "aws").trim() || "aws";
           return runCommandWithArgs(
             cli,
@@ -625,9 +686,13 @@ function createGcpSecretManagerKeyProvider(): MemoryKeyProvider {
       const commandOverride = String(process.env.MEMORY_WAL_GCP_SECRET_COMMAND ?? "").trim();
       try {
         const raw = (() => {
-          if (commandOverride) return runShellCommand(commandOverride, timeoutMs);
+          if (commandOverride) {
+            return runShellCommand(commandOverride, timeoutMs);
+          }
           const secretName = String(process.env.MEMORY_WAL_GCP_SECRET_NAME ?? "").trim();
-          if (!secretName) return "";
+          if (!secretName) {
+            return "";
+          }
           const version =
             String(process.env.MEMORY_WAL_GCP_SECRET_VERSION ?? "latest").trim() || "latest";
           const cli = String(process.env.MEMORY_WAL_GCP_CLI ?? "gcloud").trim() || "gcloud";
@@ -659,10 +724,14 @@ function createAzureKeyVaultKeyProvider(): MemoryKeyProvider {
       const commandOverride = String(process.env.MEMORY_WAL_AZURE_SECRET_COMMAND ?? "").trim();
       try {
         const raw = (() => {
-          if (commandOverride) return runShellCommand(commandOverride, timeoutMs);
+          if (commandOverride) {
+            return runShellCommand(commandOverride, timeoutMs);
+          }
           const vaultName = String(process.env.MEMORY_WAL_AZURE_VAULT_NAME ?? "").trim();
           const secretName = String(process.env.MEMORY_WAL_AZURE_SECRET_NAME ?? "").trim();
-          if (!vaultName || !secretName) return "";
+          if (!vaultName || !secretName) {
+            return "";
+          }
           const cli = String(process.env.MEMORY_WAL_AZURE_CLI ?? "az").trim() || "az";
           return runCommandWithArgs(
             cli,
@@ -704,9 +773,13 @@ function createVaultKeyProvider(): MemoryKeyProvider {
       const commandOverride = String(process.env.MEMORY_WAL_VAULT_SECRET_COMMAND ?? "").trim();
       try {
         const raw = (() => {
-          if (commandOverride) return runShellCommand(commandOverride, timeoutMs);
+          if (commandOverride) {
+            return runShellCommand(commandOverride, timeoutMs);
+          }
           const secretPath = String(process.env.MEMORY_WAL_VAULT_SECRET_PATH ?? "").trim();
-          if (!secretPath) return "";
+          if (!secretPath) {
+            return "";
+          }
           const cli = String(process.env.MEMORY_WAL_VAULT_CLI ?? "vault").trim() || "vault";
           const kvVersion = String(process.env.MEMORY_WAL_VAULT_KV_VERSION ?? "2").trim();
           const args =
@@ -737,12 +810,24 @@ function resolveMemoryKeyProvider(): MemoryKeyProvider {
   const raw = String(process.env.MEMORY_WAL_KEY_PROVIDER ?? "env")
     .trim()
     .toLowerCase();
-  if (raw === "json") return createJsonMemoryKeyProvider();
-  if (raw === "command") return createCommandMemoryKeyProvider();
-  if (raw === "aws-sm") return createAwsSecretsManagerKeyProvider();
-  if (raw === "gcp-sm") return createGcpSecretManagerKeyProvider();
-  if (raw === "azure-kv") return createAzureKeyVaultKeyProvider();
-  if (raw === "vault") return createVaultKeyProvider();
+  if (raw === "json") {
+    return createJsonMemoryKeyProvider();
+  }
+  if (raw === "command") {
+    return createCommandMemoryKeyProvider();
+  }
+  if (raw === "aws-sm") {
+    return createAwsSecretsManagerKeyProvider();
+  }
+  if (raw === "gcp-sm") {
+    return createGcpSecretManagerKeyProvider();
+  }
+  if (raw === "azure-kv") {
+    return createAzureKeyVaultKeyProvider();
+  }
+  if (raw === "vault") {
+    return createVaultKeyProvider();
+  }
   if (raw !== "env" && !invalidKeyProviderReported) {
     invalidKeyProviderReported = true;
     // eslint-disable-next-line no-console
@@ -815,7 +900,9 @@ function resolveSigningCredentialsForWrite(config: MemorySecurityConfig): {
 } {
   const keyId = config.activeSigningKeyId?.trim() ?? "";
   const secret = config.activeSigningKey?.trim() ?? "";
-  if (keyId && secret) return { keyId, secret };
+  if (keyId && secret) {
+    return { keyId, secret };
+  }
   if (config.mode === "prod") {
     emitMemorySecurityDiagnostic({
       severity: "CRITICAL",
@@ -867,11 +954,15 @@ function collectReferencedVerificationKeyIds(raw: string): Set<string> {
   const lines = raw.split(/\r?\n/);
   for (const rawLine of lines) {
     const line = rawLine.trim();
-    if (!line) continue;
+    if (!line) {
+      continue;
+    }
     try {
       const parsed = JSON.parse(line) as Record<string, unknown>;
       const keyId = typeof parsed.keyId === "string" ? parsed.keyId.trim() : "";
-      if (keyId) keyIds.add(keyId);
+      if (keyId) {
+        keyIds.add(keyId);
+      }
     } catch {
       // ignore malformed rows; replay validation will fail independently.
     }
@@ -884,7 +975,9 @@ function assertMemorySecurityBootContract(params: {
   rawWal?: string;
 }): void {
   const { security } = params;
-  if (security.mode !== "prod") return;
+  if (security.mode !== "prod") {
+    return;
+  }
   if (!security.activeSigningKeyId || !security.activeSigningKey) {
     emitMemorySecurityDiagnostic({
       severity: "CRITICAL",
@@ -896,7 +989,9 @@ function assertMemorySecurityBootContract(params: {
   }
   const referencedKeyIds = collectReferencedVerificationKeyIds(params.rawWal ?? "");
   for (const keyId of referencedKeyIds) {
-    if (security.verificationKeys.has(keyId)) continue;
+    if (security.verificationKeys.has(keyId)) {
+      continue;
+    }
     emitMemorySecurityDiagnostic({
       severity: "CRITICAL",
       code: "missing-verification-key",
@@ -906,16 +1001,24 @@ function assertMemorySecurityBootContract(params: {
     throw new Error(`memory wal verification key unavailable in prod mode (${keyId})`);
   }
   const rotationStartedAt = security.keyRotationStartedAt;
-  if (!rotationStartedAt) return;
+  if (!rotationStartedAt) {
+    return;
+  }
   const rotationDeadlineMs =
     rotationStartedAt + security.keyRotationDeprecationDays * 24 * 60 * 60 * 1000;
-  if (Date.now() <= rotationDeadlineMs) return;
+  if (Date.now() <= rotationDeadlineMs) {
+    return;
+  }
   const activeKeyId = security.activeSigningKeyId?.trim() ?? "";
-  if (!activeKeyId) return;
+  if (!activeKeyId) {
+    return;
+  }
   const staleKeys = [...referencedKeyIds].filter(
     (keyId) => keyId !== activeKeyId && !security.allowedLegacyKeyIds.has(keyId),
   );
-  if (staleKeys.length === 0) return;
+  if (staleKeys.length === 0) {
+    return;
+  }
   emitMemorySecurityDiagnostic({
     severity: "CRITICAL",
     code: "key-rotation-expired",
@@ -936,7 +1039,9 @@ function assertWalWritableFromDiagnostics(params: {
     throw new Error("memory wal is in unsigned-replay bypass mode; writes are disabled");
   }
   const stopReason = diagnostics.stopReason;
-  if (!stopReason) return;
+  if (!stopReason) {
+    return;
+  }
   if (
     stopReason === "unsupported-envelope-version" ||
     stopReason === "unsupported-signature-version" ||
@@ -999,9 +1104,13 @@ function dedupeNormalized(items: string[]): string[] {
   const seen = new Set<string>();
   for (const raw of items) {
     const item = raw.trim();
-    if (!item) continue;
+    if (!item) {
+      continue;
+    }
     const key = item.toLowerCase();
-    if (seen.has(key)) continue;
+    if (seen.has(key)) {
+      continue;
+    }
     seen.add(key);
     out.push(item);
   }
@@ -1010,7 +1119,9 @@ function dedupeNormalized(items: string[]): string[] {
 
 function normalizeTaskRecord(value: TaskRegistryRecord): TaskRegistryRecord | null {
   const taskId = normalizeMemoryTaskId(value.taskId);
-  if (!taskId) return null;
+  if (!taskId) {
+    return null;
+  }
   const title = (typeof value.title === "string" ? value.title : "").trim() || taskId;
   const status = (() => {
     const raw = String(value.status ?? "")
@@ -1068,9 +1179,11 @@ async function readTaskRegistryStore(workspaceDir: string): Promise<TaskRegistry
     };
   } catch (error) {
     const code = (error as NodeJS.ErrnoException).code;
-    if (code === "ENOENT") return defaultTaskRegistryStore();
+    if (code === "ENOENT") {
+      return defaultTaskRegistryStore();
+    }
     const detail = error instanceof Error ? error.message : String(error);
-    throw new Error(`memory task registry read failed: ${detail}`);
+    throw new Error(`memory task registry read failed: ${detail}`, { cause: error });
   }
 }
 
@@ -1124,6 +1237,12 @@ function normalizeSnapshot(input: unknown): CanonicalMemoryState {
     lastConfirmedAt:
       typeof value.lastConfirmedAt === "number" && Number.isFinite(value.lastConfirmedAt)
         ? Math.floor(value.lastConfirmedAt)
+        : undefined,
+    goalStack: asList("goalStack"),
+    blockers: asList("blockers"),
+    goalLastProgressAt:
+      typeof value.goalLastProgressAt === "number" && Number.isFinite(value.goalLastProgressAt)
+        ? Math.floor(value.goalLastProgressAt)
         : undefined,
   };
 }
@@ -1253,11 +1372,13 @@ async function withWalWriteLock<T>(
         await sleep(pollIntervalMs);
         continue;
       }
-      if (code !== "EEXIST") throw error;
+      if (code !== "EEXIST") {
+        throw error;
+      }
 
       const now = Date.now();
       if (now - startedAt > timeoutMs) {
-        throw new Error(`timeout acquiring memory wal lock: ${lockPath}`);
+        throw new Error(`timeout acquiring memory wal lock: ${lockPath}`, { cause: error });
       }
 
       try {
@@ -1282,26 +1403,40 @@ async function withWalWriteLock<T>(
 }
 
 function normalizeWalEventRecord(value: unknown): MemoryEventRecord | null {
-  if (!value || typeof value !== "object") return null;
+  if (!value || typeof value !== "object") {
+    return null;
+  }
   const event = value as Partial<MemoryEventRecord>;
   const eventId = typeof event.eventId === "string" ? event.eventId.trim() : "";
-  if (!eventId) return null;
+  if (!eventId) {
+    return null;
+  }
   const scope = event.scope === "task" || event.scope === "global" ? event.scope : null;
-  if (!scope) return null;
+  if (!scope) {
+    return null;
+  }
   const taskId = scope === "task" ? normalizeMemoryTaskId(event.taskId) : undefined;
-  if (scope === "task" && !taskId) return null;
+  if (scope === "task" && !taskId) {
+    return null;
+  }
   const type = String(event.type ?? "").trim() as MemoryEventType;
-  if (!EVENT_TYPE_SET.has(type)) return null;
+  if (!EVENT_TYPE_SET.has(type)) {
+    return null;
+  }
   const actor =
     event.actor === "user" || event.actor === "agent" || event.actor === "system"
       ? event.actor
       : null;
-  if (!actor) return null;
+  if (!actor) {
+    return null;
+  }
   const timestamp =
     typeof event.timestamp === "number" && Number.isFinite(event.timestamp)
       ? Math.floor(event.timestamp)
       : null;
-  if (timestamp == null) return null;
+  if (timestamp == null) {
+    return null;
+  }
   const payload = event.payload && typeof event.payload === "object" ? event.payload : {};
   return {
     eventId,
@@ -1354,7 +1489,9 @@ function readWalEventsFromRaw(
   for (let i = 0; i < lines.length; i += 1) {
     const sourceLine = lines[i] ?? "";
     const line = sourceLine.trim();
-    if (!line) continue;
+    if (!line) {
+      continue;
+    }
 
     let parsed: unknown;
     try {
@@ -1542,7 +1679,9 @@ async function readWalManifestStore(workspaceDir: string): Promise<WalManifestSt
           typeof entry.eventCount === "number" && Number.isFinite(entry.eventCount)
             ? Math.max(0, Math.floor(entry.eventCount))
             : 0;
-        if (!seq || !file) return null;
+        if (!seq || !file) {
+          return null;
+        }
         const startSignature =
           typeof entry.startSignature === "string"
             ? entry.startSignature.trim() || undefined
@@ -1567,7 +1706,7 @@ async function readWalManifestStore(workspaceDir: string): Promise<WalManifestSt
         };
       })
       .filter((entry): entry is WalSegmentManifestEntry => entry !== null)
-      .sort((a, b) => a.seq - b.seq);
+      .toSorted((a, b) => a.seq - b.seq);
     return {
       version: 1,
       updatedAt:
@@ -1602,7 +1741,9 @@ async function readWalBaselineStore(workspaceDir: string): Promise<WalBaselineSt
     const taskStatesEntries = Object.entries(parsed.taskStates ?? {})
       .map(([taskId, state]) => {
         const normalizedTaskId = normalizeMemoryTaskId(taskId);
-        if (!normalizedTaskId) return null;
+        if (!normalizedTaskId) {
+          return null;
+        }
         return [normalizedTaskId, normalizeSnapshot(state)] as const;
       })
       .filter((entry): entry is readonly [string, CanonicalMemoryState] => entry !== null);
@@ -1660,7 +1801,9 @@ async function maybeRotateWalActiveSegment(params: {
       error && typeof error === "object" && "code" in error
         ? String((error as { code?: unknown }).code)
         : null;
-    if (code !== "ENOENT") throw error;
+    if (code !== "ENOENT") {
+      throw error;
+    }
   }
   const trimmed = raw.trim();
   if (!trimmed) {
@@ -1678,7 +1821,9 @@ async function maybeRotateWalActiveSegment(params: {
   const ageMs = Math.max(0, now - manifest.activeCreatedAt);
   const shouldRotate =
     byteLength >= params.lifecycle.segmentMaxBytes || ageMs >= params.lifecycle.segmentMaxAgeMs;
-  if (!shouldRotate) return;
+  if (!shouldRotate) {
+    return;
+  }
 
   const baseline = await readWalBaselineStore(params.workspaceDir);
   const priorSegmentSignature =
@@ -1691,7 +1836,9 @@ async function maybeRotateWalActiveSegment(params: {
     // Keep repair explicit in authenticity mode; do not rotate corrupted active segments.
     return;
   }
-  if (parsed.events.length === 0) return;
+  if (parsed.events.length === 0) {
+    return;
+  }
 
   const seq = manifest.nextSequence;
   const file = `${String(seq).padStart(6, "0")}.jsonl`;
@@ -1761,7 +1908,7 @@ async function readWalReplayRaw(params: {
   const cutoff = Date.now() - params.lifecycle.retentionDays * 24 * 60 * 60 * 1000;
   const selectedSegments = manifest.segments
     .filter((entry) => entry.archivedAt >= cutoff)
-    .sort((a, b) => a.seq - b.seq);
+    .toSorted((a, b) => a.seq - b.seq);
   const baselineSignature = baseline.endSignature;
 
   if (selectedSegments.length > 0) {
@@ -1795,14 +1942,18 @@ async function readWalReplayRaw(params: {
     const absSegmentPath = path.join(params.workspaceDir, WAL_SEGMENTS_REL_DIR, segment.file);
     try {
       const raw = await fs.readFile(absSegmentPath, "utf-8");
-      if (raw.trim()) parts.push(raw.trimEnd());
+      if (raw.trim()) {
+        parts.push(raw.trimEnd());
+      }
     } catch (error) {
       const code =
         error && typeof error === "object" && "code" in error
           ? String((error as { code?: unknown }).code)
           : null;
-      if (code !== "ENOENT") throw error;
-      throw new Error(`memory wal segment missing: ${segment.file}`);
+      if (code !== "ENOENT") {
+        throw error;
+      }
+      throw new Error(`memory wal segment missing: ${segment.file}`, { cause: error });
     }
     previousEndSignature = segment.endSignature;
   }
@@ -1810,13 +1961,17 @@ async function readWalReplayRaw(params: {
   const absWalPath = path.join(params.workspaceDir, WAL_REL_PATH);
   try {
     const activeRaw = await fs.readFile(absWalPath, "utf-8");
-    if (activeRaw.trim()) parts.push(activeRaw.trimEnd());
+    if (activeRaw.trim()) {
+      parts.push(activeRaw.trimEnd());
+    }
   } catch (error) {
     const code =
       error && typeof error === "object" && "code" in error
         ? String((error as { code?: unknown }).code)
         : null;
-    if (code !== "ENOENT") throw error;
+    if (code !== "ENOENT") {
+      throw error;
+    }
   }
 
   return {
@@ -1858,7 +2013,9 @@ async function adjustSnapshotsForCompaction(params: {
   }
 
   for (const [taskId, prunedCount] of params.taskPrunedEventCount) {
-    if (prunedCount <= 0) continue;
+    if (prunedCount <= 0) {
+      continue;
+    }
     const taskSnapshot = await readSnapshot({
       workspaceDir: params.workspaceDir,
       scope: "task",
@@ -1899,7 +2056,7 @@ export async function compactWalSegments(params: {
 
   const eligible = manifest.segments
     .filter((entry) => entry.archivedAt < cutoff)
-    .sort((a, b) => a.seq - b.seq);
+    .toSorted((a, b) => a.seq - b.seq);
   if (eligible.length === 0) {
     return { compactedSegments: 0, compactedEvents: 0 };
   }
@@ -1907,8 +2064,12 @@ export async function compactWalSegments(params: {
   const compactable: WalSegmentManifestEntry[] = [];
   let expectedSeq = baseline.endSequence > 0 ? baseline.endSequence + 1 : eligible[0]!.seq;
   for (const segment of eligible) {
-    if (compactable.length >= limit) break;
-    if (segment.seq !== expectedSeq) break;
+    if (compactable.length >= limit) {
+      break;
+    }
+    if (segment.seq !== expectedSeq) {
+      break;
+    }
     compactable.push(segment);
     expectedSeq += 1;
   }
@@ -1948,7 +2109,9 @@ export async function compactWalSegments(params: {
         continue;
       }
       const taskId = normalizeMemoryTaskId(event.taskId);
-      if (!taskId) continue;
+      if (!taskId) {
+        continue;
+      }
       const previous = taskStates.get(taskId) ?? defaultCanonicalState();
       const next = applyEventToState(previous, event);
       taskStates.set(taskId, next);
@@ -2001,7 +2164,9 @@ export async function applyWalRetentionPolicy(params: {
   const cutoff = now - lifecycle.retentionDays * 24 * 60 * 60 * 1000;
   const manifest = await readWalManifestStore(params.workspaceDir);
   const prune = manifest.segments.filter((entry) => entry.archivedAt < cutoff);
-  if (prune.length === 0) return { prunedSegments: 0 };
+  if (prune.length === 0) {
+    return { prunedSegments: 0 };
+  }
   const compacted = await compactWalSegments({
     workspaceDir: params.workspaceDir,
     now,
@@ -2033,7 +2198,9 @@ export async function repairWalCorruptTail(params: {
           error && typeof error === "object" && "code" in error
             ? String((error as { code?: unknown }).code)
             : null;
-        if (code === "ENOENT") return "";
+        if (code === "ENOENT") {
+          return "";
+        }
         throw error;
       });
       const result = readWalEventsFromRaw(activeRaw, security, {
@@ -2051,7 +2218,9 @@ export async function repairWalCorruptTail(params: {
 }
 
 async function appendWalEvents(workspaceDir: string, events: MemoryEventRecord[]): Promise<void> {
-  if (events.length === 0) return;
+  if (events.length === 0) {
+    return;
+  }
   const absPath = path.join(workspaceDir, WAL_REL_PATH);
   ensureDir(path.dirname(absPath));
   const lines = events.map((entry) => JSON.stringify(entry)).join("\n");
@@ -2118,10 +2287,14 @@ function applyEventToState(
     artifacts: [...state.artifacts],
     pins: [...state.pins],
     links: [...state.links],
+    goalStack: [...(state.goalStack ?? [])],
+    blockers: [...(state.blockers ?? [])],
   };
   const getString = (key: string): string | null => {
     const value = event.payload[key];
-    if (typeof value !== "string") return null;
+    if (typeof value !== "string") {
+      return null;
+    }
     const trimmed = value.trim();
     return trimmed || null;
   };
@@ -2129,23 +2302,31 @@ function applyEventToState(
   switch (event.type) {
     case "TASK_CREATED": {
       const title = getString("title");
-      if (title) next.title = title;
+      if (title) {
+        next.title = title;
+      }
       next.status = "active";
       break;
     }
     case "TITLE_SET": {
       const title = getString("title");
-      if (title) next.title = title;
+      if (title) {
+        next.title = title;
+      }
       break;
     }
     case "GOAL_SET": {
       const goal = getString("goal");
-      if (goal) next.goal = goal;
+      if (goal) {
+        next.goal = goal;
+      }
       break;
     }
     case "DECISION_MADE": {
       const decision = getString("decision");
-      if (decision) next.decisions = dedupeNormalized([...next.decisions, decision]);
+      if (decision) {
+        next.decisions = dedupeNormalized([...next.decisions, decision]);
+      }
       break;
     }
     case "DECISION_REVERTED": {
@@ -2158,7 +2339,9 @@ function applyEventToState(
     }
     case "CONSTRAINT_ADDED": {
       const constraint = getString("constraint");
-      if (constraint) next.constraints = dedupeNormalized([...next.constraints, constraint]);
+      if (constraint) {
+        next.constraints = dedupeNormalized([...next.constraints, constraint]);
+      }
       break;
     }
     case "CONSTRAINT_REMOVED": {
@@ -2171,7 +2354,9 @@ function applyEventToState(
     }
     case "OPEN_QUESTION_ADDED": {
       const question = getString("question");
-      if (question) next.openQuestions = dedupeNormalized([...next.openQuestions, question]);
+      if (question) {
+        next.openQuestions = dedupeNormalized([...next.openQuestions, question]);
+      }
       break;
     }
     case "OPEN_QUESTION_RESOLVED": {
@@ -2184,7 +2369,9 @@ function applyEventToState(
     }
     case "NEXT_ACTION_SET": {
       const action = getString("action");
-      if (action) next.nextAction = action;
+      if (action) {
+        next.nextAction = action;
+      }
       break;
     }
     case "NEXT_ACTION_COMPLETED": {
@@ -2194,16 +2381,21 @@ function applyEventToState(
       } else if ((next.nextAction ?? "").toLowerCase() === action.toLowerCase()) {
         delete next.nextAction;
       }
+      next.goalLastProgressAt = event.timestamp;
       break;
     }
     case "ARTIFACT_LINKED": {
       const artifact = getString("artifact");
-      if (artifact) next.artifacts = dedupeNormalized([...next.artifacts, artifact]);
+      if (artifact) {
+        next.artifacts = dedupeNormalized([...next.artifacts, artifact]);
+      }
       break;
     }
     case "PIN_ADDED": {
       const pinId = getString("pinId");
-      if (pinId) next.pins = dedupeNormalized([...next.pins, pinId]);
+      if (pinId) {
+        next.pins = dedupeNormalized([...next.pins, pinId]);
+      }
       break;
     }
     case "PIN_REMOVED": {
@@ -2227,6 +2419,46 @@ function applyEventToState(
     }
     case "USER_CONFIRMED": {
       next.lastConfirmedAt = event.timestamp;
+      next.goalLastProgressAt = event.timestamp;
+      break;
+    }
+    case "GOAL_PUSHED": {
+      const goal = getString("goal");
+      if (goal) {
+        if (next.goal) {
+          next.goalStack = [...(next.goalStack ?? []), next.goal];
+        }
+        next.goal = goal;
+      }
+      break;
+    }
+    case "GOAL_POPPED": {
+      const stack = next.goalStack ?? [];
+      if (stack.length > 0) {
+        next.goal = stack[stack.length - 1];
+        next.goalStack = stack.slice(0, -1);
+      } else {
+        delete next.goal;
+      }
+      break;
+    }
+    case "BLOCKER_ADDED": {
+      const blocker = getString("blocker");
+      if (blocker) {
+        next.blockers = dedupeNormalized([...(next.blockers ?? []), blocker]);
+      }
+      break;
+    }
+    case "BLOCKER_RESOLVED": {
+      const blocker = getString("blocker");
+      if (blocker) {
+        const needle = blocker.toLowerCase();
+        next.blockers = (next.blockers ?? []).filter((entry) => entry.toLowerCase() !== needle);
+      }
+      break;
+    }
+    case "GOAL_PROGRESS_MARKED": {
+      next.goalLastProgressAt = event.timestamp;
       break;
     }
     default:
@@ -2278,10 +2510,14 @@ async function touchRegistryFromEvents(params: {
   timestamp: number;
 }): Promise<void> {
   const taskId = normalizeMemoryTaskId(params.taskId);
-  if (!taskId) return;
+  if (!taskId) {
+    return;
+  }
   const registry = await readTaskRegistryStore(params.workspaceDir);
   const index = registry.tasks.findIndex((entry) => entry.taskId === taskId);
-  if (index < 0) return;
+  if (index < 0) {
+    return;
+  }
   const current = registry.tasks[index];
   registry.tasks[index] = {
     ...current,
@@ -2358,8 +2594,12 @@ export async function commitMemoryEvents(params: {
       await appendWalEvents(params.workspaceDir, committed);
 
       const scopedWalEvents = wal.events.filter((event) => {
-        if (event.scope !== scoped.scope) return false;
-        if (scoped.scope === "task") return event.taskId === scoped.taskId;
+        if (event.scope !== scoped.scope) {
+          return false;
+        }
+        if (scoped.scope === "task") {
+          return event.taskId === scoped.taskId;
+        }
         return true;
       });
       const snapshot = await readSnapshot({
@@ -2420,16 +2660,24 @@ export async function rebuildSnapshotFromWal(params: {
   }
   const events = await listWalEvents(params.workspaceDir);
   const scopedEvents = events.filter((event) => {
-    if (event.scope !== scope) return false;
-    if (scope === "task") return event.taskId === taskId;
+    if (event.scope !== scope) {
+      return false;
+    }
+    if (scope === "task") {
+      return event.taskId === taskId;
+    }
     return true;
   });
   const untilEventId = params.untilEventId?.trim();
   const baseline = await readWalBaselineStore(params.workspaceDir);
   const replayEvents = (() => {
-    if (!untilEventId) return scopedEvents;
+    if (!untilEventId) {
+      return scopedEvents;
+    }
     const index = scopedEvents.findIndex((event) => event.eventId === untilEventId);
-    if (index < 0) throw new Error(`untilEventId not found for scope: ${untilEventId}`);
+    if (index < 0) {
+      throw new Error(`untilEventId not found for scope: ${untilEventId}`);
+    }
     return scopedEvents.slice(0, index + 1);
   })();
   let state =
@@ -2498,7 +2746,7 @@ export async function validateSnapshotAgainstWal(params: {
 
 export async function listTaskRegistry(workspaceDir: string): Promise<TaskRegistryRecord[]> {
   const store = await readTaskRegistryStore(workspaceDir);
-  return [...store.tasks].sort((a, b) => b.lastTouchedAt - a.lastTouchedAt);
+  return [...store.tasks].toSorted((a, b) => b.lastTouchedAt - a.lastTouchedAt);
 }
 
 export async function getTaskRegistryTask(params: {
@@ -2506,7 +2754,9 @@ export async function getTaskRegistryTask(params: {
   taskId: string;
 }): Promise<TaskRegistryRecord | null> {
   const taskId = normalizeMemoryTaskId(params.taskId);
-  if (!taskId) return null;
+  if (!taskId) {
+    return null;
+  }
   const store = await readTaskRegistryStore(params.workspaceDir);
   return store.tasks.find((entry) => entry.taskId === taskId) ?? null;
 }
@@ -2563,11 +2813,15 @@ export async function setTaskRegistryStatus(params: {
   now?: number;
 }): Promise<TaskRegistryRecord | null> {
   const taskId = normalizeMemoryTaskId(params.taskId);
-  if (!taskId) return null;
+  if (!taskId) {
+    return null;
+  }
   const now = params.now ?? Date.now();
   const store = await readTaskRegistryStore(params.workspaceDir);
   const index = store.tasks.findIndex((entry) => entry.taskId === taskId);
-  if (index < 0) return null;
+  if (index < 0) {
+    return null;
+  }
   const existing = store.tasks[index];
   const updated: TaskRegistryRecord = {
     ...existing,
@@ -2588,12 +2842,16 @@ export async function linkTaskRegistryTasks(params: {
 }): Promise<{ updated: boolean; task?: TaskRegistryRecord; related?: TaskRegistryRecord }> {
   const taskId = normalizeMemoryTaskId(params.taskId);
   const relatedTaskId = normalizeMemoryTaskId(params.relatedTaskId);
-  if (!taskId || !relatedTaskId || taskId === relatedTaskId) return { updated: false };
+  if (!taskId || !relatedTaskId || taskId === relatedTaskId) {
+    return { updated: false };
+  }
   const now = params.now ?? Date.now();
   const store = await readTaskRegistryStore(params.workspaceDir);
   const leftIndex = store.tasks.findIndex((entry) => entry.taskId === taskId);
   const rightIndex = store.tasks.findIndex((entry) => entry.taskId === relatedTaskId);
-  if (leftIndex < 0 || rightIndex < 0) return { updated: false };
+  if (leftIndex < 0 || rightIndex < 0) {
+    return { updated: false };
+  }
 
   let updated = false;
   const left = store.tasks[leftIndex];
@@ -2632,7 +2890,9 @@ async function readTransientBufferStore(workspaceDir: string): Promise<Transient
     const items: TransientBufferItem[] = [];
     if (Array.isArray(parsed.items)) {
       for (const entry of parsed.items) {
-        if (!entry || typeof entry !== "object") continue;
+        if (!entry || typeof entry !== "object") {
+          continue;
+        }
         const item = entry as TransientBufferItem;
         const itemId = typeof item.itemId === "string" && item.itemId.trim() ? item.itemId : null;
         const content =
@@ -2641,7 +2901,9 @@ async function readTransientBufferStore(workspaceDir: string): Promise<Transient
           typeof item.ttlExpiresAt === "number" && Number.isFinite(item.ttlExpiresAt)
             ? Math.floor(item.ttlExpiresAt)
             : null;
-        if (!itemId || !content || ttlExpiresAt == null) continue;
+        if (!itemId || !content || ttlExpiresAt == null) {
+          continue;
+        }
         const relatedTaskId = normalizeMemoryTaskId(item.relatedTaskId);
         items.push({
           itemId,
@@ -2681,7 +2943,7 @@ export async function listTransientBufferItems(params: {
   const store = await readTransientBufferStore(params.workspaceDir);
   return store.items
     .filter((item) => item.ttlExpiresAt > now)
-    .sort((a, b) => a.ttlExpiresAt - b.ttlExpiresAt);
+    .toSorted((a, b) => a.ttlExpiresAt - b.ttlExpiresAt);
 }
 
 export async function upsertTransientBufferItem(params: {
@@ -2693,7 +2955,9 @@ export async function upsertTransientBufferItem(params: {
 }): Promise<TransientBufferItem> {
   const now = params.now ?? Date.now();
   const content = params.content.trim();
-  if (!content) throw new Error("transient content required");
+  if (!content) {
+    throw new Error("transient content required");
+  }
   const ttlMs = Math.max(1, Math.floor(params.ttlMs));
   const expiresAt = now + ttlMs;
   const store = await readTransientBufferStore(params.workspaceDir);
@@ -2719,7 +2983,9 @@ export async function pruneExpiredTransientBufferItems(params: {
   const before = store.items.length;
   store.items = store.items.filter((item) => item.ttlExpiresAt > now);
   const removed = before - store.items.length;
-  if (removed <= 0) return 0;
+  if (removed <= 0) {
+    return 0;
+  }
   store.updatedAt = now;
   await writeTransientBufferStore(params.workspaceDir, store);
   return removed;

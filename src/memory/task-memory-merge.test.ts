@@ -1,13 +1,12 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-
 import {
   mergeTaskMemoryFile,
   mergeTaskMemorySnapshots,
   parseTaskMemorySnapshot,
+  renderTaskMemorySnapshot,
 } from "./task-memory-merge.js";
 
 let workspaceDir = os.tmpdir();
@@ -149,3 +148,96 @@ describe("mergeTaskMemoryFile", () => {
   });
 });
 
+describe("goalStack and blockers parsing/merge", () => {
+  it("parses Goal Stack and Blockers sections from markdown", () => {
+    const snapshot = parseTaskMemorySnapshot(`
+# Task Memory
+
+## Goal
+Ship the feature
+
+## Decisions
+- Use PostgreSQL
+
+## Goal Stack
+- Root goal
+- Mid-level goal
+
+## Blockers
+- Waiting for API keys
+- CI pipeline broken
+
+## Open Questions
+_None._
+
+## Next Actions
+- Write migration
+`)!;
+    expect(snapshot).not.toBeNull();
+    expect(snapshot.goalStack).toEqual(["Root goal", "Mid-level goal"]);
+    expect(snapshot.blockers).toEqual(["Waiting for API keys", "CI pipeline broken"]);
+  });
+
+  it("merges goalStack: incoming replaces if non-empty", () => {
+    const existing = parseTaskMemorySnapshot(`
+## Goal
+Root goal
+## Goal Stack
+- First sub-goal
+## Decisions
+- Keep API v1
+`)!;
+    const incoming = parseTaskMemorySnapshot(`
+## Goal Stack
+- New sub-goal A
+- New sub-goal B
+## Decisions
+_None._
+`)!;
+    const merged = mergeTaskMemorySnapshots({ existing, incoming });
+    expect(merged.goalStack).toEqual(["New sub-goal A", "New sub-goal B"]);
+  });
+
+  it("merges blockers with resolved: markers", () => {
+    const existing = parseTaskMemorySnapshot(`
+## Blockers
+- API keys missing
+- Build broken
+## Decisions
+_None._
+`)!;
+    const incoming = parseTaskMemorySnapshot(`
+## Blockers
+- Resolved: API keys missing
+- New dependency issue
+## Decisions
+_None._
+`)!;
+    const merged = mergeTaskMemorySnapshots({ existing, incoming });
+    expect(merged.blockers).toContain("New dependency issue");
+    expect(merged.blockers).not.toContain("API keys missing");
+    expect(merged.blockers).toContain("Build broken");
+  });
+
+  it("renders goalStack and blockers in markdown output", () => {
+    const rendered = renderTaskMemorySnapshot({
+      taskId: "task-render",
+      snapshot: {
+        goal: "Ship it",
+        decisions: [],
+        openQuestions: [],
+        nextActions: [],
+        keyEntities: [],
+        pinned: [],
+        notes: [],
+        goalStack: ["Root goal", "Sub-goal 1"],
+        blockers: ["Waiting for review"],
+      },
+    });
+    expect(rendered).toContain("## Goal Stack");
+    expect(rendered).toContain("- Root goal");
+    expect(rendered).toContain("- Sub-goal 1");
+    expect(rendered).toContain("## Blockers");
+    expect(rendered).toContain("- Waiting for review");
+  });
+});

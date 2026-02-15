@@ -1,13 +1,11 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-
 import type { MoltbotConfig } from "../../config/config.js";
 import type { SessionEntry } from "../../config/sessions/types.js";
-import * as taskMemorySystem from "../../memory/task-memory-system.js";
 import type { MsgContext } from "../templating.js";
+import * as taskMemorySystem from "../../memory/task-memory-system.js";
 import { buildCommandContext, handleCommands } from "./commands.js";
 import { parseInlineDirectives } from "./directive-handling.js";
 
@@ -34,8 +32,11 @@ beforeAll(async () => {
 
 afterAll(async () => {
   for (const [key, value] of Object.entries(previousMemoryEnv)) {
-    if (value == null) delete process.env[key];
-    else process.env[key] = value;
+    if (value == null) {
+      delete process.env[key];
+    } else {
+      process.env[key] = value;
+    }
   }
   await fs.rm(workspaceDir, { recursive: true, force: true });
 });
@@ -510,5 +511,244 @@ describe("memory commands", () => {
     } finally {
       commitSpy.mockRestore();
     }
+  });
+
+  it("does not remove pin from store when durable commit fails on confirm", async () => {
+    const cfg = {
+      commands: { text: true },
+      channels: { whatsapp: { allowFrom: ["*"] } },
+    } as MoltbotConfig;
+    const sessionKey = "agent:main:main";
+    const sessionEntry: SessionEntry = { sessionId: "s8", updatedAt: Date.now() };
+    const sessionStore: Record<string, SessionEntry> = { [sessionKey]: sessionEntry };
+
+    // Add a pin to later confirm-remove.
+    const addResult = await handleCommands(
+      buildParams({
+        body: "/pin fact wal-first removal sentinel",
+        cfg,
+        sessionKey,
+        sessionEntry,
+        sessionStore,
+      }),
+    );
+    expect(addResult.reply?.text).toContain("Pinned pin_");
+
+    const pinsStorePath = path.join(workspaceDir, "memory", ".pins.json");
+    const beforeRemove = JSON.parse(await fs.readFile(pinsStorePath, "utf-8")) as {
+      pins: Array<{ id: string; text: string }>;
+    };
+    const target = beforeRemove.pins.find(
+      (pin) => pin.text.toLowerCase() === "wal-first removal sentinel",
+    );
+    expect(target?.id).toBeTruthy();
+    if (!target?.id) {
+      throw new Error("expected pin id for wal-first confirm test");
+    }
+
+    // Create a removal intent.
+    const removeIntent = await handleCommands(
+      buildParams({
+        body: `/pin remove ${target.id}`,
+        cfg,
+        sessionKey,
+        sessionEntry: sessionStore[sessionKey],
+        sessionStore,
+      }),
+    );
+    const token = removeIntent.reply?.text.match(/\/pin confirm (\S+)/)?.[1];
+    expect(token).toBeTruthy();
+    if (!token) {
+      throw new Error("expected pin confirmation token");
+    }
+
+    // Mock WAL commit to fail.
+    const commitSpy = vi
+      .spyOn(taskMemorySystem, "commitMemoryEvents")
+      .mockRejectedValueOnce(new Error("forced wal failure"));
+    try {
+      const result = await handleCommands(
+        buildParams({
+          body: `/pin confirm ${token}`,
+          cfg,
+          sessionKey,
+          sessionEntry: sessionStore[sessionKey],
+          sessionStore,
+        }),
+      );
+      expect(result.shouldContinue).toBe(false);
+      expect(result.reply?.text).toContain("failed because memory commit did not persist");
+
+      // Pin must still exist in the store — WAL-first means no mutation on failure.
+      const afterFail = JSON.parse(await fs.readFile(pinsStorePath, "utf-8")) as {
+        pins: Array<{ id: string; text: string }>;
+      };
+      expect(afterFail.pins.some((pin) => pin.id === target.id)).toBe(true);
+    } finally {
+      commitSpy.mockRestore();
+    }
+  });
+
+  it("removes pin from store only after successful WAL commit on confirm", async () => {
+    const cfg = {
+      commands: { text: true },
+      channels: { whatsapp: { allowFrom: ["*"] } },
+    } as MoltbotConfig;
+    const sessionKey = "agent:main:main";
+    const sessionEntry: SessionEntry = { sessionId: "s9", updatedAt: Date.now() };
+    const sessionStore: Record<string, SessionEntry> = { [sessionKey]: sessionEntry };
+
+    // Add a pin to later confirm-remove.
+    const addResult = await handleCommands(
+      buildParams({
+        body: "/pin fact wal-success removal sentinel",
+        cfg,
+        sessionKey,
+        sessionEntry,
+        sessionStore,
+      }),
+    );
+    expect(addResult.reply?.text).toContain("Pinned pin_");
+
+    const pinsStorePath = path.join(workspaceDir, "memory", ".pins.json");
+    const beforeRemove = JSON.parse(await fs.readFile(pinsStorePath, "utf-8")) as {
+      pins: Array<{ id: string; text: string }>;
+    };
+    const target = beforeRemove.pins.find(
+      (pin) => pin.text.toLowerCase() === "wal-success removal sentinel",
+    );
+    expect(target?.id).toBeTruthy();
+    if (!target?.id) {
+      throw new Error("expected pin id for wal-success confirm test");
+    }
+
+    // Create a removal intent.
+    const removeIntent = await handleCommands(
+      buildParams({
+        body: `/pin remove ${target.id}`,
+        cfg,
+        sessionKey,
+        sessionEntry: sessionStore[sessionKey],
+        sessionStore,
+      }),
+    );
+    const token = removeIntent.reply?.text.match(/\/pin confirm (\S+)/)?.[1];
+    expect(token).toBeTruthy();
+    if (!token) {
+      throw new Error("expected pin confirmation token");
+    }
+
+    // No mock — let WAL commit succeed naturally.
+    const result = await handleCommands(
+      buildParams({
+        body: `/pin confirm ${token}`,
+        cfg,
+        sessionKey,
+        sessionEntry: sessionStore[sessionKey],
+        sessionStore,
+      }),
+    );
+    expect(result.shouldContinue).toBe(false);
+    expect(result.reply?.text).toContain(`Removed pin ${target.id}`);
+
+    // Pin must be gone from the store after successful WAL + mutation.
+    const afterSuccess = JSON.parse(await fs.readFile(pinsStorePath, "utf-8")) as {
+      pins: Array<{ id: string; text: string }>;
+    };
+    expect(afterSuccess.pins.some((pin) => pin.id === target.id)).toBe(false);
+  });
+
+  it("removal intent survives WAL failure so user can retry confirm", async () => {
+    const cfg = {
+      commands: { text: true },
+      channels: { whatsapp: { allowFrom: ["*"] } },
+    } as MoltbotConfig;
+    const sessionKey = "agent:main:main";
+    const sessionEntry: SessionEntry = { sessionId: "s10", updatedAt: Date.now() };
+    const sessionStore: Record<string, SessionEntry> = { [sessionKey]: sessionEntry };
+
+    // Add a pin to later confirm-remove.
+    const addResult = await handleCommands(
+      buildParams({
+        body: "/pin fact wal-retry removal sentinel",
+        cfg,
+        sessionKey,
+        sessionEntry,
+        sessionStore,
+      }),
+    );
+    expect(addResult.reply?.text).toContain("Pinned pin_");
+
+    const pinsStorePath = path.join(workspaceDir, "memory", ".pins.json");
+    const beforeRemove = JSON.parse(await fs.readFile(pinsStorePath, "utf-8")) as {
+      pins: Array<{ id: string; text: string }>;
+    };
+    const target = beforeRemove.pins.find(
+      (pin) => pin.text.toLowerCase() === "wal-retry removal sentinel",
+    );
+    expect(target?.id).toBeTruthy();
+    if (!target?.id) {
+      throw new Error("expected pin id for wal-retry confirm test");
+    }
+
+    // Create a removal intent.
+    const removeIntent = await handleCommands(
+      buildParams({
+        body: `/pin remove ${target.id}`,
+        cfg,
+        sessionKey,
+        sessionEntry: sessionStore[sessionKey],
+        sessionStore,
+      }),
+    );
+    const token = removeIntent.reply?.text.match(/\/pin confirm (\S+)/)?.[1];
+    expect(token).toBeTruthy();
+    if (!token) {
+      throw new Error("expected pin confirmation token");
+    }
+
+    // First attempt: WAL fails.
+    const commitSpy = vi
+      .spyOn(taskMemorySystem, "commitMemoryEvents")
+      .mockRejectedValueOnce(new Error("forced wal failure"));
+    try {
+      const failResult = await handleCommands(
+        buildParams({
+          body: `/pin confirm ${token}`,
+          cfg,
+          sessionKey,
+          sessionEntry: sessionStore[sessionKey],
+          sessionStore,
+        }),
+      );
+      expect(failResult.reply?.text).toContain("failed because memory commit did not persist");
+    } finally {
+      commitSpy.mockRestore();
+    }
+
+    // Intent must still be present — user can retry.
+    const storeAfterFail = JSON.parse(await fs.readFile(pinsStorePath, "utf-8")) as {
+      removeIntents?: Array<{ token: string; pinId: string }>;
+    };
+    expect(storeAfterFail.removeIntents?.some((intent) => intent.token === token)).toBe(true);
+
+    // Second attempt: WAL succeeds — confirm should work.
+    const retryResult = await handleCommands(
+      buildParams({
+        body: `/pin confirm ${token}`,
+        cfg,
+        sessionKey,
+        sessionEntry: sessionStore[sessionKey],
+        sessionStore,
+      }),
+    );
+    expect(retryResult.shouldContinue).toBe(false);
+    expect(retryResult.reply?.text).toContain(`Removed pin ${target.id}`);
+
+    // Pin is now gone.
+    const afterRetry = JSON.parse(await fs.readFile(pinsStorePath, "utf-8")) as {
+      pins: Array<{ id: string }>;
+    };
+    expect(afterRetry.pins.some((pin) => pin.id === target.id)).toBe(false);
   });
 });

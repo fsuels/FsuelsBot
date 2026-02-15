@@ -19,7 +19,10 @@ export type MemoryGuidanceNudgeKind =
   | "multi-intent"
   | "low-confidence"
   | "missing-task"
-  | "long-task-save";
+  | "long-task-save"
+  | "goal-progress-stalled"
+  | "blocker-unresolved"
+  | "deadline-approaching";
 
 export type MemoryGuidanceDecision = {
   kind: MemoryGuidanceNudgeKind;
@@ -59,9 +62,13 @@ function dedupeOptions(items: Array<string | undefined>): string[] {
   const seen = new Set<string>();
   for (const raw of items) {
     const value = raw?.trim();
-    if (!value) continue;
+    if (!value) {
+      continue;
+    }
     const key = value.toLowerCase();
-    if (seen.has(key)) continue;
+    if (seen.has(key)) {
+      continue;
+    }
     seen.add(key);
     out.push(value);
   }
@@ -70,7 +77,9 @@ function dedupeOptions(items: Array<string | undefined>): string[] {
 
 function hasCriticalMemoryPhrase(message: string): boolean {
   const normalized = normalizeText(message);
-  if (!normalized) return false;
+  if (!normalized) {
+    return false;
+  }
   return (
     normalized.includes("important") ||
     normalized.includes("dont forget") ||
@@ -82,9 +91,13 @@ function hasCriticalMemoryPhrase(message: string): boolean {
 
 function looksMultiIntent(message: string): boolean {
   const normalized = normalizeText(message);
-  if (!normalized || normalized.length < 20) return false;
+  if (!normalized || normalized.length < 20) {
+    return false;
+  }
   const joinerCount = (normalized.match(/\b(and|also|then)\b/g) ?? []).length;
-  if (joinerCount < 1) return false;
+  if (joinerCount < 1) {
+    return false;
+  }
   const actionCount = (
     normalized.match(
       /\b(fix|build|write|review|check|update|continue|start|create|refactor|investigate|test)\b/g,
@@ -95,8 +108,12 @@ function looksMultiIntent(message: string): boolean {
 
 export function detectMemoryGuidanceUserSignal(message: string): MemoryGuidanceUserSignal {
   const normalized = normalizeText(message);
-  if (!normalized) return "none";
-  if (/^\/(task|switch|newtask)\b/.test(normalized)) return "explicit-task";
+  if (!normalized) {
+    return "none";
+  }
+  if (/^\/(task|switch|newtask)\b/.test(normalized)) {
+    return "explicit-task";
+  }
   if (
     /\b(working on|work on|continue (with )?(task|project|topic)|start(ing)? (a )?new (task|topic|project)|switch(ing)? to|resume|let'?s continue)\b/.test(
       normalized,
@@ -239,6 +256,11 @@ export function selectTaskMemoryNudge(params: {
   taskTotalTokens?: number;
   hasImportantConflict?: boolean;
   now?: number;
+  goalStack?: string[];
+  blockers?: string[];
+  deadline?: number;
+  goalLastProgressAt?: number;
+  proactivityThreshold?: number;
 }): MemoryGuidanceDecision | null {
   const message = params.message.trim();
   const mode = params.guidanceMode ?? "supportive";
@@ -357,6 +379,68 @@ export function selectTaskMemoryNudge(params: {
     return {
       kind: "long-task-save",
       text: "Would you like me to save where we are so we can continue later?",
+    };
+  }
+
+  // --- Proactivity nudges ---
+  const proactivityThreshold = params.proactivityThreshold ?? 0.7;
+
+  // Deadline approaching: < 60 min remaining
+  if (
+    typeof params.deadline === "number" &&
+    Number.isFinite(params.deadline) &&
+    params.deadline > now
+  ) {
+    const remainingMs = params.deadline - now;
+    const SIXTY_MINUTES_MS = 60 * 60 * 1000;
+    if (remainingMs < SIXTY_MINUTES_MS && proactivityThreshold < 0.8) {
+      const remainingMin = Math.ceil(remainingMs / (60 * 1000));
+      return {
+        kind: "deadline-approaching",
+        text: `Deadline approaching in ${remainingMin} minute${remainingMin !== 1 ? "s" : ""}. Should we prioritize the remaining work?`,
+      };
+    }
+  }
+
+  // Unresolved blockers
+  const blockers = params.blockers ?? [];
+  if (blockers.length > 0 && proactivityThreshold < 0.8) {
+    return {
+      kind: "blocker-unresolved",
+      text:
+        blockers.length === 1
+          ? `There is an unresolved blocker: "${blockers[0]}". Can we address it?`
+          : `There are ${blockers.length} unresolved blockers. Should we address them before continuing?`,
+    };
+  }
+
+  // Goal progress stalled — fires only when ALL conditions are met:
+  // 1. Current goal exists AND goalStack has depth > 0
+  // 2. Blockers exist OR open questions exist
+  // 3. No GOAL_PROGRESS_MARKED / NEXT_ACTION_COMPLETED / USER_CONFIRMED within threshold (default 30 min)
+  // 4. Proactivity threshold < 0.7
+  const goalStack = params.goalStack ?? [];
+  const hasGoal = activeTaskId !== DEFAULT_SESSION_TASK_ID;
+  const hasGoalStackDepth = goalStack.length > 0;
+  const hasBlockersOrQuestions = blockers.length > 0;
+  const STALLED_THRESHOLD_MS = 30 * 60 * 1000;
+  const goalLastProgressAt = params.goalLastProgressAt;
+  const progressAge =
+    typeof goalLastProgressAt === "number" && Number.isFinite(goalLastProgressAt)
+      ? Math.max(0, now - goalLastProgressAt)
+      : Number.POSITIVE_INFINITY;
+  const isStalled = progressAge > STALLED_THRESHOLD_MS;
+
+  if (
+    hasGoal &&
+    hasGoalStackDepth &&
+    hasBlockersOrQuestions &&
+    isStalled &&
+    proactivityThreshold < 0.7
+  ) {
+    return {
+      kind: "goal-progress-stalled",
+      text: "Progress seems stalled. Would you like to revisit the current approach or address the open blockers?",
     };
   }
 
