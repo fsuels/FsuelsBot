@@ -2398,6 +2398,10 @@ function applyEventToState(
       }
       break;
     }
+    case "PIN_REMOVE_REQUESTED": {
+      // Audit-only: records intent. Actual removal handled by PIN_REMOVED.
+      break;
+    }
     case "PIN_REMOVED": {
       const pinId = getString("pinId");
       if (pinId) {

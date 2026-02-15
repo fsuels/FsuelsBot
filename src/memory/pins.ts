@@ -658,6 +658,76 @@ export async function confirmMemoryPinRemoveIntent(params: {
   };
 }
 
+/**
+ * Validate a pin removal token without executing the removal.
+ * WAL-first pattern: validate intent, commit to WAL, then execute.
+ * Returns the intent details if the token is valid and not expired.
+ */
+export async function validateMemoryPinRemoveIntent(params: {
+  workspaceDir: string;
+  token: string;
+  now?: number;
+}): Promise<{
+  valid: boolean;
+  pinId?: string;
+  scope?: MemoryPinScope;
+  taskId?: string;
+  expired?: boolean;
+}> {
+  const store = await readStore(params.workspaceDir);
+  const now = params.now ?? Date.now();
+  const token = params.token.trim();
+  if (!token) return { valid: false };
+  const intents = store.removeIntents ?? [];
+  const intent = intents.find((entry) => entry.token === token);
+  if (!intent) {
+    return { valid: false };
+  }
+  if (intent.expiresAt <= now) {
+    return {
+      valid: false,
+      expired: true,
+      pinId: intent.pinId,
+      scope: intent.scope,
+      taskId: intent.taskId,
+    };
+  }
+  const pinExists = store.pins.some((pin) => pin.id === intent.pinId);
+  if (!pinExists) {
+    return {
+      valid: false,
+      pinId: intent.pinId,
+      scope: intent.scope,
+      taskId: intent.taskId,
+    };
+  }
+  return {
+    valid: true,
+    pinId: intent.pinId,
+    scope: intent.scope,
+    taskId: intent.taskId,
+  };
+}
+
+/**
+ * Execute pin removal after WAL commit has succeeded.
+ * WAL-first pattern: call validateMemoryPinRemoveIntent first,
+ * commit durable WAL events, then call this to mutate the pin store.
+ */
+export async function executeMemoryPinRemoveIntent(params: {
+  workspaceDir: string;
+  token: string;
+  now?: number;
+}): Promise<{
+  removed: boolean;
+  pinId?: string;
+  scope?: MemoryPinScope;
+  taskId?: string;
+  expired?: boolean;
+}> {
+  return confirmMemoryPinRemoveIntent(params);
+}
+
 export async function cancelMemoryPinRemoveIntent(params: {
   workspaceDir: string;
   token: string;

@@ -5,11 +5,14 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
+  createMemoryPinRemoveIntent,
+  executeMemoryPinRemoveIntent,
   forgetMemoryPins,
   listConstraintPinsForInjection,
   listMemoryPins,
   removeMemoryPin,
   upsertMemoryPin,
+  validateMemoryPinRemoveIntent,
 } from "./pins.js";
 
 describe("memory pins", () => {
@@ -153,5 +156,136 @@ describe("memory pins", () => {
   it("fails closed when pins store JSON is corrupted", async () => {
     await fs.writeFile(path.join(workspaceDir, "memory/.pins.json"), "{not-valid-json", "utf-8");
     await expect(listMemoryPins({ workspaceDir })).rejects.toThrow(/pins store read failed/i);
+  });
+
+  describe("WAL-first pin removal (validate → commit → execute)", () => {
+    it("validates token without deleting the pin", async () => {
+      const pin = await upsertMemoryPin({
+        workspaceDir,
+        type: "fact",
+        text: "WAL-first test",
+        scope: "global",
+      });
+      const intent = await createMemoryPinRemoveIntent({
+        workspaceDir,
+        id: pin.id,
+      });
+      expect(intent).not.toBeNull();
+
+      const validation = await validateMemoryPinRemoveIntent({
+        workspaceDir,
+        token: intent!.token,
+      });
+      expect(validation.valid).toBe(true);
+      expect(validation.pinId).toBe(pin.id);
+      expect(validation.scope).toBe("global");
+
+      // Pin should still exist after validation
+      const pins = await listMemoryPins({ workspaceDir });
+      expect(pins.some((p) => p.id === pin.id)).toBe(true);
+    });
+
+    it("returns invalid for expired token", async () => {
+      const now = Date.now();
+      const pin = await upsertMemoryPin({
+        workspaceDir,
+        type: "fact",
+        text: "Expire test",
+        scope: "global",
+        now,
+      });
+      const intent = await createMemoryPinRemoveIntent({
+        workspaceDir,
+        id: pin.id,
+        ttlMs: 10,
+        now,
+      });
+      expect(intent).not.toBeNull();
+
+      const validation = await validateMemoryPinRemoveIntent({
+        workspaceDir,
+        token: intent!.token,
+        now: now + 20,
+      });
+      expect(validation.valid).toBe(false);
+      expect(validation.expired).toBe(true);
+      expect(validation.pinId).toBe(pin.id);
+    });
+
+    it("returns invalid for unknown token", async () => {
+      const validation = await validateMemoryPinRemoveIntent({
+        workspaceDir,
+        token: "pdel_nonexistent",
+      });
+      expect(validation.valid).toBe(false);
+      expect(validation.pinId).toBeUndefined();
+    });
+
+    it("executes removal after validate succeeds", async () => {
+      const pin = await upsertMemoryPin({
+        workspaceDir,
+        type: "fact",
+        text: "Execute after validate",
+        scope: "global",
+      });
+      const intent = await createMemoryPinRemoveIntent({
+        workspaceDir,
+        id: pin.id,
+      });
+      expect(intent).not.toBeNull();
+
+      // Step 1: validate
+      const validation = await validateMemoryPinRemoveIntent({
+        workspaceDir,
+        token: intent!.token,
+      });
+      expect(validation.valid).toBe(true);
+
+      // Step 2: (WAL commit would happen here in production)
+
+      // Step 3: execute
+      const result = await executeMemoryPinRemoveIntent({
+        workspaceDir,
+        token: intent!.token,
+      });
+      expect(result.removed).toBe(true);
+      expect(result.pinId).toBe(pin.id);
+
+      // Pin should be gone
+      const pins = await listMemoryPins({ workspaceDir });
+      expect(pins.some((p) => p.id === pin.id)).toBe(false);
+    });
+
+    it("returns not-removed when pin was already deleted between validate and execute", async () => {
+      const pin = await upsertMemoryPin({
+        workspaceDir,
+        type: "fact",
+        text: "Race condition test",
+        scope: "global",
+      });
+      const intent = await createMemoryPinRemoveIntent({
+        workspaceDir,
+        id: pin.id,
+      });
+      expect(intent).not.toBeNull();
+
+      // Validate succeeds
+      const validation = await validateMemoryPinRemoveIntent({
+        workspaceDir,
+        token: intent!.token,
+      });
+      expect(validation.valid).toBe(true);
+
+      // Someone else deletes the pin directly
+      await removeMemoryPin({ workspaceDir, id: pin.id });
+
+      // Execute still works (intent consumed) but reports the pin state
+      const result = await executeMemoryPinRemoveIntent({
+        workspaceDir,
+        token: intent!.token,
+      });
+      expect(result.removed).toBe(false);
+      expect(result.pinId).toBe(pin.id);
+    });
   });
 });
