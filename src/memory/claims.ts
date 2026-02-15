@@ -1,5 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
-import { hashText, cosineSimilarity, parseEmbedding } from "./internal.js";
+import { hashText, cosineSimilarity } from "./internal.js";
 
 // ---------------------------------------------------------------------------
 // Types

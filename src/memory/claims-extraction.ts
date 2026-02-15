@@ -27,7 +27,7 @@ export function extractClaimsFromSnapshot(params: {
   existingClaimIds?: Set<string>;
   now?: number;
 }): ClaimRecord[] {
-  const { db, snapshot, scope, taskId, now = Date.now() } = params;
+  const { db: _db, snapshot, scope, taskId, now = Date.now() } = params;
   const existing = params.existingClaimIds ?? new Set<string>();
   const claims: ClaimRecord[] = [];
 

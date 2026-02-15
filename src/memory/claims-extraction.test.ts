@@ -6,7 +6,7 @@ import {
   extractClaimsFromPins,
   storeExtractedClaims,
 } from "./claims-extraction.js";
-import { generateClaimId, getClaim, listClaims } from "./claims.js";
+import { generateClaimId, getClaim } from "./claims.js";
 import { ensureMemoryIndexSchema } from "./memory-schema.js";
 
 let db: import("node:sqlite").DatabaseSync;
