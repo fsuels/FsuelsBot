@@ -173,7 +173,7 @@ function applyFeedbackToClaim(params: {
   }
 
   let newConfidence = claim.confidence;
-  let newStatus = claim.status;
+  let newStatus: ClaimStatus = claim.status;
 
   if (feedback === "positive") {
     newConfidence = Math.min(1, newConfidence + thresholds.positiveConfidenceBoost);

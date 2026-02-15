@@ -223,6 +223,14 @@ export type DiagnosticMemoryInjectionDetectedEvent = DiagnosticBaseEvent & {
   patterns: string[];
 };
 
+export type DiagnosticMemoryRetentionRunEvent = DiagnosticBaseEvent & {
+  type: "memory.retention_run";
+  walPrunedSegments: number;
+  transientBufferPruned: number;
+  expiredPinsPruned: number;
+  errorCount: number;
+};
+
 export type DiagnosticEventPayload =
   | DiagnosticUsageEvent
   | DiagnosticWebhookReceivedEvent
@@ -242,7 +250,8 @@ export type DiagnosticEventPayload =
   | DiagnosticMemorySecurityEvent
   | DiagnosticMemoryAlertEvent
   | DiagnosticMemoryRetrievalEvent
-  | DiagnosticMemoryInjectionDetectedEvent;
+  | DiagnosticMemoryInjectionDetectedEvent
+  | DiagnosticMemoryRetentionRunEvent;
 
 export type DiagnosticEventInput = DiagnosticEventPayload extends infer Event
   ? Event extends DiagnosticEventPayload
@@ -345,6 +354,18 @@ export const MemoryInjectionDetectedDiagnosticEventSchema = z
     endLine: z.number().int().nonnegative(),
     patternCount: z.number().int().positive(),
     patterns: z.array(z.string()).max(5),
+  })
+  .strict();
+
+export const MemoryRetentionRunDiagnosticEventSchema = z
+  .object({
+    type: z.literal("memory.retention_run"),
+    ts: z.number().int().nonnegative(),
+    seq: z.number().int().positive(),
+    walPrunedSegments: z.number().int().nonnegative(),
+    transientBufferPruned: z.number().int().nonnegative(),
+    expiredPinsPruned: z.number().int().nonnegative(),
+    errorCount: z.number().int().nonnegative(),
   })
   .strict();
 
@@ -537,6 +558,10 @@ function assertDiagnosticEventSchema(event: DiagnosticEventPayload): void {
   }
   if (event.type === "memory.injection_detected") {
     MemoryInjectionDetectedDiagnosticEventSchema.parse(event);
+    return;
+  }
+  if (event.type === "memory.retention_run") {
+    MemoryRetentionRunDiagnosticEventSchema.parse(event);
     return;
   }
 }
