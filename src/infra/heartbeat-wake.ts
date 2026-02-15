@@ -1,5 +1,5 @@
 export type HeartbeatRunResult =
-  | { status: "ran"; durationMs: number }
+  | { status: "ran"; durationMs: number; didWork?: boolean }
   | { status: "skipped"; reason: string }
   | { status: "failed"; reason: string };
 
@@ -13,6 +13,8 @@ let timer: NodeJS.Timeout | null = null;
 
 const DEFAULT_COALESCE_MS = 250;
 const DEFAULT_RETRY_MS = 1_000;
+/** Short delay before chaining the next heartbeat when the agent is actively working. */
+const DEFAULT_CHAIN_MS = 2_000;
 
 function schedule(coalesceMs: number) {
   if (timer) {
@@ -40,6 +42,11 @@ function schedule(coalesceMs: number) {
         // The main lane is busy; retry soon.
         pendingReason = reason ?? "retry";
         schedule(DEFAULT_RETRY_MS);
+      } else if (res.status === "ran" && res.didWork) {
+        // Agent did real work — immediately chain next heartbeat to keep
+        // processing the task queue without waiting for the interval timer.
+        pendingReason = "chain-continue";
+        schedule(DEFAULT_CHAIN_MS);
       }
     } catch {
       // Error is already logged by the heartbeat runner; schedule a retry.

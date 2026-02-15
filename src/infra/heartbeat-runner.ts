@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { ReplyPayload } from "../auto-reply/types.js";
@@ -345,6 +346,61 @@ function resolveHeartbeatAckMaxChars(cfg: OpenClawConfig, heartbeat?: HeartbeatC
   );
 }
 
+/**
+ * Auto-reset session before heartbeat when context pressure is high.
+ * This prevents heartbeats from hitting context overflow by starting fresh.
+ * The session-memory hook will save context from the old session automatically.
+ */
+const HEARTBEAT_CONTEXT_PRESSURE_THRESHOLD = 0.6; // Reset when >60% of context used
+const DEFAULT_CONTEXT_WINDOW = 200_000;
+
+async function maybeResetSessionForHeartbeat(params: {
+  entry: Record<string, unknown> | undefined;
+  sessionKey: string;
+  storePath: string;
+}): Promise<boolean> {
+  const { entry, sessionKey, storePath } = params;
+  if (!entry) {
+    return false;
+  }
+
+  const totalTokens = typeof entry.totalTokens === "number" ? entry.totalTokens : 0;
+  const contextTokens =
+    typeof entry.contextTokens === "number" ? entry.contextTokens : DEFAULT_CONTEXT_WINDOW;
+
+  if (totalTokens <= 0 || totalTokens < contextTokens * HEARTBEAT_CONTEXT_PRESSURE_THRESHOLD) {
+    return false;
+  }
+
+  const nextSessionId = crypto.randomUUID();
+  log.info(
+    `[heartbeat-auto-reset] Session ${sessionKey} at ${totalTokens}/${contextTokens} tokens ` +
+      `(${Math.round((totalTokens / contextTokens) * 100)}%). Resetting to ${nextSessionId}.`,
+  );
+
+  try {
+    await updateSessionStore(storePath, (store) => {
+      const current = store[sessionKey];
+      if (!current) {
+        return;
+      }
+      store[sessionKey] = {
+        ...current,
+        sessionId: nextSessionId,
+        updatedAt: Date.now(),
+        systemSent: false,
+        abortedLastRun: false,
+        totalTokens: 0,
+        compactionCount: 0,
+      };
+    });
+  } catch (err) {
+    log.warn(`[heartbeat-auto-reset] Failed to reset session: ${String(err)}`);
+    return false;
+  }
+  return true;
+}
+
 function resolveHeartbeatSession(
   cfg: OpenClawConfig,
   agentId?: string,
@@ -544,8 +600,16 @@ export async function runHeartbeatOnce(opts: {
     // The LLM prompt says "if it exists" so this is expected behavior.
   }
 
-  const { entry, sessionKey, storePath } = resolveHeartbeatSession(cfg, agentId, heartbeat);
+  let { entry, sessionKey, storePath } = resolveHeartbeatSession(cfg, agentId, heartbeat);
   const previousUpdatedAt = entry?.updatedAt;
+
+  // Auto-reset session when context pressure is high to prevent overflow
+  const didAutoReset = await maybeResetSessionForHeartbeat({ entry, sessionKey, storePath });
+  if (didAutoReset) {
+    // Re-resolve session after reset to pick up the new entry
+    ({ entry, sessionKey, storePath } = resolveHeartbeatSession(cfg, agentId, heartbeat));
+  }
+
   const delivery = resolveHeartbeatDeliveryTarget({ cfg, entry, heartbeat });
   const heartbeatAccountId = heartbeat?.accountId?.trim();
   if (delivery.reason === "unknown-account") {
@@ -843,7 +907,7 @@ export async function runHeartbeatOnce(opts: {
       accountId: delivery.accountId,
       indicatorType: visibility.useIndicator ? resolveIndicatorType("sent") : undefined,
     });
-    return { status: "ran", durationMs: Date.now() - startedAt };
+    return { status: "ran", durationMs: Date.now() - startedAt, didWork: true };
   } catch (err) {
     const reason = formatErrorMessage(err);
     emitHeartbeatEvent({
@@ -980,6 +1044,7 @@ export function startHeartbeatRunner(opts: {
     const startedAt = Date.now();
     const now = startedAt;
     let ran = false;
+    let didWork = false;
 
     for (const agent of state.agents.values()) {
       if (isInterval && now < agent.nextDueMs) {
@@ -1002,12 +1067,15 @@ export function startHeartbeatRunner(opts: {
       }
       if (res.status === "ran") {
         ran = true;
+        if (res.didWork) {
+          didWork = true;
+        }
       }
     }
 
     scheduleNext();
     if (ran) {
-      return { status: "ran", durationMs: Date.now() - startedAt };
+      return { status: "ran", durationMs: Date.now() - startedAt, didWork };
     }
     return { status: "skipped", reason: isInterval ? "not-due" : "disabled" };
   };

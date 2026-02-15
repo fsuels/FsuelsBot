@@ -1223,48 +1223,49 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps({"error": "cronId required"}).encode())
                 return
             
-            # Load tasks.json
-            tasks_file = os.path.join(WORKSPACE_DIR, "memory", "tasks.json")
+            # Load cron-jobs.json (the actual source of cron jobs)
+            cron_file = os.path.join(DASHBOARD_DIR, "cron-jobs.json")
             try:
-                tasks_data = load_json_file(tasks_file)
+                if os.path.exists(cron_file):
+                    with open(cron_file, 'r', encoding='utf-8') as f:
+                        cron_data = json.load(f)
+                else:
+                    cron_data = {"jobs": [], "total": 0}
                 
-                scheduled = tasks_data.get('lanes', {}).get('scheduled', [])
+                jobs = cron_data.get('jobs', [])
                 
-                if cron_id not in scheduled:
+                # Find and remove the job
+                job_found = False
+                new_jobs = []
+                for job in jobs:
+                    if job.get('id') == cron_id:
+                        job_found = True
+                    else:
+                        new_jobs.append(job)
+                
+                if not job_found:
                     self.send_response(400)
                     self.send_header('Content-Type', 'application/json')
                     self.end_headers()
-                    self.wfile.write(json.dumps({"error": f"{cron_id} not in scheduled"}).encode())
+                    self.wfile.write(json.dumps({"error": f"{cron_id} not found in cron jobs"}).encode())
                     return
                 
-                # Remove from scheduled lane
-                scheduled.remove(cron_id)
-                tasks_data['lanes']['scheduled'] = scheduled
+                # Update and save
+                cron_data['jobs'] = new_jobs
+                cron_data['total'] = len(new_jobs)
+                cron_data['updated'] = datetime.now(timezone.utc).isoformat()
                 
-                # Move to trash
-                if 'trash' not in tasks_data['lanes']:
-                    tasks_data['lanes']['trash'] = []
-                tasks_data['lanes']['trash'].append(cron_id)
-                
-                # Mark with deletion info
-                if cron_id in tasks_data.get('tasks', {}):
-                    tasks_data['tasks'][cron_id]['status'] = 'trashed'
-                    tasks_data['tasks'][cron_id]['deleted_at'] = datetime.now(timezone.utc).isoformat()
-                    tasks_data['tasks'][cron_id]['deleted_from'] = 'scheduled'
-                
-                tasks_data['updated_at'] = datetime.now(timezone.utc).isoformat()
-                
-                # Write back
-                with open(tasks_file, 'w', encoding='utf-8') as f:
-                    json.dump(tasks_data, f, indent=4, ensure_ascii=False)
+                with open(cron_file, 'w', encoding='utf-8') as f:
+                    json.dump(cron_data, f, indent=2, ensure_ascii=False)
                 
                 self.send_response(200)
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()
                 self.wfile.write(json.dumps({
                     "success": True,
-                    "message": f"Moved {cron_id} to trash",
-                    "cronId": cron_id
+                    "message": f"Deleted {cron_id}",
+                    "cronId": cron_id,
+                    "remaining": len(new_jobs)
                 }).encode())
                 return
                 
