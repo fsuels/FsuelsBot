@@ -28,6 +28,7 @@ import {
 } from "./commands-memory.js";
 import { handleModelsCommand } from "./commands-models.js";
 import { handlePluginCommand } from "./commands-plugin.js";
+import { handleRevenueCommand, runRevenueAutopilotOnMessage } from "./commands-revenue.js";
 import {
   handleAbortTrigger,
   handleActivationCommand,
@@ -64,6 +65,7 @@ export async function handleCommands(params: HandleCommandsParams): Promise<Comm
       handleConfigCommand,
       handleDebugCommand,
       handleModelsCommand,
+      handleRevenueCommand,
       handlePinCommand,
       handleForgetCommand,
       handleTaskCommand,
@@ -123,6 +125,17 @@ export async function handleCommands(params: HandleCommandsParams): Promise<Comm
     surface: params.command.surface,
     commandSource: params.ctx.CommandSource,
   });
+
+  try {
+    await runRevenueAutopilotOnMessage({
+      surface: String(params.command.surface),
+      isAuthorizedSender: params.command.isAuthorizedSender,
+      normalizedBody: params.command.commandBodyNormalized,
+    });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    logVerbose(`Revenue autopilot skipped due to error: ${detail}`);
+  }
 
   for (const handler of HANDLERS) {
     const result = await handler(params, allowTextCommands);

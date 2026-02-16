@@ -630,6 +630,29 @@ function buildChatCommands(): ChatCommandDefinition[] {
       category: "options",
     }),
     defineChatCommand({
+      key: "revenue",
+      nativeName: "revenue",
+      description: "Run revenue system jobs and autopilot (daily, weekly, paid logging).",
+      textAlias: "/revenue",
+      acceptsArgs: true,
+      category: "tools",
+      args: [
+        {
+          name: "action",
+          description:
+            "help | checklist | daily | autopilot | baseline | demand | outreach | delivery | report | weekly | seed | evaluate | paid",
+          type: "string",
+        },
+        {
+          name: "options",
+          description: "Optional flags (e.g. --limit 10)",
+          type: "string",
+          captureRemaining: true,
+        },
+      ],
+      argsParsing: "none",
+    }),
+    defineChatCommand({
       key: "queue",
       nativeName: "queue",
       description: "Adjust queue settings.",
