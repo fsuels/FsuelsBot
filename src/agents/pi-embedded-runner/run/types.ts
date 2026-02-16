@@ -104,6 +104,8 @@ export type EmbeddedRunAttemptParams = {
   driftInjection?: DriftPromptInjection;
   /** Coherence intervention for system prompt (RSC v2.1). */
   coherenceIntervention?: CoherenceIntervention;
+  /** Tool call loop detection hint (Sustained Reasoning P1). */
+  loopDetectionHint?: string;
 };
 
 export type EmbeddedRunAttemptResult = {
@@ -125,4 +127,6 @@ export type EmbeddedRunAttemptResult = {
   compactionCount?: number;
   /** Client tool call detected (OpenResponses hosted tools). */
   clientToolCall?: { name: string; params: Record<string, unknown> };
+  /** Proactive compaction needed — estimated tokens exceed 80% of context window. */
+  proactiveCompactionNeeded?: boolean;
 };

@@ -294,6 +294,52 @@ export function buildDriftPromptInjection(state: DriftState): DriftPromptInjecti
 /**
  * Format a human-readable drift status summary for CLI output.
  */
+// ---------------------------------------------------------------------------
+// Thinking Escalation — Sustained Reasoning P2
+// ---------------------------------------------------------------------------
+
+/**
+ * Ordered thinking level chain for escalation.
+ * When drift is critical, try upgrading instead of only downgrading.
+ */
+const THINKING_ESCALATION_CHAIN: readonly string[] = ["off", "low", "medium", "high", "xhigh"];
+
+/**
+ * Determine if thinking level should be escalated due to critical drift.
+ *
+ * Guardrails:
+ * - Only when drift level is "critical"
+ * - Only when the agent can still escalate (AgentPosture.thinkingEscalations < 1)
+ * - Only when posture mode is "struggling" or "degraded"
+ * - Returns the next level up in the chain, or undefined if already at max
+ */
+export function shouldEscalateThinking(params: {
+  driftLevel: DriftLevel;
+  currentThinkingLevel: string;
+  postureMode: "normal" | "cautious" | "struggling" | "degraded";
+  canEscalate: boolean; // from canEscalateThinking(posture)
+}): string | undefined {
+  // Only escalate on critical drift
+  if (params.driftLevel !== "critical") return undefined;
+
+  // Only in struggling or degraded posture
+  if (params.postureMode !== "struggling" && params.postureMode !== "degraded") return undefined;
+
+  // Escalation cap check (Invariant 3: max 1 per run)
+  if (!params.canEscalate) return undefined;
+
+  const currentIndex = THINKING_ESCALATION_CHAIN.indexOf(params.currentThinkingLevel);
+  if (currentIndex < 0) {
+    // Unknown level — try "medium" as a safe escalation target
+    return "medium";
+  }
+
+  // Already at max
+  if (currentIndex >= THINKING_ESCALATION_CHAIN.length - 1) return undefined;
+
+  return THINKING_ESCALATION_CHAIN[currentIndex + 1];
+}
+
 export function formatDriftStatus(state: DriftState): string {
   const totalTurns = state.events.length;
   const corrections = state.events.filter(isCorrection).length;

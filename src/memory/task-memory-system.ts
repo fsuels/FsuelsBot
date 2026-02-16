@@ -357,7 +357,7 @@ type WalLifecycleConfig = {
 function resolveWalLifecycleConfig(): WalLifecycleConfig {
   const segmentMaxBytesRaw = Number(process.env.MEMORY_WAL_SEGMENT_MAX_BYTES ?? 5 * 1024 * 1024);
   const segmentMaxAgeDaysRaw = Number(process.env.MEMORY_WAL_SEGMENT_MAX_AGE_DAYS ?? 1);
-  const retentionDaysRaw = Number(process.env.MEMORY_WAL_RETENTION_DAYS ?? 36500);
+  const retentionDaysRaw = Number(process.env.MEMORY_WAL_RETENTION_DAYS ?? 365);
   const segmentMaxBytes = Number.isFinite(segmentMaxBytesRaw)
     ? Math.max(64 * 1024, Math.floor(segmentMaxBytesRaw))
     : 5 * 1024 * 1024;
@@ -366,7 +366,7 @@ function resolveWalLifecycleConfig(): WalLifecycleConfig {
     : 24 * 60 * 60 * 1000;
   const retentionDays = Number.isFinite(retentionDaysRaw)
     ? Math.max(1, Math.floor(retentionDaysRaw))
-    : 36500;
+    : 365;
   return {
     segmentMaxBytes,
     segmentMaxAgeMs,

@@ -50,6 +50,28 @@ const MIN_ENTRIES_FOR_INTERVENTION = 3;
 /** Maximum recent entries to show in the prompt. */
 const MAX_RECENT_SHOWN = 5;
 
+/**
+ * Default maximum character budget for all coherence intervention sections combined.
+ * Prevents coherence injection from growing unboundedly and displacing conversation history.
+ * Can be overridden via the `maxInjectionChars` option.
+ */
+const DEFAULT_MAX_INJECTION_CHARS = 4000;
+
+/**
+ * Section priority order for budget enforcement.
+ * When the combined injection exceeds maxInjectionChars, lower-priority
+ * sections are truncated or dropped first.
+ *
+ * Priority (highest first):
+ * 1. Tool avoidance — safety-critical, prevents repeating known failures
+ * 2. Coherence log — committed decisions and recent actions
+ * 3. Promoted events — cross-session inherited context
+ * 4. Capabilities — verified tool capabilities
+ * 5. Event memory — verb-indexed associative recall
+ * 6. Failure memory — recurring error pattern hints
+ */
+type PrioritizedSection = { priority: number; text: string };
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -100,30 +122,35 @@ export function resolveCoherenceInterventionForSession(
   opts?: {
     sessionStore?: Record<string, SessionEntry>;
     sessionKey?: string;
+    /** Maximum characters for all coherence injection sections combined. */
+    maxInjectionChars?: number;
   },
 ): CoherenceIntervention | null {
   if (!entry) return null;
 
-  const sections: string[] = [];
+  const maxChars = opts?.maxInjectionChars ?? DEFAULT_MAX_INJECTION_CHARS;
 
-  // Coherence log section
+  // Collect prioritized sections (higher priority = lower number = kept first)
+  const prioritized: PrioritizedSection[] = [];
+
+  // Priority 1: Tool avoidance (safety-critical)
+  const toolState = resolveToolFailureState({ toolFailures: entry.toolFailures });
+  const avoidance = buildToolAvoidanceInjection(toolState);
+  if (avoidance) {
+    prioritized.push({ priority: 1, text: avoidance });
+  }
+
+  // Priority 2: Coherence log (committed decisions + recent actions)
   const coherenceState = resolveCoherenceLog({
     coherenceEntries: entry.coherenceEntries,
     coherencePinned: entry.coherencePinned,
   });
   const coherence = buildCoherenceIntervention(coherenceState);
   if (coherence) {
-    sections.push(coherence.text);
+    prioritized.push({ priority: 2, text: coherence.text });
   }
 
-  // RSC v3.0: Event memory section — verb-indexed associative recall
-  const selectedEvents = selectEventsForInjection(coherenceState);
-  const eventInjection = formatEventMemoryInjection(selectedEvents);
-  if (eventInjection) {
-    sections.push(eventInjection);
-  }
-
-  // RSC v3.1: Cross-session promoted events
+  // Priority 3: Cross-session promoted events (RSC v3.1)
   if (opts?.sessionStore && opts.sessionKey) {
     const promotedEvents = resolvePromotedEventsForSession(
       opts.sessionStore,
@@ -133,12 +160,12 @@ export function resolveCoherenceInterventionForSession(
     if (promotedEvents) {
       const injection = formatPromotedEventsInjection(promotedEvents);
       if (injection) {
-        sections.push(injection);
+        prioritized.push({ priority: 3, text: injection });
       }
     }
   }
 
-  // RSC v3.2 + v3.3 + v3.4: Capability ledger with reliability bands and proactive behavior
+  // Priority 4: Capability ledger (RSC v3.2-v3.4)
   const capabilityState = resolveCapabilityLedger({ capabilityLedger: entry.capabilityLedger });
   const allEvents = [...coherenceState.pinned, ...coherenceState.entries];
   const capabilityReliability = computeCapabilityReliability(capabilityState, allEvents);
@@ -149,25 +176,45 @@ export function resolveCoherenceInterventionForSession(
     trustSignals.tier,
   );
   if (capabilityInjection) {
-    sections.push(capabilityInjection);
+    prioritized.push({ priority: 4, text: capabilityInjection });
   }
 
-  // Tool avoidance section (RSC v2.1 item 3)
-  const toolState = resolveToolFailureState({ toolFailures: entry.toolFailures });
-  const avoidance = buildToolAvoidanceInjection(toolState);
-  if (avoidance) {
-    sections.push(avoidance);
+  // Priority 5: Event memory (RSC v3.0 — verb-indexed recall)
+  const selectedEvents = selectEventsForInjection(coherenceState);
+  const eventInjection = formatEventMemoryInjection(selectedEvents);
+  if (eventInjection) {
+    prioritized.push({ priority: 5, text: eventInjection });
   }
 
-  // Failure memory section (RSC v2.1 item 4)
+  // Priority 6: Failure memory hints (RSC v2.1 item 4)
   const signatures = resolveFailureSignatures({ failureSignatures: entry.failureSignatures });
   const failureHint = buildFailureMemoryHint(signatures);
   if (failureHint) {
-    sections.push(failureHint);
+    prioritized.push({ priority: 6, text: failureHint });
   }
 
-  if (sections.length === 0) return null;
-  return { text: sections.join("\n\n") };
+  if (prioritized.length === 0) return null;
+
+  // Enforce budget: include sections in priority order until budget is exhausted.
+  // Sort by priority (lowest number = highest priority).
+  prioritized.sort((a, b) => a.priority - b.priority);
+
+  const included: string[] = [];
+  let remaining = maxChars;
+  for (const section of prioritized) {
+    if (section.text.length <= remaining) {
+      included.push(section.text);
+      remaining -= section.text.length;
+    } else if (remaining > 100) {
+      // Partial inclusion: truncate section to fit, but only if we have meaningful space
+      included.push(section.text.slice(0, remaining - 3) + "...");
+      remaining = 0;
+    }
+    // else: drop section entirely (budget exhausted)
+  }
+
+  if (included.length === 0) return null;
+  return { text: included.join("\n\n") };
 }
 
 /**

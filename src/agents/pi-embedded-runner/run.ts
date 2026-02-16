@@ -57,6 +57,14 @@ import {
   sessionLikelyHasOversizedToolResults,
 } from "./tool-result-truncation.js";
 import { describeUnknownError } from "./utils.js";
+import {
+  type ToolCallFingerprint,
+  hashToolArgs,
+  detectToolCallLoop,
+  buildLoopDetectionHint,
+} from "../tool-call-loop-detector.js";
+import { shouldEscalateThinking, type DriftLevel } from "../drift-detection.js";
+import { hashPromptState } from "./prompt-dedup-cache.js";
 
 type ApiKeyInfo = ResolvedProviderAuth;
 
@@ -388,13 +396,61 @@ export async function runEmbeddedPiAgent(
       let toolResultTruncationAttempted = false;
       const usageAccumulator = createUsageAccumulator();
       let autoCompactionCount = 0;
+      // Tool call loop detector state (Sustained Reasoning P1)
+      const toolCallFingerprints: ToolCallFingerprint[] = [];
+      // Thinking escalation state (Sustained Reasoning P2)
+      let thinkingEscalationUsed = false;
+      let thinkingEscalationCooldownTurn = -Infinity; // turn at which escalation happened
+      // Prompt dedup cache (Processing Efficiency P1)
+      // Tracks prompt hashes to detect when compaction didn't change the prompt,
+      // allowing us to skip redundant API calls during overflow retry loops.
+      const attemptedPromptHashes = new Set<string>();
+      let runTurnCounter = 0; // incremented per loop iteration
       try {
         while (true) {
+          runTurnCounter++;
           attemptedThinking.add(thinkLevel);
           await fs.mkdir(resolvedWorkspace, { recursive: true });
 
           const prompt =
             provider === "anthropic" ? scrubAnthropicRefusalMagic(params.prompt) : params.prompt;
+
+          // Check for tool call loops before each attempt
+          const loopResult = detectToolCallLoop(toolCallFingerprints);
+          const loopHint = buildLoopDetectionHint(loopResult);
+          if (loopHint) {
+            log.warn(
+              `[loop-detector] Loop detected: tool=${loopResult.toolName} ` +
+                `repeats=${loopResult.repeatCount}`,
+            );
+          }
+
+          // Thinking escalation on critical drift (Sustained Reasoning P2)
+          // Guardrails: cap to 1 per run, 3-turn cooldown, only in struggling/degraded posture
+          if (
+            !thinkingEscalationUsed &&
+            params.driftInjection?.level === "critical" &&
+            runTurnCounter - thinkingEscalationCooldownTurn >= 3
+          ) {
+            // Infer posture mode from drift level (simplified: critical drift → struggling at minimum)
+            const inferredPostureMode = "struggling" as const;
+            const escalatedLevel = shouldEscalateThinking({
+              driftLevel: params.driftInjection.level as DriftLevel,
+              currentThinkingLevel: thinkLevel,
+              postureMode: inferredPostureMode,
+              canEscalate: !thinkingEscalationUsed,
+            });
+            if (escalatedLevel) {
+              log.warn(
+                `[thinking-escalation] Critical drift detected; escalating thinking ` +
+                  `${thinkLevel} → ${escalatedLevel}`,
+              );
+              thinkLevel = escalatedLevel as ThinkLevel;
+              thinkingEscalationUsed = true;
+              thinkingEscalationCooldownTurn = runTurnCounter;
+              attemptedThinking.add(thinkLevel);
+            }
+          }
 
           const attempt = await runEmbeddedAttempt({
             sessionId: params.sessionId,
@@ -456,9 +512,87 @@ export async function runEmbeddedPiAgent(
             contextPressure: params.contextPressure,
             driftInjection: params.driftInjection,
             coherenceIntervention: params.coherenceIntervention,
+            loopDetectionHint: loopHint ?? undefined,
           });
 
+          // ── Proactive compaction (Working Memory P1) ──────────────────
+          // If the attempt detected >80% context usage before calling the API,
+          // it returns early with proactiveCompactionNeeded=true. Compact and retry.
+          if (attempt.proactiveCompactionNeeded) {
+            if (overflowCompactionAttempts < MAX_OVERFLOW_COMPACTION_ATTEMPTS) {
+              overflowCompactionAttempts++;
+              log.info(
+                `[proactive-compaction] Pre-API compaction triggered ` +
+                  `(attempt ${overflowCompactionAttempts}/${MAX_OVERFLOW_COMPACTION_ATTEMPTS})`,
+              );
+              const compactResult = await compactEmbeddedPiSessionDirect({
+                sessionId: params.sessionId,
+                sessionKey: params.sessionKey,
+                messageChannel: params.messageChannel,
+                messageProvider: params.messageProvider,
+                agentAccountId: params.agentAccountId,
+                authProfileId: lastProfileId,
+                sessionFile: params.sessionFile,
+                workspaceDir: resolvedWorkspace,
+                agentDir,
+                config: params.config,
+                skillsSnapshot: params.skillsSnapshot,
+                senderIsOwner: params.senderIsOwner,
+                provider,
+                model: modelId,
+                thinkLevel,
+                reasoningLevel: params.reasoningLevel,
+                bashElevated: params.bashElevated,
+                extraSystemPrompt: params.extraSystemPrompt,
+                ownerNumbers: params.ownerNumbers,
+              });
+              if (compactResult.compacted) {
+                autoCompactionCount += 1;
+                log.info(`[proactive-compaction] Succeeded; retrying prompt`);
+                continue;
+              }
+              log.warn(
+                `[proactive-compaction] Failed: ${compactResult.reason ?? "nothing to compact"}`,
+              );
+            }
+            // Fall through to normal attempt if compaction attempts exhausted
+          }
+
           const { aborted, promptError, timedOut, sessionIdUsed, lastAssistant } = attempt;
+
+          // Record prompt hash for dedup detection (Processing Efficiency P1)
+          // If this hash was already seen in a previous attempt, compaction didn't
+          // change the prompt → skip further overflow retries to save API calls.
+          let promptIsDuplicate = false;
+          if (attempt.messagesSnapshot?.length) {
+            try {
+              const promptHash = hashPromptState(
+                params.prompt ?? "",
+                attempt.messagesSnapshot,
+              );
+              if (attemptedPromptHashes.has(promptHash)) {
+                promptIsDuplicate = true;
+                log.info(
+                  `[prompt-dedup] Duplicate prompt detected (hash=${promptHash.slice(0, 8)}…); ` +
+                    `compaction did not change message content`,
+                );
+              }
+              attemptedPromptHashes.add(promptHash);
+            } catch {
+              // Hash failure is non-critical — skip dedup for this attempt
+            }
+          }
+
+          // Record tool call fingerprints for loop detection (Sustained Reasoning P1)
+          const now = Date.now();
+          for (const meta of attempt.toolMetas) {
+            toolCallFingerprints.push({
+              name: meta.toolName,
+              argsHash: hashToolArgs(meta.meta),
+              ts: now,
+            });
+          }
+
           mergeUsageIntoAccumulator(
             usageAccumulator,
             attempt.attemptUsage ?? normalizeUsage(lastAssistant?.usage as UsageLike),
@@ -504,8 +638,10 @@ export async function runEmbeddedPiAgent(
             );
             const isCompactionFailure = isCompactionFailureError(errorText);
             // Attempt auto-compaction on context overflow (not compaction_failure)
+            // Skip if prompt is duplicate — compaction didn't change message content (Processing Efficiency P1)
             if (
               !isCompactionFailure &&
+              !promptIsDuplicate &&
               overflowCompactionAttempts < MAX_OVERFLOW_COMPACTION_ATTEMPTS
             ) {
               overflowCompactionAttempts++;

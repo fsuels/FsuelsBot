@@ -116,4 +116,6 @@ export type RunEmbeddedPiAgentParams = {
   driftInjection?: DriftPromptInjection;
   /** Coherence intervention for system prompt (RSC v2.1). */
   coherenceIntervention?: CoherenceIntervention;
+  /** Tool call loop detection hint (Sustained Reasoning P1). */
+  loopDetectionHint?: string;
 };

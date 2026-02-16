@@ -360,6 +360,8 @@ export function buildSubagentSystemPrompt(params: {
 export type SubagentRunOutcome = {
   status: "ok" | "error" | "timeout" | "unknown";
   error?: string;
+  /** Structured result from the child's final assistant message (Executive Control P1). */
+  result?: string;
 };
 
 export type SubagentAnnounceType = "subagent task" | "cron job";
@@ -464,6 +466,12 @@ export async function runSubagentAnnounceFlow(params: {
 
     if (!outcome) {
       outcome = { status: "unknown" };
+    }
+
+    // Populate structured result from the child's final assistant message (Executive Control P1).
+    // Truncate to first 2000 chars to keep the payload manageable.
+    if (reply?.trim() && !outcome.result) {
+      outcome.result = reply.trim().slice(0, 2000);
     }
 
     // Build stats

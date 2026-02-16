@@ -228,3 +228,90 @@ export function evaluateClaimPromotion(params: {
 
   return { recommendedStatus: status, recommendedConfidence: confidence };
 }
+
+// ---------------------------------------------------------------------------
+// Implicit Claim Acceptance — Learnability P1
+// ---------------------------------------------------------------------------
+
+/**
+ * Implicit acceptance boost amount (vs +0.15 for explicit positive feedback).
+ * Smaller to reflect lower confidence in silent acceptance.
+ */
+const IMPLICIT_BOOST = 0.05;
+
+/**
+ * Maximum confidence reachable via implicit acceptance alone.
+ * Claims cannot be auto-promoted to `verified` without explicit positive feedback.
+ */
+const IMPLICIT_MAX_CONFIDENCE = 0.7;
+
+/**
+ * Minimum confidence a claim must have before implicit acceptance applies.
+ * Prevents reinforcing hallucinated/low-quality claims.
+ */
+const IMPLICIT_MIN_CONFIDENCE_GATE = 0.3;
+
+/**
+ * Apply implicit acceptance boost to a claim.
+ *
+ * Guardrails:
+ * (a) Confidence gate: only apply to claims already above 0.3 confidence
+ * (b) Multi-turn validation: caller must verify non-dispute across 2+ consecutive turns
+ * (c) Retrieval-confirmed: caller must confirm claim was retrieved via memory_search
+ * (d) Cap: cannot reach `verified` status; max confidence 0.7
+ *
+ * @param params.db - Database handle
+ * @param params.claimId - The claim to boost
+ * @param params.wasRetrieved - Whether claim was retrieved via memory_search (not fabricated)
+ * @param params.consecutiveNonDisputeTurns - Number of consecutive turns without dispute
+ * @param params.now - Optional timestamp for testing
+ */
+export function applyImplicitAcceptance(params: {
+  db: DatabaseSync;
+  claimId: string;
+  wasRetrieved: boolean;
+  consecutiveNonDisputeTurns: number;
+  now?: number;
+}): { applied: boolean; reason?: string; newConfidence?: number } {
+  const { db, claimId, wasRetrieved, consecutiveNonDisputeTurns } = params;
+  const now = params.now ?? Date.now();
+
+  // Guardrail (c): Must have been retrieved via memory_search
+  if (!wasRetrieved) {
+    return { applied: false, reason: "Claim was not retrieved via memory_search" };
+  }
+
+  // Guardrail (b): Multi-turn validation — require 2+ consecutive non-dispute turns
+  if (consecutiveNonDisputeTurns < 2) {
+    return { applied: false, reason: `Only ${consecutiveNonDisputeTurns} non-dispute turns (need 2)` };
+  }
+
+  const claim = getClaim(db, claimId);
+  if (!claim) {
+    return { applied: false, reason: "Claim not found" };
+  }
+
+  // Don't modify deprecated claims
+  if (claim.status === "deprecated") {
+    return { applied: false, reason: "Claim is deprecated" };
+  }
+
+  // Guardrail (a): Confidence gate
+  if (claim.confidence < IMPLICIT_MIN_CONFIDENCE_GATE) {
+    return { applied: false, reason: `Confidence ${claim.confidence} below gate ${IMPLICIT_MIN_CONFIDENCE_GATE}` };
+  }
+
+  // Guardrail (d): Cap at IMPLICIT_MAX_CONFIDENCE
+  const newConfidence = Math.min(IMPLICIT_MAX_CONFIDENCE, claim.confidence + IMPLICIT_BOOST);
+
+  // No change
+  if (newConfidence === claim.confidence) {
+    return { applied: false, reason: "Already at implicit confidence cap" };
+  }
+
+  // Guardrail (d): Cannot promote to verified via implicit acceptance
+  // Status stays as-is; only confidence changes
+  upsertClaim(db, { ...claim, confidence: newConfidence, updatedAt: now });
+
+  return { applied: true, newConfidence };
+}

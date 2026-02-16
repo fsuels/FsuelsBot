@@ -54,6 +54,18 @@ const MAX_ERROR_PATTERN_LENGTH = 120;
 /** Minimum occurrences of a failure signature to include in hints. */
 const FAILURE_MEMORY_THRESHOLD = 2;
 
+/** Failure signatures older than this are considered stale and excluded from hints. */
+const SIGNATURE_DECAY_MS = 2 * 60 * 60 * 1000; // 2 hours
+
+/**
+ * Consecutive failure threshold above which a tool is dynamically disabled.
+ * Disabled tools are skipped by the dispatch layer until cooldown expires.
+ */
+export const DYNAMIC_DISABLE_THRESHOLD = 5;
+
+/** Cooldown duration for dynamically disabled tools. */
+export const DYNAMIC_DISABLE_COOLDOWN_MS = 10 * 60 * 1000; // 10 minutes
+
 // ---------------------------------------------------------------------------
 // Error pattern normalization (RSC v2.1 patch — reviewer feedback)
 // ---------------------------------------------------------------------------
@@ -205,9 +217,19 @@ export function buildToolAvoidanceInjection(state: ToolFailureState): string | n
 /**
  * Build failure memory hints for the system prompt.
  * Returns null if no recurring failure patterns exist.
+ *
+ * Applies time decay: signatures older than SIGNATURE_DECAY_MS are excluded
+ * to prevent stale failure patterns from generating avoidance guidance long
+ * after the underlying issue was resolved.
  */
-export function buildFailureMemoryHint(signatures: FailureSignature[]): string | null {
-  const recurring = signatures.filter((s) => s.count >= FAILURE_MEMORY_THRESHOLD);
+export function buildFailureMemoryHint(
+  signatures: FailureSignature[],
+  now?: number,
+): string | null {
+  const ts = now ?? Date.now();
+  const recurring = signatures.filter(
+    (s) => s.count >= FAILURE_MEMORY_THRESHOLD && ts - s.lastTs < SIGNATURE_DECAY_MS,
+  );
   if (recurring.length === 0) return null;
 
   const lines: string[] = [];
@@ -217,4 +239,38 @@ export function buildFailureMemoryHint(signatures: FailureSignature[]): string |
     );
   }
   return lines.join("\n");
+}
+
+// ---------------------------------------------------------------------------
+// Dynamic tool disabling (Cognitive Flexibility)
+// ---------------------------------------------------------------------------
+
+/**
+ * Check if a tool should be dynamically disabled based on consecutive failures.
+ * Returns the disable-until timestamp if the tool is currently disabled, or null.
+ */
+export function resolveToolDisabledUntil(
+  state: ToolFailureState,
+  toolName: string,
+  now?: number,
+): number | null {
+  const ts = now ?? Date.now();
+  const record = state.records.find((r) => r.toolName === toolName);
+  if (!record) return null;
+  if (record.consecutiveFailures < DYNAMIC_DISABLE_THRESHOLD) return null;
+
+  // Compute cooldown from when the last failure occurred
+  const disabledUntil = record.lastTs + DYNAMIC_DISABLE_COOLDOWN_MS;
+  return ts < disabledUntil ? disabledUntil : null;
+}
+
+/**
+ * Check if a tool is currently dynamically disabled.
+ */
+export function isToolDynamicallyDisabled(
+  state: ToolFailureState,
+  toolName: string,
+  now?: number,
+): boolean {
+  return resolveToolDisabledUntil(state, toolName, now) !== null;
 }

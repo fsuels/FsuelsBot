@@ -38,6 +38,7 @@ import {
   type OpenAiEmbeddingClient,
   type VoyageEmbeddingClient,
 } from "./embeddings.js";
+import { EmbeddingCircuitBreaker } from "./circuit-breaker.js";
 import { bm25RankToScore, buildFtsQuery, mergeHybridResults } from "./hybrid.js";
 import {
   buildFileEntry,
@@ -166,6 +167,8 @@ export class MemoryIndexManager implements MemorySearchManager {
   >();
   private sessionWarm = new Set<string>();
   private syncing: Promise<void> | null = null;
+  /** Embedding circuit breaker — Robustness P2. */
+  private readonly embeddingCircuitBreaker = new EmbeddingCircuitBreaker();
 
   static async get(params: {
     cfg: OpenClawConfig;
@@ -294,7 +297,26 @@ export class MemoryIndexManager implements MemorySearchManager {
       ? await this.searchKeyword(cleaned, candidates).catch(() => [])
       : [];
 
-    const queryVec = await this.embedQueryWithTimeout(cleaned);
+    // Circuit breaker: check if embedding calls should proceed (Robustness P2)
+    const cbAllowed = this.embeddingCircuitBreaker.shouldAllowCall();
+    let queryVec: number[] = [];
+    if (cbAllowed) {
+      try {
+        queryVec = await this.embedQueryWithTimeout(cleaned);
+        this.embeddingCircuitBreaker.recordSuccess();
+      } catch (err) {
+        this.embeddingCircuitBreaker.recordFailure();
+        log.warn(
+          `[circuit-breaker] Embedding query failed (state=${this.embeddingCircuitBreaker.getState()}): ${String(err)}`,
+        );
+        queryVec = [];
+      }
+    } else {
+      log.debug(
+        `[circuit-breaker] Embedding call blocked (state=${this.embeddingCircuitBreaker.getState()}, degraded=keyword-only)`,
+      );
+    }
+
     const hasVector = queryVec.some((v) => v !== 0);
     const vectorResults = hasVector
       ? await this.searchVector(queryVec, candidates).catch(() => [])
@@ -304,11 +326,16 @@ export class MemoryIndexManager implements MemorySearchManager {
       return vectorResults.filter((entry) => entry.score >= minScore).slice(0, maxResults);
     }
 
+    // Adjust weights based on circuit breaker state (Robustness P2)
+    const { vectorWeight, textWeight } = this.embeddingCircuitBreaker.getSearchWeights(
+      hybrid.vectorWeight,
+      hybrid.textWeight,
+    );
     const merged = this.mergeHybridResults({
       vector: vectorResults,
       keyword: keywordResults,
-      vectorWeight: hybrid.vectorWeight,
-      textWeight: hybrid.textWeight,
+      vectorWeight,
+      textWeight,
     });
 
     return merged.filter((entry) => entry.score >= minScore).slice(0, maxResults);
@@ -2122,6 +2149,13 @@ export class MemoryIndexManager implements MemorySearchManager {
     if (texts.length === 0) {
       return [];
     }
+    // Circuit breaker check for batch embeddings (Robustness P2)
+    if (!this.embeddingCircuitBreaker.shouldAllowCall()) {
+      log.debug(
+        `[circuit-breaker] Batch embedding blocked (state=${this.embeddingCircuitBreaker.getState()})`,
+      );
+      throw new Error("Embedding circuit breaker is open — batch embedding blocked");
+    }
     let attempt = 0;
     let delayMs = EMBEDDING_RETRY_BASE_DELAY_MS;
     while (true) {
@@ -2132,12 +2166,15 @@ export class MemoryIndexManager implements MemorySearchManager {
           items: texts.length,
           timeoutMs,
         });
-        return await this.withTimeout(
+        const result = await this.withTimeout(
           this.provider.embedBatch(texts),
           timeoutMs,
           `memory embeddings batch timed out after ${Math.round(timeoutMs / 1000)}s`,
         );
+        this.embeddingCircuitBreaker.recordSuccess();
+        return result;
       } catch (err) {
+        this.embeddingCircuitBreaker.recordFailure();
         const message = err instanceof Error ? err.message : String(err);
         if (!this.isRetryableEmbeddingError(message) || attempt >= EMBEDDING_RETRY_MAX_ATTEMPTS) {
           throw err;

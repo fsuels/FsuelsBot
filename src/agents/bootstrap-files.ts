@@ -48,13 +48,37 @@ export async function resolveBootstrapContextForRun(params: {
   agentId?: string;
   provider?: string;
   warn?: (message: string) => void;
+  /**
+   * Context pressure (0-1). When provided, bootstrap budget shrinks as sessions
+   * grow to leave room for conversation history. (Working Memory P3)
+   * - pressure 0.0–0.5: full budget
+   * - pressure 0.5–0.8: linearly scale to 50% of budget
+   * - pressure 0.8–1.0: linearly scale to 25% of budget
+   */
+  contextPressure?: number;
 }): Promise<{
   bootstrapFiles: WorkspaceBootstrapFile[];
   contextFiles: EmbeddedContextFile[];
 }> {
   const bootstrapFiles = await resolveBootstrapFilesForRun(params);
+  let maxChars = resolveBootstrapMaxChars(params.config, params.provider);
+
+  // Dynamic bootstrap budget: shrink allocation under context pressure (Working Memory P3)
+  if (typeof params.contextPressure === "number" && params.contextPressure > 0.5) {
+    const pressure = Math.min(1, params.contextPressure);
+    let scaleFactor: number;
+    if (pressure <= 0.8) {
+      // 0.5 → 1.0, 0.8 → 0.5 (linear)
+      scaleFactor = 1.0 - ((pressure - 0.5) / 0.3) * 0.5;
+    } else {
+      // 0.8 → 0.5, 1.0 → 0.25 (linear)
+      scaleFactor = 0.5 - ((pressure - 0.8) / 0.2) * 0.25;
+    }
+    maxChars = Math.max(1000, Math.floor(maxChars * scaleFactor));
+  }
+
   const contextFiles = buildBootstrapContextFiles(bootstrapFiles, {
-    maxChars: resolveBootstrapMaxChars(params.config, params.provider),
+    maxChars,
     warn: params.warn,
   });
   return { bootstrapFiles, contextFiles };

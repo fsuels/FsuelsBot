@@ -95,6 +95,8 @@ import {
 import { truncateOversizedToolResultsInMessages } from "../tool-result-truncation.js";
 import { splitSdkTools } from "../tool-split.js";
 import { describeUnknownError, mapThinkingLevel } from "../utils.js";
+import { shouldTriggerProactiveCompaction } from "../../context-budget.js";
+import { estimateMessagesTokens } from "../../compaction.js";
 import { tryDelegateRoute } from "./delegate-router.js";
 import { detectAndLoadPromptImages } from "./images.js";
 
@@ -361,6 +363,16 @@ export async function runEmbeddedAttempt(
     });
     const ttsHint = params.config ? buildTtsSystemPromptHint(params.config) : undefined;
 
+    // Merge loop detection hint into coherence intervention (Sustained Reasoning P1)
+    const effectiveCoherenceIntervention = (() => {
+      const base = params.coherenceIntervention;
+      const hint = params.loopDetectionHint;
+      if (!base && !hint) return undefined;
+      if (!hint) return base;
+      if (!base) return { text: hint };
+      return { text: `${base.text}\n\n${hint}` };
+    })();
+
     const appendPrompt = buildEmbeddedSystemPrompt({
       workspaceDir: effectiveWorkspace,
       defaultThinkLevel: params.thinkLevel,
@@ -389,7 +401,7 @@ export async function runEmbeddedAttempt(
       memoryCitationsMode: params.config?.memory?.citations,
       contextPressure: params.contextPressure,
       driftInjection: params.driftInjection,
-      coherenceIntervention: params.coherenceIntervention,
+      coherenceIntervention: effectiveCoherenceIntervention,
     });
     const systemPromptReport = buildSystemPromptReport({
       source: "run",
@@ -601,6 +613,42 @@ export async function runEmbeddedAttempt(
           );
         }
         activeSession.agent.replaceMessages(truncated);
+
+        // ── Proactive compaction check (Working Memory P1) ──────────────
+        // Estimate token usage before sending to API. If we're above 80%
+        // of context window, signal the caller to compact first.
+        if (params.model.contextWindow) {
+          const estimatedTokens = estimateMessagesTokens(truncated);
+          if (
+            shouldTriggerProactiveCompaction({
+              contextWindowTokens: params.model.contextWindow,
+              currentUsageTokens: estimatedTokens,
+            })
+          ) {
+            log.info(
+              `[proactive-compaction] Estimated ${estimatedTokens} tokens vs ${params.model.contextWindow} context window ` +
+                `(${((estimatedTokens / params.model.contextWindow) * 100).toFixed(1)}%); signaling compaction`,
+            );
+            sessionManager.flushPendingToolResults?.();
+            activeSession.dispose();
+            return {
+              aborted: false,
+              timedOut: false,
+              promptError: null,
+              sessionIdUsed: activeSession.sessionId,
+              systemPromptReport: systemPromptReport ?? undefined,
+              messagesSnapshot: truncated,
+              assistantTexts: [],
+              toolMetas: [],
+              lastAssistant: undefined,
+              didSendViaMessagingTool: false,
+              messagingToolSentTexts: [],
+              messagingToolSentTargets: [],
+              cloudCodeAssistFormatError: false,
+              proactiveCompactionNeeded: true,
+            };
+          }
+        }
       } catch (err) {
         sessionManager.flushPendingToolResults?.();
         activeSession.dispose();
