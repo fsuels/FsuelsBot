@@ -61,6 +61,10 @@ Apply to a limited pilot set of tasks (10-20 tasks max).
 
 ## KPI Checklist (7 Days)
 
+Track these metrics daily.
+
+**Auto-log location:** `workspace/memory/erl-lite-kpi-log.md`
+
 Track these metrics daily:
 
 1. **Second-attempt success rate**  
@@ -86,6 +90,12 @@ Pilot is considered successful if all are true:
 - At least 3 durable lessons promoted with evidence.
 
 ---
+
+## Daily Logging Rule
+
+- Update `workspace/memory/erl-lite-kpi-log.md` once per day (end-of-day).
+- If a metric is unavailable, record `TBD` and include why in Notes.
+- Keep entries additive (never rewrite prior days except to correct clear factual errors).
 
 ## Guardrails
 
