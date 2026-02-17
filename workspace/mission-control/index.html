@@ -3015,11 +3015,11 @@
             }
           }
 
-          // Calculate deadline
-          const deadline = new Date("2026-02-10");
-          const today = new Date();
-          const daysLeft = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24));
-          document.getElementById("deadlineDays").textContent = daysLeft + " days";
+          // Calculate deadline (disabled - element removed)
+          // const deadline = new Date("2026-02-10");
+          // const today = new Date();
+          // const daysLeft = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24));
+          // document.getElementById("deadlineDays").textContent = daysLeft + " days";
 
           // Render Bot Current (handle both string and array formats)
           let botCurrentIds = lanes.bot_current || [];

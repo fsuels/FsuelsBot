@@ -24,7 +24,7 @@ LOG_SOURCES = (
     {"name": "moltbot", "dir": LOG_ROOT / "moltbot", "prefix": "moltbot"},
 )
 DASHBOARD_DIR = os.path.dirname(os.path.abspath(__file__))
-BIND_HOST = os.environ.get("DASHBOARD_BIND", "127.0.0.1")
+BIND_HOST = os.environ.get("DASHBOARD_BIND", "0.0.0.0")
 DASHBOARD_KEY = os.environ.get("DASHBOARD_KEY", "").strip()
 _generated_dashboard_key = False
 if not DASHBOARD_KEY:
