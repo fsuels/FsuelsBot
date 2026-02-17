@@ -167,8 +167,23 @@ def run_cli(args, timeout=20):
     return result.stdout, cli
 
 
+def extract_json_from_output(text):
+    """Extract JSON object/array from CLI output that may have warnings before it."""
+    if not text:
+        return text
+    # Find first { or [ which starts JSON
+    for i, char in enumerate(text):
+        if char in '{[':
+            return text[i:]
+    return text
+
+
 def run_models_cli(args, timeout=20):
-    return run_cli(["models", *args], timeout=timeout)
+    stdout, cli = run_cli(["models", *args], timeout=timeout)
+    # Strip any warning banners before JSON
+    if "--json" in args:
+        stdout = extract_json_from_output(stdout)
+    return stdout, cli
 
 
 # --- LM Studio model management ---
