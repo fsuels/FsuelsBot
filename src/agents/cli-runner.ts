@@ -8,6 +8,7 @@ import { isTruthyEnvValue } from "../infra/env.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { runCommandWithTimeout } from "../process/exec.js";
 import { resolveSessionAgentIds } from "./agent-scope.js";
+import { resolveAgentIdFromSessionKey } from "./agent-scope.js";
 import { makeBootstrapWarn, resolveBootstrapContextForRun } from "./bootstrap-files.js";
 import { resolveCliBackendConfig } from "./cli-backends.js";
 import {
@@ -28,6 +29,7 @@ import {
 import { resolveOpenClawDocsPath } from "./docs-path.js";
 import { FailoverError, resolveFailoverStatus } from "./failover-error.js";
 import { classifyFailoverReason, isFailoverErrorMessage } from "./pi-embedded-helpers.js";
+import { processSkillFactoryEpisodeDetached } from "./skill-factory/orchestrator.js";
 import { redactRunIdentifier, resolveRunWorkspaceDir } from "./workspace-run.js";
 
 const log = createSubsystemLogger("agent/claude-cli");
@@ -288,7 +290,7 @@ export async function runCliAgent(params: {
     const text = output.text?.trim();
     const payloads = text ? [{ text }] : undefined;
 
-    return {
+    const finalResult = {
       payloads,
       meta: {
         durationMs: Date.now() - started,
@@ -300,7 +302,49 @@ export async function runCliAgent(params: {
         },
       },
     };
+    processSkillFactoryEpisodeDetached({
+      agentId: params.agentId ?? resolveAgentIdFromSessionKey(params.sessionKey),
+      workspaceDir: params.workspaceDir,
+      config: params.config,
+      sessionKey: params.sessionKey,
+      sessionId: params.sessionId,
+      runId: params.runId,
+      source: "cli",
+      prompt: params.prompt,
+      toolNames: [],
+      startedAt: started,
+      endedAt: Date.now(),
+      provider: params.provider,
+      model: modelId,
+      usage: output.usage
+        ? {
+            input: typeof output.usage.input === "number" ? output.usage.input : undefined,
+            output: typeof output.usage.output === "number" ? output.usage.output : undefined,
+            total: typeof output.usage.total === "number" ? output.usage.total : undefined,
+          }
+        : undefined,
+      outcome: "success",
+    });
+    return finalResult;
   } catch (err) {
+    processSkillFactoryEpisodeDetached({
+      agentId: params.agentId ?? resolveAgentIdFromSessionKey(params.sessionKey),
+      workspaceDir: params.workspaceDir,
+      config: params.config,
+      sessionKey: params.sessionKey,
+      sessionId: params.sessionId,
+      runId: params.runId,
+      source: "cli",
+      prompt: params.prompt,
+      toolNames: [],
+      startedAt: started,
+      endedAt: Date.now(),
+      provider: params.provider,
+      model: modelId,
+      outcome: "error",
+      errorKind: "cli_error",
+      errorMessage: err instanceof Error ? err.message : String(err),
+    });
     if (err instanceof FailoverError) {
       throw err;
     }

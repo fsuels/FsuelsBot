@@ -8,6 +8,8 @@ import type { InlineDirectives } from "./directive-handling.js";
 import type { createModelSelectionState } from "./model-selection.js";
 import type { TypingController } from "./typing.js";
 import { createOpenClawTools } from "../../agents/openclaw-tools.js";
+import { processSkillFactoryEpisodeDetached } from "../../agents/skill-factory/orchestrator.js";
+import { enforceSkillDispatchPolicy } from "../../agents/skill-factory/safety.js";
 import { getChannelDock } from "../../channels/dock.js";
 import { logVerbose } from "../../globals.js";
 import { resolveGatewayMessageChannel } from "../../utils/message-channel.js";
@@ -188,19 +190,67 @@ export async function handleInlineActions(params: {
         return { kind: "reply", reply: { text: `❌ Tool not available: ${dispatch.toolName}` } };
       }
 
+      const policy = await enforceSkillDispatchPolicy({
+        workspaceDir,
+        skillName: skillInvocation.command.skillName,
+        toolName: dispatch.toolName,
+        rawArgs,
+        config: cfg,
+      });
+      if (!policy.ok) {
+        typing.cleanup();
+        return { kind: "reply", reply: { text: `❌ ${policy.reason}` } };
+      }
+
+      const safeArgs = (policy.normalizedArgs ?? rawArgs).trim();
+      const execStartedAt = Date.now();
       const toolCallId = `cmd_${Date.now()}_${Math.random().toString(16).slice(2)}`;
       try {
         const result = await tool.execute(toolCallId, {
-          command: rawArgs,
+          command: safeArgs,
           commandName: skillInvocation.command.name,
           skillName: skillInvocation.command.skillName,
           // oxlint-disable-next-line typescript/no-explicit-any
         } as any);
+        processSkillFactoryEpisodeDetached({
+          agentId,
+          workspaceDir,
+          config: cfg,
+          sessionKey,
+          source: "skill-command",
+          prompt: `/${skillInvocation.command.name} ${safeArgs}`.trim(),
+          taskTitle: skillInvocation.command.skillName,
+          toolNames: [dispatch.toolName],
+          startedAt: execStartedAt,
+          endedAt: Date.now(),
+          provider,
+          model,
+          outcome: "success",
+          generatedSkillKey: skillInvocation.command.skillName,
+        });
         const text = extractTextFromToolResult(result) ?? "✅ Done.";
         typing.cleanup();
         return { kind: "reply", reply: { text } };
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
+        processSkillFactoryEpisodeDetached({
+          agentId,
+          workspaceDir,
+          config: cfg,
+          sessionKey,
+          source: "skill-command",
+          prompt: `/${skillInvocation.command.name} ${safeArgs}`.trim(),
+          taskTitle: skillInvocation.command.skillName,
+          toolNames: [dispatch.toolName],
+          startedAt: execStartedAt,
+          endedAt: Date.now(),
+          provider,
+          model,
+          outcome: "error",
+          errorKind: "tool_error",
+          errorMessage: message,
+          generatedSkillKey: skillInvocation.command.skillName,
+        });
         typing.cleanup();
         return { kind: "reply", reply: { text: `❌ ${message}` } };
       }

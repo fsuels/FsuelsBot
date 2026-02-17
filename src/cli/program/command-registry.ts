@@ -15,6 +15,7 @@ import { registerMaintenanceCommands } from "./register.maintenance.js";
 import { registerMessageCommands } from "./register.message.js";
 import { registerOnboardCommand } from "./register.onboard.js";
 import { registerSetupCommand } from "./register.setup.js";
+import { registerSkillFactoryCommands } from "./register.skill-factory.js";
 import { registerStatusHealthSessionsCommands } from "./register.status-health-sessions.js";
 import { registerSubCliCommands } from "./register.subclis.js";
 
@@ -147,6 +148,10 @@ export const commandRegistry: CommandRegistration[] = [
     register: ({ program, ctx }) =>
       registerAgentCommands(program, { agentChannelOptions: ctx.agentChannelOptions }),
     routes: [routeAgentsList],
+  },
+  {
+    id: "skill-factory",
+    register: ({ program }) => registerSkillFactoryCommands(program),
   },
   {
     id: "subclis",

@@ -5,6 +5,7 @@ import type { EmbeddedPiAgentMeta, EmbeddedPiRunResult } from "./types.js";
 import { enqueueCommandInLane } from "../../process/command-queue.js";
 import { isMarkdownCapableMessageChannel } from "../../utils/message-channel.js";
 import { resolveOpenClawAgentDir } from "../agent-paths.js";
+import { resolveAgentIdFromSessionKey } from "../agent-scope.js";
 import {
   isProfileInCooldown,
   markAuthProfileFailure,
@@ -18,6 +19,7 @@ import {
   resolveContextWindowInfo,
 } from "../context-window-guard.js";
 import { DEFAULT_CONTEXT_TOKENS, DEFAULT_MODEL, DEFAULT_PROVIDER } from "../defaults.js";
+import { shouldEscalateThinking, type DriftLevel } from "../drift-detection.js";
 import { FailoverError, resolveFailoverStatus } from "../failover-error.js";
 import {
   ensureAuthProfileStore,
@@ -44,12 +46,20 @@ import {
   pickFallbackThinkingLevel,
   type FailoverReason,
 } from "../pi-embedded-helpers.js";
+import { processSkillFactoryEpisodeDetached } from "../skill-factory/orchestrator.js";
+import {
+  type ToolCallFingerprint,
+  hashToolArgs,
+  detectToolCallLoop,
+  buildLoopDetectionHint,
+} from "../tool-call-loop-detector.js";
 import { normalizeUsage, type UsageLike } from "../usage.js";
 import { redactRunIdentifier, resolveRunWorkspaceDir } from "../workspace-run.js";
 import { compactEmbeddedPiSessionDirect } from "./compact.js";
 import { resolveGlobalLane, resolveSessionLane } from "./lanes.js";
 import { log } from "./logger.js";
 import { resolveModel } from "./model.js";
+import { hashPromptState } from "./prompt-dedup-cache.js";
 import { runEmbeddedAttempt } from "./run/attempt.js";
 import { buildEmbeddedRunPayloads } from "./run/payloads.js";
 import {
@@ -57,14 +67,6 @@ import {
   sessionLikelyHasOversizedToolResults,
 } from "./tool-result-truncation.js";
 import { describeUnknownError } from "./utils.js";
-import {
-  type ToolCallFingerprint,
-  hashToolArgs,
-  detectToolCallLoop,
-  buildLoopDetectionHint,
-} from "../tool-call-loop-detector.js";
-import { shouldEscalateThinking, type DriftLevel } from "../drift-detection.js";
-import { hashPromptState } from "./prompt-dedup-cache.js";
 
 type ApiKeyInfo = ResolvedProviderAuth;
 
@@ -145,6 +147,7 @@ const toNormalizedUsage = (usage: UsageAccumulator) => {
 export async function runEmbeddedPiAgent(
   params: RunEmbeddedPiAgentParams,
 ): Promise<EmbeddedPiRunResult> {
+  const runQueuedAt = Date.now();
   const sessionLane = resolveSessionLane(params.sessionKey?.trim() || params.sessionId);
   const globalLane = resolveGlobalLane(params.lane);
   const enqueueGlobal =
@@ -161,7 +164,7 @@ export async function runEmbeddedPiAgent(
       : "markdown");
   const isProbeSession = params.sessionId?.startsWith("probe-") ?? false;
 
-  return enqueueSession(() =>
+  const runPromise: Promise<EmbeddedPiRunResult> = enqueueSession(() =>
     enqueueGlobal(async () => {
       const started = Date.now();
       const workspaceResolution = resolveRunWorkspaceDir({
@@ -566,10 +569,7 @@ export async function runEmbeddedPiAgent(
           let promptIsDuplicate = false;
           if (attempt.messagesSnapshot?.length) {
             try {
-              const promptHash = hashPromptState(
-                params.prompt ?? "",
-                attempt.messagesSnapshot,
-              );
+              const promptHash = hashPromptState(params.prompt ?? "", attempt.messagesSnapshot);
               if (attemptedPromptHashes.has(promptHash)) {
                 promptIsDuplicate = true;
                 log.info(
@@ -1006,4 +1006,72 @@ export async function runEmbeddedPiAgent(
       }
     }),
   );
+
+  return runPromise
+    .then((result) => {
+      const endedAt = Date.now();
+      const durationMs = result.meta.durationMs ?? Math.max(0, endedAt - runQueuedAt);
+      const startedAt = Math.max(0, endedAt - durationMs);
+      const toolNames = (result.toolMetas ?? [])
+        .map((entry) => entry.toolName?.trim().toLowerCase())
+        .filter((name): name is string => Boolean(name));
+      const outcome: "success" | "error" | "aborted" = result.meta.error
+        ? "error"
+        : result.meta.aborted
+          ? "aborted"
+          : "success";
+      const usage = result.meta.agentMeta?.usage;
+      processSkillFactoryEpisodeDetached({
+        agentId: params.agentId ?? resolveAgentIdFromSessionKey(params.sessionKey),
+        workspaceDir: params.workspaceDir,
+        config: params.config,
+        sessionKey: params.sessionKey,
+        sessionId: params.sessionId,
+        taskId: params.taskId,
+        runId: params.runId,
+        source: "embedded",
+        prompt: params.prompt,
+        taskTitle: params.taskTitle,
+        toolNames,
+        startedAt,
+        endedAt,
+        provider: result.meta.agentMeta?.provider ?? params.provider,
+        model: result.meta.agentMeta?.model ?? params.model,
+        usage: usage
+          ? {
+              input: usage.input,
+              output: usage.output,
+              total: usage.total,
+            }
+          : undefined,
+        outcome,
+        errorKind: result.meta.error?.kind,
+        errorMessage: result.meta.error?.message,
+      });
+      return result;
+    })
+    .catch((error: unknown) => {
+      const endedAt = Date.now();
+      processSkillFactoryEpisodeDetached({
+        agentId: params.agentId ?? resolveAgentIdFromSessionKey(params.sessionKey),
+        workspaceDir: params.workspaceDir,
+        config: params.config,
+        sessionKey: params.sessionKey,
+        sessionId: params.sessionId,
+        taskId: params.taskId,
+        runId: params.runId,
+        source: "embedded",
+        prompt: params.prompt,
+        taskTitle: params.taskTitle,
+        toolNames: [],
+        startedAt: runQueuedAt,
+        endedAt,
+        provider: params.provider,
+        model: params.model,
+        outcome: "error",
+        errorKind: "runtime_error",
+        errorMessage: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    });
 }
