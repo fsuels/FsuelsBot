@@ -2,6 +2,7 @@ import {
   DEFAULT_HEARTBEAT_ACK_MAX_CHARS,
   stripHeartbeatToken,
 } from "../../auto-reply/heartbeat.js";
+import { isSilentReplyText } from "../../auto-reply/tokens.js";
 import { truncateUtf16Safe } from "../../utils.js";
 
 type DeliveryPayload = {
@@ -79,4 +80,33 @@ export function isHeartbeatOnlyResponse(payloads: DeliveryPayload[], ackMaxChars
 export function resolveHeartbeatAckMaxChars(agentCfg?: { heartbeat?: { ackMaxChars?: number } }) {
   const raw = agentCfg?.heartbeat?.ackMaxChars ?? DEFAULT_HEARTBEAT_ACK_MAX_CHARS;
   return Math.max(0, raw);
+}
+
+/**
+ * Suppress internal/no-op cron summaries so they don't spam the main session.
+ */
+export function isNoopCronAnnouncementText(text: string | undefined): boolean {
+  const clean = (text ?? "").trim();
+  if (!clean) {
+    return true;
+  }
+  if (isSilentReplyText(clean)) {
+    return true;
+  }
+  if (
+    stripHeartbeatToken(clean, {
+      mode: "heartbeat",
+      maxAckChars: DEFAULT_HEARTBEAT_ACK_MAX_CHARS,
+    }).shouldSkip
+  ) {
+    return true;
+  }
+
+  const normalized = clean.replace(/\s+/g, " ").trim().toLowerCase();
+  return [
+    /^no (new|meaningful )?(facts?|updates?|results?)\.?$/,
+    /^nothing (new|to report)\.?$/,
+    /^no (user-facing|user facing) (update|updates|result|results)\.?$/,
+    /^internal (maintenance|check) complete\.?$/,
+  ].some((pattern) => pattern.test(normalized));
 }

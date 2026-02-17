@@ -36,6 +36,7 @@ import { buildReplyPayloads } from "./agent-runner-payloads.js";
 import { appendUsageLine, formatResponseUsageLine } from "./agent-runner-utils.js";
 import { createAudioAsVoiceBuffer, createBlockReplyPipeline } from "./block-reply-pipeline.js";
 import { resolveBlockStreamingCoalescing } from "./block-streaming.js";
+import { shouldAutoResetSessionForContextPressure } from "./context-pressure.js";
 import { persistDriftCoherenceUpdate } from "./drift-coherence-update.js";
 import { createFollowupRunner } from "./followup-runner.js";
 import { enqueueFollowupRun, type FollowupRun, type QueueSettings } from "./queue.js";
@@ -307,6 +308,18 @@ export async function runReplyAgent(params: {
         `Role ordering conflict (${reason}). Restarting session ${sessionKey} -> ${nextSessionId}.`,
       cleanupTranscripts: true,
     });
+
+  if (shouldAutoResetSessionForContextPressure(activeSessionEntry)) {
+    const totalTokens =
+      typeof activeSessionEntry?.totalTokens === "number" ? activeSessionEntry.totalTokens : 0;
+    const contextTokens =
+      typeof activeSessionEntry?.contextTokens === "number" ? activeSessionEntry.contextTokens : 0;
+    await resetSession({
+      failureLabel: "context pressure",
+      buildLogMessage: (nextSessionId) =>
+        `High context pressure (${totalTokens}/${contextTokens} tokens). Restarting session ${sessionKey} -> ${nextSessionId} before run.`,
+    });
+  }
   try {
     const runStartedAt = Date.now();
     const runOutcome = await runAgentTurnWithFallback({

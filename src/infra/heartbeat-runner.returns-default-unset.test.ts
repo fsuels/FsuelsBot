@@ -1075,4 +1075,88 @@ describe("runHeartbeatOnce", () => {
       await fs.rm(tmpDir, { recursive: true, force: true });
     }
   });
+
+  it("promotes bot_queue task and still runs when HEARTBEAT.md is effectively empty", async () => {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-hb-"));
+    const storePath = path.join(tmpDir, "sessions.json");
+    const workspaceDir = path.join(tmpDir, "workspace");
+    const tasksPath = path.join(workspaceDir, "memory", "tasks.json");
+    const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
+    try {
+      await fs.mkdir(path.dirname(tasksPath), { recursive: true });
+      await fs.writeFile(path.join(workspaceDir, "HEARTBEAT.md"), "# HEARTBEAT.md\n", "utf-8");
+      await fs.writeFile(
+        tasksPath,
+        JSON.stringify(
+          {
+            tasks: {
+              T100: { title: "Investigate queue dispatch", status: "pending" },
+            },
+            lanes: {
+              bot_current: [],
+              bot_queue: ["T100"],
+            },
+          },
+          null,
+          2,
+        ),
+      );
+
+      const cfg: OpenClawConfig = {
+        agents: {
+          defaults: {
+            workspace: workspaceDir,
+            heartbeat: { every: "5m", target: "whatsapp" },
+          },
+        },
+        channels: { whatsapp: { allowFrom: ["*"] } },
+        session: { store: storePath },
+      };
+      const sessionKey = resolveMainSessionKey(cfg);
+      await fs.writeFile(
+        storePath,
+        JSON.stringify(
+          {
+            [sessionKey]: {
+              sessionId: "sid",
+              updatedAt: Date.now(),
+              lastChannel: "whatsapp",
+              lastTo: "+1555",
+            },
+          },
+          null,
+          2,
+        ),
+      );
+
+      replySpy.mockResolvedValue({ text: "Started T100." });
+      const sendWhatsApp = vi.fn().mockResolvedValue({
+        messageId: "m1",
+        toJid: "jid",
+      });
+      const res = await runHeartbeatOnce({
+        cfg,
+        deps: {
+          sendWhatsApp,
+          getQueueSize: () => 0,
+          nowMs: () => 0,
+          webAuthExists: async () => true,
+          hasActiveWebListener: () => true,
+        },
+      });
+
+      expect(res.status).toBe("ran");
+      expect(replySpy).toHaveBeenCalledTimes(1);
+      expect(sendWhatsApp).toHaveBeenCalledTimes(1);
+
+      const tasks = JSON.parse(await fs.readFile(tasksPath, "utf-8")) as {
+        lanes: { bot_current: string[]; bot_queue: string[] };
+      };
+      expect(tasks.lanes.bot_current).toEqual(["T100"]);
+      expect(tasks.lanes.bot_queue).toEqual([]);
+    } finally {
+      replySpy.mockRestore();
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    }
+  });
 });

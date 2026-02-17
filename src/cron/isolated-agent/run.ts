@@ -61,6 +61,7 @@ import { resolveSessionTaskView } from "../../sessions/task-context.js";
 import { resolveCronDeliveryPlan } from "../delivery.js";
 import { resolveDeliveryTarget } from "./delivery-target.js";
 import {
+  isNoopCronAnnouncementText,
   isHeartbeatOnlyResponse,
   pickLastDeliverablePayload,
   pickLastNonEmptyTextFromPayloads,
@@ -484,6 +485,10 @@ export async function runCronIsolatedAgentTurn(params: {
     Boolean(deliveryPayload?.mediaUrl) ||
     (deliveryPayload?.mediaUrls?.length ?? 0) > 0 ||
     Object.keys(deliveryPayload?.channelData ?? {}).length > 0;
+  const skipNoopAnnounce =
+    deliveryRequested &&
+    !deliveryPayloadHasStructuredContent &&
+    isNoopCronAnnouncementText(synthesizedText);
   const deliveryBestEffort = resolveCronDeliveryBestEffort(params.job);
 
   // Skip delivery for heartbeat-only responses (HEARTBEAT_OK with no real content).
@@ -499,6 +504,11 @@ export async function runCronIsolatedAgentTurn(params: {
         accountId: resolvedDelivery.accountId,
       }),
     );
+
+  if (skipNoopAnnounce) {
+    logWarn(`[cron:${params.job.id}] suppressing internal/no-op announce payload`);
+    return withRunSession({ status: "ok", summary, outputText });
+  }
 
   if (deliveryRequested && !skipHeartbeatDelivery && !skipMessagingToolDelivery) {
     if (resolvedDelivery.error) {

@@ -55,6 +55,7 @@ import {
   resolveHeartbeatSenderContext,
 } from "./outbound/targets.js";
 import { peekSystemEvents } from "./system-events.js";
+import { promoteBotQueueTaskIfIdle } from "./task-board.js";
 
 type HeartbeatDeps = OutboundSendDeps &
   ChannelHeartbeatDeps & {
@@ -103,6 +104,14 @@ const EXEC_EVENT_PROMPT =
 const CRON_EVENT_PROMPT =
   "A scheduled reminder has been triggered. The reminder message is shown in the system messages above. " +
   "Please relay this reminder to the user in a helpful and friendly way.";
+
+function buildTaskPromotionPrompt(taskId: string): string {
+  return (
+    `A task was moved from bot_queue to bot_current in memory/tasks.json (task: ${taskId}). ` +
+    "Read HEARTBEAT.md and the task board, then execute that task immediately. " +
+    "If there is nothing user-facing to report, reply HEARTBEAT_OK."
+  );
+}
 
 function resolveActiveHoursTimezone(cfg: OpenClawConfig, raw?: string): string {
   const trimmed = raw?.trim();
@@ -580,13 +589,26 @@ export async function runHeartbeatOnce(opts: {
   const isExecEventReason = opts.reason === "exec-event";
   const isCronEventReason = Boolean(opts.reason?.startsWith("cron:"));
   const workspaceDir = resolveAgentWorkspaceDir(cfg, agentId);
+  const promotion = await promoteBotQueueTaskIfIdle({
+    workspaceDir,
+    nowMs: startedAt,
+  });
+  if (promotion.status === "error") {
+    log.warn(`heartbeat: task-board promotion failed: ${promotion.reason}`);
+  } else if (promotion.status === "invalid") {
+    log.warn(`heartbeat: task-board format invalid (${promotion.reason})`, {
+      path: promotion.path,
+    });
+  }
+  const promotedTaskId = promotion.status === "promoted" ? promotion.taskId : undefined;
   const heartbeatFilePath = path.join(workspaceDir, DEFAULT_HEARTBEAT_FILENAME);
   try {
     const heartbeatFileContent = await fs.readFile(heartbeatFilePath, "utf-8");
     if (
       isHeartbeatContentEffectivelyEmpty(heartbeatFileContent) &&
       !isExecEventReason &&
-      !isCronEventReason
+      !isCronEventReason &&
+      !promotedTaskId
     ) {
       emitHeartbeatEvent({
         status: "skipped",
@@ -646,12 +668,13 @@ export async function runHeartbeatOnce(opts: {
   const pendingEvents = isExecEvent || isCronEvent ? peekSystemEvents(sessionKey) : [];
   const hasExecCompletion = pendingEvents.some((evt) => evt.includes("Exec finished"));
   const hasCronEvents = isCronEvent && pendingEvents.length > 0;
+  const taskPromotionPrompt = promotedTaskId ? buildTaskPromotionPrompt(promotedTaskId) : undefined;
 
   const prompt = hasExecCompletion
     ? EXEC_EVENT_PROMPT
     : hasCronEvents
       ? CRON_EVENT_PROMPT
-      : resolveHeartbeatPrompt(cfg, heartbeat);
+      : (taskPromotionPrompt ?? resolveHeartbeatPrompt(cfg, heartbeat));
   const ctx = {
     Body: prompt,
     From: sender,
