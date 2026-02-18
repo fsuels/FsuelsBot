@@ -2,7 +2,6 @@ import type { SessionEntry } from "../../config/sessions/types.js";
 import { DEFAULT_SESSION_TASK_ID } from "../../sessions/task-context.js";
 
 const LONG_SILENCE_MS = 6 * 60 * 60 * 1000;
-const COMPLEX_TASK_TOKENS = 12_000;
 const LOW_CONFIDENCE_SCORE = 0.72;
 const RESPONSE_WINDOW_MS = 30 * 60 * 1000;
 
@@ -361,26 +360,8 @@ export function selectTaskMemoryNudge(params: {
     };
   }
 
-  if (
-    mode === "supportive" &&
-    activeTaskId === DEFAULT_SESSION_TASK_ID &&
-    message.length >= 40 &&
-    idleMs < LONG_SILENCE_MS
-  ) {
-    return {
-      kind: "missing-task",
-      text: "Just checking - should I treat this as one ongoing task?",
-    };
-  }
-
-  const compactionCount = params.taskCompactionCount ?? 0;
-  const totalTokens = params.taskTotalTokens ?? 0;
-  if (mode === "supportive" && (compactionCount >= 2 || totalTokens >= COMPLEX_TASK_TOKENS)) {
-    return {
-      kind: "long-task-save",
-      text: "Would you like me to save where we are so we can continue later?",
-    };
-  }
+  // Disabled by default: these prompts were too repetitive/noisy in real chats.
+  // Keep kinds for compatibility, but do not emit unless we add an explicit opt-in.
 
   // --- Proactivity nudges ---
   const proactivityThreshold = params.proactivityThreshold ?? 0.7;
