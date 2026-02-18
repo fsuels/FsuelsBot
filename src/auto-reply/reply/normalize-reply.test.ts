@@ -45,4 +45,20 @@ describe("normalizeReplyPayload", () => {
     expect(normalized).toBeNull();
     expect(reasons).toEqual(["empty"]);
   });
+
+  it("strips unwanted meta lead-in prefixes from the start of replies", () => {
+    const normalized = normalizeReplyPayload({
+      text: "Would you like me to save where we are so we can continue later? Done — I will handle it.",
+    });
+
+    expect(normalized?.text).toBe("Done — I will handle it.");
+  });
+
+  it("strips group-task lead-in prefixes from the start of replies", () => {
+    const normalized = normalizeReplyPayload({
+      text: "Just checking - should I treat this as one ongoing task? I fixed it.",
+    });
+
+    expect(normalized?.text).toBe("I fixed it.");
+  });
 });

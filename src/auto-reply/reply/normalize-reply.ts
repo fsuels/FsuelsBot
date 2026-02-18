@@ -20,6 +20,22 @@ export type NormalizeReplyOptions = {
   onSkip?: (reason: NormalizeReplySkipReason) => void;
 };
 
+const META_LEAD_IN_PREFIXES = [
+  "Would you like me to save where we are so we can continue later?",
+  "Just checking - should I treat this as one ongoing task?",
+] as const;
+
+function stripMetaLeadInPrefix(text: string): string {
+  let next = text;
+  for (const prefix of META_LEAD_IN_PREFIXES) {
+    if (!next.startsWith(prefix)) {
+      continue;
+    }
+    next = next.slice(prefix.length).replace(/^[\s\-–—:]+/, "");
+  }
+  return next;
+}
+
 export function normalizeReplyPayload(
   payload: ReplyPayload,
   opts: NormalizeReplyOptions = {},
@@ -63,6 +79,7 @@ export function normalizeReplyPayload(
 
   if (text) {
     text = sanitizeUserFacingText(text);
+    text = stripMetaLeadInPrefix(text);
   }
   if (!text?.trim() && !hasMedia && !hasChannelData) {
     opts.onSkip?.("empty");
