@@ -84,6 +84,7 @@ const BASE_METHODS = [
   "agent.identity.get",
   "agent.wait",
   "browser.request",
+  "tasks.get",
   // WebChat WebSocket-native chat methods
   "chat.history",
   "chat.abort",

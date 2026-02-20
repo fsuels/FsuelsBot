@@ -37,4 +37,25 @@ Skills are shared. Your setup is yours. Keeping them apart means you can update 
 
 ---
 
+## Local Tools & Access
+
+### Peekaboo (macOS UI Automation)
+
+- Installed via Homebrew: `peekaboo`
+- Permissions: Screen Recording ✅, Accessibility ✅ (granted 2026-02-19)
+- Skill: /Users/fsuels/clawd/skills/peekaboo/SKILL.md
+- Use for: screenshots, UI element targeting, clicking, typing, drag-and-drop, app/window management
+
+### Hammerspoon (macOS Automation)
+
+- Installed at /Applications/Hammerspoon.app
+- `hs` CLI may not be in PATH — use IPC or `open hammerspoon://` as fallback
+- Use for: window management, key simulation, scripting macOS automation
+
+### Computer Access
+
+- Francisco has granted FULL access to his computer (confirmed 2026-02-19)
+- No need to ask permission for local actions — just execute
+- Browser (Chrome), file system, apps, shell — all available
+
 Add whatever helps you do your job. This is your cheat sheet.

@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "description": "Compatibility trigger map at workspace root for runtime builds that resolve recall from <workspace>/recall/triggers.json.",
+  "note": "Paths here are rooted at /Users/fsuels/clawd and point into workspace/*.",
+  "triggers": [
+    {
+      "project": "dlm",
+      "patterns": ["DLM", "dress like mommy", "dresslikemommy", "dresslikemommy.com"],
+      "load": [
+        "workspace/knowledge/entities/dress-like-mommy.md",
+        "workspace/knowledge/procedures/dlm-product-workflow.md",
+        "workspace/knowledge/principles/dlm-north-star.md",
+        "workspace/knowledge/procedures/project-start-contract.md"
+      ],
+      "priority": "high"
+    },
+    {
+      "project": "123legaldoc",
+      "patterns": ["123legaldoc", "123legaldoc.com", "123 legal doc", "123 legal docs"],
+      "load": [
+        "workspace/knowledge/entities/123legaldoc.md",
+        "workspace/knowledge/procedures/123legaldoc-workflow.md",
+        "workspace/knowledge/principles/123legaldoc-north-star.md",
+        "workspace/memory/global/123legaldoc-qa.md",
+        "workspace/knowledge/procedures/project-start-contract.md"
+      ],
+      "priority": "high"
+    },
+    {
+      "project": "fsuelsbot",
+      "patterns": ["fsuelsbot", "fsuels bot", "fsuels-bot"],
+      "load": [
+        "workspace/knowledge/entities/fsuels-bot.md",
+        "workspace/knowledge/procedures/fsuelsbot-workflow.md",
+        "workspace/knowledge/principles/fsuelsbot-north-star.md",
+        "workspace/knowledge/procedures/project-start-contract.md"
+      ],
+      "priority": "high"
+    }
+  ]
+}

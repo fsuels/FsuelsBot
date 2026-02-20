@@ -67,6 +67,7 @@ import {
 import {
   applySettings as applySettingsInternal,
   loadCron as loadCronInternal,
+  loadTasksTab as loadTasksTabInternal,
   loadOverview as loadOverviewInternal,
   setTab as setTabInternal,
   setTheme as setThemeInternal,
@@ -291,6 +292,9 @@ export class OpenClawApp extends LitElement {
   @state() cronRunsJobId: string | null = null;
   @state() cronRuns: CronRunLogEntry[] = [];
   @state() cronBusy = false;
+  @state() tasksLoading = false;
+  @state() tasksData: import("./controllers/tasks.ts").TasksData | null = null;
+  @state() tasksError: string | null = null;
 
   @state() skillsLoading = false;
   @state() skillsReport: SkillStatusReport | null = null;
@@ -425,6 +429,10 @@ export class OpenClawApp extends LitElement {
 
   async loadOverview() {
     await loadOverviewInternal(this as unknown as Parameters<typeof loadOverviewInternal>[0]);
+  }
+
+  async loadTasks() {
+    await loadTasksTabInternal(this as unknown as Parameters<typeof loadTasksTabInternal>[0]);
   }
 
   async loadCron() {

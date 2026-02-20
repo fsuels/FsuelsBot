@@ -22,6 +22,7 @@ import { loadNodes } from "./controllers/nodes.ts";
 import { loadPresence } from "./controllers/presence.ts";
 import { loadSessions } from "./controllers/sessions.ts";
 import { loadSkills } from "./controllers/skills.ts";
+import { loadTasks as loadTasksInternal } from "./controllers/tasks.ts";
 import {
   inferBasePathFromPathname,
   normalizeBasePath,
@@ -196,6 +197,9 @@ export async function refreshActiveTab(host: SettingsHost) {
   }
   if (host.tab === "cron") {
     await loadCron(host);
+  }
+  if (host.tab === "tasks") {
+    await loadTasksTab(host);
   }
   if (host.tab === "skills") {
     await loadSkills(host as unknown as OpenClawApp);
@@ -429,4 +433,8 @@ export async function loadCron(host: SettingsHost) {
     loadCronStatus(host as unknown as OpenClawApp),
     loadCronJobs(host as unknown as OpenClawApp),
   ]);
+}
+
+export async function loadTasksTab(host: SettingsHost) {
+  await loadTasksInternal(host as unknown as OpenClawApp);
 }

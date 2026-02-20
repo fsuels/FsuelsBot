@@ -1,11 +1,40 @@
 {
   "version": 1,
   "description": "When patterns match user input, load additional knowledge files for richer context.",
-  "note": "Future enhancement — not yet auto-processed. For now, manually load relevant knowledge files when topics come up.",
+  "note": "Auto-processed during bootstrap. Matching patterns inject listed files into project context for the current run.",
   "triggers": [
     {
-      "patterns": ["shopify", "store", "products", "DLM", "dress like mommy", "dresslikemommy"],
-      "load": ["knowledge/entities/dress-like-mommy.md"],
+      "project": "dlm",
+      "patterns": ["DLM", "dress like mommy", "dresslikemommy", "dresslikemommy.com"],
+      "load": [
+        "knowledge/entities/dress-like-mommy.md",
+        "knowledge/procedures/dlm-product-workflow.md",
+        "knowledge/principles/dlm-north-star.md",
+        "knowledge/procedures/project-start-contract.md"
+      ],
+      "priority": "high"
+    },
+    {
+      "project": "123legaldoc",
+      "patterns": ["123legaldoc", "123legaldoc.com", "123 legal doc", "123 legal docs"],
+      "load": [
+        "knowledge/entities/123legaldoc.md",
+        "knowledge/procedures/123legaldoc-workflow.md",
+        "knowledge/principles/123legaldoc-north-star.md",
+        "memory/global/123legaldoc-qa.md",
+        "knowledge/procedures/project-start-contract.md"
+      ],
+      "priority": "high"
+    },
+    {
+      "project": "fsuelsbot",
+      "patterns": ["fsuelsbot", "fsuels bot", "fsuels-bot"],
+      "load": [
+        "knowledge/entities/fsuels-bot.md",
+        "knowledge/procedures/fsuelsbot-workflow.md",
+        "knowledge/principles/fsuelsbot-north-star.md",
+        "knowledge/procedures/project-start-contract.md"
+      ],
       "priority": "high"
     },
     {
