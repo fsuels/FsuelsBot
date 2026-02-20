@@ -94,3 +94,12 @@ OpenVoice/
 *.jpg
 *.jpeg
 *.webp
+
+# Root-level personality files are duplicates — only workspace/ versions are used
+SOUL.md
+AGENTS.md
+TOOLS.md
+BOOTSTRAP.md
+HEARTBEAT.md
+CLAUDE.md
+USER-PRIVATE.md

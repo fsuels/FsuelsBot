@@ -24,3 +24,9 @@ Desktop.ini
 memory/.lock
 memory/.lock.tmp
 memory/.txn/
+USER-PRIVATE.md
+memory/embeddings/
+memory/system/claims.sqlite
+memory/ledger.jsonl.bak
+memory-old-dailylogs/
+memory-live-backup/

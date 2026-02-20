@@ -1,0 +1,237 @@
+{
+  "facts_by_entity": {
+    "unknown": [
+      {
+        "content": "",
+        "type": "fact",
+        "priority": "P2",
+        "scene": "general"
+      },
+      {
+        "content": "",
+        "type": "fact",
+        "priority": "P2",
+        "scene": "general"
+      },
+      {
+        "content": "",
+        "type": "fact",
+        "priority": "P2",
+        "scene": "general"
+      },
+      {
+        "content": "",
+        "type": "fact",
+        "priority": "P2",
+        "scene": "general"
+      },
+      {
+        "content": "",
+        "type": "fact",
+        "priority": "P2",
+        "scene": "general"
+      },
+      {
+        "content": "",
+        "type": "fact",
+        "priority": "P2",
+        "scene": "general"
+      },
+      {
+        "content": "",
+        "type": "fact",
+        "priority": "P2",
+        "scene": "general"
+      },
+      {
+        "content": "",
+        "type": "fact",
+        "priority": "P2",
+        "scene": "general"
+      },
+      {
+        "content": "",
+        "type": "fact",
+        "priority": "P2",
+        "scene": "general"
+      },
+      {
+        "content": "",
+        "type": "fact",
+        "priority": "P2",
+        "scene": "general"
+      },
+      {
+        "content": "",
+        "type": "fact",
+        "priority": "P2",
+        "scene": "general"
+      },
+      {
+        "content": "",
+        "type": "fact",
+        "priority": "P2",
+        "scene": "general"
+      },
+      {
+        "content": "",
+        "type": "fact",
+        "priority": "P2",
+        "scene": "general"
+      },
+      {
+        "content": "",
+        "type": "fact",
+        "priority": "P2",
+        "scene": "general"
+      },
+      {
+        "content": "",
+        "type": "fact",
+        "priority": "P2",
+        "scene": "general"
+      },
+      {
+        "content": "",
+        "type": "fact",
+        "priority": "P2",
+        "scene": "general"
+      },
+      {
+        "content": "",
+        "type": "fact",
+        "priority": "P2",
+        "scene": "general"
+      },
+      {
+        "content": "",
+        "type": "fact",
+        "priority": "P2",
+        "scene": "general"
+      },
+      {
+        "content": "",
+        "type": "fact",
+        "priority": "P2",
+        "scene": "general"
+      },
+      {
+        "content": "",
+        "type": "fact",
+        "priority": "P2",
+        "scene": "general"
+      }
+    ]
+  },
+  "scenes": {
+    "general": [
+      {
+        "entity": "unknown",
+        "content": "",
+        "priority": "P2"
+      },
+      {
+        "entity": "unknown",
+        "content": "",
+        "priority": "P2"
+      },
+      {
+        "entity": "unknown",
+        "content": "",
+        "priority": "P2"
+      },
+      {
+        "entity": "unknown",
+        "content": "",
+        "priority": "P2"
+      },
+      {
+        "entity": "unknown",
+        "content": "",
+        "priority": "P2"
+      },
+      {
+        "entity": "unknown",
+        "content": "",
+        "priority": "P2"
+      },
+      {
+        "entity": "unknown",
+        "content": "",
+        "priority": "P2"
+      },
+      {
+        "entity": "unknown",
+        "content": "",
+        "priority": "P2"
+      },
+      {
+        "entity": "unknown",
+        "content": "",
+        "priority": "P2"
+      },
+      {
+        "entity": "unknown",
+        "content": "",
+        "priority": "P2"
+      },
+      {
+        "entity": "unknown",
+        "content": "",
+        "priority": "P2"
+      },
+      {
+        "entity": "unknown",
+        "content": "",
+        "priority": "P2"
+      },
+      {
+        "entity": "unknown",
+        "content": "",
+        "priority": "P2"
+      },
+      {
+        "entity": "unknown",
+        "content": "",
+        "priority": "P2"
+      },
+      {
+        "entity": "unknown",
+        "content": "",
+        "priority": "P2"
+      },
+      {
+        "entity": "unknown",
+        "content": "",
+        "priority": "P2"
+      },
+      {
+        "entity": "unknown",
+        "content": "",
+        "priority": "P2"
+      },
+      {
+        "entity": "unknown",
+        "content": "",
+        "priority": "P2"
+      },
+      {
+        "entity": "unknown",
+        "content": "",
+        "priority": "P2"
+      },
+      {
+        "entity": "unknown",
+        "content": "",
+        "priority": "P2"
+      }
+    ]
+  },
+  "persona": {},
+  "stats": {
+    "total_facts": 40,
+    "entities": 1,
+    "scenes": 1,
+    "built_at": "2026-02-19T04:00:05.062870"
+  }
+}
