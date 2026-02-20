@@ -107,3 +107,10 @@ MEMORY.md
 USER.md
 Explain-Memory.md
 RAW-CHAT*
+
+# Upstream OpenClaw repo docs (not ours)
+SECURITY.md
+CHANGELOG.md
+CONTRIBUTING.md
+README.md
+docs.acp.md
