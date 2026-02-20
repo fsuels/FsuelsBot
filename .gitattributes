@@ -1,1 +1,17 @@
 * text=auto eol=lf
+
+# ── Merge protection: keep OUR versions during upstream merges ──
+workspace/SOUL.md merge=ours
+workspace/TOOLS.md merge=ours
+workspace/AGENTS.md merge=ours
+workspace/IDENTITY.md merge=ours
+workspace/USER.md merge=ours
+workspace/HEARTBEAT.md merge=ours
+workspace/BOOTSTRAP.md merge=ours
+workspace/MEMORY.md merge=ours
+workspace/CONSTITUTION.md merge=ours
+workspace/MISSION.md merge=ours
+workspace/memory/** merge=ours
+workspace/procedures/** merge=ours
+workspace/knowledge/** merge=ours
+workspace/references/** merge=ours
