@@ -119,10 +119,9 @@ When Francisco needs to message someone on WhatsApp:
 
 ## 7) Skills Configuration
 
-- Skills installed: 10 ClawdHub skills in `workspace/skills/`
-  - clawd-docs-v2, council, humanizer, marketing-mode, prompt-engineering-expert
-  - reddit, research, self-improving-agent, tweet-writer, youtube-watcher
-- Bundled skills: auto-loaded from npm package
+- Workspace skills (10): clawd-docs-v2, competitor-monitor, content-publisher, council, morning-report, reddit, research, shopify-operator, supplier-scout, youtube-watcher
+- Bundled skills (3 allowed): github, summarize, video-frames
+- Config: `skills.allowBundled` in `~/.clawdbot/moltbot.json`
 - Refresh: skills refresh on next session start
 
 ---
@@ -140,38 +139,55 @@ When Francisco needs to message someone on WhatsApp:
 
 ---
 
-## 10) Browser Automation (HIGH RISK / PROCEDURE-GATED)
+## 10) Browser Automation
 
-⚠️ **MANDATORY:** Read `procedures/browser.md` before any browser action.
+### Rules
 
-### Always keep open (Non-negotiable)
-
-- Tab 1: Mission Control — `http://localhost:18789` — NEVER close
-
-### Speed reality check
-
-Bot is slower than a human for visual/browser tasks:
-
-- Bot: screenshot → process → action → wait (5–15s/step)
-- Human: look → click (~1s)
-  Rule: For quick visual edits/navigation, prepare exact instructions and let human execute.
-
-### Browser rules (must follow)
-
-- ONE TAB PER DOMAIN — never 2+ of the same site
-- ALWAYS check existing tabs first
-- Navigate within existing tab; don't open duplicates
-- Keep total tabs ≤ 3–4
+- ONE TAB PER DOMAIN — check existing tabs before opening new ones
+- Keep total tabs ≤ 4 (Mission Control at `http://localhost:18789` always open)
 - Close tabs immediately when done (except Mission Control)
 
-### Browser tool priority
+### Tool Fallback Chain (MANDATORY)
 
-1. **Claude_in_Chrome** — tabs, navigate, screenshot, interact (PREFERRED)
-2. **Control_Chrome** — list_tabs, switch_to_tab, execute_javascript
-3. **AppleScript/JXA** — fast path for simple navigation via `osascript`
-4. **Moltbot browser commands** — `moltbot browser ...` (don't forget these exist)
-5. **Peekaboo** — full-screen capture, click/type/scroll, app/window/menu control
-6. **automation-mcp** — pixel-precise mouse/keyboard, window control
+**NEVER ask Francisco about permissions. Try the next tool.**
+
+When a tool fails (permission error, timeout, connection refused), move to the next one silently:
+
+**For browser tasks (clicking, navigating, reading pages):**
+
+1. `Claude_in_Chrome` — screenshot + click + type + navigate (PREFERRED)
+2. `Control_Chrome` — list_tabs, switch_to_tab, execute_javascript
+3. AppleScript/JXA via `osascript` — fast for simple navigation
+4. `Moltbot browser` — `moltbot browser ...` commands
+5. `Peekaboo` — full-screen click/type/scroll
+6. `automation-mcp` — pixel-precise mouse/keyboard
+
+**For screenshots:**
+
+1. `Claude_in_Chrome` screenshot action
+2. `Peekaboo` — `peekaboo image --path /tmp/screenshot.png`
+3. `screencapture -x /tmp/screenshot.png`
+4. Hammerspoon — `hs -c 'snap()'` → `/Users/fsuels/clawd/s.png`
+
+**For Mac app control (non-browser):**
+
+1. `Peekaboo` — app/window/menu/dock control
+2. `automation-mcp` — window focus/move/resize
+3. `macos-automator` — 200+ AppleScript recipes
+4. Raw `osascript` via exec
+
+**Recovery rule:** If tool 1 fails → try tool 2 immediately. Log which tool failed and why (for TOOLS.md update later). Only ask Francisco if ALL tools in the chain fail.
+
+### Permission Errors (NEVER NAG)
+
+If ANY tool says "permission denied" or "Screen Recording/Accessibility not granted":
+
+1. **DO NOT** tell Francisco to go to Privacy & Security
+2. **DO** try the next tool in the fallback chain
+3. **DO** log it: "Peekaboo permission failed, fell back to screencapture"
+4. Only mention it at end of task as FYI: "Note: Peekaboo permissions may need re-granting after Claude Code update"
+
+Why this happens: `com.anthropic.claude-code` binary path changes on every Claude Code update. macOS TCC sees it as a new app. This is normal — use fallbacks, don't nag.
 
 ### Site-specific notes
 
@@ -200,11 +216,10 @@ Bot is slower than a human for visual/browser tasks:
 
 ### Permissions (TCC)
 
-- **CRITICAL:** Binary needing permissions is `com.anthropic.claude-code` (NOT Claude.app)
-- Path: `/Users/fsuels/Library/Application Support/Claude/claude-code/<version>/claude`
-- Screen Recording: GRANTED (claude-code + Claude.app + Peekaboo + Terminal + Hammerspoon)
-- Accessibility: GRANTED (same)
-- After version upgrades, claude-code path changes — may need to re-add
+- Binary needing permissions: `com.anthropic.claude-code` (NOT Claude.app)
+- Path changes on every update: `/Users/fsuels/Library/Application Support/Claude/claude-code/<version>/claude`
+- Screen Recording + Accessibility: GRANTED for claude-code, Claude.app, Peekaboo, Terminal, Hammerspoon
+- **When permissions break after update:** Use fallback tools (see section 10). Do NOT ask Francisco to fix — just fall back.
 
 ---
 
