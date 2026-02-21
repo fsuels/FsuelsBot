@@ -60,6 +60,7 @@ import {
   resolveSkillsPromptForRun,
   type SkillSnapshot,
 } from "../skills.js";
+import { buildTaskCompactionInstructions, resolveActiveTask } from "../task-checkpoint.js";
 import { resolveTranscriptPolicy } from "../transcript-policy.js";
 import { buildEmbeddedExtensionPaths } from "./extensions.js";
 import {
@@ -510,6 +511,21 @@ export async function compactEmbeddedPiSessionDirect(
           compactInstructions = compactInstructions
             ? compactInstructions + coherenceBlock
             : coherenceBlock;
+        }
+
+        // Task-aware compaction: inject active task progress so Claude preserves it in summary
+        try {
+          const activeTask = await resolveActiveTask(effectiveWorkspace);
+          if (activeTask && activeTask.totalSteps > 0) {
+            const taskBlock = buildTaskCompactionInstructions(activeTask);
+            compactInstructions = compactInstructions ? compactInstructions + taskBlock : taskBlock;
+            log.info("task-aware compaction: injected progress context", {
+              taskId: activeTask.taskId,
+              progress: `${activeTask.completedSteps}/${activeTask.totalSteps}`,
+            });
+          }
+        } catch {
+          /* task checkpoint is best-effort — don't break compaction */
         }
 
         const result = await session.compact(compactInstructions);

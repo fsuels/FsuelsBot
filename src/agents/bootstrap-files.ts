@@ -2,6 +2,7 @@ import type { OpenClawConfig } from "../config/config.js";
 import type { EmbeddedContextFile } from "./pi-embedded-helpers.js";
 import { applyBootstrapHookOverrides } from "./bootstrap-hooks.js";
 import { buildBootstrapContextFiles, resolveBootstrapMaxChars } from "./pi-embedded-helpers.js";
+import { buildTaskBootstrapContext, resolveActiveTask } from "./task-checkpoint.js";
 import {
   filterBootstrapFilesForSession,
   loadWorkspaceBootstrapFiles,
@@ -81,5 +82,20 @@ export async function resolveBootstrapContextForRun(params: {
     maxChars,
     warn: params.warn,
   });
+
+  // Auto-inject active task card into bootstrap context
+  try {
+    const activeTask = await resolveActiveTask(params.workspaceDir);
+    if (activeTask && activeTask.totalSteps > 0) {
+      const taskContent = buildTaskBootstrapContext(activeTask);
+      contextFiles.push({
+        path: "ACTIVE_TASK",
+        content: taskContent,
+      });
+    }
+  } catch {
+    /* task loading is best-effort — don't break bootstrap */
+  }
+
   return { bootstrapFiles, contextFiles };
 }
