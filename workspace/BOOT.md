@@ -13,10 +13,9 @@ Run these on every Clawdbot startup:
 
 **Always loaded (auto-bootstrap):**
 
-- `SOUL.md` — Identity, reasoning rules, hard limits, execution protocols
+- `SOUL.md` — Identity, mission, reasoning rules, hard limits, execution protocols
 - `USER.md` — Francisco's preferences, standing orders
 - `MEMORY.md` — Operational facts, business data, tech notes
-- `MISSION.md` — Global mission + scope rules
 
 **Load on-demand (when needed):**
 
@@ -33,14 +32,13 @@ Run these on every Clawdbot startup:
 
 | File                                   | Lines | Est. Tokens | Load When                |
 | -------------------------------------- | ----- | ----------- | ------------------------ |
-| SOUL.md                                | ~370  | ~8K         | Always (boot)            |
+| SOUL.md                                | ~375  | ~8.2K       | Always (boot)            |
 | USER.md                                | ~35   | ~700        | Always (boot)            |
 | MEMORY.md                              | ~55   | ~1.2K       | Always (boot)            |
-| MISSION.md                             | ~10   | ~200        | Always (boot)            |
 | references/fallacies.md                | 190   | ~5K         | Analyzing claims         |
 | references/prompt-injection-defense.md | 70    | ~1.5K       | Reading external content |
 | HEARTBEAT.md                           | 195   | ~4K         | Heartbeat checks         |
 
-**Boot total: ~10K tokens** (4 files always loaded)
+**Boot total: ~10K tokens** (3 files always loaded)
 
 After completing these tasks, reply with NO_REPLY.
