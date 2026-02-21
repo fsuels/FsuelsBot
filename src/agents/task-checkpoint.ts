@@ -41,6 +41,7 @@ export type ActiveTaskSummary = {
 type TaskBoard = {
   lanes?: {
     bot_current?: string[];
+    bot_queue?: string[];
     [key: string]: unknown;
   };
   tasks?: Record<string, TaskEntry>;
@@ -364,6 +365,101 @@ export async function checkpointActiveTask(params: {
       /* best-effort */
     }
     log.warn(`task checkpoint failed: ${err}`);
+    return false;
+  }
+}
+
+/**
+ * Updates the `bot_current` lane in tasks.json to point at the given taskId.
+ * If the task doesn't exist in tasks.json, it's still set as bot_current
+ * (the task card may be created later).
+ *
+ * If `previousTaskId` is provided and the task exists, its lane is moved
+ * to `bot_queue` so it's paused but not lost.
+ */
+export async function updateBotCurrentTask(params: {
+  workspaceDir: string;
+  taskId: string;
+  previousTaskId?: string;
+}): Promise<boolean> {
+  const boardPath = path.join(params.workspaceDir, "memory", "tasks.json");
+
+  let raw: string;
+  try {
+    raw = await fs.readFile(boardPath, "utf-8");
+  } catch {
+    return false;
+  }
+
+  let board: TaskBoard;
+  try {
+    board = JSON.parse(raw) as TaskBoard;
+  } catch {
+    return false;
+  }
+
+  if (!board.lanes) {
+    board.lanes = { bot_current: [] };
+  }
+
+  // Move previous task out of bot_current if present
+  if (params.previousTaskId && params.previousTaskId !== params.taskId) {
+    const prevIdx = board.lanes.bot_current?.indexOf(params.previousTaskId) ?? -1;
+    if (prevIdx >= 0) {
+      board.lanes.bot_current!.splice(prevIdx, 1);
+    }
+    // Park it in bot_queue if not already there
+    if (!Array.isArray(board.lanes.bot_queue)) {
+      board.lanes.bot_queue = [];
+    }
+    if (!board.lanes.bot_queue.includes(params.previousTaskId)) {
+      board.lanes.bot_queue.push(params.previousTaskId);
+    }
+    // Mark task as paused
+    const prevTask = board.tasks?.[params.previousTaskId];
+    if (prevTask) {
+      prevTask.status = "paused";
+      prevTask.updated_at = new Date().toISOString();
+    }
+  }
+
+  // Set new task as bot_current
+  board.lanes.bot_current = [params.taskId];
+
+  // Remove new task from bot_queue if it was there
+  if (Array.isArray(board.lanes.bot_queue)) {
+    const qIdx = board.lanes.bot_queue.indexOf(params.taskId);
+    if (qIdx >= 0) {
+      board.lanes.bot_queue.splice(qIdx, 1);
+    }
+  }
+
+  // Mark new task as active if it exists
+  const newTask = board.tasks?.[params.taskId];
+  if (newTask) {
+    newTask.status = "active";
+    newTask.updated_at = new Date().toISOString();
+  }
+
+  board.updated_at = new Date().toISOString();
+
+  // Atomic write
+  const tmpPath = `${boardPath}.${process.pid}.${Date.now()}.tmp`;
+  try {
+    await fs.writeFile(tmpPath, `${JSON.stringify(board, null, 2)}\n`, "utf-8");
+    await fs.rename(tmpPath, boardPath);
+    log.info("bot_current updated", {
+      taskId: params.taskId,
+      previousTaskId: params.previousTaskId,
+    });
+    return true;
+  } catch (err) {
+    try {
+      await fs.rm(tmpPath, { force: true });
+    } catch {
+      /* best-effort */
+    }
+    log.warn(`bot_current update failed: ${err}`);
     return false;
   }
 }

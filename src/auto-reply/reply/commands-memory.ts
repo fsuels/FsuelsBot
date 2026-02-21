@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import type { SessionEntry } from "../../config/sessions.js";
 import type { CommandHandler } from "./commands-types.js";
+import { checkpointActiveTask, updateBotCurrentTask } from "../../agents/task-checkpoint.js";
 import { parseDurationMs } from "../../cli/parse-duration.js";
 import { updateSessionStore } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
@@ -131,6 +132,120 @@ function slugifyTaskTitle(value: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
   return base || `task-${Date.now()}`;
+}
+
+/**
+ * Returns true when the first token of a `/task` command looks like a task-id
+ * shorthand rather than a sub-command.
+ * Matches: `#3`, `#my-task`, bare task-ids that start with a digit or contain
+ * a hyphen (slug-style) — but NOT known sub-commands.
+ */
+const KNOWN_TASK_SUBCOMMANDS = new Set([
+  "show",
+  "status",
+  "list",
+  "new",
+  "set",
+  "switch",
+  "link",
+  "active",
+  "paused",
+  "suspended",
+  "completed",
+  "done",
+  "closed",
+  "archived",
+  "archive",
+]);
+
+function isTaskIdShorthand(action: string): string | null {
+  if (!action) {
+    return null;
+  }
+  // Strip leading # if present (e.g. "#3" → "3", "#my-task" → "my-task")
+  const stripped = action.startsWith("#") ? action.slice(1).trim() : action;
+  if (!stripped) {
+    return null;
+  }
+  if (KNOWN_TASK_SUBCOMMANDS.has(stripped.toLowerCase())) {
+    return null;
+  }
+  return stripped;
+}
+
+/**
+ * Checkpoint current task, switch bot_current in tasks.json, reset session.
+ * Returns the confirmation reply text.
+ */
+async function switchTaskWithSessionReset(params: {
+  workspaceDir: string;
+  entry: SessionEntry;
+  taskId: string;
+  title?: string;
+  sessionStore?: Record<string, SessionEntry>;
+  sessionKey?: string;
+  storePath?: string;
+  source: string;
+}): Promise<{ reply: string; error?: unknown }> {
+  const previousTaskId = params.entry.activeTaskId;
+
+  // 1. Checkpoint current task progress (best-effort)
+  try {
+    await checkpointActiveTask({ workspaceDir: params.workspaceDir });
+  } catch {
+    /* checkpoint is best-effort — don't block the switch */
+  }
+
+  // 2. Update tasks.json bot_current lane
+  try {
+    await updateBotCurrentTask({
+      workspaceDir: params.workspaceDir,
+      taskId: params.taskId,
+      previousTaskId,
+    });
+  } catch {
+    /* bot_current update is best-effort */
+  }
+
+  // 3. Run the normal task switch (session entry + registry)
+  const nextEntry = await runTaskSwitch({
+    workspaceDir: params.workspaceDir,
+    entry: params.entry,
+    taskId: params.taskId,
+    title: params.title,
+    sessionStore: params.sessionStore,
+    sessionKey: params.sessionKey,
+    storePath: params.storePath,
+    source: params.source,
+  });
+
+  // 4. Force session reset: generate new sessionId and clear sessionFile
+  //    so the next message creates a fresh session file with the new task's bootstrap.
+  nextEntry.sessionId = crypto.randomUUID();
+  delete nextEntry.sessionFile;
+  nextEntry.systemSent = false;
+  nextEntry.compactionCount = 0;
+
+  // Persist the reset session entry
+  if (params.sessionKey) {
+    if (params.sessionStore) {
+      params.sessionStore[params.sessionKey] = nextEntry;
+    }
+    if (params.storePath) {
+      await updateSessionStore(params.storePath, (store) => {
+        store[params.sessionKey!] = nextEntry;
+      });
+    }
+  }
+
+  const taskLabel = params.title ?? params.taskId;
+  const prevLabel =
+    previousTaskId && previousTaskId !== DEFAULT_SESSION_TASK_ID
+      ? ` (paused ${previousTaskId})`
+      : "";
+  return {
+    reply: `⚡ Switched to task **${taskLabel}**${prevLabel}. Session reset — next message starts fresh with task context loaded.`,
+  };
 }
 
 function ensureSessionEntry(params: {
@@ -817,7 +932,7 @@ export const handleTaskCommand: CommandHandler = async (params, allowTextCommand
       suffix += 1;
     }
     try {
-      await runTaskSwitch({
+      const result = await switchTaskWithSessionReset({
         workspaceDir: params.workspaceDir,
         entry,
         taskId,
@@ -827,13 +942,10 @@ export const handleTaskCommand: CommandHandler = async (params, allowTextCommand
         storePath: params.storePath,
         source: "task.new",
       });
+      return { shouldContinue: false, reply: { text: result.reply } };
     } catch (error) {
       return durabilityFailureReply(`Create task ${taskId}`, error);
     }
-    return {
-      shouldContinue: false,
-      reply: { text: `Created task ${taskId} and switched context.` },
-    };
   }
 
   if (action === "set" || action === "switch") {
@@ -843,7 +955,7 @@ export const handleTaskCommand: CommandHandler = async (params, allowTextCommand
     }
     const title = parsed.values.slice(2).join(" ").trim() || undefined;
     try {
-      await runTaskSwitch({
+      const result = await switchTaskWithSessionReset({
         workspaceDir: params.workspaceDir,
         entry,
         taskId,
@@ -853,10 +965,10 @@ export const handleTaskCommand: CommandHandler = async (params, allowTextCommand
         storePath: params.storePath,
         source: "task.set",
       });
+      return { shouldContinue: false, reply: { text: result.reply } };
     } catch (error) {
       return durabilityFailureReply(`Set active task to ${taskId}`, error);
     }
-    return { shouldContinue: false, reply: { text: `Active task set to ${taskId}.` } };
   }
 
   if (action === "link") {
@@ -906,6 +1018,25 @@ export const handleTaskCommand: CommandHandler = async (params, allowTextCommand
     return { shouldContinue: false, reply: { text: `Linked tasks ${left} <-> ${right}.` } };
   }
 
+  // Shorthand: /task #3, /task my-task-id, /task 3 → treat as task switch
+  const shorthandTaskId = isTaskIdShorthand(action);
+  if (shorthandTaskId) {
+    try {
+      const result = await switchTaskWithSessionReset({
+        workspaceDir: params.workspaceDir,
+        entry,
+        taskId: shorthandTaskId,
+        sessionStore: params.sessionStore,
+        sessionKey: params.sessionKey,
+        storePath: params.storePath,
+        source: "task.shorthand",
+      });
+      return { shouldContinue: false, reply: { text: result.reply } };
+    } catch (error) {
+      return durabilityFailureReply(`Switch to task ${shorthandTaskId}`, error);
+    }
+  }
+
   const statusAction = normalizeTaskStatus(action);
   if (!statusAction) {
     return {
@@ -913,7 +1044,7 @@ export const handleTaskCommand: CommandHandler = async (params, allowTextCommand
       reply: {
         text:
           "Usage:\n" +
-          "/task show|list|new|set|link\n" +
+          "/task show|list|new|set|link|<task-id>\n" +
           "/task set <id> [title]\n" +
           "/task <active|paused|completed|archived|done>\n" +
           "/tasks | /resume <id> | /switch <id> | /newtask <title> | /archive <id> | /close <id>",
