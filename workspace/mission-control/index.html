@@ -3715,7 +3715,13 @@
         const safeTaskId = escapeJsString(id);
         const html = escapeHtml;
 
-        document.getElementById("modalTitle").textContent = task.title;
+        // Deterministic title fallback: title > summary > goal > humanized id
+        const displayTitle =
+          task.title ||
+          task.summary ||
+          task.goal ||
+          id.replace(/[-_]/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+        document.getElementById("modalTitle").textContent = displayTitle;
         document.getElementById("modalId").textContent = id;
 
         // Status

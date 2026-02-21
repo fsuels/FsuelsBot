@@ -688,6 +688,92 @@ def normalize_task_timestamp(task, keys):
     return None
 
 
+def _humanize_task_id(task_id):
+    """Convert slug-style task ID to a readable title."""
+    if not isinstance(task_id, str):
+        return str(task_id)
+    return task_id.replace("-", " ").replace("_", " ").strip().capitalize()
+
+
+# Strings that indicate boilerplate/operating-principles content (not task-specific)
+_BOILERPLATE_MARKERS = [
+    "every response i give",
+    "sound logic",
+    "verified evidence",
+    "no fallacies",
+    "self-check protocol",
+    "epistemic discipline",
+    "execution-first operator",
+    "permission tiers",
+    "chat → queue protocol",
+    "never idle rule",
+    "task chaining rule",
+    "operator mindset",
+    "the core rule",
+    "the motto",
+    "non-negotiable",
+]
+
+
+def _contains_boilerplate(text):
+    """Check if text contains global operating-principles boilerplate."""
+    if not isinstance(text, str):
+        return False
+    lower = text.lower()
+    matches = sum(1 for marker in _BOILERPLATE_MARKERS if marker in lower)
+    return matches >= 2  # Need at least 2 markers to flag as boilerplate
+
+
+def _resolve_display_title(task_id, task):
+    """Deterministic title fallback: title > summary > goal > next_action > humanized id."""
+    if not isinstance(task, dict):
+        return _humanize_task_id(task_id)
+    for field in ("title", "summary", "goal", "next_action"):
+        value = task.get(field)
+        if isinstance(value, str) and value.strip() and len(value.strip()) > 3:
+            candidate = value.strip()
+            # Skip values that start with "Complete:" (not useful titles)
+            if candidate.lower().startswith("complete:"):
+                continue
+            # Truncate long values for title use
+            if len(candidate) > 120:
+                candidate = candidate[:117] + "..."
+            return candidate
+    # Check context.summary as last resort
+    ctx = task.get("context")
+    if isinstance(ctx, dict):
+        ctx_summary = ctx.get("summary")
+        if isinstance(ctx_summary, str) and ctx_summary.strip() and len(ctx_summary.strip()) > 3:
+            candidate = ctx_summary.strip()
+            if not candidate.lower().startswith("complete:"):
+                return candidate[:117] + "..." if len(candidate) > 120 else candidate
+    return _humanize_task_id(task_id)
+
+
+def _sanitize_task_for_detail(task_id, task):
+    """Sanitize a full task payload for the detail API: strip boilerplate, ensure display title."""
+    if not isinstance(task, dict):
+        return {"title": _humanize_task_id(task_id), "status": "missing"}
+    result = dict(task)  # shallow copy
+    # Ensure clean display title
+    result["title"] = _resolve_display_title(task_id, task)
+    # Strip boilerplate from context.summary
+    ctx = result.get("context")
+    if isinstance(ctx, dict):
+        ctx = dict(ctx)
+        if _contains_boilerplate(ctx.get("summary", "")):
+            ctx["summary"] = ""
+        if _contains_boilerplate(ctx.get("goal", "")):
+            ctx["goal"] = ""
+        result["context"] = ctx
+    # Strip boilerplate from top-level summary/goal
+    if _contains_boilerplate(result.get("summary", "")):
+        result["summary"] = ""
+    if _contains_boilerplate(result.get("goal", "")):
+        result["goal"] = ""
+    return result
+
+
 def summarize_task_for_dashboard(task_id, task):
     """Build a compact task payload for fast board refreshes."""
     if not isinstance(task, dict):
@@ -701,7 +787,7 @@ def summarize_task_for_dashboard(task_id, task):
     epistemic = task.get("epistemic") if isinstance(task.get("epistemic"), dict) else {}
     return {
         "id": task_id,
-        "title": task.get("title"),
+        "title": _resolve_display_title(task_id, task),
         "status": task.get("status"),
         "plan": task.get("plan"),
         "estimate": task.get("estimate"),
@@ -2525,7 +2611,8 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                 if not isinstance(task, dict):
                     self.wfile.write(json.dumps({"error": f"task not found: {task_id}"}).encode('utf-8'))
                     return
-                self.wfile.write(json.dumps({"id": task_id, "task": task}, ensure_ascii=False).encode('utf-8'))
+                sanitized = _sanitize_task_for_detail(task_id, task)
+                self.wfile.write(json.dumps({"id": task_id, "task": sanitized}, ensure_ascii=False).encode('utf-8'))
             except Exception as e:
                 self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
             return
