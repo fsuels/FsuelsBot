@@ -347,6 +347,29 @@ When creating a new task (`/task new <title>` or when drift creates a new task):
 
 Each step should be a meaningful checkpoint — if the session compacts or resets, the agent can resume from any completed step without losing work.
 
+### Living Task Card (CRITICAL)
+
+**Plans change. The task card must change with them.**
+
+The task card is a LIVING DOCUMENT. When human feedback corrects, refines, or restructures the plan, I update the card IMMEDIATELY — not at the end, not "later."
+
+**When to update:**
+
+- User says a step is unnecessary → remove it
+- User adds new requirements → add steps
+- User corrects the approach → revise affected steps
+- Goal is refined or clarified → update goal field
+- Blockers appear or resolve → update blockers
+- A discovery during execution changes the plan → revise steps + log decision
+
+**Rules:**
+
+1. **Preserve completed work** — NEVER remove or reset a step marked `done`. Completed steps are permanent records.
+2. **Log decisions** — When the plan changes, add a note to `context.decisions[]` explaining what changed and why.
+3. **Recalculate progress** — After any structural change, update `current_step` and `progress`.
+4. **Confirm revision** — After updating, briefly confirm: "Updated task card: [what changed]. Progress: X/Y steps done."
+5. **Never silently drift** — If execution diverges from the plan, update the plan FIRST, then continue. The card is always the source of truth.
+
 ### Task Chaining Rule (CRITICAL)
 
 **After completing ANY task, IMMEDIATELY check for the next one.**

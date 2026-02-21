@@ -463,3 +463,183 @@ export async function updateBotCurrentTask(params: {
     return false;
   }
 }
+
+/**
+ * Flexible patch for the active task card in tasks.json.
+ * Used when human feedback changes the plan mid-execution:
+ * - Revise goal, add/remove/reorder steps, update context, blockers, etc.
+ *
+ * Only fields present in the patch are applied — everything else is preserved.
+ * Completed steps (status "done") are never removed by a step replacement
+ * unless explicitly included in the new steps array.
+ */
+export async function patchTaskCard(params: {
+  workspaceDir: string;
+  taskId?: string; // defaults to bot_current[0]
+  patch: {
+    title?: string;
+    goal?: string;
+    summary?: string;
+    steps?: TaskStep[];
+    next_action?: string;
+    blockers?: string[];
+    context?: {
+      decisions?: string[];
+      constraints?: string[];
+      [key: string]: unknown;
+    };
+    links?: Array<{ label?: string; url?: string }>;
+    [key: string]: unknown;
+  };
+}): Promise<{ success: boolean; taskId?: string; reason?: string }> {
+  const boardPath = path.join(params.workspaceDir, "memory", "tasks.json");
+
+  let raw: string;
+  try {
+    raw = await fs.readFile(boardPath, "utf-8");
+  } catch {
+    return { success: false, reason: "tasks.json not found" };
+  }
+
+  let board: TaskBoard;
+  try {
+    board = JSON.parse(raw) as TaskBoard;
+  } catch {
+    return { success: false, reason: "tasks.json invalid JSON" };
+  }
+
+  // Resolve target task
+  const taskId =
+    params.taskId ??
+    (Array.isArray(board.lanes?.bot_current) ? board.lanes.bot_current[0] : undefined);
+  if (!taskId || typeof taskId !== "string") {
+    return { success: false, reason: "no active task" };
+  }
+
+  const task = board.tasks?.[taskId];
+  if (!task) {
+    return { success: false, taskId, reason: `task ${taskId} not found` };
+  }
+
+  const { patch } = params;
+
+  // Apply simple field patches
+  if (patch.title !== undefined) {
+    task.title = patch.title;
+  }
+  if (patch.goal !== undefined) {
+    task.goal = patch.goal;
+  }
+  if (patch.summary !== undefined) {
+    task.summary = patch.summary;
+  }
+  if (patch.next_action !== undefined) {
+    task.next_action = patch.next_action;
+  }
+  if (patch.blockers !== undefined) {
+    task.blockers = patch.blockers;
+  }
+  if (patch.links !== undefined) {
+    task.links = patch.links;
+  }
+
+  // Merge context (don't replace — merge keys)
+  if (patch.context) {
+    if (!task.context) {
+      task.context = {};
+    }
+    for (const [key, value] of Object.entries(patch.context)) {
+      (task.context as Record<string, unknown>)[key] = value;
+    }
+  }
+
+  // Steps replacement with completed-step preservation
+  if (Array.isArray(patch.steps)) {
+    const oldSteps = Array.isArray(task.steps) ? task.steps : [];
+    const completedMap = new Map<string, TaskStep>();
+    for (const step of oldSteps) {
+      if (step.status === "done" || step.checked) {
+        completedMap.set(step.id, step);
+      }
+    }
+
+    // Merge: for each new step, if a completed version exists, keep the completed state
+    const mergedSteps: TaskStep[] = [];
+    for (const newStep of patch.steps) {
+      const completed = completedMap.get(newStep.id);
+      if (completed) {
+        // Keep completed status + output, but use new text if changed
+        mergedSteps.push({
+          ...completed,
+          text: newStep.text ?? completed.text,
+        });
+        completedMap.delete(newStep.id);
+      } else {
+        mergedSteps.push(newStep);
+      }
+    }
+
+    // Prepend any completed steps that were removed from the new plan
+    // (so progress is NEVER lost)
+    const orphanedCompleted = [...completedMap.values()];
+    if (orphanedCompleted.length > 0) {
+      // Find insertion point: after last completed step in merged list
+      let insertIdx = 0;
+      for (let i = mergedSteps.length - 1; i >= 0; i--) {
+        if (mergedSteps[i].status === "done" || mergedSteps[i].checked) {
+          insertIdx = i + 1;
+          break;
+        }
+      }
+      mergedSteps.splice(insertIdx, 0, ...orphanedCompleted);
+    }
+
+    task.steps = mergedSteps;
+
+    // Update current_step to first non-done step
+    const firstPending = mergedSteps.findIndex((s) => s.status !== "done" && !s.checked);
+    task.current_step = firstPending >= 0 ? firstPending : mergedSteps.length;
+  }
+
+  // Apply any extra fields from patch (future-proof)
+  for (const [key, value] of Object.entries(patch)) {
+    if (
+      ![
+        "title",
+        "goal",
+        "summary",
+        "steps",
+        "next_action",
+        "blockers",
+        "context",
+        "links",
+      ].includes(key)
+    ) {
+      (task as Record<string, unknown>)[key] = value;
+    }
+  }
+
+  // Update progress string
+  const steps = Array.isArray(task.steps) ? task.steps : [];
+  const doneCount = steps.filter((s) => s.status === "done" || s.checked).length;
+  task.progress = `${doneCount}/${steps.length} steps done`;
+  task.updated_at = new Date().toISOString();
+  board.updated_at = new Date().toISOString();
+
+  // Atomic write
+  const tmpPath = `${boardPath}.${process.pid}.${Date.now()}.tmp`;
+  try {
+    await fs.writeFile(tmpPath, `${JSON.stringify(board, null, 2)}\n`, "utf-8");
+    await fs.rename(tmpPath, boardPath);
+    log.info("task card patched", { taskId, patchKeys: Object.keys(patch) });
+    return { success: true, taskId };
+  } catch (err) {
+    try {
+      await fs.rm(tmpPath, { force: true });
+    } catch {
+      /* best-effort */
+    }
+    log.warn(`task card patch failed: ${err}`);
+    return { success: false, taskId, reason: String(err) };
+  }
+}
