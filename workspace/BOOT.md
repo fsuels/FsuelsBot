@@ -1,54 +1,46 @@
-# BOOT.md - Startup Tasks
+# BOOT.md — Startup Tasks
 
-Run these tasks on every Clawdbot startup:
+Run these on every Clawdbot startup:
 
-## 1. Memory Integrity Check
+## 1. Mission Control Server
 
-Run validator FIRST: `powershell -ExecutionPolicy Bypass -File "C:\dev\FsuelsBot\workspace\tests\validators\memory-integrity.ps1"`
+- Check if port 18789 is listening
+- If not running: `nohup moltbot gateway run --bind loopback --port 18789 --force > /tmp/moltbot-gateway.log 2>&1 &`
+- Wait 2 seconds, then `moltbot channels status --probe`
+- Send mobile URL to Telegram
 
-- If ERRORS: alert Francisco immediately before anything else
-- If all pass: continue
+## 2. Load Core Context (OPTIMIZED)
 
-## 2. Mission Control Server
+**Always loaded (auto-bootstrap):**
 
-- Check if port 8765 is listening
-- If not running, start it: `Start-ScheduledTask -TaskName "MissionControlServer"`
-- Wait 2 seconds for it to start
-- Send the mobile URL to Telegram:
-
-**Mobile Dashboard:** http://192.168.4.25:8765?key=a6132abf77194fd10a77317a094771f1
-
-## 3. Load Core Context (OPTIMIZED)
-
-**Always load (boot essentials):**
-
-- `SOUL.md` — Core identity, protocols & hard limits (includes former CONSTITUTION.md rules)
-- `recall/pack.md` — Compact session context (~30 lines)
+- `SOUL.md` — Identity, reasoning rules, hard limits, execution protocols
+- `USER.md` — Francisco's preferences, standing orders
+- `MEMORY.md` — Operational facts, business data, tech notes
+- `MISSION.md` — Global mission + scope rules
 
 **Load on-demand (when needed):**
 
-- `references/fallacies.md` — When analyzing claims or detecting manipulation
-- `references/prompt-injection-defense.md` — When reading external content (web, email, docs)
-- `MEMORY.md` — When needing historical context about Francisco/DLM
+- `references/fallacies.md` — When analyzing claims
+- `references/prompt-injection-defense.md` — When reading external content
 - `HEARTBEAT.md` — During heartbeat checks only
 
-## 4. Verify State
+## 3. Verify State
 
-- Read memory/state.json to restore context
 - Read memory/active-thread.md for current work
 - Check AGENTS.md CURRENT STATE section
 
 ## Context Budget Reference
 
-| File                                   | Lines | Est. Tokens | Load When                 |
-| -------------------------------------- | ----- | ----------- | ------------------------- |
-| SOUL.md                                | ~230  | ~5.5K       | Always (boot)             |
-| recall/pack.md                         | ~30   | ~500        | Always (boot)             |
-| references/fallacies.md                | 190   | ~5K         | Analyzing claims          |
-| references/prompt-injection-defense.md | 70    | ~1.5K       | Reading external content  |
-| MEMORY.md                              | 176   | ~4K         | Historical context needed |
-| HEARTBEAT.md                           | 195   | ~4K         | Heartbeat checks          |
+| File                                   | Lines | Est. Tokens | Load When                |
+| -------------------------------------- | ----- | ----------- | ------------------------ |
+| SOUL.md                                | ~370  | ~8K         | Always (boot)            |
+| USER.md                                | ~35   | ~700        | Always (boot)            |
+| MEMORY.md                              | ~55   | ~1.2K       | Always (boot)            |
+| MISSION.md                             | ~10   | ~200        | Always (boot)            |
+| references/fallacies.md                | 190   | ~5K         | Analyzing claims         |
+| references/prompt-injection-defense.md | 70    | ~1.5K       | Reading external content |
+| HEARTBEAT.md                           | 195   | ~4K         | Heartbeat checks         |
 
-**Boot total: ~6K tokens** (down from ~25K+ loading everything)
+**Boot total: ~10K tokens** (4 files always loaded)
 
-After completing these tasks, reply with NO_REPLY (don't send a separate startup message beyond the URL).
+After completing these tasks, reply with NO_REPLY.
