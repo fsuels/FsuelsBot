@@ -516,7 +516,7 @@ export async function compactEmbeddedPiSessionDirect(
         // Task-aware compaction: inject active task progress so Claude preserves it in summary
         try {
           const activeTask = await resolveActiveTask(effectiveWorkspace);
-          if (activeTask && activeTask.totalSteps > 0) {
+          if (activeTask) {
             const taskBlock = buildTaskCompactionInstructions(activeTask);
             compactInstructions = compactInstructions ? compactInstructions + taskBlock : taskBlock;
             log.info("task-aware compaction: injected progress context", {

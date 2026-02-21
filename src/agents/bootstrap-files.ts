@@ -86,7 +86,7 @@ export async function resolveBootstrapContextForRun(params: {
   // Auto-inject active task card into bootstrap context
   try {
     const activeTask = await resolveActiveTask(params.workspaceDir);
-    if (activeTask && activeTask.totalSteps > 0) {
+    if (activeTask) {
       const taskContent = buildTaskBootstrapContext(activeTask);
       contextFiles.push({
         path: "ACTIVE_TASK",

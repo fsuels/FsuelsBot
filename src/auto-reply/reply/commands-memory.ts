@@ -1,7 +1,11 @@
 import crypto from "node:crypto";
 import type { SessionEntry } from "../../config/sessions.js";
 import type { CommandHandler } from "./commands-types.js";
-import { checkpointActiveTask, updateBotCurrentTask } from "../../agents/task-checkpoint.js";
+import {
+  checkpointActiveTask,
+  patchTaskCard,
+  updateBotCurrentTask,
+} from "../../agents/task-checkpoint.js";
 import { parseDurationMs } from "../../cli/parse-duration.js";
 import { updateSessionStore } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
@@ -191,7 +195,10 @@ async function switchTaskWithSessionReset(params: {
 
   // 1. Checkpoint current task progress (best-effort)
   try {
-    await checkpointActiveTask({ workspaceDir: params.workspaceDir });
+    await checkpointActiveTask({
+      workspaceDir: params.workspaceDir,
+      taskId: previousTaskId,
+    });
   } catch {
     /* checkpoint is best-effort — don't block the switch */
   }
@@ -201,6 +208,7 @@ async function switchTaskWithSessionReset(params: {
     await updateBotCurrentTask({
       workspaceDir: params.workspaceDir,
       taskId: params.taskId,
+      title: params.title,
       previousTaskId,
     });
   } catch {
@@ -839,6 +847,25 @@ export const handleForgetCommand: CommandHandler = async (params, allowTextComma
         sessionKey: params.sessionKey,
         storePath: params.storePath,
       });
+      try {
+        await patchTaskCard({
+          workspaceDir: params.workspaceDir,
+          taskId,
+          patch: { status: "archived" },
+        });
+      } catch {
+        /* task-card patch is best-effort */
+      }
+      try {
+        await updateBotCurrentTask({
+          workspaceDir: params.workspaceDir,
+          taskId: undefined,
+          previousTaskId: taskId,
+          previousStatus: "archived",
+        });
+      } catch {
+        /* bot_current update is best-effort */
+      }
       await setTaskRegistryStatus({
         workspaceDir: params.workspaceDir,
         taskId,
@@ -1098,6 +1125,40 @@ export const handleTaskCommand: CommandHandler = async (params, allowTextCommand
       status: mapSessionStatusToRegistryStatus(statusAction),
       now,
     });
+    try {
+      await patchTaskCard({
+        workspaceDir: params.workspaceDir,
+        taskId: targetTaskId,
+        patch: { status: statusAction },
+      });
+    } catch {
+      /* task-card patch is best-effort */
+    }
+    try {
+      const nextActiveTaskId = resolveSessionTaskView({ entry: next }).taskId;
+      const boardTaskId =
+        nextActiveTaskId !== DEFAULT_SESSION_TASK_ID ? nextActiveTaskId : undefined;
+      const previousTaskId =
+        active.taskId !== DEFAULT_SESSION_TASK_ID && active.taskId !== boardTaskId
+          ? active.taskId
+          : undefined;
+      if (previousTaskId || boardTaskId) {
+        const previousStatus =
+          previousTaskId === targetTaskId &&
+          (statusAction === "completed" || statusAction === "archived")
+            ? statusAction
+            : "paused";
+        await updateBotCurrentTask({
+          workspaceDir: params.workspaceDir,
+          taskId: boardTaskId,
+          title: next.taskStateById?.[boardTaskId ?? ""]?.title,
+          previousTaskId,
+          previousStatus,
+        });
+      }
+    } catch {
+      /* bot_current update is best-effort */
+    }
   } catch (error) {
     return durabilityFailureReply(`Set task ${targetTaskId} status`, error);
   }

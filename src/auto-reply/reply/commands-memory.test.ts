@@ -304,7 +304,7 @@ describe("memory commands", () => {
       }),
     );
     expect(setResult.shouldContinue).toBe(false);
-    expect(setResult.reply?.text).toContain("Active task set to task-a");
+    expect(setResult.reply?.text).toContain("Switched to task");
     expect(sessionStore[sessionKey]?.activeTaskId).toBe("task-a");
     expect(sessionStore[sessionKey]?.taskStateById?.["task-a"]?.status).toBe("active");
 
@@ -343,7 +343,7 @@ describe("memory commands", () => {
       }),
     );
     expect(resumeResult.shouldContinue).toBe(false);
-    expect(resumeResult.reply?.text).toContain("Active task set to task-a");
+    expect(resumeResult.reply?.text).toContain("Switched to task");
     expect(sessionStore[sessionKey]?.activeTaskId).toBe("task-a");
   });
 

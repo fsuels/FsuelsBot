@@ -36,6 +36,9 @@ export type ActiveTaskSummary = {
   keyOutputs: string[];
   blockers: string[];
   nextAction?: string;
+  decisions: string[];
+  constraints: string[];
+  links: string[];
 };
 
 type TaskBoard = {
@@ -50,6 +53,10 @@ type TaskBoard = {
 
 type TaskEntry = {
   title?: string;
+  status?: string;
+  lane?: string;
+  created_at?: string;
+  updated_at?: string;
   goal?: string;
   summary?: string;
   steps?: TaskStep[];
@@ -73,34 +80,138 @@ type TaskEntry = {
   [key: string]: unknown;
 };
 
-/**
- * Reads the active task from tasks.json and returns a structured summary.
- * Returns null if no active task or tasks.json is missing.
- */
-export async function resolveActiveTask(workspaceDir: string): Promise<ActiveTaskSummary | null> {
-  const boardPath = path.join(workspaceDir, "memory", "tasks.json");
+const TASK_BOARD_REL_PATH = path.join("memory", "tasks.json");
 
+function resolveTaskBoardPath(workspaceDir: string): string {
+  return path.join(workspaceDir, TASK_BOARD_REL_PATH);
+}
+
+function normalizeTaskId(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function normalizeStringList(value: unknown, maxItems = 50): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const out: string[] = [];
+  for (const item of value) {
+    if (typeof item !== "string") {
+      continue;
+    }
+    const trimmed = item.trim();
+    if (!trimmed) {
+      continue;
+    }
+    out.push(trimmed);
+    if (out.length >= maxItems) {
+      break;
+    }
+  }
+  return out;
+}
+
+async function readTaskBoard(workspaceDir: string): Promise<{
+  boardPath: string;
+  board: TaskBoard;
+} | null> {
+  const boardPath = resolveTaskBoardPath(workspaceDir);
   let raw: string;
   try {
     raw = await fs.readFile(boardPath, "utf-8");
   } catch {
     return null;
   }
-
-  let board: TaskBoard;
   try {
-    board = JSON.parse(raw) as TaskBoard;
+    return { boardPath, board: JSON.parse(raw) as TaskBoard };
   } catch {
     return null;
   }
+}
+
+async function writeTaskBoard(boardPath: string, board: TaskBoard): Promise<boolean> {
+  const tmpPath = `${boardPath}.${process.pid}.${Date.now()}.tmp`;
+  try {
+    await fs.writeFile(tmpPath, `${JSON.stringify(board, null, 2)}\n`, "utf-8");
+    await fs.rename(tmpPath, boardPath);
+    return true;
+  } catch {
+    try {
+      await fs.rm(tmpPath, { force: true });
+    } catch {
+      /* best-effort */
+    }
+    return false;
+  }
+}
+
+function ensureTaskCardStub(
+  board: TaskBoard,
+  params: {
+    taskId: string;
+    title?: string;
+    nowIso: string;
+  },
+): TaskEntry {
+  if (!board.tasks) {
+    board.tasks = {};
+  }
+  const existing = board.tasks[params.taskId];
+  if (existing) {
+    return existing;
+  }
+  const stub: TaskEntry = {
+    title: params.title?.trim() || params.taskId,
+    status: "active",
+    lane: "bot_current",
+    goal: "",
+    summary: "",
+    steps: [],
+    current_step: 0,
+    blockers: [],
+    progress: "0/0 steps done",
+    context: { decisions: [], constraints: [] },
+    links: [],
+    created_at: params.nowIso,
+    updated_at: params.nowIso,
+  };
+  board.tasks[params.taskId] = stub;
+  return stub;
+}
+
+/**
+ * Reads only the active task id from tasks.json lanes.bot_current[0].
+ */
+export async function resolveBoardActiveTaskId(workspaceDir: string): Promise<string | undefined> {
+  const payload = await readTaskBoard(workspaceDir);
+  if (!payload) {
+    return undefined;
+  }
+  return normalizeTaskId(payload.board.lanes?.bot_current?.[0]);
+}
+
+/**
+ * Reads the active task from tasks.json and returns a structured summary.
+ * Returns null if no active task or tasks.json is missing.
+ */
+export async function resolveActiveTask(workspaceDir: string): Promise<ActiveTaskSummary | null> {
+  const payload = await readTaskBoard(workspaceDir);
+  if (!payload) {
+    return null;
+  }
+  const { board } = payload;
 
   const botCurrent = board.lanes?.bot_current;
   if (!Array.isArray(botCurrent) || botCurrent.length === 0) {
     return null;
   }
 
-  const taskId = botCurrent[0];
-  if (typeof taskId !== "string" || !taskId.trim()) {
+  const taskId = normalizeTaskId(botCurrent[0]);
+  if (!taskId) {
     return null;
   }
 
@@ -126,6 +237,9 @@ export async function resolveActiveTask(workspaceDir: string): Promise<ActiveTas
   if (task.handoff?.keyOutputs) {
     keyOutputs.push(...task.handoff.keyOutputs);
   }
+  const decisions = normalizeStringList(task.context?.decisions);
+  const constraints = normalizeStringList(task.context?.constraints);
+  const links = normalizeStringList(task.links?.map((link) => link?.url ?? link?.label ?? ""));
 
   return {
     taskId,
@@ -142,6 +256,9 @@ export async function resolveActiveTask(workspaceDir: string): Promise<ActiveTas
     keyOutputs,
     blockers: Array.isArray(task.blockers) ? task.blockers : [],
     nextAction: task.next_action ?? task.handoff?.nextAction,
+    decisions,
+    constraints,
+    links,
   };
 }
 
@@ -190,6 +307,30 @@ export function buildTaskCompactionInstructions(task: ActiveTaskSummary): string
 
   if (task.blockers.length > 0) {
     lines.push(`\nBlockers: ${task.blockers.join(", ")}`);
+  }
+
+  const decisions = task.decisions.slice(-5);
+  if (decisions.length > 0) {
+    lines.push(`\nRecent decisions (preserve rationale):`);
+    for (const decision of decisions) {
+      lines.push(`  - ${decision}`);
+    }
+  }
+
+  const constraints = task.constraints.slice(0, 5);
+  if (constraints.length > 0) {
+    lines.push(`\nHard constraints (must remain true):`);
+    for (const constraint of constraints) {
+      lines.push(`  - ${constraint}`);
+    }
+  }
+
+  const links = task.links.slice(0, 5);
+  if (links.length > 0) {
+    lines.push(`\nRelevant links:`);
+    for (const link of links) {
+      lines.push(`  - ${link}`);
+    }
   }
 
   return lines.join("\n");
@@ -255,6 +396,33 @@ export function buildTaskBootstrapContext(task: ActiveTaskSummary): string {
     }
   }
 
+  const decisions = task.decisions.slice(-5);
+  if (decisions.length > 0) {
+    lines.push(``);
+    lines.push(`## Recent Decisions`);
+    for (const decision of decisions) {
+      lines.push(`- ${decision}`);
+    }
+  }
+
+  const constraints = task.constraints.slice(0, 5);
+  if (constraints.length > 0) {
+    lines.push(``);
+    lines.push(`## Constraints`);
+    for (const constraint of constraints) {
+      lines.push(`- ${constraint}`);
+    }
+  }
+
+  const links = task.links.slice(0, 5);
+  if (links.length > 0) {
+    lines.push(``);
+    lines.push(`## Links`);
+    for (const link of links) {
+      lines.push(`- ${link}`);
+    }
+  }
+
   lines.push(``);
   lines.push(`---`);
   lines.push(`*Continue from the current step. Do not repeat completed steps.*`);
@@ -268,34 +436,24 @@ export function buildTaskBootstrapContext(task: ActiveTaskSummary): string {
  */
 export async function checkpointActiveTask(params: {
   workspaceDir: string;
+  taskId?: string;
   currentStepIndex?: number;
   stepOutputs?: Record<string, string>;
   nextAction?: string;
   handoffSummary?: string;
 }): Promise<boolean> {
-  const boardPath = path.join(params.workspaceDir, "memory", "tasks.json");
-
-  let raw: string;
-  try {
-    raw = await fs.readFile(boardPath, "utf-8");
-  } catch {
+  const payload = await readTaskBoard(params.workspaceDir);
+  if (!payload) {
     return false;
   }
+  const { boardPath, board } = payload;
 
-  let board: TaskBoard;
-  try {
-    board = JSON.parse(raw) as TaskBoard;
-  } catch {
-    return false;
-  }
-
-  const botCurrent = board.lanes?.bot_current;
-  if (!Array.isArray(botCurrent) || botCurrent.length === 0) {
-    return false;
-  }
-
-  const taskId = botCurrent[0];
-  if (typeof taskId !== "string") {
+  const taskId =
+    normalizeTaskId(params.taskId) ??
+    normalizeTaskId(
+      Array.isArray(board.lanes?.bot_current) ? board.lanes?.bot_current[0] : undefined,
+    );
+  if (!taskId) {
     return false;
   }
 
@@ -348,22 +506,18 @@ export async function checkpointActiveTask(params: {
   task.progress = `${completedCount}/${totalCount} steps done`;
   task.updated_at = new Date().toISOString();
 
-  // Atomic write
-  const tmpPath = `${boardPath}.${process.pid}.${Date.now()}.tmp`;
+  board.updated_at = new Date().toISOString();
+
   try {
-    await fs.writeFile(tmpPath, `${JSON.stringify(board, null, 2)}\n`, "utf-8");
-    await fs.rename(tmpPath, boardPath);
+    if (!(await writeTaskBoard(boardPath, board))) {
+      throw new Error("atomic task-board write failed");
+    }
     log.info("task checkpoint saved", {
       taskId,
       progress: task.progress,
     });
     return true;
   } catch (err) {
-    try {
-      await fs.rm(tmpPath, { force: true });
-    } catch {
-      /* best-effort */
-    }
     log.warn(`task checkpoint failed: ${err}`);
     return false;
   }
@@ -379,86 +533,91 @@ export async function checkpointActiveTask(params: {
  */
 export async function updateBotCurrentTask(params: {
   workspaceDir: string;
-  taskId: string;
+  taskId?: string;
+  title?: string;
   previousTaskId?: string;
+  previousStatus?: "paused" | "completed" | "archived";
 }): Promise<boolean> {
-  const boardPath = path.join(params.workspaceDir, "memory", "tasks.json");
-
-  let raw: string;
-  try {
-    raw = await fs.readFile(boardPath, "utf-8");
-  } catch {
+  const payload = await readTaskBoard(params.workspaceDir);
+  if (!payload) {
     return false;
   }
-
-  let board: TaskBoard;
-  try {
-    board = JSON.parse(raw) as TaskBoard;
-  } catch {
-    return false;
-  }
+  const { boardPath, board } = payload;
+  const nextTaskId = normalizeTaskId(params.taskId);
+  const previousTaskId = normalizeTaskId(params.previousTaskId);
+  const nowIso = new Date().toISOString();
 
   if (!board.lanes) {
     board.lanes = { bot_current: [] };
   }
+  if (!Array.isArray(board.lanes.bot_current)) {
+    board.lanes.bot_current = [];
+  }
+  if (!Array.isArray(board.lanes.bot_queue)) {
+    board.lanes.bot_queue = [];
+  }
+  if (!board.tasks) {
+    board.tasks = {};
+  }
 
   // Move previous task out of bot_current if present
-  if (params.previousTaskId && params.previousTaskId !== params.taskId) {
-    const prevIdx = board.lanes.bot_current?.indexOf(params.previousTaskId) ?? -1;
+  if (previousTaskId && previousTaskId !== nextTaskId) {
+    const prevIdx = board.lanes.bot_current?.indexOf(previousTaskId) ?? -1;
     if (prevIdx >= 0) {
       board.lanes.bot_current!.splice(prevIdx, 1);
     }
-    // Park it in bot_queue if not already there
-    if (!Array.isArray(board.lanes.bot_queue)) {
-      board.lanes.bot_queue = [];
+    const prevQueueIdx = board.lanes.bot_queue.indexOf(previousTaskId);
+    if (prevQueueIdx >= 0) {
+      board.lanes.bot_queue.splice(prevQueueIdx, 1);
     }
-    if (!board.lanes.bot_queue.includes(params.previousTaskId)) {
-      board.lanes.bot_queue.push(params.previousTaskId);
+    const previousStatus = params.previousStatus ?? "paused";
+    if (previousStatus === "paused" && !board.lanes.bot_queue.includes(previousTaskId)) {
+      board.lanes.bot_queue.push(previousTaskId);
     }
-    // Mark task as paused
-    const prevTask = board.tasks?.[params.previousTaskId];
+    const prevTask = board.tasks[previousTaskId];
     if (prevTask) {
-      prevTask.status = "paused";
-      prevTask.updated_at = new Date().toISOString();
+      if (previousStatus) {
+        prevTask.status = previousStatus;
+      }
+      prevTask.updated_at = nowIso;
     }
   }
 
-  // Set new task as bot_current
-  board.lanes.bot_current = [params.taskId];
+  if (nextTaskId) {
+    // Set new task as bot_current
+    board.lanes.bot_current = [nextTaskId];
 
-  // Remove new task from bot_queue if it was there
-  if (Array.isArray(board.lanes.bot_queue)) {
-    const qIdx = board.lanes.bot_queue.indexOf(params.taskId);
+    // Remove new task from bot_queue if it was there
+    const qIdx = board.lanes.bot_queue.indexOf(nextTaskId);
     if (qIdx >= 0) {
-      board.lanes.bot_queue.splice(qIdx, 1);
+      board.lanes.bot_queue!.splice(qIdx, 1);
     }
-  }
 
-  // Mark new task as active if it exists
-  const newTask = board.tasks?.[params.taskId];
-  if (newTask) {
+    // Ensure task card exists, then mark active.
+    const newTask = ensureTaskCardStub(board, {
+      taskId: nextTaskId,
+      title: params.title,
+      nowIso,
+    });
     newTask.status = "active";
-    newTask.updated_at = new Date().toISOString();
+    newTask.lane = "bot_current";
+    newTask.updated_at = nowIso;
+  } else {
+    board.lanes.bot_current = [];
   }
 
-  board.updated_at = new Date().toISOString();
+  board.updated_at = nowIso;
 
-  // Atomic write
-  const tmpPath = `${boardPath}.${process.pid}.${Date.now()}.tmp`;
   try {
-    await fs.writeFile(tmpPath, `${JSON.stringify(board, null, 2)}\n`, "utf-8");
-    await fs.rename(tmpPath, boardPath);
+    if (!(await writeTaskBoard(boardPath, board))) {
+      throw new Error("atomic task-board write failed");
+    }
     log.info("bot_current updated", {
-      taskId: params.taskId,
-      previousTaskId: params.previousTaskId,
+      taskId: nextTaskId ?? null,
+      previousTaskId,
     });
     return true;
   } catch (err) {
-    try {
-      await fs.rm(tmpPath, { force: true });
-    } catch {
-      /* best-effort */
-    }
     log.warn(`bot_current update failed: ${err}`);
     return false;
   }

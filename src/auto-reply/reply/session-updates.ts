@@ -362,7 +362,7 @@ export async function persistTaskCheckpointIfDue(params: {
   // Fire checkpoint every N turns
   if (nextReplyCount % TASK_CHECKPOINT_INTERVAL === 0) {
     try {
-      const saved = await checkpointActiveTask({ workspaceDir });
+      const saved = await checkpointActiveTask({ workspaceDir, taskId: activeTaskId });
       if (saved) {
         log.info("periodic task checkpoint saved", {
           taskId: activeTaskId,

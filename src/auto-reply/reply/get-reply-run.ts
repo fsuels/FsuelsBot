@@ -14,6 +14,7 @@ import {
   isEmbeddedPiRunStreaming,
   resolveEmbeddedSessionLane,
 } from "../../agents/pi-embedded.js";
+import { resolveBoardActiveTaskId, updateBotCurrentTask } from "../../agents/task-checkpoint.js";
 import {
   resolveGroupSessionKey,
   resolveSessionFilePath,
@@ -398,6 +399,59 @@ export async function runPreparedReply(
   });
   const authProfileIdSource = sessionEntry?.authProfileOverrideSource;
   let activeTask = resolveSessionTaskView({ entry: sessionEntry });
+  try {
+    const boardActiveTaskId = await resolveBoardActiveTaskId(workspaceDir);
+    const sessionActiveTaskId = activeTask.taskId;
+    if (
+      sessionActiveTaskId !== DEFAULT_SESSION_TASK_ID &&
+      boardActiveTaskId !== sessionActiveTaskId
+    ) {
+      await updateBotCurrentTask({
+        workspaceDir,
+        taskId: sessionActiveTaskId,
+        title: activeTask.title,
+        previousTaskId: boardActiveTaskId,
+        previousStatus: "paused",
+      });
+      logVerbose(
+        `task integrity reconcile: board active "${boardActiveTaskId ?? "<none>"}" -> "${sessionActiveTaskId}"`,
+      );
+    } else if (sessionActiveTaskId === DEFAULT_SESSION_TASK_ID && boardActiveTaskId) {
+      const updatedAt = Date.now();
+      const currentEntry = sessionEntry ??
+        sessionStore?.[sessionKey] ?? {
+          sessionId: sessionIdFinal,
+          updatedAt,
+        };
+      const nextEntry = applySessionTaskUpdate(currentEntry, {
+        taskId: boardActiveTaskId,
+        status: "active",
+        updatedAt,
+        source: "task.integrity.board",
+      });
+      if (sessionStore && sessionKey) {
+        sessionStore[sessionKey] = nextEntry;
+      }
+      sessionEntry = nextEntry;
+      activeTask = resolveSessionTaskView({ entry: nextEntry });
+      if (storePath && sessionKey) {
+        await updateSessionStore(storePath, (store) => {
+          const existing = store[sessionKey] ?? currentEntry;
+          store[sessionKey] = applySessionTaskUpdate(existing, {
+            taskId: boardActiveTaskId,
+            status: "active",
+            updatedAt,
+            source: "task.integrity.board",
+          });
+        });
+      }
+      logVerbose(
+        `task integrity reconcile: session active "${sessionActiveTaskId}" -> board "${boardActiveTaskId}"`,
+      );
+    }
+  } catch (err) {
+    logVerbose(`task integrity reconcile skipped: ${String(err)}`);
+  }
   const activeTaskIdBeforeInference = activeTask.taskId;
   const inferredTaskHint = inferTaskHintFromMessage({
     entry: sessionEntry,
@@ -454,6 +508,7 @@ export async function runPreparedReply(
   }
   const autoSwitchOptIn = sessionEntry?.autoSwitchOptIn === true;
   const canAutoSwitch =
+    command.isAuthorizedSender &&
     autoSwitchOptIn &&
     !autoSwitchGuardedByCounters &&
     Boolean(inferredTaskHint?.taskId) &&
@@ -488,6 +543,17 @@ export async function runPreparedReply(
           source: "autoswitch",
         });
       });
+    }
+    try {
+      await updateBotCurrentTask({
+        workspaceDir,
+        taskId: inferredTaskHint.taskId,
+        title: activeTask.title,
+        previousTaskId,
+        previousStatus: "paused",
+      });
+    } catch (err) {
+      logVerbose(`autoswitch board sync skipped: ${String(err)}`);
     }
     try {
       await commitMemoryEvents({

@@ -98,9 +98,8 @@ describe("calculateMaxToolResultChars", () => {
 
   it("returns reasonable size for 128K context", () => {
     const result = calculateMaxToolResultChars(128_000);
-    // 30% of 128K = 38.4K tokens * 4 chars = 153.6K chars
-    expect(result).toBeGreaterThan(100_000);
-    expect(result).toBeLessThan(200_000);
+    // 15% of 128K = 19.2K tokens * 4 chars = 76.8K chars, then hard-capped at 40K.
+    expect(result).toBe(HARD_MAX_TOOL_RESULT_CHARS);
   });
 });
 

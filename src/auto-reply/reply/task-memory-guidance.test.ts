@@ -81,7 +81,7 @@ describe("selectTaskMemoryNudge", () => {
     expect(decision?.text).toBe("Got it. I will treat this as important and remember it.");
   });
 
-  it("suggests saving progress on long tasks in supportive mode", () => {
+  it("does not emit long-task save nudges by default", () => {
     const decision = selectTaskMemoryNudge({
       message: "continue",
       isNewSession: false,
@@ -90,7 +90,7 @@ describe("selectTaskMemoryNudge", () => {
       guidanceMode: "supportive",
       now: 2000,
     });
-    expect(decision?.text).toContain("save where we are");
+    expect(decision).toBeNull();
   });
 
   it("asks the user to choose when multiple tasks match", () => {
