@@ -179,6 +179,9 @@ export type SessionEntry = {
   promotedEvents?: PromotedEvent[];
   // -- Capability Ledger (RSC v3.2) --
   capabilityLedger?: CapabilityEntry[];
+  // -- Task Checkpoint (auto-save cadence) --
+  /** Counts completed reply turns in this session; used to trigger periodic task checkpoints. */
+  replyCount?: number;
 };
 
 export function mergeSessionEntry(

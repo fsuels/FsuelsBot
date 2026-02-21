@@ -3,6 +3,7 @@ import type { OpenClawConfig } from "../../config/config.js";
 import { resolveUserTimezone } from "../../agents/date-time.js";
 import { buildWorkspaceSkillSnapshot } from "../../agents/skills.js";
 import { ensureSkillsWatcher, getSkillsSnapshotVersion } from "../../agents/skills/refresh.js";
+import { checkpointActiveTask } from "../../agents/task-checkpoint.js";
 import { type SessionEntry, updateSessionStore } from "../../config/sessions.js";
 import { buildChannelSummary } from "../../infra/channel-summary.js";
 import {
@@ -12,7 +13,10 @@ import {
 } from "../../infra/format-time/format-datetime.ts";
 import { getRemoteSkillEligibility } from "../../infra/skills-remote.js";
 import { drainSystemEventEntries } from "../../infra/system-events.js";
+import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { applySessionTaskUpdate, resolveSessionTaskView } from "../../sessions/task-context.js";
+
+const log = createSubsystemLogger("session-updates");
 
 export async function prependSystemEvents(params: {
   cfg: OpenClawConfig;
@@ -297,4 +301,76 @@ export async function incrementCompactionCount(params: {
     });
   }
   return nextCount;
+}
+
+// ---------------------------------------------------------------------------
+// Periodic task card checkpoint
+// ---------------------------------------------------------------------------
+
+/** How many reply turns between automatic task checkpoints. */
+const TASK_CHECKPOINT_INTERVAL = 5;
+
+/**
+ * Increments `replyCount` on the session and, every N turns, fires
+ * `checkpointActiveTask()` to persist the task card to disk.
+ *
+ * This makes task card saves automatic — the agent no longer relies
+ * exclusively on behavioral instructions to save progress.
+ */
+export async function persistTaskCheckpointIfDue(params: {
+  sessionEntry?: SessionEntry;
+  sessionStore?: Record<string, SessionEntry>;
+  sessionKey?: string;
+  storePath?: string;
+  workspaceDir?: string;
+  taskId?: string;
+}): Promise<void> {
+  const { sessionStore, sessionKey, storePath, workspaceDir } = params;
+
+  // Can't do anything without session plumbing or workspace
+  if (!sessionStore || !sessionKey || !workspaceDir) {
+    return;
+  }
+
+  const entry = sessionStore[sessionKey] ?? params.sessionEntry;
+  if (!entry) {
+    return;
+  }
+
+  // Only checkpoint if there's an active task
+  const activeTaskId = params.taskId ?? entry.activeTaskId;
+  if (!activeTaskId) {
+    return;
+  }
+
+  // Increment reply count
+  const nextReplyCount = (entry.replyCount ?? 0) + 1;
+  entry.replyCount = nextReplyCount;
+  sessionStore[sessionKey] = entry;
+
+  // Persist the count bump
+  if (storePath) {
+    await updateSessionStore(storePath, (store) => {
+      const storeEntry = store[sessionKey];
+      if (storeEntry) {
+        storeEntry.replyCount = nextReplyCount;
+        store[sessionKey] = storeEntry;
+      }
+    });
+  }
+
+  // Fire checkpoint every N turns
+  if (nextReplyCount % TASK_CHECKPOINT_INTERVAL === 0) {
+    try {
+      const saved = await checkpointActiveTask({ workspaceDir });
+      if (saved) {
+        log.info("periodic task checkpoint saved", {
+          taskId: activeTaskId,
+          replyCount: nextReplyCount,
+        });
+      }
+    } catch (err) {
+      log.warn(`periodic task checkpoint failed: ${err}`);
+    }
+  }
 }

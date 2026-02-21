@@ -41,7 +41,7 @@ import { persistDriftCoherenceUpdate } from "./drift-coherence-update.js";
 import { createFollowupRunner } from "./followup-runner.js";
 import { enqueueFollowupRun, type FollowupRun, type QueueSettings } from "./queue.js";
 import { createReplyToModeFilterForChannel, resolveReplyToMode } from "./reply-threading.js";
-import { incrementCompactionCount } from "./session-updates.js";
+import { incrementCompactionCount, persistTaskCheckpointIfDue } from "./session-updates.js";
 import { persistSessionUsageUpdate } from "./session-usage.js";
 import { createTypingSignaler } from "./typing-mode.js";
 
@@ -426,6 +426,16 @@ export async function runReplyAgent(params: {
       toolMetas: runResult.toolMetas,
       lastToolError: runResult.lastToolError,
       userCorrectionHint: isUserCorrection(commandBody) ? commandBody : undefined,
+    });
+
+    // Periodic task card checkpoint — fires every N reply turns
+    await persistTaskCheckpointIfDue({
+      sessionEntry: activeSessionEntry,
+      sessionStore,
+      sessionKey,
+      storePath,
+      workspaceDir: followupRun.run.workspaceDir,
+      taskId: followupRun.run.taskId,
     });
 
     // Drain any late tool/block deliveries before deciding there's "nothing to send".
