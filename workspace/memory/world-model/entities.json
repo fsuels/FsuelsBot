@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "updatedAt": "2026-02-21T05:35:38.555Z",
+  "entities": {
+    "read": {
+      "id": "read",
+      "label": "read",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-02-21T04:35:42.467Z",
+      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+    },
+    "heartbeat": {
+      "id": "heartbeat",
+      "label": "heartbeat",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-02-21T04:35:42.467Z",
+      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+    },
+    "exists": {
+      "id": "exists",
+      "label": "exists",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-02-21T04:35:42.467Z",
+      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+    },
+    "workspace": {
+      "id": "workspace",
+      "label": "workspace",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-02-21T04:35:42.467Z",
+      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+    },
+    "context": {
+      "id": "context",
+      "label": "context",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-02-21T04:35:42.467Z",
+      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+    },
+    "follow": {
+      "id": "follow",
+      "label": "follow",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-02-21T04:35:42.467Z",
+      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+    },
+    "strictly": {
+      "id": "strictly",
+      "label": "strictly",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-02-21T04:35:42.467Z",
+      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+    },
+    "infer": {
+      "id": "infer",
+      "label": "infer",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-02-21T04:35:42.467Z",
+      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+    },
+    "voice": {
+      "id": "voice",
+      "label": "voice",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-02-21T04:35:42.467Z",
+      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+    },
+    "want": {
+      "id": "want",
+      "label": "want",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-02-21T04:35:42.467Z",
+      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+    },
+    "assistant": {
+      "id": "assistant",
+      "label": "assistant",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-02-21T04:35:42.467Z",
+      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+    },
+    "design": {
+      "id": "design",
+      "label": "design",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-02-21T04:35:42.467Z",
+      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+    }
+  }
+}

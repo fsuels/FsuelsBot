@@ -1,1 +1,0 @@
-{"process":"WhatsApp.Root","selector":"role:Edit|name:Search input textbox","text_to_type":"Giselle","clear_before_typing":true,"ui_diff_before_after":true,"verify_element_exists":"","verify_element_not_exists":"","include_window_screenshot":true,"highlight_before_action":true}

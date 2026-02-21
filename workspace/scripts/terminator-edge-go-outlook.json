@@ -1,1 +1,0 @@
-{"process":"msedge","selector":"role:Edit|name:Address and search bar","text_to_type":"https://outlook.office.com/mail/","clear_before_typing":true,"ui_diff_before_after":true,"trailing_keys_pressed":["ENTER"],"verify_element_exists":"","verify_element_not_exists":"","include_window_screenshot":true,"highlight_before_action":true}

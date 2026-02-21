@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": 1771594152936,
+  "updatedAt": 1771652230613,
   "tasks": [
     {
       "taskId": "pomelli-dresses-refresh",
@@ -80,6 +80,26 @@
       "lastTouchedAt": 1771594152936,
       "links": [],
       "pinSetId": "pins:fix-that-and-make-sure-that-never-happens-again",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md",
+      "title": "research-review-heartbeat-md",
+      "status": "suspended",
+      "createdAt": 1771648535879,
+      "lastTouchedAt": 1771648535879,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-2",
+      "title": "research-review-heartbeat-md-2",
+      "status": "suspended",
+      "createdAt": 1771652230613,
+      "lastTouchedAt": 1771652230613,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-2",
       "schemaVersion": 1
     }
   ]

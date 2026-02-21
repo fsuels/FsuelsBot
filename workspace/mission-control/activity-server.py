@@ -566,12 +566,8 @@ def check_memory_health():
         checks["active-thread.md"] = {"status": "missing"}
         errors.append("active-thread.md missing")
     
-    # Check CONSTITUTION.md
-    const_file = os.path.join(WORKSPACE_DIR, "CONSTITUTION.md")
-    checks["CONSTITUTION.md"] = {"status": "ok" if os.path.exists(const_file) else "missing"}
-    if not os.path.exists(const_file):
-        errors.append("CONSTITUTION.md missing")
-    
+    # CONSTITUTION.md merged into SOUL.md (2026-02-21) — no longer checked separately
+
     # Check AGENTS.md has CURRENT STATE
     agents_file = os.path.join(WORKSPACE_DIR, "AGENTS.md")
     if os.path.exists(agents_file):

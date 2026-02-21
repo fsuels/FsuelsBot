@@ -1,1 +1,0 @@
-{"process":"chrome","include_tree_after_action":true,"tree_output_format":"clustered_yaml","tree_from_selector":"role:Document","tree_max_depth":10,"include_browser_dom":true,"browser_dom_max_elements":250,"include_window_screenshot":true}

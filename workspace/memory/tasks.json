@@ -1,11 +1,11 @@
 {
   "version": 26,
-  "updated_at": "2026-02-21T04:39:23.000Z",
+  "updated_at": "2026-02-21T05:37:10.594Z",
   "updated_by": "codex",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
     "bot_current": [],
-    "bot_queue": ["research-review-heartbeat-md"],
+    "bot_queue": [],
     "human": ["pomelli-dresses-refresh"],
     "scheduled": [],
     "done_today": [
@@ -14,7 +14,9 @@
       "i-already-told-you-what-i-need-fix",
       "create-cron-jobs-and-stay-awake",
       "change-your-fuckign-code-and-fix-your-memory",
-      "we-need-to-improve-the-task-card"
+      "we-need-to-improve-the-task-card",
+      "research-review-heartbeat-md",
+      "research-review-heartbeat-md-2"
     ],
     "trash": ["fix-that-and-make-sure-that-never-happens-again"]
   },
@@ -110,7 +112,7 @@
           "procedure": [
             "Search Shopify by OriginalImageFilename first, then fallback to product title.",
             "Confirm correct product and Active status; skip if Draft/Archived.",
-            "Upload 4 Pomelli images and set alt text format: [Full Product Title] — [template descriptor].",
+            "Upload 4 Pomelli images and set alt text format: [Full Product Title] \u2014 [template descriptor].",
             "Save and confirm no unsaved changes indicator remains."
           ],
           "definitionOfDone": "Shopify product saved with 4 new images and complete alt text."
@@ -267,14 +269,14 @@
       "lane": "done_today",
       "updated_at": "2026-02-20T13:27:00Z",
       "created_at": "2026-02-20T07:15:15.007Z",
-      "summary": "Created MEMORY.md, fixed USER.md standing orders, killed 3 broken crons, cleaned ledger (198→64), verified all memory files, overnight consolidation confirmed clean. Cross-session recall verified working.",
+      "summary": "Created MEMORY.md, fixed USER.md standing orders, killed 3 broken crons, cleaned ledger (198\u219264), verified all memory files, overnight consolidation confirmed clean. Cross-session recall verified working.",
       "next_action": "Complete",
       "project": "unassigned",
       "project_source": "explicit",
-      "goal": "Complete: Created MEMORY.md, fixed USER.md standing orders, killed 3 broken crons, cleaned ledger (198→64), verified all memory files, overnight consolidation confirmed clean. Cross-session recall verified working.",
+      "goal": "Complete: Created MEMORY.md, fixed USER.md standing orders, killed 3 broken crons, cleaned ledger (198\u219264), verified all memory files, overnight consolidation confirmed clean. Cross-session recall verified working.",
       "context": {
-        "summary": "Created MEMORY.md, fixed USER.md standing orders, killed 3 broken crons, cleaned ledger (198→64), verified all memory files, overnight consolidation confirmed clean. Cross-session recall verified working.",
-        "goal": "Complete: Created MEMORY.md, fixed USER.md standing orders, killed 3 broken crons, cleaned ledger (198→64), verified all memory files, overnight consolidation confirmed clean. Cross-session recall verified working."
+        "summary": "Created MEMORY.md, fixed USER.md standing orders, killed 3 broken crons, cleaned ledger (198\u219264), verified all memory files, overnight consolidation confirmed clean. Cross-session recall verified working.",
+        "goal": "Complete: Created MEMORY.md, fixed USER.md standing orders, killed 3 broken crons, cleaned ledger (198\u219264), verified all memory files, overnight consolidation confirmed clean. Cross-session recall verified working."
       },
       "steps": [
         {
@@ -286,7 +288,7 @@
         },
         {
           "id": "step-2",
-          "text": "Execute implementation: Created MEMORY.md, fixed USER.md standing orders, killed 3 broken crons, cleaned ledger (198→64), verified all memory files, overnight consolidation confirmed clean. Cross-session recall verified working.",
+          "text": "Execute implementation: Created MEMORY.md, fixed USER.md standing orders, killed 3 broken crons, cleaned ledger (198\u219264), verified all memory files, overnight consolidation confirmed clean. Cross-session recall verified working.",
           "status": "done",
           "checked": true,
           "definitionOfDone": "Step output is complete and verified."
@@ -582,9 +584,9 @@
     },
     "research-review-heartbeat-md": {
       "title": "Research review: heartbeat.md",
-      "status": "queued",
-      "lane": "bot_queue",
-      "updated_at": "2026-02-21T04:35:35.875Z",
+      "status": "completed",
+      "lane": "bot_current",
+      "updated_at": "2026-02-21T05:37:02.634Z",
       "created_at": "2026-02-21T04:35:35.875Z",
       "kind": "research_review",
       "requirements": {
@@ -600,20 +602,23 @@
         {
           "id": "credibility",
           "text": "Classify source credibility tier and validate claims",
-          "status": "todo",
-          "checked": false
+          "status": "done",
+          "checked": true,
+          "updated_at": "2026-02-21T05:36:52.264420Z"
         },
         {
           "id": "score",
           "text": "Score impact/cost/risk and decide ADOPT, EXPERIMENT, or IGNORE",
-          "status": "todo",
-          "checked": false
+          "status": "done",
+          "checked": true,
+          "updated_at": "2026-02-21T05:36:52.264994Z"
         },
         {
           "id": "plan",
           "text": "If ADOPT/EXPERIMENT, define KPI, affected modules, and rollback plan",
-          "status": "todo",
-          "checked": false
+          "status": "done",
+          "checked": true,
+          "updated_at": "2026-02-21T05:36:52.264996Z"
         }
       ],
       "current_step": 0,
@@ -680,6 +685,105 @@
       "card_quality": {
         "complete": true,
         "missing_fields": []
+      },
+      "started_at": "2026-02-21T04:39:30.413024+00:00",
+      "completed_at": "2026-02-21T05:36:52.264997Z",
+      "result": {
+        "decision": "IGNORE",
+        "reason": "Site heartbeat.md returns HTTP 521 (origin server down). No cached/archived content accessible via Wayback Machine. Cannot evaluate credibility, extract mechanisms, or score impact on a dead site. Zero actionable content.",
+        "scores": {
+          "revenue_potential": 0,
+          "autonomy_gain": 0,
+          "reliability_gain": 0,
+          "implementation_cost": 0,
+          "risk": 0
+        }
+      },
+      "executor_id": "francisco\u2019s Mac mini",
+      "lease_expires_at": "2026-02-21T05:52:02.634Z",
+      "worker_id": "francisco\u2019s Mac mini",
+      "lease_acquired_at": "2026-02-21T05:37:02.634Z",
+      "lease_ttl_ms": 900000
+    },
+    "research-review-heartbeat-md-2": {
+      "title": "Research review: heartbeat.md",
+      "status": "completed",
+      "lane": "done_today",
+      "updated_at": "2026-02-21T05:37:38.406500+00:00",
+      "created_at": "2026-02-21T05:37:10.594Z",
+      "kind": "research_review",
+      "requirements": {
+        "goals": ["Research review: heartbeat.md"],
+        "constraints": [],
+        "assumptions": [],
+        "exclusions": [],
+        "acceptance_criteria": ["Provide at least one concrete receipt proving completion."],
+        "updated_at": "2026-02-21T05:37:10.594Z",
+        "source": "task-board.turn-sync"
+      },
+      "steps": [
+        {
+          "id": "credibility",
+          "text": "Classify source credibility tier and validate claims",
+          "status": "done",
+          "checked": true,
+          "updated_at": "2026-02-21T05:37:38.406500+00:00"
+        },
+        {
+          "id": "score",
+          "text": "Score impact/cost/risk and decide ADOPT, EXPERIMENT, or IGNORE",
+          "status": "done",
+          "checked": true,
+          "updated_at": "2026-02-21T05:37:38.406500+00:00"
+        },
+        {
+          "id": "plan",
+          "text": "If ADOPT/EXPERIMENT, define KPI, affected modules, and rollback plan",
+          "status": "done",
+          "checked": true,
+          "updated_at": "2026-02-21T05:37:38.406500+00:00"
+        }
+      ],
+      "current_step": 0,
+      "next_action": "Run structured URL research review and choose ADOPT, EXPERIMENT, or IGNORE.",
+      "source_urls": ["https://heartbeat.md/"],
+      "review_template": {
+        "protocol": "research_review_v1",
+        "source_urls": ["https://heartbeat.md/"],
+        "required_sections": [
+          "credibility_gate",
+          "actionable_extraction",
+          "system_comparison",
+          "feasibility_filter",
+          "impact_scoring",
+          "decision",
+          "execution_plan"
+        ],
+        "scoring": {
+          "scale": "0-5",
+          "dimensions": [
+            "revenue_generation_potential",
+            "autonomy_improvement",
+            "reliability_improvement",
+            "implementation_cost",
+            "risk"
+          ]
+        },
+        "decisions": ["ADOPT", "EXPERIMENT", "IGNORE"],
+        "decision_rule": "Choose exactly one: ADOPT, EXPERIMENT, or IGNORE.",
+        "adopt_or_experiment_requirements": ["kpi", "affected_modules", "rollback_strategy"]
+      },
+      "completed_at": "2026-02-21T05:37:38.406500+00:00",
+      "result": {
+        "decision": "IGNORE",
+        "reason": "Duplicate of research-review-heartbeat-md. Site heartbeat.md returns HTTP 521 (origin down). No archived content available. Zero actionable content to evaluate.",
+        "scores": {
+          "revenue_potential": 0,
+          "autonomy_gain": 0,
+          "reliability_gain": 0,
+          "implementation_cost": 0,
+          "risk": 0
+        }
       }
     }
   },
