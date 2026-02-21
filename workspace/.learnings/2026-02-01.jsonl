@@ -1,9 +1,0 @@
-{
-    "prevention":  "New rule: DEPLOY_VERIFY gate - no task is done until live site confirms change",
-    "context":  "T209 Tawk.to - Said task was waiting on Francisco but I had actually done the work and forgot to deploy",
-    "timestamp":  "2026-02-01T03:15:09.6972367-05:00",
-    "failure":  "1) Didn\u0027t deploy after adding widget code. 2) Didn\u0027t update task card. 3) Answered from stale task card without checking session history",
-    "fix":  "1) ALWAYS verify deployment after code changes. 2) Update task card IMMEDIATELY. 3) Search session history BEFORE answering about task status",
-    "severity":  "high",
-    "category":  "procedure"
-}
