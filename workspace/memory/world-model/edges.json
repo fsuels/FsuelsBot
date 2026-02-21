@@ -1,258 +1,258 @@
 {
   "version": 1,
-  "updatedAt": "2026-02-21T05:35:38.555Z",
+  "updatedAt": "2026-02-21T07:15:38.676Z",
   "edges": {
     "voice::want": {
       "from": "voice",
       "to": "want",
-      "weight": 1.51,
-      "evidenceCount": 4,
+      "weight": 2.265,
+      "evidenceCount": 6,
       "memoryEvidenceCount": 0,
       "sessionEvidenceCount": 0,
-      "derivedEvidenceCount": 4,
+      "derivedEvidenceCount": 6,
       "confidenceAvg": 0.5,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "assistant::voice": {
       "from": "assistant",
       "to": "voice",
-      "weight": 0.784,
-      "evidenceCount": 2,
+      "weight": 1.176,
+      "evidenceCount": 3,
       "memoryEvidenceCount": 0,
       "sessionEvidenceCount": 0,
-      "derivedEvidenceCount": 2,
+      "derivedEvidenceCount": 3,
       "confidenceAvg": 0.5,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "assistant::design": {
       "from": "assistant",
       "to": "design",
-      "weight": 0.784,
-      "evidenceCount": 2,
+      "weight": 1.176,
+      "evidenceCount": 3,
       "memoryEvidenceCount": 0,
       "sessionEvidenceCount": 0,
-      "derivedEvidenceCount": 2,
+      "derivedEvidenceCount": 3,
       "confidenceAvg": 0.5,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "assistant::want": {
       "from": "assistant",
       "to": "want",
-      "weight": 0.784,
-      "evidenceCount": 2,
+      "weight": 1.176,
+      "evidenceCount": 3,
       "memoryEvidenceCount": 0,
       "sessionEvidenceCount": 0,
-      "derivedEvidenceCount": 2,
+      "derivedEvidenceCount": 3,
       "confidenceAvg": 0.5,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "design::voice": {
       "from": "design",
       "to": "voice",
-      "weight": 0.784,
-      "evidenceCount": 2,
+      "weight": 1.176,
+      "evidenceCount": 3,
       "memoryEvidenceCount": 0,
       "sessionEvidenceCount": 0,
-      "derivedEvidenceCount": 2,
+      "derivedEvidenceCount": 3,
       "confidenceAvg": 0.5,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "design::want": {
       "from": "design",
       "to": "want",
-      "weight": 0.784,
-      "evidenceCount": 2,
+      "weight": 1.176,
+      "evidenceCount": 3,
       "memoryEvidenceCount": 0,
       "sessionEvidenceCount": 0,
-      "derivedEvidenceCount": 2,
+      "derivedEvidenceCount": 3,
       "confidenceAvg": 0.5,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "heartbeat::read": {
       "from": "heartbeat",
       "to": "read",
-      "weight": 0.6,
-      "evidenceCount": 2,
+      "weight": 0.9,
+      "evidenceCount": 3,
       "memoryEvidenceCount": 0,
       "sessionEvidenceCount": 0,
-      "derivedEvidenceCount": 2,
+      "derivedEvidenceCount": 3,
       "confidenceAvg": 0.45,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "exists::read": {
       "from": "exists",
       "to": "read",
-      "weight": 0.6,
-      "evidenceCount": 2,
+      "weight": 0.9,
+      "evidenceCount": 3,
       "memoryEvidenceCount": 0,
       "sessionEvidenceCount": 0,
-      "derivedEvidenceCount": 2,
+      "derivedEvidenceCount": 3,
       "confidenceAvg": 0.45,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "read::workspace": {
       "from": "read",
       "to": "workspace",
-      "weight": 0.6,
-      "evidenceCount": 2,
+      "weight": 0.9,
+      "evidenceCount": 3,
       "memoryEvidenceCount": 0,
       "sessionEvidenceCount": 0,
-      "derivedEvidenceCount": 2,
+      "derivedEvidenceCount": 3,
       "confidenceAvg": 0.45,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "context::read": {
       "from": "context",
       "to": "read",
-      "weight": 0.6,
-      "evidenceCount": 2,
+      "weight": 0.9,
+      "evidenceCount": 3,
       "memoryEvidenceCount": 0,
       "sessionEvidenceCount": 0,
-      "derivedEvidenceCount": 2,
+      "derivedEvidenceCount": 3,
       "confidenceAvg": 0.45,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "follow::read": {
       "from": "follow",
       "to": "read",
-      "weight": 0.6,
-      "evidenceCount": 2,
+      "weight": 0.9,
+      "evidenceCount": 3,
       "memoryEvidenceCount": 0,
       "sessionEvidenceCount": 0,
-      "derivedEvidenceCount": 2,
+      "derivedEvidenceCount": 3,
       "confidenceAvg": 0.45,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "exists::heartbeat": {
       "from": "exists",
       "to": "heartbeat",
-      "weight": 0.6,
-      "evidenceCount": 2,
+      "weight": 0.9,
+      "evidenceCount": 3,
       "memoryEvidenceCount": 0,
       "sessionEvidenceCount": 0,
-      "derivedEvidenceCount": 2,
+      "derivedEvidenceCount": 3,
       "confidenceAvg": 0.45,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "heartbeat::workspace": {
       "from": "heartbeat",
       "to": "workspace",
-      "weight": 0.6,
-      "evidenceCount": 2,
+      "weight": 0.9,
+      "evidenceCount": 3,
       "memoryEvidenceCount": 0,
       "sessionEvidenceCount": 0,
-      "derivedEvidenceCount": 2,
+      "derivedEvidenceCount": 3,
       "confidenceAvg": 0.45,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "context::heartbeat": {
       "from": "context",
       "to": "heartbeat",
-      "weight": 0.6,
-      "evidenceCount": 2,
+      "weight": 0.9,
+      "evidenceCount": 3,
       "memoryEvidenceCount": 0,
       "sessionEvidenceCount": 0,
-      "derivedEvidenceCount": 2,
+      "derivedEvidenceCount": 3,
       "confidenceAvg": 0.45,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "follow::heartbeat": {
       "from": "follow",
       "to": "heartbeat",
-      "weight": 0.6,
-      "evidenceCount": 2,
+      "weight": 0.9,
+      "evidenceCount": 3,
       "memoryEvidenceCount": 0,
       "sessionEvidenceCount": 0,
-      "derivedEvidenceCount": 2,
+      "derivedEvidenceCount": 3,
       "confidenceAvg": 0.45,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "exists::workspace": {
       "from": "exists",
       "to": "workspace",
-      "weight": 0.6,
-      "evidenceCount": 2,
+      "weight": 0.9,
+      "evidenceCount": 3,
       "memoryEvidenceCount": 0,
       "sessionEvidenceCount": 0,
-      "derivedEvidenceCount": 2,
+      "derivedEvidenceCount": 3,
       "confidenceAvg": 0.45,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "context::exists": {
       "from": "context",
       "to": "exists",
-      "weight": 0.6,
-      "evidenceCount": 2,
+      "weight": 0.9,
+      "evidenceCount": 3,
       "memoryEvidenceCount": 0,
       "sessionEvidenceCount": 0,
-      "derivedEvidenceCount": 2,
+      "derivedEvidenceCount": 3,
       "confidenceAvg": 0.45,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "exists::follow": {
       "from": "exists",
       "to": "follow",
-      "weight": 0.6,
-      "evidenceCount": 2,
+      "weight": 0.9,
+      "evidenceCount": 3,
       "memoryEvidenceCount": 0,
       "sessionEvidenceCount": 0,
-      "derivedEvidenceCount": 2,
+      "derivedEvidenceCount": 3,
       "confidenceAvg": 0.45,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "context::workspace": {
       "from": "context",
       "to": "workspace",
-      "weight": 0.6,
-      "evidenceCount": 2,
+      "weight": 0.9,
+      "evidenceCount": 3,
       "memoryEvidenceCount": 0,
       "sessionEvidenceCount": 0,
-      "derivedEvidenceCount": 2,
+      "derivedEvidenceCount": 3,
       "confidenceAvg": 0.45,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "follow::workspace": {
       "from": "follow",
       "to": "workspace",
-      "weight": 0.6,
-      "evidenceCount": 2,
+      "weight": 0.9,
+      "evidenceCount": 3,
       "memoryEvidenceCount": 0,
       "sessionEvidenceCount": 0,
-      "derivedEvidenceCount": 2,
+      "derivedEvidenceCount": 3,
       "confidenceAvg": 0.45,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "context::follow": {
       "from": "context",
       "to": "follow",
-      "weight": 0.6,
-      "evidenceCount": 2,
+      "weight": 0.9,
+      "evidenceCount": 3,
       "memoryEvidenceCount": 0,
       "sessionEvidenceCount": 0,
-      "derivedEvidenceCount": 2,
+      "derivedEvidenceCount": 3,
       "confidenceAvg": 0.45,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     }
   }
 }

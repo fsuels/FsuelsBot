@@ -1,102 +1,102 @@
 {
   "version": 1,
-  "updatedAt": "2026-02-21T05:35:38.555Z",
+  "updatedAt": "2026-02-21T07:15:38.676Z",
   "entities": {
     "read": {
       "id": "read",
       "label": "read",
-      "mentions": 2,
-      "weight": 0.7,
+      "mentions": 3,
+      "weight": 1.05,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "heartbeat": {
       "id": "heartbeat",
       "label": "heartbeat",
-      "mentions": 2,
-      "weight": 0.7,
+      "mentions": 3,
+      "weight": 1.05,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "exists": {
       "id": "exists",
       "label": "exists",
-      "mentions": 2,
-      "weight": 0.7,
+      "mentions": 3,
+      "weight": 1.05,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "workspace": {
       "id": "workspace",
       "label": "workspace",
-      "mentions": 2,
-      "weight": 0.7,
+      "mentions": 3,
+      "weight": 1.05,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "context": {
       "id": "context",
       "label": "context",
-      "mentions": 2,
-      "weight": 0.7,
+      "mentions": 3,
+      "weight": 1.05,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "follow": {
       "id": "follow",
       "label": "follow",
-      "mentions": 2,
-      "weight": 0.7,
+      "mentions": 3,
+      "weight": 1.05,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "strictly": {
       "id": "strictly",
       "label": "strictly",
-      "mentions": 2,
-      "weight": 0.7,
+      "mentions": 3,
+      "weight": 1.05,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "infer": {
       "id": "infer",
       "label": "infer",
-      "mentions": 2,
-      "weight": 0.7,
+      "mentions": 3,
+      "weight": 1.05,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "voice": {
       "id": "voice",
       "label": "voice",
-      "mentions": 2,
-      "weight": 0.7,
+      "mentions": 3,
+      "weight": 1.05,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "want": {
       "id": "want",
       "label": "want",
-      "mentions": 2,
-      "weight": 0.7,
+      "mentions": 3,
+      "weight": 1.05,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "assistant": {
       "id": "assistant",
       "label": "assistant",
-      "mentions": 2,
-      "weight": 0.7,
+      "mentions": 3,
+      "weight": 1.05,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     },
     "design": {
       "id": "design",
       "label": "design",
-      "mentions": 2,
-      "weight": 0.7,
+      "mentions": 3,
+      "weight": 1.05,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T05:35:38.555Z"
+      "lastSeenAt": "2026-02-21T07:15:38.676Z"
     }
   }
 }

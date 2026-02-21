@@ -1,6 +1,6 @@
 {
   "version": 26,
-  "updated_at": "2026-02-21T05:37:10.594Z",
+  "updated_at": "2026-02-21T07:15:49.451310+00:00",
   "updated_by": "codex",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
@@ -16,7 +16,8 @@
       "change-your-fuckign-code-and-fix-your-memory",
       "we-need-to-improve-the-task-card",
       "research-review-heartbeat-md",
-      "research-review-heartbeat-md-2"
+      "research-review-heartbeat-md-2",
+      "research-review-heartbeat-md-3"
     ],
     "trash": ["fix-that-and-make-sure-that-never-happens-again"]
   },
@@ -777,6 +778,88 @@
       "result": {
         "decision": "IGNORE",
         "reason": "Duplicate of research-review-heartbeat-md. Site heartbeat.md returns HTTP 521 (origin down). No archived content available. Zero actionable content to evaluate.",
+        "scores": {
+          "revenue_potential": 0,
+          "autonomy_gain": 0,
+          "reliability_gain": 0,
+          "implementation_cost": 0,
+          "risk": 0
+        }
+      }
+    },
+    "research-review-heartbeat-md-3": {
+      "title": "Research review: heartbeat.md",
+      "status": "completed",
+      "lane": "done_today",
+      "updated_at": "2026-02-21T07:15:59.285495+00:00",
+      "created_at": "2026-02-21T07:15:35.377Z",
+      "kind": "research_review",
+      "requirements": {
+        "goals": ["Research review: heartbeat.md"],
+        "constraints": [],
+        "assumptions": [],
+        "exclusions": ["Do not infer or repeat old tasks from prior chats."],
+        "acceptance_criteria": ["Provide at least one concrete receipt proving completion."],
+        "updated_at": "2026-02-21T07:15:35.377Z",
+        "source": "task-board.turn-sync"
+      },
+      "steps": [
+        {
+          "id": "credibility",
+          "text": "Classify source credibility tier and validate claims",
+          "status": "done",
+          "checked": true,
+          "updated_at": "2026-02-21T07:15:59.285495+00:00"
+        },
+        {
+          "id": "score",
+          "text": "Score impact/cost/risk and decide ADOPT, EXPERIMENT, or IGNORE",
+          "status": "done",
+          "checked": true,
+          "updated_at": "2026-02-21T07:15:59.285495+00:00"
+        },
+        {
+          "id": "plan",
+          "text": "If ADOPT/EXPERIMENT, define KPI, affected modules, and rollback plan",
+          "status": "done",
+          "checked": true,
+          "updated_at": "2026-02-21T07:15:59.285495+00:00"
+        }
+      ],
+      "current_step": 0,
+      "next_action": "Run structured URL research review and choose ADOPT, EXPERIMENT, or IGNORE.",
+      "source_urls": ["https://heartbeat.md/"],
+      "review_template": {
+        "protocol": "research_review_v1",
+        "source_urls": ["https://heartbeat.md/"],
+        "required_sections": [
+          "credibility_gate",
+          "actionable_extraction",
+          "system_comparison",
+          "feasibility_filter",
+          "impact_scoring",
+          "decision",
+          "execution_plan"
+        ],
+        "scoring": {
+          "scale": "0-5",
+          "dimensions": [
+            "revenue_generation_potential",
+            "autonomy_improvement",
+            "reliability_improvement",
+            "implementation_cost",
+            "risk"
+          ]
+        },
+        "decisions": ["ADOPT", "EXPERIMENT", "IGNORE"],
+        "decision_rule": "Choose exactly one: ADOPT, EXPERIMENT, or IGNORE.",
+        "adopt_or_experiment_requirements": ["kpi", "affected_modules", "rollback_strategy"]
+      },
+      "started_at": "2026-02-21T07:15:49.451295+00:00",
+      "completed_at": "2026-02-21T07:15:59.285495+00:00",
+      "result": {
+        "decision": "IGNORE",
+        "reason": "Third duplicate. Site heartbeat.md confirmed HTTP 521 (origin down) in prior two reviews this session. No archived content. Zero actionable content.",
         "scores": {
           "revenue_potential": 0,
           "autonomy_gain": 0,
