@@ -79,7 +79,15 @@ For each candidate, check vendor page (also via JS extraction):
 
 See `procedures/vendor-vetting.md` for detailed checks and fallacy prevention.
 
-### Step 4: Filter
+### Step 4: Dedupe
+
+Before filtering, remove already-seen URLs:
+
+1. Load `knowledge/1688-seen-urls.jsonl`
+2. Filter out any extracted URL that already appears in the file
+3. This prevents resurfacing products Francisco already reviewed
+
+### Step 5: Filter
 
 Must have:
 
@@ -89,7 +97,7 @@ Must have:
 - Estimated margin ≥ 50% (product price × ~3 < typical retail)
 - Recent listing (not stale/discontinued)
 
-### Step 5: Output Ranked Table
+### Step 6: Output Ranked Table
 
 Write to task card, then move card to `human` lane:
 
@@ -98,6 +106,21 @@ Write to task card, then move card to `human` lane:
 |---|---------|---------|-------------|-------------|------|
 | 1 | [Name] | ¥XX | ~XX% | X/10 | [→](url) |
 ```
+
+### Step 7: Log Seen URLs
+
+Append ALL extracted URLs (not just passed ones) to `knowledge/1688-seen-urls.jsonl`:
+
+```json
+{
+  "url": "https://detail.1688.com/...",
+  "date": "2026-02-21",
+  "outcome": "presented",
+  "category": "matching dresses"
+}
+```
+
+Outcomes: `presented` (shown to Francisco), `filtered` (failed checks), `approved` (Francisco picked), `rejected` (Francisco skipped).
 
 Francisco clicks links, marks YES/NO, AI proceeds with approved picks.
 

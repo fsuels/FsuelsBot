@@ -34,7 +34,9 @@ AI PHASE 1: SCOUT ──→ HUMAN: PICK ──→ AI PHASE 2: COST & PRICE ─�
 
 ### What AI does:
 
-1. **Dedupe check** — Search Shopify for existing products matching the search term. Skip duplicates.
+1. **Dedupe check** — Two sources:
+   - Search Shopify for existing products matching the search term
+   - Load `knowledge/1688-seen-urls.jsonl` — skip any URL already scouted
 2. **Navigate 1688.com** — Use search URL with Chinese keywords for target category
 3. **JS extraction per results page** — One JavaScript call extracts structured data:
    ```
@@ -69,7 +71,14 @@ Passed filters: [N] products
 **Your action:** Click each link, check photos/style fit. Reply with numbers to proceed (e.g., "1, 3, 5, 8").
 ```
 
-### Then: Card moves to `human` lane.
+### Then:
+
+1. **Log all scouted URLs** — Append every extracted URL to `knowledge/1688-seen-urls.jsonl`:
+   ```
+   {"url":"https://detail.1688.com/...","date":"2026-02-21","outcome":"presented","category":"matching dresses"}
+   ```
+   This prevents re-surfacing the same products in future scouts.
+2. Card moves to `human` lane.
 
 ---
 
@@ -85,7 +94,10 @@ Passed filters: [N] products
 3. Reply with product numbers to proceed: "1, 3, 5, 8"
 4. Optionally note concerns: "3 looks cheap, skip" or "8 only if in red"
 
-### Then: Card moves back to `bot_queue` with picks noted.
+### Then:
+
+1. AI updates `knowledge/1688-seen-urls.jsonl` — mark rejected URLs as `"outcome":"rejected"` and approved ones as `"outcome":"approved"`
+2. Card moves back to `bot_queue` with picks noted.
 
 ---
 
