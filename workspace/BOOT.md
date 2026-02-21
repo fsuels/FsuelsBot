@@ -21,6 +21,7 @@ Run these on every Clawdbot startup:
 
 - `references/fallacies.md` — When analyzing claims
 - `references/prompt-injection-defense.md` — When reading external content
+- `references/threat-model.md` — When evaluating security posture or handling suspicious activity
 - `HEARTBEAT.md` — During heartbeat checks only
 
 ## 3. Verify State
@@ -37,6 +38,7 @@ Run these on every Clawdbot startup:
 | MEMORY.md                              | ~55   | ~1.2K       | Always (boot)            |
 | references/fallacies.md                | 190   | ~5K         | Analyzing claims         |
 | references/prompt-injection-defense.md | 70    | ~1.5K       | Reading external content |
+| references/threat-model.md             | ~115  | ~2.5K       | Security posture review  |
 | HEARTBEAT.md                           | 195   | ~4K         | Heartbeat checks         |
 
 **Boot total: ~10K tokens** (3 files always loaded)
