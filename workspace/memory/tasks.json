@@ -1,594 +1,687 @@
 {
-    "version": 24,
-    "updated_at": "2026-02-20T14:49:24.903Z",
-    "updated_by": "codex",
-    "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
-    "lanes": {
-        "bot_current": [
-            "we-need-to-improve-the-task-card"
+  "version": 26,
+  "updated_at": "2026-02-21T04:39:23.000Z",
+  "updated_by": "codex",
+  "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
+  "lanes": {
+    "bot_current": [],
+    "bot_queue": ["research-review-heartbeat-md"],
+    "human": ["pomelli-dresses-refresh"],
+    "scheduled": [],
+    "done_today": [
+      "improve-task-card-standard",
+      "fix-the-task-card-information",
+      "i-already-told-you-what-i-need-fix",
+      "create-cron-jobs-and-stay-awake",
+      "change-your-fuckign-code-and-fix-your-memory",
+      "we-need-to-improve-the-task-card"
+    ],
+    "trash": ["fix-that-and-make-sure-that-never-happens-again"]
+  },
+  "tasks": {
+    "pomelli-dresses-refresh": {
+      "title": "Refresh Dresses product images (Pomelli photoshoot -> Shopify upload)",
+      "status": "paused",
+      "lane": "human",
+      "updated_at": "2026-02-20T14:49:24.903Z",
+      "created_at": "2026-02-20T03:21:11.439Z",
+      "kind": "general",
+      "file": "memory/tasks/pomelli-dresses-refresh.md",
+      "summary": "For each active product in Dresses collection, generate 4 Pomelli lifestyle images and upload them to the matching Shopify product with alt text and saved state.",
+      "blockers": ["Paused by human request until explicit resume command."],
+      "next_action": "Paused by human. Resume from second dress when told to continue.",
+      "progress": "2/8 steps done (Pomelli UI validated, test upload worked).",
+      "project": "dlm",
+      "project_source": "explicit",
+      "goal": "Every active Dresses product has 4 new Pomelli images (flatlay, model try-on, in use, easter), uploaded to Shopify with descriptive alt text and a DONE/SKIP log line.",
+      "context": {
+        "summary": "Execution is product-by-product from top to bottom; do not start product B until product A is fully uploaded and saved.",
+        "why_exists": "The worker agent runs in a fresh context window, so this card is the complete execution brief and source of truth.",
+        "constraints": [
+          "Use currently open logged-in Chrome sessions.",
+          "Do not rename the downloaded original main image filename.",
+          "Use original filename as Shopify lookup key first, then product title fallback.",
+          "Do not save Shopify product until all 4 new images have alt text."
         ],
-        "bot_queue": [],
-        "human": [
-            "pomelli-dresses-refresh"
+        "decisions": [
+          "Pause requested by human until explicit resume command.",
+          "First product already handled manually by human; resume from second dress."
         ],
-        "scheduled": [],
-        "done_today": [
-            "improve-task-card-standard",
-            "fix-the-task-card-information",
-            "i-already-told-you-what-i-need-fix",
-            "create-cron-jobs-and-stay-awake",
-            "change-your-fuckign-code-and-fix-your-memory"
-        ],
-        "trash": [
-            "fix-that-and-make-sure-that-never-happens-again"
-        ]
-    },
-    "tasks": {
-        "pomelli-dresses-refresh": {
-            "title": "Refresh Dresses product images (Pomelli photoshoot -> Shopify upload)",
-            "status": "paused",
-            "lane": "human",
-            "updated_at": "2026-02-20T14:49:24.903Z",
-            "created_at": "2026-02-20T03:21:11.439Z",
-            "kind": "general",
-            "file": "memory/tasks/pomelli-dresses-refresh.md",
-            "summary": "For each active product in Dresses collection, generate 4 Pomelli lifestyle images and upload them to the matching Shopify product with alt text and saved state.",
-            "blockers": [
-                "Paused by human request until explicit resume command."
-            ],
-            "next_action": "Paused by human. Resume from second dress when told to continue.",
-            "progress": "2/8 steps done (Pomelli UI validated, test upload worked).",
-            "project": "dlm",
-            "project_source": "explicit",
-            "goal": "Every active Dresses product has 4 new Pomelli images (flatlay, model try-on, in use, easter), uploaded to Shopify with descriptive alt text and a DONE/SKIP log line.",
-            "context": {
-                "summary": "Execution is product-by-product from top to bottom; do not start product B until product A is fully uploaded and saved.",
-                "why_exists": "The worker agent runs in a fresh context window, so this card is the complete execution brief and source of truth.",
-                "constraints": [
-                    "Use currently open logged-in Chrome sessions.",
-                    "Do not rename the downloaded original main image filename.",
-                    "Use original filename as Shopify lookup key first, then product title fallback.",
-                    "Do not save Shopify product until all 4 new images have alt text."
-                ],
-                "decisions": [
-                    "Pause requested by human until explicit resume command.",
-                    "First product already handled manually by human; resume from second dress."
-                ],
-                "goal": "Every active Dresses product has 4 new Pomelli images (flatlay, model try-on, in use, easter), uploaded to Shopify with descriptive alt text and a DONE/SKIP log line."
-            },
-            "links": [
-                {
-                    "label": "Dresses collection",
-                    "url": "https://www.dresslikemommy.com/collections/dresses"
-                },
-                {
-                    "label": "Pomelli photoshoot",
-                    "url": "https://labs.google.com/pomelli/photoshoot"
-                },
-                {
-                    "label": "Shopify products",
-                    "url": "https://admin.shopify.com/store/dresslikemommy-com/products?selectedView=all"
-                }
-            ],
-            "tools": [
-                {
-                    "tool": "Chrome",
-                    "how": "Open collection, Pomelli, and Shopify tabs and process one product at a time."
-                },
-                {
-                    "tool": "Downloads folder",
-                    "how": "Store 1 original image + 4 generated outputs per product; use date-modified sorting when ambiguous."
-                },
-                {
-                    "tool": "Shopify media editor",
-                    "how": "Upload 4 images, set alt text, reorder hero image, save and verify."
-                }
-            ],
-            "steps": [
-                {
-                    "id": "identify-download",
-                    "text": "A) Identify product and download original main image",
-                    "status": "todo",
-                    "checked": false,
-                    "procedure": [
-                        "Go to Dresses collection and open product page starting from top item, then continue top-to-bottom.",
-                        "Download the primary product image to Downloads without renaming.",
-                        "Capture exact filename as OriginalImageFilename."
-                    ],
-                    "definitionOfDone": "One original main image is downloaded and filename captured for lookup."
-                },
-                {
-                    "id": "pomelli-generate",
-                    "text": "B) Generate 4 Pomelli outputs and download",
-                    "status": "todo",
-                    "checked": false,
-                    "procedure": [
-                        "Open Pomelli photoshoot and upload OriginalImageFilename image.",
-                        "Select templates: flatlay, model try on, in use, easter.",
-                        "Run generation, wait for render completion, download all 4 outputs."
-                    ],
-                    "definitionOfDone": "Exactly 4 new Pomelli images for the current product are in Downloads."
-                },
-                {
-                    "id": "shopify-match-upload",
-                    "text": "C/D) Match Shopify listing, upload images, set alt text, save",
-                    "status": "todo",
-                    "checked": false,
-                    "procedure": [
-                        "Search Shopify by OriginalImageFilename first, then fallback to product title.",
-                        "Confirm correct product and Active status; skip if Draft/Archived.",
-                        "Upload 4 Pomelli images and set alt text format: [Full Product Title] — [template descriptor].",
-                        "Save and confirm no unsaved changes indicator remains."
-                    ],
-                    "definitionOfDone": "Shopify product saved with 4 new images and complete alt text."
-                },
-                {
-                    "id": "track",
-                    "text": "Tracking and error-handling",
-                    "status": "todo",
-                    "checked": false,
-                    "procedure": [
-                        "After each product append DONE line: DONE | ProductTitle | OriginalImageFilename | PomelliOutputs=4 | ShopifySaved=Yes | Notes=...",
-                        "If skipped append SKIP line with reason: NotActive / NotFound / PomelliError / UploadError / Other.",
-                        "On Pomelli hang/fail: refresh once, retry once, then SKIP PomelliError and move on."
-                    ],
-                    "definitionOfDone": "Each processed product has one DONE/SKIP line for reliable resume and dedupe."
-                }
-            ],
-            "current_step": 0,
-            "acceptanceCriteria": [
-                "Every active Dresses product has 4 new Pomelli images uploaded to correct Shopify listing.",
-                "All 4 newly uploaded images per product have factual descriptive alt text.",
-                "Each product is saved in Shopify with no unsaved indicator.",
-                "DONE/SKIP tracking lines exist for each processed product to support resumability."
-            ],
-            "handoff": {
-                "whatIsDone": "Workflow/SOP captured; first dress already completed manually by human; automation permission setup partially validated.",
-                "nextAction": "When resumed, start at second dress and execute steps A->D product-by-product.",
-                "blockers": [
-                    "Paused by human request."
-                ]
-            },
-            "plan": "memory/tasks/pomelli-dresses-refresh.md",
-            "stepCount": 4,
-            "card_quality": {
-                "complete": true,
-                "missing_fields": []
-            }
+        "goal": "Every active Dresses product has 4 new Pomelli images (flatlay, model try-on, in use, easter), uploaded to Shopify with descriptive alt text and a DONE/SKIP log line."
+      },
+      "links": [
+        {
+          "label": "Dresses collection",
+          "url": "https://www.dresslikemommy.com/collections/dresses"
         },
-        "we-need-to-improve-the-task-card": {
-            "title": "Mission Control task card hardening (schema + rendering + guardrails)",
-            "status": "in_progress",
-            "lane": "bot_current",
-            "updated_at": "2026-02-20T14:49:24.903Z",
-            "created_at": "2026-02-20T06:29:34.229Z",
-            "started_at": "2026-02-20T13:27:00Z",
-            "kind": "general",
-            "steps": [
-                {
-                    "id": "audit",
-                    "text": "Audit live task rendering + payload shaping paths",
-                    "status": "done",
-                    "checked": true,
-                    "procedure": [
-                        "Inspect modal/card rendering in workspace/mission-control/index.html.",
-                        "Inspect task loading/sanitization in workspace/mission-control/activity-server.py.",
-                        "Inspect task auto-creation in src/infra/task-board.ts."
-                    ],
-                    "definitionOfDone": "Root cause and code paths are identified with concrete file-level scope."
-                },
-                {
-                    "id": "harden",
-                    "text": "Implement hardening for title/content quality + schema normalization",
-                    "status": "in_progress",
-                    "checked": false,
-                    "procedure": [
-                        "Remove boilerplate from modal content and sanitize server payloads.",
-                        "Apply deterministic display-title logic and fallback behavior.",
-                        "Prevent low-signal chat lines from auto-creating garbage task cards."
-                    ],
-                    "definitionOfDone": "Task cards render task-specific content only, with clean titles and complete execution context."
-                },
-                {
-                    "id": "verify",
-                    "text": "Validate with live API/UI output and update board data",
-                    "status": "todo",
-                    "checked": false,
-                    "procedure": [
-                        "Check /api/tasks and /api/task payloads for cleaned fields and quality metadata.",
-                        "Open modal in Mission Control and verify sections populate correctly.",
-                        "Confirm no task displays the operating-principles block as description."
-                    ],
-                    "definitionOfDone": "Live board behavior matches expected handoff-card standard end-to-end."
-                }
-            ],
-            "current_step": 1,
-            "next_action": "Validate live modal rendering after server reload and finalize remaining task-data cleanup.",
-            "project": "fsuelsbot",
-            "project_source": "explicit",
-            "summary": "Replace weak/mixed task cards with complete handoff packets and enforce guardrails so modal content stays task-specific.",
-            "goal": "Every task card shown in Mission Control is self-contained for a fresh worker agent: clear title, context, links, tools, step-by-step plan, acceptance criteria, and handoff.",
-            "context": {
-                "summary": "Task cards were showing boilerplate/noise and low-quality autogenerated titles; agents lacked enough context to execute work in a fresh window.",
-                "why_exists": "The task card is the worker agent capsule; when it is thin or polluted, execution quality collapses and the board becomes unreliable.",
-                "constraints": [
-                    "Do not render global operating-principles text inside task modal content.",
-                    "Do not use task slug/id as primary display title when richer fields exist.",
-                    "Support existing legacy task payloads without breaking the UI."
-                ],
-                "decisions": [
-                    "Enforce deterministic title precedence (title > summary > goal > next_action > humanized id).",
-                    "Auto-sanitize boilerplate/noise strings server-side before rendering.",
-                    "Normalize tasks to a complete handoff shape (summary, goal, context, steps, acceptance, handoff)."
-                ],
-                "goal": "Every task card shown in Mission Control is self-contained for a fresh worker agent: clear title, context, links, tools, step-by-step plan, acceptance criteria, and handoff."
-            },
-            "links": [
-                {
-                    "label": "Mission Control",
-                    "url": "http://localhost:8765/"
-                },
-                {
-                    "label": "Task UI file",
-                    "url": "workspace/mission-control/index.html"
-                },
-                {
-                    "label": "Task API server",
-                    "url": "workspace/mission-control/activity-server.py"
-                },
-                {
-                    "label": "Task board source",
-                    "url": "src/infra/task-board.ts"
-                }
-            ],
-            "tools": [
-                {
-                    "tool": "Terminal",
-                    "how": "Patch runtime code, validate behavior, and run targeted tests."
-                },
-                {
-                    "tool": "Mission Control UI",
-                    "how": "Open board/modal and confirm rendered sections and titles."
-                }
-            ],
-            "acceptanceCriteria": [
-                "Task modal top section shows task summary/goal/context instead of global boilerplate.",
-                "Task cards display clean human titles (not slug/id unless no other data exists).",
-                "Each active task has enough detail for a new worker to execute without extra context.",
-                "Low-signal/noise chat messages no longer auto-generate garbage task titles."
-            ],
-            "handoff": {
-                "whatIsDone": "Core rendering/sanitization patches are implemented in index.html and activity-server.py; task-board guardrails are being hardened.",
-                "nextAction": "Run verification on API/UI output, then lock final card data quality in tasks.json.",
-                "blockers": []
-            },
-            "plan": "memory/tasks/mission-control-task-card-hardening.md",
-            "stepCount": 3,
-            "blockers": [],
-            "card_quality": {
-                "complete": true,
-                "missing_fields": []
-            }
+        {
+          "label": "Pomelli photoshoot",
+          "url": "https://labs.google.com/pomelli/photoshoot"
         },
-        "change-your-fuckign-code-and-fix-your-memory": {
-            "title": "Deep memory system overhaul",
-            "status": "done",
-            "lane": "done_today",
-            "updated_at": "2026-02-20T13:27:00Z",
-            "created_at": "2026-02-20T07:15:15.007Z",
-            "summary": "Created MEMORY.md, fixed USER.md standing orders, killed 3 broken crons, cleaned ledger (198→64), verified all memory files, overnight consolidation confirmed clean. Cross-session recall verified working.",
-            "next_action": "Complete",
-            "project": "unassigned",
-            "project_source": "explicit",
-            "goal": "Complete: Created MEMORY.md, fixed USER.md standing orders, killed 3 broken crons, cleaned ledger (198→64), verified all memory files, overnight consolidation confirmed clean. Cross-session recall verified working.",
-            "context": {
-                "summary": "Created MEMORY.md, fixed USER.md standing orders, killed 3 broken crons, cleaned ledger (198→64), verified all memory files, overnight consolidation confirmed clean. Cross-session recall verified working.",
-                "goal": "Complete: Created MEMORY.md, fixed USER.md standing orders, killed 3 broken crons, cleaned ledger (198→64), verified all memory files, overnight consolidation confirmed clean. Cross-session recall verified working."
-            },
-            "steps": [
-                {
-                    "id": "step-1",
-                    "text": "Confirm scope, resources, and success criteria.",
-                    "status": "done",
-                    "checked": true,
-                    "definitionOfDone": "Step output is complete and verified."
-                },
-                {
-                    "id": "step-2",
-                    "text": "Execute implementation: Created MEMORY.md, fixed USER.md standing orders, killed 3 broken crons, cleaned ledger (198→64), verified all memory files, overnight consolidation confirmed clean. Cross-session recall verified working.",
-                    "status": "done",
-                    "checked": true,
-                    "definitionOfDone": "Step output is complete and verified."
-                },
-                {
-                    "id": "step-3",
-                    "text": "Verify output against acceptance criteria and capture handoff.",
-                    "status": "done",
-                    "checked": true,
-                    "definitionOfDone": "Step output is complete and verified."
-                }
-            ],
-            "stepCount": 3,
-            "acceptanceCriteria": [
-                "Task output matches the stated goal.",
-                "Completion can be verified with concrete evidence or receipts."
-            ],
-            "blockers": [],
-            "handoff": {
-                "whatIsDone": "No completed work recorded yet.",
-                "nextAction": "Complete",
-                "blockers": []
-            },
-            "card_quality": {
-                "complete": true,
-                "missing_fields": []
-            }
-        },
-        "improve-task-card-standard": {
-            "title": "Task Card Quality Standard",
-            "status": "done",
-            "lane": "done_today",
-            "summary": "Created task card standard and template in memory/global/.",
-            "project": "unassigned",
-            "project_source": "explicit",
-            "goal": "Complete: Created task card standard and template in memory/global/.",
-            "context": {
-                "summary": "Created task card standard and template in memory/global/.",
-                "goal": "Complete: Created task card standard and template in memory/global/."
-            },
-            "steps": [
-                {
-                    "id": "step-1",
-                    "text": "Confirm scope, resources, and success criteria.",
-                    "status": "done",
-                    "checked": true,
-                    "definitionOfDone": "Step output is complete and verified."
-                },
-                {
-                    "id": "step-2",
-                    "text": "Execute implementation: Created task card standard and template in memory/global/.",
-                    "status": "done",
-                    "checked": true,
-                    "definitionOfDone": "Step output is complete and verified."
-                },
-                {
-                    "id": "step-3",
-                    "text": "Verify output against acceptance criteria and capture handoff.",
-                    "status": "done",
-                    "checked": true,
-                    "definitionOfDone": "Step output is complete and verified."
-                }
-            ],
-            "stepCount": 3,
-            "acceptanceCriteria": [
-                "Task output matches the stated goal.",
-                "Completion can be verified with concrete evidence or receipts."
-            ],
-            "blockers": [],
-            "handoff": {
-                "whatIsDone": "No completed work recorded yet.",
-                "nextAction": "Created task card standard and template in memory/global/.",
-                "blockers": []
-            },
-            "card_quality": {
-                "complete": true,
-                "missing_fields": []
-            }
-        },
-        "fix-the-task-card-information": {
-            "title": "Establish task card quality principles",
-            "status": "done",
-            "lane": "done_today",
-            "summary": "Superseded by improve-task-card-standard.",
-            "project": "unassigned",
-            "project_source": "explicit",
-            "goal": "Complete: Superseded by improve-task-card-standard.",
-            "context": {
-                "summary": "Superseded by improve-task-card-standard.",
-                "goal": "Complete: Superseded by improve-task-card-standard."
-            },
-            "steps": [
-                {
-                    "id": "step-1",
-                    "text": "Confirm scope, resources, and success criteria.",
-                    "status": "done",
-                    "checked": true,
-                    "definitionOfDone": "Step output is complete and verified."
-                },
-                {
-                    "id": "step-2",
-                    "text": "Execute implementation: Superseded by improve-task-card-standard.",
-                    "status": "done",
-                    "checked": true,
-                    "definitionOfDone": "Step output is complete and verified."
-                },
-                {
-                    "id": "step-3",
-                    "text": "Verify output against acceptance criteria and capture handoff.",
-                    "status": "done",
-                    "checked": true,
-                    "definitionOfDone": "Step output is complete and verified."
-                }
-            ],
-            "stepCount": 3,
-            "acceptanceCriteria": [
-                "Task output matches the stated goal.",
-                "Completion can be verified with concrete evidence or receipts."
-            ],
-            "blockers": [],
-            "handoff": {
-                "whatIsDone": "No completed work recorded yet.",
-                "nextAction": "Superseded by improve-task-card-standard.",
-                "blockers": []
-            },
-            "card_quality": {
-                "complete": true,
-                "missing_fields": []
-            }
-        },
-        "i-already-told-you-what-i-need-fix": {
-            "title": "Fix duplicate memory files and trigger map",
-            "status": "done",
-            "lane": "done_today",
-            "summary": "Consolidated duplicate family memory files, fixed trigger map, cleaned stale references.",
-            "project": "unassigned",
-            "project_source": "explicit",
-            "goal": "Complete: Consolidated duplicate family memory files, fixed trigger map, cleaned stale references.",
-            "context": {
-                "summary": "Consolidated duplicate family memory files, fixed trigger map, cleaned stale references.",
-                "goal": "Complete: Consolidated duplicate family memory files, fixed trigger map, cleaned stale references."
-            },
-            "steps": [
-                {
-                    "id": "step-1",
-                    "text": "Confirm scope, resources, and success criteria.",
-                    "status": "done",
-                    "checked": true,
-                    "definitionOfDone": "Step output is complete and verified."
-                },
-                {
-                    "id": "step-2",
-                    "text": "Execute implementation: Consolidated duplicate family memory files, fixed trigger map, cleaned stale references.",
-                    "status": "done",
-                    "checked": true,
-                    "definitionOfDone": "Step output is complete and verified."
-                },
-                {
-                    "id": "step-3",
-                    "text": "Verify output against acceptance criteria and capture handoff.",
-                    "status": "done",
-                    "checked": true,
-                    "definitionOfDone": "Step output is complete and verified."
-                }
-            ],
-            "stepCount": 3,
-            "acceptanceCriteria": [
-                "Task output matches the stated goal.",
-                "Completion can be verified with concrete evidence or receipts."
-            ],
-            "blockers": [],
-            "handoff": {
-                "whatIsDone": "No completed work recorded yet.",
-                "nextAction": "Consolidated duplicate family memory files, fixed trigger map, cleaned stale references.",
-                "blockers": []
-            },
-            "card_quality": {
-                "complete": true,
-                "missing_fields": []
-            }
-        },
-        "create-cron-jobs-and-stay-awake": {
-            "title": "Create cron jobs and stay awake",
-            "status": "done",
-            "lane": "done_today",
-            "summary": "MEMORY.md created, crons fixed, ledger cleaned. Merged into main memory fix task.",
-            "project": "unassigned",
-            "project_source": "explicit",
-            "goal": "Complete: MEMORY.md created, crons fixed, ledger cleaned. Merged into main memory fix task.",
-            "context": {
-                "summary": "MEMORY.md created, crons fixed, ledger cleaned. Merged into main memory fix task.",
-                "goal": "Complete: MEMORY.md created, crons fixed, ledger cleaned. Merged into main memory fix task."
-            },
-            "steps": [
-                {
-                    "id": "step-1",
-                    "text": "Confirm scope, resources, and success criteria.",
-                    "status": "done",
-                    "checked": true,
-                    "definitionOfDone": "Step output is complete and verified."
-                },
-                {
-                    "id": "step-2",
-                    "text": "Execute implementation: MEMORY.md created, crons fixed, ledger cleaned. Merged into main memory fix task.",
-                    "status": "done",
-                    "checked": true,
-                    "definitionOfDone": "Step output is complete and verified."
-                },
-                {
-                    "id": "step-3",
-                    "text": "Verify output against acceptance criteria and capture handoff.",
-                    "status": "done",
-                    "checked": true,
-                    "definitionOfDone": "Step output is complete and verified."
-                }
-            ],
-            "stepCount": 3,
-            "acceptanceCriteria": [
-                "Task output matches the stated goal.",
-                "Completion can be verified with concrete evidence or receipts."
-            ],
-            "blockers": [],
-            "handoff": {
-                "whatIsDone": "No completed work recorded yet.",
-                "nextAction": "MEMORY.md created, crons fixed, ledger cleaned. Merged into main memory fix task.",
-                "blockers": []
-            },
-            "card_quality": {
-                "complete": true,
-                "missing_fields": []
-            }
-        },
-        "fix-that-and-make-sure-that-never-happens-again": {
-            "title": "Fix that and make sure that never happens again",
-            "status": "trashed",
-            "lane": "trash",
-            "updated_at": "2026-02-20T14:49:24.903Z",
-            "created_at": "2026-02-20T13:29:12.930Z",
-            "started_at": "2026-02-20T13:29:12.930Z",
-            "kind": "general",
-            "steps": [
-                {
-                    "id": "plan",
-                    "text": "Clarify objective and locked constraints",
-                    "status": "done",
-                    "checked": true
-                },
-                {
-                    "id": "execute",
-                    "text": "Execute: Fix that and make sure that never happens again",
-                    "status": "in_progress",
-                    "checked": false
-                },
-                {
-                    "id": "verify",
-                    "text": "Verify outputs and summarize",
-                    "status": "todo",
-                    "checked": false
-                }
-            ],
-            "current_step": 1,
-            "next_action": "Superseded by mission-control task card hardening.",
-            "discussion": [
-                {
-                    "ts": "2026-02-20T13:52:32.235688+00:00",
-                    "author": "human",
-                    "message": "What is happening with fix-that-and-make-sure-that-never-happens-again?"
-                }
-            ],
-            "project": "dlm",
-            "project_source": "explicit",
-            "summary": "Superseded by mission-control task card hardening.",
-            "goal": "Complete: Superseded by mission-control task card hardening.",
-            "context": {
-                "summary": "Superseded by mission-control task card hardening.",
-                "goal": "Complete: Superseded by mission-control task card hardening."
-            },
-            "stepCount": 3,
-            "acceptanceCriteria": [
-                "Task output matches the stated goal.",
-                "Completion can be verified with concrete evidence or receipts."
-            ],
-            "blockers": [],
-            "handoff": {
-                "whatIsDone": "No completed work recorded yet.",
-                "nextAction": "Superseded by mission-control task card hardening.",
-                "blockers": []
-            },
-            "card_quality": {
-                "complete": true,
-                "missing_fields": []
-            }
+        {
+          "label": "Shopify products",
+          "url": "https://admin.shopify.com/store/dresslikemommy-com/products?selectedView=all"
         }
+      ],
+      "tools": [
+        {
+          "tool": "Chrome",
+          "how": "Open collection, Pomelli, and Shopify tabs and process one product at a time."
+        },
+        {
+          "tool": "Downloads folder",
+          "how": "Store 1 original image + 4 generated outputs per product; use date-modified sorting when ambiguous."
+        },
+        {
+          "tool": "Shopify media editor",
+          "how": "Upload 4 images, set alt text, reorder hero image, save and verify."
+        }
+      ],
+      "steps": [
+        {
+          "id": "identify-download",
+          "text": "A) Identify product and download original main image",
+          "status": "todo",
+          "checked": false,
+          "procedure": [
+            "Go to Dresses collection and open product page starting from top item, then continue top-to-bottom.",
+            "Download the primary product image to Downloads without renaming.",
+            "Capture exact filename as OriginalImageFilename."
+          ],
+          "definitionOfDone": "One original main image is downloaded and filename captured for lookup."
+        },
+        {
+          "id": "pomelli-generate",
+          "text": "B) Generate 4 Pomelli outputs and download",
+          "status": "todo",
+          "checked": false,
+          "procedure": [
+            "Open Pomelli photoshoot and upload OriginalImageFilename image.",
+            "Select templates: flatlay, model try on, in use, easter.",
+            "Run generation, wait for render completion, download all 4 outputs."
+          ],
+          "definitionOfDone": "Exactly 4 new Pomelli images for the current product are in Downloads."
+        },
+        {
+          "id": "shopify-match-upload",
+          "text": "C/D) Match Shopify listing, upload images, set alt text, save",
+          "status": "todo",
+          "checked": false,
+          "procedure": [
+            "Search Shopify by OriginalImageFilename first, then fallback to product title.",
+            "Confirm correct product and Active status; skip if Draft/Archived.",
+            "Upload 4 Pomelli images and set alt text format: [Full Product Title] — [template descriptor].",
+            "Save and confirm no unsaved changes indicator remains."
+          ],
+          "definitionOfDone": "Shopify product saved with 4 new images and complete alt text."
+        },
+        {
+          "id": "track",
+          "text": "Tracking and error-handling",
+          "status": "todo",
+          "checked": false,
+          "procedure": [
+            "After each product append DONE line: DONE | ProductTitle | OriginalImageFilename | PomelliOutputs=4 | ShopifySaved=Yes | Notes=...",
+            "If skipped append SKIP line with reason: NotActive / NotFound / PomelliError / UploadError / Other.",
+            "On Pomelli hang/fail: refresh once, retry once, then SKIP PomelliError and move on."
+          ],
+          "definitionOfDone": "Each processed product has one DONE/SKIP line for reliable resume and dedupe."
+        }
+      ],
+      "current_step": 0,
+      "acceptanceCriteria": [
+        "Every active Dresses product has 4 new Pomelli images uploaded to correct Shopify listing.",
+        "All 4 newly uploaded images per product have factual descriptive alt text.",
+        "Each product is saved in Shopify with no unsaved indicator.",
+        "DONE/SKIP tracking lines exist for each processed product to support resumability."
+      ],
+      "handoff": {
+        "whatIsDone": "Workflow/SOP captured; first dress already completed manually by human; automation permission setup partially validated.",
+        "nextAction": "When resumed, start at second dress and execute steps A->D product-by-product.",
+        "blockers": ["Paused by human request."]
+      },
+      "plan": "memory/tasks/pomelli-dresses-refresh.md",
+      "stepCount": 4,
+      "card_quality": {
+        "complete": true,
+        "missing_fields": []
+      }
     },
-    "active_project": "fsuelsbot"
+    "we-need-to-improve-the-task-card": {
+      "title": "Mission Control task card hardening (schema + rendering + guardrails)",
+      "status": "done",
+      "lane": "done_today",
+      "updated_at": "2026-02-20T14:49:24.903Z",
+      "created_at": "2026-02-20T06:29:34.229Z",
+      "started_at": "2026-02-20T13:27:00Z",
+      "kind": "general",
+      "steps": [
+        {
+          "id": "audit",
+          "text": "Audit live task rendering + payload shaping paths",
+          "status": "done",
+          "checked": true,
+          "procedure": [
+            "Inspect modal/card rendering in workspace/mission-control/index.html.",
+            "Inspect task loading/sanitization in workspace/mission-control/activity-server.py.",
+            "Inspect task auto-creation in src/infra/task-board.ts."
+          ],
+          "definitionOfDone": "Root cause and code paths are identified with concrete file-level scope."
+        },
+        {
+          "id": "harden",
+          "text": "Implement hardening for title/content quality + schema normalization",
+          "status": "done",
+          "checked": true,
+          "procedure": [
+            "Remove boilerplate from modal content and sanitize server payloads.",
+            "Apply deterministic display-title logic and fallback behavior.",
+            "Prevent low-signal chat lines from auto-creating garbage task cards."
+          ],
+          "definitionOfDone": "Task cards render task-specific content only, with clean titles and complete execution context."
+        },
+        {
+          "id": "verify",
+          "text": "Validate with live API/UI output and update board data",
+          "status": "done",
+          "checked": true,
+          "procedure": [
+            "Check /api/tasks and /api/task payloads for cleaned fields and quality metadata.",
+            "Open modal in Mission Control and verify sections populate correctly.",
+            "Confirm no task displays the operating-principles block as description."
+          ],
+          "definitionOfDone": "Live board behavior matches expected handoff-card standard end-to-end."
+        }
+      ],
+      "current_step": 3,
+      "next_action": "Complete.",
+      "project": "fsuelsbot",
+      "project_source": "explicit",
+      "summary": "Replace weak/mixed task cards with complete handoff packets and enforce guardrails so modal content stays task-specific.",
+      "goal": "Every task card shown in Mission Control is self-contained for a fresh worker agent: clear title, context, links, tools, step-by-step plan, acceptance criteria, and handoff.",
+      "context": {
+        "summary": "Task cards were showing boilerplate/noise and low-quality autogenerated titles; agents lacked enough context to execute work in a fresh window.",
+        "why_exists": "The task card is the worker agent capsule; when it is thin or polluted, execution quality collapses and the board becomes unreliable.",
+        "constraints": [
+          "Do not render global operating-principles text inside task modal content.",
+          "Do not use task slug/id as primary display title when richer fields exist.",
+          "Support existing legacy task payloads without breaking the UI."
+        ],
+        "decisions": [
+          "Enforce deterministic title precedence (title > summary > goal > next_action > humanized id).",
+          "Auto-sanitize boilerplate/noise strings server-side before rendering.",
+          "Normalize tasks to a complete handoff shape (summary, goal, context, steps, acceptance, handoff)."
+        ],
+        "goal": "Every task card shown in Mission Control is self-contained for a fresh worker agent: clear title, context, links, tools, step-by-step plan, acceptance criteria, and handoff."
+      },
+      "links": [
+        {
+          "label": "Mission Control",
+          "url": "http://localhost:8765/"
+        },
+        {
+          "label": "Task UI file",
+          "url": "workspace/mission-control/index.html"
+        },
+        {
+          "label": "Task API server",
+          "url": "workspace/mission-control/activity-server.py"
+        },
+        {
+          "label": "Task board source",
+          "url": "src/infra/task-board.ts"
+        }
+      ],
+      "tools": [
+        {
+          "tool": "Terminal",
+          "how": "Patch runtime code, validate behavior, and run targeted tests."
+        },
+        {
+          "tool": "Mission Control UI",
+          "how": "Open board/modal and confirm rendered sections and titles."
+        }
+      ],
+      "acceptanceCriteria": [
+        "Task modal top section shows task summary/goal/context instead of global boilerplate.",
+        "Task cards display clean human titles (not slug/id unless no other data exists).",
+        "Each active task has enough detail for a new worker to execute without extra context.",
+        "Low-signal/noise chat messages no longer auto-generate garbage task titles."
+      ],
+      "handoff": {
+        "whatIsDone": "Server-side sanitization, title fallback chain, and client-side fallback implemented and verified. Commit a8eb4ba16. All 4 acceptance criteria pass.",
+        "nextAction": "Run verification on API/UI output, then lock final card data quality in tasks.json.",
+        "blockers": []
+      },
+      "plan": "memory/tasks/mission-control-task-card-hardening.md",
+      "stepCount": 3,
+      "blockers": [],
+      "card_quality": {
+        "complete": true,
+        "missing_fields": []
+      }
+    },
+    "change-your-fuckign-code-and-fix-your-memory": {
+      "title": "Deep memory system overhaul",
+      "status": "done",
+      "lane": "done_today",
+      "updated_at": "2026-02-20T13:27:00Z",
+      "created_at": "2026-02-20T07:15:15.007Z",
+      "summary": "Created MEMORY.md, fixed USER.md standing orders, killed 3 broken crons, cleaned ledger (198→64), verified all memory files, overnight consolidation confirmed clean. Cross-session recall verified working.",
+      "next_action": "Complete",
+      "project": "unassigned",
+      "project_source": "explicit",
+      "goal": "Complete: Created MEMORY.md, fixed USER.md standing orders, killed 3 broken crons, cleaned ledger (198→64), verified all memory files, overnight consolidation confirmed clean. Cross-session recall verified working.",
+      "context": {
+        "summary": "Created MEMORY.md, fixed USER.md standing orders, killed 3 broken crons, cleaned ledger (198→64), verified all memory files, overnight consolidation confirmed clean. Cross-session recall verified working.",
+        "goal": "Complete: Created MEMORY.md, fixed USER.md standing orders, killed 3 broken crons, cleaned ledger (198→64), verified all memory files, overnight consolidation confirmed clean. Cross-session recall verified working."
+      },
+      "steps": [
+        {
+          "id": "step-1",
+          "text": "Confirm scope, resources, and success criteria.",
+          "status": "done",
+          "checked": true,
+          "definitionOfDone": "Step output is complete and verified."
+        },
+        {
+          "id": "step-2",
+          "text": "Execute implementation: Created MEMORY.md, fixed USER.md standing orders, killed 3 broken crons, cleaned ledger (198→64), verified all memory files, overnight consolidation confirmed clean. Cross-session recall verified working.",
+          "status": "done",
+          "checked": true,
+          "definitionOfDone": "Step output is complete and verified."
+        },
+        {
+          "id": "step-3",
+          "text": "Verify output against acceptance criteria and capture handoff.",
+          "status": "done",
+          "checked": true,
+          "definitionOfDone": "Step output is complete and verified."
+        }
+      ],
+      "stepCount": 3,
+      "acceptanceCriteria": [
+        "Task output matches the stated goal.",
+        "Completion can be verified with concrete evidence or receipts."
+      ],
+      "blockers": [],
+      "handoff": {
+        "whatIsDone": "No completed work recorded yet.",
+        "nextAction": "Complete",
+        "blockers": []
+      },
+      "card_quality": {
+        "complete": true,
+        "missing_fields": []
+      }
+    },
+    "improve-task-card-standard": {
+      "title": "Task Card Quality Standard",
+      "status": "done",
+      "lane": "done_today",
+      "summary": "Created task card standard and template in memory/global/.",
+      "project": "unassigned",
+      "project_source": "explicit",
+      "goal": "Complete: Created task card standard and template in memory/global/.",
+      "context": {
+        "summary": "Created task card standard and template in memory/global/.",
+        "goal": "Complete: Created task card standard and template in memory/global/."
+      },
+      "steps": [
+        {
+          "id": "step-1",
+          "text": "Confirm scope, resources, and success criteria.",
+          "status": "done",
+          "checked": true,
+          "definitionOfDone": "Step output is complete and verified."
+        },
+        {
+          "id": "step-2",
+          "text": "Execute implementation: Created task card standard and template in memory/global/.",
+          "status": "done",
+          "checked": true,
+          "definitionOfDone": "Step output is complete and verified."
+        },
+        {
+          "id": "step-3",
+          "text": "Verify output against acceptance criteria and capture handoff.",
+          "status": "done",
+          "checked": true,
+          "definitionOfDone": "Step output is complete and verified."
+        }
+      ],
+      "stepCount": 3,
+      "acceptanceCriteria": [
+        "Task output matches the stated goal.",
+        "Completion can be verified with concrete evidence or receipts."
+      ],
+      "blockers": [],
+      "handoff": {
+        "whatIsDone": "No completed work recorded yet.",
+        "nextAction": "Created task card standard and template in memory/global/.",
+        "blockers": []
+      },
+      "card_quality": {
+        "complete": true,
+        "missing_fields": []
+      }
+    },
+    "fix-the-task-card-information": {
+      "title": "Establish task card quality principles",
+      "status": "done",
+      "lane": "done_today",
+      "summary": "Superseded by improve-task-card-standard.",
+      "project": "unassigned",
+      "project_source": "explicit",
+      "goal": "Complete: Superseded by improve-task-card-standard.",
+      "context": {
+        "summary": "Superseded by improve-task-card-standard.",
+        "goal": "Complete: Superseded by improve-task-card-standard."
+      },
+      "steps": [
+        {
+          "id": "step-1",
+          "text": "Confirm scope, resources, and success criteria.",
+          "status": "done",
+          "checked": true,
+          "definitionOfDone": "Step output is complete and verified."
+        },
+        {
+          "id": "step-2",
+          "text": "Execute implementation: Superseded by improve-task-card-standard.",
+          "status": "done",
+          "checked": true,
+          "definitionOfDone": "Step output is complete and verified."
+        },
+        {
+          "id": "step-3",
+          "text": "Verify output against acceptance criteria and capture handoff.",
+          "status": "done",
+          "checked": true,
+          "definitionOfDone": "Step output is complete and verified."
+        }
+      ],
+      "stepCount": 3,
+      "acceptanceCriteria": [
+        "Task output matches the stated goal.",
+        "Completion can be verified with concrete evidence or receipts."
+      ],
+      "blockers": [],
+      "handoff": {
+        "whatIsDone": "No completed work recorded yet.",
+        "nextAction": "Superseded by improve-task-card-standard.",
+        "blockers": []
+      },
+      "card_quality": {
+        "complete": true,
+        "missing_fields": []
+      }
+    },
+    "i-already-told-you-what-i-need-fix": {
+      "title": "Fix duplicate memory files and trigger map",
+      "status": "done",
+      "lane": "done_today",
+      "summary": "Consolidated duplicate family memory files, fixed trigger map, cleaned stale references.",
+      "project": "unassigned",
+      "project_source": "explicit",
+      "goal": "Complete: Consolidated duplicate family memory files, fixed trigger map, cleaned stale references.",
+      "context": {
+        "summary": "Consolidated duplicate family memory files, fixed trigger map, cleaned stale references.",
+        "goal": "Complete: Consolidated duplicate family memory files, fixed trigger map, cleaned stale references."
+      },
+      "steps": [
+        {
+          "id": "step-1",
+          "text": "Confirm scope, resources, and success criteria.",
+          "status": "done",
+          "checked": true,
+          "definitionOfDone": "Step output is complete and verified."
+        },
+        {
+          "id": "step-2",
+          "text": "Execute implementation: Consolidated duplicate family memory files, fixed trigger map, cleaned stale references.",
+          "status": "done",
+          "checked": true,
+          "definitionOfDone": "Step output is complete and verified."
+        },
+        {
+          "id": "step-3",
+          "text": "Verify output against acceptance criteria and capture handoff.",
+          "status": "done",
+          "checked": true,
+          "definitionOfDone": "Step output is complete and verified."
+        }
+      ],
+      "stepCount": 3,
+      "acceptanceCriteria": [
+        "Task output matches the stated goal.",
+        "Completion can be verified with concrete evidence or receipts."
+      ],
+      "blockers": [],
+      "handoff": {
+        "whatIsDone": "No completed work recorded yet.",
+        "nextAction": "Consolidated duplicate family memory files, fixed trigger map, cleaned stale references.",
+        "blockers": []
+      },
+      "card_quality": {
+        "complete": true,
+        "missing_fields": []
+      }
+    },
+    "create-cron-jobs-and-stay-awake": {
+      "title": "Create cron jobs and stay awake",
+      "status": "done",
+      "lane": "done_today",
+      "summary": "MEMORY.md created, crons fixed, ledger cleaned. Merged into main memory fix task.",
+      "project": "unassigned",
+      "project_source": "explicit",
+      "goal": "Complete: MEMORY.md created, crons fixed, ledger cleaned. Merged into main memory fix task.",
+      "context": {
+        "summary": "MEMORY.md created, crons fixed, ledger cleaned. Merged into main memory fix task.",
+        "goal": "Complete: MEMORY.md created, crons fixed, ledger cleaned. Merged into main memory fix task."
+      },
+      "steps": [
+        {
+          "id": "step-1",
+          "text": "Confirm scope, resources, and success criteria.",
+          "status": "done",
+          "checked": true,
+          "definitionOfDone": "Step output is complete and verified."
+        },
+        {
+          "id": "step-2",
+          "text": "Execute implementation: MEMORY.md created, crons fixed, ledger cleaned. Merged into main memory fix task.",
+          "status": "done",
+          "checked": true,
+          "definitionOfDone": "Step output is complete and verified."
+        },
+        {
+          "id": "step-3",
+          "text": "Verify output against acceptance criteria and capture handoff.",
+          "status": "done",
+          "checked": true,
+          "definitionOfDone": "Step output is complete and verified."
+        }
+      ],
+      "stepCount": 3,
+      "acceptanceCriteria": [
+        "Task output matches the stated goal.",
+        "Completion can be verified with concrete evidence or receipts."
+      ],
+      "blockers": [],
+      "handoff": {
+        "whatIsDone": "No completed work recorded yet.",
+        "nextAction": "MEMORY.md created, crons fixed, ledger cleaned. Merged into main memory fix task.",
+        "blockers": []
+      },
+      "card_quality": {
+        "complete": true,
+        "missing_fields": []
+      }
+    },
+    "fix-that-and-make-sure-that-never-happens-again": {
+      "title": "Fix that and make sure that never happens again",
+      "status": "trashed",
+      "lane": "trash",
+      "updated_at": "2026-02-20T14:49:24.903Z",
+      "created_at": "2026-02-20T13:29:12.930Z",
+      "started_at": "2026-02-20T13:29:12.930Z",
+      "kind": "general",
+      "steps": [
+        {
+          "id": "plan",
+          "text": "Clarify objective and locked constraints",
+          "status": "done",
+          "checked": true
+        },
+        {
+          "id": "execute",
+          "text": "Execute: Fix that and make sure that never happens again",
+          "status": "in_progress",
+          "checked": false
+        },
+        {
+          "id": "verify",
+          "text": "Verify outputs and summarize",
+          "status": "todo",
+          "checked": false
+        }
+      ],
+      "current_step": 1,
+      "next_action": "Superseded by mission-control task card hardening.",
+      "discussion": [
+        {
+          "ts": "2026-02-20T13:52:32.235688+00:00",
+          "author": "human",
+          "message": "What is happening with fix-that-and-make-sure-that-never-happens-again?"
+        }
+      ],
+      "project": "dlm",
+      "project_source": "explicit",
+      "summary": "Superseded by mission-control task card hardening.",
+      "goal": "Complete: Superseded by mission-control task card hardening.",
+      "context": {
+        "summary": "Superseded by mission-control task card hardening.",
+        "goal": "Complete: Superseded by mission-control task card hardening."
+      },
+      "stepCount": 3,
+      "acceptanceCriteria": [
+        "Task output matches the stated goal.",
+        "Completion can be verified with concrete evidence or receipts."
+      ],
+      "blockers": [],
+      "handoff": {
+        "whatIsDone": "No completed work recorded yet.",
+        "nextAction": "Superseded by mission-control task card hardening.",
+        "blockers": []
+      },
+      "card_quality": {
+        "complete": true,
+        "missing_fields": []
+      }
+    },
+    "research-review-heartbeat-md": {
+      "title": "Research review: heartbeat.md",
+      "status": "queued",
+      "lane": "bot_queue",
+      "updated_at": "2026-02-21T04:35:35.875Z",
+      "created_at": "2026-02-21T04:35:35.875Z",
+      "kind": "research_review",
+      "requirements": {
+        "goals": ["Research review: heartbeat.md"],
+        "constraints": [],
+        "assumptions": [],
+        "exclusions": ["Do not infer or repeat old tasks from prior chats."],
+        "acceptance_criteria": ["Provide at least one concrete receipt proving completion."],
+        "updated_at": "2026-02-21T04:35:35.875Z",
+        "source": "task-board.turn-sync"
+      },
+      "steps": [
+        {
+          "id": "credibility",
+          "text": "Classify source credibility tier and validate claims",
+          "status": "todo",
+          "checked": false
+        },
+        {
+          "id": "score",
+          "text": "Score impact/cost/risk and decide ADOPT, EXPERIMENT, or IGNORE",
+          "status": "todo",
+          "checked": false
+        },
+        {
+          "id": "plan",
+          "text": "If ADOPT/EXPERIMENT, define KPI, affected modules, and rollback plan",
+          "status": "todo",
+          "checked": false
+        }
+      ],
+      "current_step": 0,
+      "next_action": "Run structured URL research review and choose ADOPT, EXPERIMENT, or IGNORE.",
+      "source_urls": ["https://heartbeat.md/"],
+      "review_template": {
+        "protocol": "research_review_v1",
+        "source_urls": ["https://heartbeat.md/"],
+        "required_sections": [
+          "credibility_gate",
+          "actionable_extraction",
+          "system_comparison",
+          "feasibility_filter",
+          "impact_scoring",
+          "decision",
+          "execution_plan"
+        ],
+        "scoring": {
+          "scale": "0-5",
+          "dimensions": [
+            "revenue_generation_potential",
+            "autonomy_improvement",
+            "reliability_improvement",
+            "implementation_cost",
+            "risk"
+          ]
+        },
+        "decisions": ["ADOPT", "EXPERIMENT", "IGNORE"],
+        "decision_rule": "Choose exactly one: ADOPT, EXPERIMENT, or IGNORE.",
+        "adopt_or_experiment_requirements": ["kpi", "affected_modules", "rollback_strategy"]
+      },
+      "project": "unassigned",
+      "project_source": "explicit",
+      "summary": "Run structured URL research review and choose ADOPT, EXPERIMENT, or IGNORE.",
+      "goal": "Complete: Run structured URL research review and choose ADOPT, EXPERIMENT, or IGNORE.",
+      "context": {
+        "summary": "Run structured URL research review and choose ADOPT, EXPERIMENT, or IGNORE.",
+        "goal": "Complete: Run structured URL research review and choose ADOPT, EXPERIMENT, or IGNORE."
+      },
+      "links": [
+        {
+          "label": "Source 1",
+          "url": "https://heartbeat.md/"
+        }
+      ],
+      "tools": [
+        {
+          "tool": "Browser",
+          "how": "Open each source URL and capture primary evidence."
+        },
+        {
+          "tool": "Task board ledger",
+          "how": "Score, decide (ADOPT/EXPERIMENT/IGNORE), and record receipts."
+        }
+      ],
+      "stepCount": 3,
+      "acceptanceCriteria": ["Provide at least one concrete receipt proving completion."],
+      "blockers": [],
+      "handoff": {
+        "whatIsDone": "No completed work recorded yet.",
+        "nextAction": "Run structured URL research review and choose ADOPT, EXPERIMENT, or IGNORE.",
+        "blockers": []
+      },
+      "card_quality": {
+        "complete": true,
+        "missing_fields": []
+      }
+    }
+  },
+  "active_project": "fsuelsbot"
 }
