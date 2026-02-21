@@ -55,6 +55,11 @@ Peak: ~$100K/yr (pandemic); dropped to ~$15K/yr after focus shift to crypto.
 - Open Arena — free (browser only)
 - Gemini CLI — free (Google OAuth, terminal)
 
+## Revenue Target
+
+- **Performance floor:** Minimum $500 net profit/week across all agents (set 2026-02-18)
+- Tracking: 7/14/30-day windows; expectation is to exceed baseline
+
 ## Key Technical Notes
 
 - **Large sessions crash** (118K+ tokens) → Keep sessions compact, use /compact
