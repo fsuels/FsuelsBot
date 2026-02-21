@@ -27,34 +27,10 @@ Check and update `knowledge/business/competitor-*.md` files for current list. Ke
 
 ## Core Operations
 
-### Full Competitor Audit
-
-1. Visit each known competitor's site
-2. Check: new arrivals, pricing changes, collection updates
-3. Note: best sellers, promotional strategies, shipping offers
-4. Compare against our current catalog and pricing
-5. Save report to `knowledge/business/` with date
-
-### Price Watch
-
-1. For specific products, search competitors for same/similar items
-2. Record: competitor name, price, shipping cost, any promo
-3. Compare against our pricing
-4. Flag if competitor is significantly cheaper than our minimum
-
-### Trend Detection
-
-1. Search for trending mommy-and-me products/styles
-2. Check social media (Pinterest, Instagram, TikTok) for viral items
-3. Identify gaps in our catalog vs market demand
-4. Report opportunities to Francisco
-
-### New Competitor Discovery
-
-1. Periodically search Google Shopping, Etsy, Amazon for new sellers
-2. Check if any new Shopify stores appeared in our niche
-3. Assess their threat level (pricing, quality, marketing)
-4. Add to competitor tracking files
+- **Full Audit**: Visit competitors, check new arrivals + pricing + promos, compare to our catalog, save to `knowledge/business/`
+- **Price Watch**: Find competitor prices for same/similar items, flag if cheaper than our minimum
+- **Trend Detection**: Spot mommy-and-me trends we don't carry yet
+- **New Competitors**: Search Google Shopping/Etsy/Amazon for new sellers in our niche
 
 ## Alert Triggers
 

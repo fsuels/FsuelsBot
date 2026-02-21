@@ -21,44 +21,13 @@ Create, review, and publish marketing content across platforms for DressLikeMomm
 - `write` / `edit` — Draft content, save to files
 - `message send` — Send drafts to Francisco for review via Telegram
 
-## Content Types
+## Brand Rules
 
-### Social Media Posts (Twitter/X, Instagram)
-
-1. Product highlights — feature new or popular items
-2. Seasonal content — holidays, back-to-school, summer, etc.
-3. Engagement posts — questions, polls, UGC prompts
-4. Behind-the-scenes — sourcing, packaging, business journey
-
-### Reddit Posts
-
-1. Relevant subreddits: r/mommit, r/parenting, r/toddlers, r/fashion
-2. Provide VALUE first — not just promotion
-3. Follow subreddit rules strictly
-4. Subtle product mentions only when genuinely helpful
-
-### Blog Content
-
-1. "Matching outfit ideas for [season/occasion]"
-2. "How to style mommy and me outfits"
-3. Size guide / FAQ content
-4. SEO-optimized for target keywords
-
-### Product-to-Content Pipeline
-
-Turn product listings into marketing content:
-
-1. Read product details from Shopify
-2. Generate: social post, blog paragraph, email snippet
-3. Customize per platform (length, tone, hashtags)
-
-## Content Creation Rules
-
-1. **Brand voice**: Warm, genuine, never salesy or pushy
+1. **Voice**: Warm, genuine, family-focused — never salesy or pushy
 2. **No fake urgency**: No "LAST CHANCE" or "ONLY 3 LEFT" unless true
-3. **Real value**: Every post should entertain, inform, or inspire
-4. **Hashtag research**: Use `web_search` to find current trending + niche tags
-5. **Image selection**: Pick best product photos, ensure no Chinese faces unswapped
+3. **Image selection**: Pick best product photos, ensure no unswapped Chinese faces
+4. **Reddit**: Value-first in r/mommit, r/parenting, r/toddlers — subtle product mentions only
+5. **Product-to-content**: Read Shopify listing → generate social post + blog paragraph + email snippet
 
 ## Permission Tiers
 
