@@ -70,7 +70,23 @@ workspace/
 - Mission Control at http://localhost:18789 shows the dashboard
 - Every commitment made in chat MUST be tracked (see Chat → Queue Protocol in SOUL.md)
 - Task states: active, paused, completed, archived
-- Task stack: max 3 deep
+- **One task per session** — `/task` switches with session reset
+
+**`/task` commands:**
+
+| Command                  | What it does                                         |
+| ------------------------ | ---------------------------------------------------- |
+| `/task` or `/task show`  | Show current active task                             |
+| `/task list` or `/tasks` | List all known tasks                                 |
+| `/task #my-task`         | Switch to task (checkpoints current, resets session) |
+| `/task set <id>`         | Same as above (explicit form)                        |
+| `/task new <title>`      | Create new task + switch to it                       |
+| `/task paused`           | Pause current task                                   |
+| `/task done`             | Mark current task completed                          |
+| `/task link <id1> <id2>` | Link two related tasks                               |
+| `/resume <id>`           | Alias for `/task set <id>`                           |
+
+**Session isolation:** Switching tasks checkpoints progress, pauses the old task, resets the session. Next message starts fresh with the new task's context loaded automatically.
 
 ## What I Should NOT Do
 

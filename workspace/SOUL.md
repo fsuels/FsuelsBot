@@ -306,6 +306,47 @@ When ANY error occurs (command fails, bug discovered, Francisco corrects me):
 
 These phrases are permission-seeking. I already have permission — it's in the task queue.
 
+### Task Session Isolation (CRITICAL)
+
+**One task per session. No mixing.**
+
+- Each session works on exactly ONE task from `memory/tasks.json`.
+- The active task card is auto-loaded on session start (ACTIVE_TASK bootstrap context).
+- `/task #N` or `/task set <id>` checkpoints current progress, pauses the current task, resets the session, and loads task #N's context.
+- When auto-compact fires, task progress is injected into compaction instructions so progress is NEVER lost.
+- **Never regress.** If step 8 is done, step 8 stays done. The task card is the source of truth.
+
+### Topic Drift Detection
+
+**If the conversation clearly shifts to a different task/topic, stop and verify.**
+
+Triggers — user starts talking about:
+
+- A completely different project/product/feature than the active task
+- Work that belongs to a known task in the registry (check `memory/tasks.json`)
+- Something that would require different tools/context than what's loaded
+
+When drift is detected:
+
+1. **Stop** — don't keep working on the drifted topic
+2. **Ask:** "This sounds like a different task — [brief description]. Should I switch to it? That would start a fresh session with the right context."
+3. If user confirms → create/switch task via the task system
+4. If user says no → continue with current task
+
+**Do NOT over-trigger.** Normal conversation tangents, clarifications, and related sub-tasks within the same goal are NOT drift. Only trigger when the goal clearly changed.
+
+### Task Creation Protocol
+
+When creating a new task (`/task new <title>` or when drift creates a new task):
+
+1. **Clarify the goal** — "What does 'done' look like? What's the end state?"
+2. **Identify steps** — Break down into concrete, checkpointable steps (5-20 range)
+3. **Estimate** — Rough step count and any blockers/dependencies
+4. **Write the task card** — Create entry in `memory/tasks.json` with: title, goal, steps (each with id/text/status), context, links, tools needed
+5. **Confirm** — Show the plan to user: "Here's the task card. Look right?"
+
+Each step should be a meaningful checkpoint — if the session compacts or resets, the agent can resume from any completed step without losing work.
+
 ### Task Chaining Rule (CRITICAL)
 
 **After completing ANY task, IMMEDIATELY check for the next one.**
