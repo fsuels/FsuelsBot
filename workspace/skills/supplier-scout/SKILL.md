@@ -1,101 +1,130 @@
 ---
 name: supplier-scout
-description: "Research products and suppliers on 1688/Alibaba for DressLikeMommy. Use when: (1) Finding new products to list, (2) Comparing supplier prices, (3) Vetting a vendor, (4) Checking product availability, (5) Sourcing alternatives for existing products."
+description: "Scout products on 1688.com using JS extraction (zero screenshots). Use when: finding new products, comparing suppliers, vetting vendors, sourcing alternatives."
 ---
 
 # Supplier Scout
 
-Research and vet products/suppliers on 1688.com and Alibaba for the DressLikeMommy store.
+Find and filter products on 1688.com for DressLikeMommy. **Data extraction only — human does visual review.**
 
 ## Business Context
 
 - **Niche**: Mommy and me / family matching outfits
-- **Source**: Primarily 1688.com (Chinese wholesale)
-- **Fulfillment**: BuckyDrop (imports from 1688, ships to customers)
-- **Margin rule**: Need ≥50% profit after all costs. See `procedures/pricing.md`
+- **Source**: 1688.com (Chinese wholesale)
+- **Fulfillment**: BuckyDrop → YunExpress → USA
+- **Margin rule**: ≥50% profit after ALL costs (product + shipping + fees + marketing)
 
-## Tools Used
+## Method: JS DOM Extraction (NOT Screenshots)
 
-- `browser` — Navigate 1688.com, read product pages, extract data
-- `web_search` — Find products, compare prices, discover trends
-- `web_fetch` — Pull product details from URLs
-- `write` — Save findings to knowledge files
+**Why:** Screenshots cost ~2,000 tokens each. JS extraction costs ~200-500 tokens per page and returns structured data. For scouting 10 pages (~400 products), that's 3-5K tokens vs 50-100K.
 
-## Core Operations
+**How:** Navigate to 1688 search URL → execute JavaScript → get JSON array of product data → filter → score → output ranked table.
 
-### Product Discovery
+### Step 1: Navigate
 
-1. Search 1688.com with Chinese keywords for target category
-2. Sort by newest / recent sales (avoid stale listings)
-3. Filter: matching adult + child sizes, good photos, reasonable price
-4. Collect top 5-8 candidates per search
+```
+https://s.1688.com/selloffer/offer_search.htm?keywords=亲子装+[category]&sortType=va_rmdarkgmv30rt
+```
 
-### Vendor Vetting (from `procedures/product-listing.md` Gate 1)
+Common category keywords:
 
-For each vendor, verify:
+- 亲子装 (parent-child outfit — base term)
+- 亲子连衣裙 (matching dresses)
+- 亲子泳衣 (matching swimwear)
+- 亲子运动套装 (matching athleisure)
+- 亲子睡衣 (matching pajamas)
+- 母女装 (mother-daughter)
 
-- [ ] Store rating ≥ 4.0 (prefer 4.5+)
-- [ ] Active recent sales (not dead store)
-- [ ] Store age 1+ years
-- [ ] High response rate
-- [ ] Allows 1-piece dropshipping
-- [ ] 24-48hr delivery to BuckyDrop warehouse
+### Step 2: Extract Data (JavaScript)
 
-**Red flags (REJECT):**
+Execute on search results page. Adapt selectors to current 1688 DOM:
 
-- No recent sales/reviews
-- New store with no history
-- Poor ratings / many complaints
-- Old listings (discontinued products used as hooks)
+```javascript
+// Extract product data from 1688 search results
+// Selectors may need updating — 1688 changes their DOM periodically
+(() => {
+  const items = document.querySelectorAll('[class*="offer-list"] [class*="card"], .sm-offer-item');
+  return Array.from(items)
+    .map((el) => {
+      const title = el.querySelector('[class*="title"], .title')?.textContent?.trim() || "";
+      const price = el.querySelector('[class*="price"], .price')?.textContent?.trim() || "";
+      const sales = el.querySelector('[class*="sale"], [class*="deal"]')?.textContent?.trim() || "";
+      const vendor =
+        el.querySelector('[class*="company"], [class*="seller"]')?.textContent?.trim() || "";
+      const link = el.querySelector('a[href*="detail.1688.com"]')?.href || "";
+      return { title, price, sales, vendor, link };
+    })
+    .filter((x) => x.link);
+})();
+```
 
-### Fallacy Check (MANDATORY)
+**Important:** 1688 frequently changes their DOM structure. If selectors return empty, take ONE screenshot to inspect current structure, update selectors, then continue with JS extraction.
 
-Before recommending any vendor:
+### Step 3: Score Vendors
 
-- [ ] Rating is actual (not bought reviews)
-- [ ] "Factory direct" verified, not just claimed
-- [ ] Sales volume cross-checked with review count
-- [ ] Not selecting because "others use this vendor"
-- [ ] At least 2 quality indicators agree
+For each candidate, check vendor page (also via JS extraction):
 
-### Price Comparison
+| Factor    | 0 pts       | 1 pt     | 2 pts  |
+| --------- | ----------- | -------- | ------ |
+| Rating    | <4.0        | 4.0-4.4  | 4.5+   |
+| Sales     | None        | Some     | Active |
+| Store Age | <1yr        | 1-3yr    | 3+yr   |
+| Response  | <80%        | 80-90%   | 90%+   |
+| Stock     | Low/unclear | Moderate | Plenty |
 
-1. Extract product price + weight from 1688 listing
-2. Estimate BuckyDrop costs (product + domestic + YunExpress intl)
-3. Calculate minimum selling price (total x 1.5)
-4. Compare vs competitors on Amazon/Etsy
-5. Flag if margin < 50% or competitors all cheaper
+- **8-10:** Excellent ✅
+- **6-7:** Acceptable ⚠️
+- **4-5:** Risky — flag to Francisco
+- **0-3:** REJECT
 
-### Alternative Sourcing
+See `procedures/vendor-vetting.md` for detailed checks and fallacy prevention.
+
+### Step 4: Filter
+
+Must have:
+
+- Adult AND child sizes in same listing
+- Matching design (same fabric/pattern)
+- Vendor score ≥ 6
+- Estimated margin ≥ 50% (product price × ~3 < typical retail)
+- Recent listing (not stale/discontinued)
+
+### Step 5: Output Ranked Table
+
+Write to task card, then move card to `human` lane:
+
+```
+| # | Product | ¥ Price | Est. Margin | Vendor Score | Link |
+|---|---------|---------|-------------|-------------|------|
+| 1 | [Name] | ¥XX | ~XX% | X/10 | [→](url) |
+```
+
+Francisco clicks links, marks YES/NO, AI proceeds with approved picks.
+
+## Alternative Sourcing
 
 When an existing product's supplier becomes unreliable:
 
-1. Search 1688 for same/similar product
+1. Search 1688 for same/similar product (use product image search if available)
 2. Compare: price, quality indicators, delivery time
 3. Present top 3 alternatives with cost comparison
+4. Flag to Francisco for decision
 
-## Output Format
+## Captcha / Login Issues
 
-For each researched product, report:
+1688 may block automated search with captcha. Fallbacks:
 
-```
-**[Product Name]**
-- 1688 URL: [link]
-- Vendor: [name] | Rating: [X] | Sales: [Y]
-- Price: ¥[X] (~$[Y])
-- Weight: [X]g
-- Sizes: [adult + child ranges]
-- Est. total cost: $[X] → Min price: $[Y]
-- Competitor range: $[A]-$[B]
-- Verdict: [GO / MAYBE / SKIP] — [reason]
-```
+1. Use saved search URLs from previous sessions
+2. Navigate manually in browser, then run JS on loaded page
+3. Mark task as blocked, `BlockerType=Captcha`, move to `human` lane
 
 ## Permission Tiers
 
-| Action                           | Tier | Rule                       |
-| -------------------------------- | ---- | -------------------------- |
-| Research, browse, compare        | 0    | Just do it                 |
-| Save findings to knowledge files | 0    | Just do it                 |
-| Recommend products for listing   | 1    | Do it, report to Francisco |
-| Import to BuckyDrop              | 1    | Do it, report after        |
-| Commit to a new supplier         | 2    | Confirm with Francisco     |
+| Action                            | Tier       | Rule                       |
+| --------------------------------- | ---------- | -------------------------- |
+| Research, browse, extract data    | 0          | Just do it                 |
+| Save findings to workspace        | 0          | Just do it                 |
+| Recommend products (ranked table) | 1          | Do it, report to Francisco |
+| Import to BuckyDrop               | 1          | Do it, report after        |
+| Commit to new supplier            | 2          | Confirm with Francisco     |
+| Publish listing (Draft → Active)  | HUMAN ONLY | Francisco does this        |

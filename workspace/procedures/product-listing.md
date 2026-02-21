@@ -1,610 +1,287 @@
----
-version: "2.1"
-created: "2026-01-29"
-updated: "2026-01-31"
-verified: "2026-01-31"
-confidence: "high"
-type: "procedure"
-source: "council-sessions/2026-01-29-workflow-optimization-5round.md"
----
+# Product Listing Procedure v3.0 — AI/Human Split
 
-# 📦 Product Listing Procedure v2.0 — Pipeline OS Lite
+_Updated: 2026-02-21_
 
-## 🧭 EPISTEMIC DISCIPLINE (READ FIRST)
-
-```
-EVERY response I give
-EVERY analysis I make
-EVERY recommendation I offer
-EVERY claim I accept
-EVERY action I take
-        ↓
-   SOUND LOGIC
- VERIFIED EVIDENCE
-   NO FALLACIES
-```
-
-### Before completing ANY gate, verify:
-- [ ] Logic is sound (no gaps in reasoning)
-- [ ] Evidence is verified (not assumed)
-- [ ] Fallacies checked (see Gate 1 for vendor fallacy check)
+**Core principle:** AI does data work (cheap tokens). Human does visual work (instant, free). Never mix them.
 
 ---
 
-**Read this COMPLETELY before ANY product listing or sourcing task.**
+## HARD RULES
+
+1. **AI never publishes.** AI creates Shopify DRAFTS only. Francisco activates.
+2. **No Shopify draft until BuckyDrop costs extracted.** Hard dependency.
+3. **50% profit after ALL costs** (product + shipping + fees + marketing). Non-negotiable.
+4. **Zero screenshots in discovery.** JS extraction only.
+5. **Ledger is truth.** Not memory, not chat. Ledger.
 
 ---
 
-## ⚠️ HARD INVARIANTS (NON-NEGOTIABLE)
+## THE PIPELINE
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  🚫 SHOPIFY DRAFT CANNOT START UNTIL BUCKYDROP = DONE       │
-│                                                             │
-│  Before creating ANY Shopify draft, verify:                 │
-│  1. BuckyDrop product exists with linked source             │
-│  2. All costs extracted (product + domestic + intl + fees)  │
-│  3. Weight recorded in ledger                               │
-│  4. Gate status = "Done" in ledger                          │
-│                                                             │
-│  If ANY of these are missing → STOP. Complete BuckyDrop.    │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### 3 Non-Negotiable Rules
-
-1. **No gate completion without evidence written to ledger**
-2. **No waiting on blocked UI—convert to ticket, continue other work**
-3. **No "memory"—always resume from ledger state**
-
----
-
-## Verification Gate
-
-**Before starting ANY listing work, state:**
-
-> "Pipeline verified. Gate [N]: [name]. Ledger checked: [X] products at this gate. Session health: [OK/blocked]. Browser: [N] tabs. Ready to proceed."
-
-If you cannot state this, STOP and run the pre-flight checklist.
-
----
-
-## 🚪 THE 8 GATES
-
-| Gate | Name | Type | Worker | Entry Criteria | Exit Artifact |
-|------|------|------|--------|----------------|---------------|
-| 0 | **Intake/Dedupe** | Fast, cohort | Main | Search term defined | Shopify duplicate check complete |
-| 1 | **Discovery/Vet** | BATCH (3-5) | Sub-agents OK | No duplicates found | Vetted candidate URLs |
-| 2 | **Candidate Freeze** | Fast, per-item | Main | Vendor verified | Facts locked in ledger |
-| 3 | **BuckyDrop Import** | SEQUENTIAL | Main | Facts frozen | Full cost breakdown recorded |
-| 4 | **Pricing** | Per-item | Main | BuckyDrop DONE | Price set with margin verified |
-| 5 | **Shopify Draft** | Per-item | Sub-agent OK | BuckyDrop DONE + Price set | Draft created with all fields |
-| 6 | **QA** | Per-item | Main | Draft exists | Checklist passed |
-| 7 | **Closeout** | Fast, cohort | Main | QA passed | Ledger updated, tracking complete |
-
-**CRITICAL:** Gate 5 has HARD DEPENDENCY on Gate 3. Check before proceeding.
-
----
-
-## 📊 THE LEDGER (Tracking Spreadsheet)
-
-### Required Columns
-
-| Column | Type | Values | Purpose |
-|--------|------|--------|---------|
-| Product | Text | Product name | Identifier |
-| 1688_URL | URL | Full 1688 link | Source reference |
-| **Gate** | Enum | Intake, Vet, Freeze, BuckyDrop, Pricing, Draft, QA, Closeout | Current position |
-| **Substep** | Text | e.g., BD_03_select_variant | Precise location |
-| **Status** | Enum | Not started, In progress, Blocked, Done | State |
-| LastCheckpoint | DateTime | Timestamp | Recovery point |
-| EvidenceLinks | URLs | Screenshots, product URLs | Proof of completion |
-| **HumanNeeded** | Y/N | Y or N | Handoff flag |
-| **BlockerType** | Enum | Login, UI_load, Captcha, Missing_data, Policy | What's wrong |
-| **ResumeInstruction** | Text | Exact next action | Recovery path |
-| Weight_g | Number | Product weight in grams | For shipping calc |
-| TotalCost | Currency | Full cost breakdown | Pricing input |
-| Price | Currency | Final selling price | Output |
-| Margin_pct | Percent | Calculated margin | Verification |
-| Notes | Text | Free-form | Context |
-
-### Checkpoint Protocol
-
-**Write state every 1-3 minutes while working:**
-
-```
-current_gate: BuckyDrop
-substep_id: BD_03_select_variant
-artifact_links: [screenshot URL]
-blocking_reason: null
-next_action: Map adult sizes to variants
-```
-
-**On resume:** Bot reads ledger → continues from Gate/Substep → never relies on memory.
-
----
-
-## 🔌 UI CONTRACTS
-
-### BuckyDrop Import
-
-```yaml
-BuckyDrop_Dashboard:
-  entry: URL "buckydrop.com" AND element "My Store Products" visible
-  success: Dashboard loads with product list
-  failure_modes: [session_expired, ui_not_loaded, maintenance_page]
-  fallback: Navigate to buckydrop.com, click "My Store Products"
-  stop: After 2 failures, Status=Blocked, BlockerType=Login, queue ticket
-
-BuckyDrop_ImportURL:
-  entry: On import page AND import field visible
-  action: Paste 1688 URL into import field, click Search
-  success: Product preview shows with variants and weight
-  failure_modes: [url_rejected, no_results, timeout, captcha]
-  fallback: Try "Find Similar Source" button instead
-  stop: After 2 failures, escalate with screenshot
-
-BuckyDrop_CostExtract:
-  entry: Product imported, shipping config visible
-  action: Select YunExpress route, USA destination, extract all costs
-  success: Product cost + domestic + international + fees all visible
-  failure_modes: [route_unavailable, weight_missing, price_not_loading]
-  fallback: Try different shipping route, then escalate
-  stop: If weight missing, cannot proceed - mark HumanNeeded=Y
-```
-
-### 1688 Navigation
-
-```yaml
-1688_Search:
-  entry: URL "1688.com" AND search bar visible
-  action: Enter search term in Chinese, click search
-  success: Product grid loads with results
-  failure_modes: [captcha, login_required, no_results]
-  fallback: Use saved search URLs from previous sessions
-  stop: If captcha, Status=Blocked, BlockerType=Captcha, queue ticket
-
-1688_ProductPage:
-  entry: On product detail page
-  action: Extract: price, weight, size chart, vendor info
-  success: All required fields visible and extractable
-  failure_modes: [page_not_loading, sold_out, vendor_closed]
-  fallback: Try alternative product from same search
-  stop: Mark product as unavailable, move to next candidate
-```
-
-### Shopify Admin
-
-```yaml
-Shopify_NewProduct:
-  entry: URL "admin.shopify.com/*/products/new"
-  action: Fill product fields per checklist
-  success: All required fields populated, save button enabled
-  failure_modes: [session_expired, validation_error, image_upload_fail]
-  fallback: Refresh page, re-authenticate if needed
-  stop: After 2 failures, save progress and escalate
-
-Shopify_Draft:
-  entry: Product form complete
-  action: Set status to "Draft", click Save
-  success: Product saved, URL shows product ID
-  failure_modes: [save_failed, validation_error]
-  fallback: Fix validation errors shown, retry save
-  stop: Screenshot errors, escalate to Francisco
+AI PHASE 1: SCOUT ──→ HUMAN: PICK ──→ AI PHASE 2: COST & PRICE ──→ HUMAN: PRICE ──→ AI PHASE 3: DRAFT ──→ HUMAN: ACTIVATE
+   (bot_current)      (human lane)         (bot_current)             (human lane)       (bot_current)        (human lane)
+    ~3-5K tokens        0 tokens             ~10-15K tokens            0 tokens           ~15-20K tokens        0 tokens
 ```
 
 ---
 
-## 🔄 SESSION HANDLING PROTOCOL
-
-### At Cohort Start: Session Health Check
-
-Before processing ANY products:
-
-1. Open BuckyDrop dashboard
-2. **Verify:** "My Store Products" element is visible
-3. **If NOT visible:**
-   - Status = Blocked
-   - BlockerType = Login
-   - HumanNeeded = Y
-   - ResumeInstruction = "Login to BuckyDrop, then resume"
-4. **If visible:** Proceed with cohort
-
-### On Auth Failure (Mid-Task)
-
-1. **Detect:** Redirect to login, missing element, 401 error
-2. **Immediately write to ledger:**
-   - Status = Blocked
-   - BlockerType = Login
-   - Substep = where you were
-   - ResumeInstruction = exact next action
-3. **Queue human ticket** with: BlockerType, Evidence (screenshot), Resume check
-4. **Continue with OTHER work** that doesn't require that session
-5. **TTL:** If human doesn't resolve in 2 hours, re-evaluate priorities
-
-### Non-Blocking Pattern
-
-```
-IF session_blocked:
-    write_checkpoint(current_state)
-    queue_human_ticket(blocker_details)
-    switch_to_unblocked_work()  # Other products, other gates
-    DO NOT WAIT
-```
-
----
-
-## 📦 BATCH SIZE RULES
-
-| Condition | Batch Size |
-|-----------|------------|
-| **Default** | 5 products |
-| Uniform vendors, simple variants | Up to 8 |
-| Messy size charts, many variants | 3-4 |
-| BuckyDrop flaky today | 3-5 |
-| First time with new process | 3 (safety) |
-
-### Batchable Gates (Use Sub-Agents)
-
-- **Gate 0 (Intake):** Fast, do full cohort at once
-- **Gate 1 (Discovery/Vet):** BATCH 3-5 products in parallel
-- **Gate 7 (Closeout):** Fast, do full cohort at once
-
-### Sequential Gates (One Product at a Time)
-
-- **Gate 2 (Freeze):** Quick, per product
-- **Gate 3 (BuckyDrop):** MUST be sequential (hard dependency)
-- **Gate 4 (Pricing):** Per product, depends on Gate 3
-- **Gate 5 (Shopify Draft):** Per product, depends on Gate 3+4
-- **Gate 6 (QA):** Per product
-
----
-
-## 🤝 BOT-HUMAN HANDOFF
-
-### Two-Lane System
-
-**Bot Lane (default):** HumanNeeded=N AND Status≠Done
-- Sorted by Gate priority (lower gates first)
-- Bot works through these autonomously
-
-**Human Lane:** HumanNeeded=Y OR Status=Blocked
-- Francisco checks these when available
-- Clear tickets with exact asks
-
-### Human Ticket Requirements
-
-Every ticket MUST include:
-
-| Field | Description |
-|-------|-------------|
-| BlockerType | What category of problem |
-| Exact Ask | One specific action needed |
-| Evidence | Screenshot or URL showing the issue |
-| Resume Check | What proves it's fixed (element visible, etc.) |
-| TTL | When bot should re-evaluate if not resolved |
-
-### Handoff Protocol
-
-1. **Bot creates atomic ticket** → Writes to ledger + notifies Francisco
-2. **Human resolves** → Flips HumanNeeded=N, updates Resume field
-3. **Bot resumes** → Re-runs verification step first, doesn't proceed blindly
-
----
-
-## Gate Details
-
-### Gate 0: Intake/Dedupe (ALWAYS FIRST)
-
-Before sourcing ANY new products:
-
-1. **Define search criteria** — What are we looking for?
-2. **Check Shopify inventory:**
-   - Active products in relevant collections
-   - Draft products in progress
-   - **Don't duplicate what we already have!**
-3. **Record in ledger:** Search term, existing count, target count
-
-**Exit:** "Inventory check: [X] active products, [Y] drafts in queue. Looking for: [product type]. No duplicates for [search term]."
-
----
-
-### Gate 1: Discovery/Vet (BATCHABLE)
-
-**Batch 3-5 candidates at a time.**
-
-#### 1.1 Vendor Quality Checks (CRITICAL)
-
-Before selecting ANY product, verify the vendor:
-
-- [ ] **Store rating** — 4.5+ stars preferred, never below 4.0
-- [ ] **Transaction volume** — Active sales (shows recent orders)
-- [ ] **Store age** — Established sellers (1+ years preferred)
-- [ ] **Response rate** — High response = reliable communication
-- [ ] **Product availability** — Check stock indicators
-- [ ] **1-piece dropshipping** — Must allow single unit orders
-- [ ] **Fast warehouse delivery** — 24-48hrs to BuckyDrop China warehouse
-
-**Red flags (AVOID):**
-- ❌ No recent sales/reviews
-- ❌ Store opened recently with no history
-- ❌ Poor ratings or many complaints
-- ❌ "Sold out" or "discontinued" status
-- ❌ **Old listings** — factories keep discontinued products as "hooks"
-
-#### 1.2 Product Selection Criteria
-
-**We sell: Mommy and me / family matching outfits**
-
-Good products have:
-- ✅ Multiple sizes — Adult AND child sizes in same listing
-- ✅ Matching designs — Same fabric/pattern for both
-- ✅ Good photos — Clear, professional images
-- ✅ Market appeal — Seasonal or evergreen
-- ✅ Reasonable base cost — Allows 50%+ margin
-
-#### 1.3 Freshness Check
-
-- Sort by "newest" or "recent sales"
-- Check listing creation date — recent only
-- Verify photos look current
-- **Avoid old listings**
-
-#### 1.4 Vendor Logic Check (MANDATORY — Fallacy Prevention)
-Before selecting ANY vendor, verify:
-- [ ] **Rating is ACTUAL** — not from fake/bought reviews
-- [ ] **"Factory direct" VERIFIED** — not just claimed
-- [ ] **Sales volume is REAL** — cross-check with review count
-- [ ] **Not Bandwagon** — not selecting because "others use this vendor"
-- [ ] **Not Appeal to Authority** — badges verified, not just trusted
-- [ ] **At least 2 indicators agree** — rating + sales + age align
-
-**If fallacy detected:** Document it, find different vendor.
-
-**Exit:** For each candidate: "Vendor [name]: [rating], [sales], 1-piece OK, 24-48hr delivery. Listing date: [date]. Product: [name], fits criteria. Fallacy check: PASSED."
-
----
-
-### Gate 2: Candidate Freeze
-
-For each vetted candidate:
-
-1. **Lock facts in ledger:**
-   - 1688 URL
-   - Vendor name + rating
-   - Base price (CNY)
-   - Weight (if visible)
-   - Available sizes
-   - Notes on quality
-
-2. **Confirm no changes** since vetting
-
-**Exit:** "Candidate frozen: [product]. Facts locked. Ready for BuckyDrop import."
-
----
-
-### Gate 3: BuckyDrop Import (SEQUENTIAL — HARD GATE)
-
-**⚠️ This gate MUST complete before Gate 5 can start.**
-
-1. **Session health check** — Verify logged in
-2. Open BuckyDrop (use existing tab)
-3. Import product using 1688 URL
-4. **Extract from 1688 listing:**
-   - Product weight (ADULT size)
-   - Size chart table (all measurements)
-   - Size names for conversion
-
-5. **Configure:**
-   - Shipping route: **YunExpress**
-   - Destination: **USA** (use for all markets)
-   - Variants: all sizes needed
-
-6. **Get FULL cost breakdown:**
-   - Product cost
-   - Domestic shipping (China)
-   - International shipping (to USA)
-   - BuckyDrop fees
-   - **TOTAL COST = sum of all**
-
-7. **Write to ledger:**
-   - Weight_g
-   - TotalCost
-   - Cost breakdown
-   - Status = Done
-   - EvidenceLinks (screenshot of cost page)
-
-**Exit:** "BuckyDrop complete. Weight: [X]g. Total cost: $[Y] (product $[A] + domestic $[B] + intl $[C] + fees $[D]). Evidence recorded."
-
----
-
-### Gate 4: Pricing
-
-**Prerequisite check:** `IF Gate3_Status ≠ Done THEN STOP`
-
-### The Formula (NON-NEGOTIABLE)
-
-```
-MINIMUM PRICE = TOTAL COST × 2
-
-This ensures AT LEAST 50% profit margin AFTER:
-- Ads cost buffer
-- Returns cost buffer  
-- Platform fees
+## AI PHASE 1: SCOUT
+
+**Lane:** `bot_current`
+**Token budget:** ~3-5K for 10 pages of results
+**Method:** JavaScript DOM extraction — ZERO screenshots
+
+### What AI does:
+
+1. **Dedupe check** — Search Shopify for existing products matching the search term. Skip duplicates.
+2. **Navigate 1688.com** — Use search URL with Chinese keywords for target category
+3. **JS extraction per results page** — One JavaScript call extracts structured data:
+   ```
+   [{title, price_cny, vendor_rating, vendor_years, sales_count,
+     moq, has_child_sizes, has_adult_sizes, listing_date, url}, ...]
+   ```
+4. **Score vendors** — Apply 5-point system (see `procedures/vendor-vetting.md`):
+   - Rating ≥ 4.0 (prefer 4.5+)
+   - Active recent sales
+   - Store age 1+ years
+   - Response rate 90%+
+   - Stock available + 1-piece dropshipping
+5. **Filter products** — Must have adult AND child sizes, matching design, reasonable base cost
+6. **Estimate margin** — Quick calc: product price × ~3 (estimated total cost multiplier) vs typical retail
+7. **Paginate** — Repeat extraction across multiple pages
+8. **Produce ranked output** — Table of candidates sorted by estimated margin
+
+### Output (written to task card):
+
+```markdown
+## Scout Complete — [Category] — [Date]
+
+Scanned: [X] products across [Y] pages
+Passed filters: [N] products
+
+| #   | Product            | ¥ Price | Est. Cost | Est. Margin | Vendor Score | Link     |
+| --- | ------------------ | ------- | --------- | ----------- | ------------ | -------- |
+| 1   | Red Heart Fleece   | ¥37     | ~$15      | ~65%        | 9/10         | [→](url) |
+| 2   | Boho Chiffon Dress | ¥64     | ~$18      | ~60%        | 8/10         | [→](url) |
+| ... |
+
+**Your action:** Click each link, check photos/style fit. Reply with numbers to proceed (e.g., "1, 3, 5, 8").
 ```
 
-### Competitor Check
-
-1. Search Amazon, Etsy, Google Shopping for similar
-2. Note competitor price range
-3. **If competitors cheaper than 2× cost:**
-   - Can we find cheaper source?
-   - Is margin still acceptable?
-   - FLAG to Francisco if margin < 40%
-4. Price competitively within margin constraints
-
-**Exit:** "Pricing set. Cost $[X] × 2 = $[Y] min. Competitors: $[A]-$[B]. Final: $[Z] ([M]% margin)."
+### Then: Card moves to `human` lane.
 
 ---
 
-### Gate 5: Shopify Draft (HARD DEPENDENCY ON GATE 3)
+## HUMAN CHECKPOINT 1: PICK
 
-```
-┌─────────────────────────────────────────────┐
-│  ⛔ STOP CHECK BEFORE PROCEEDING            │
-│                                             │
-│  □ BuckyDrop Gate = Done?                   │
-│  □ Weight recorded in ledger?               │
-│  □ Total cost recorded in ledger?           │
-│  □ Price calculated and recorded?           │
-│                                             │
-│  If ANY box unchecked → GO BACK TO GATE 3   │
-└─────────────────────────────────────────────┘
-```
+**Lane:** `human`
+**Time:** ~2-3 minutes for 10-15 links
 
-#### 5.1 Basic Info
-- Title: SEO-friendly (≤60 chars)
-- Description: Benefits, materials, sizing
-- Product type: Set appropriately
+### What Francisco does:
 
-#### 5.2 Category & Metafields
+1. Click each 1688 link in the table
+2. Visual check: Do the photos look good? Does the style fit DLM brand?
+3. Reply with product numbers to proceed: "1, 3, 5, 8"
+4. Optionally note concerns: "3 looks cheap, skip" or "8 only if in red"
 
-**Category Metafields (for filters):**
-- Color — exact filter values (Red, Pink, White, etc.)
-- Size — all sizes in listing
-- Fabric — material type
-- Age group — Kids, Adults, All Ages
-- Target gender — Female, Male, Unisex
-
-**Product Metafields (for SEO):**
-- Pattern, Style, Type
-- SubCategory / SubCategory2
-- Category1
-
-#### 5.3 Tags
-
-Required tags:
-- Color tags
-- Collection tags (valentines day, christmas, etc.)
-- Relationship tags (mother daughter, matching family)
-- Brand tags (Mommy and Me)
-- Product type tags
-
-#### 5.4 Collections
-
-- Mommy and Me (always)
-- New Mommy & Me (if new)
-- Seasonal collection
-- Category collections
-
-#### 5.5 Images
-
-- Upload all product images
-- **Face check:** Chinese faces → need face swap
-- Order: Main first, angles, size chart
-
-#### 5.6 Face Swapping (if needed)
-
-1. Download images
-2. Go to: https://aifaceswap.io/#face-swap-playground
-3. Use faces from: `C:\Users\Fsuels\Downloads\faces`
-4. Swap to American-looking faces
-5. Upload to Shopify
-
-#### 5.7 Size Chart
-
-1. Extract size table from 1688
-2. Create table with actual measurements
-3. Convert size names to standard:
-   - Kids: 80cm-150cm
-   - Adults: Adult S through 3XL
-4. Apply size conversion script
-5. Verify dynamic selector works
-
-#### 5.8 Variants & Pricing
-
-- Set up all size variants
-- Apply calculated price
-- Verify no variant below minimum
-
-#### 5.9 Save as DRAFT
-
-- **NEVER publish active**
-- Save as DRAFT
-- Record draft URL in ledger
-
-**Exit:** "Draft created: [product]. Price: $[X]. Tags: [list]. Collections: [list]. Evidence: [draft URL]."
+### Then: Card moves back to `bot_queue` with picks noted.
 
 ---
 
-### Gate 6: QA
+## AI PHASE 2: COST & PRICE
 
-**Checklist (all must pass):**
+**Lane:** `bot_current`
+**Token budget:** ~10-15K (browser work with BuckyDrop)
+**Method:** Browser automation for BuckyDrop, web search for competitors
 
-- [ ] Title optimized (SEO-friendly, ≤60 chars)
-- [ ] Description complete
-- [ ] Category set correctly
-- [ ] All metafields filled
-- [ ] Tags added (all required categories)
-- [ ] Collections assigned
-- [ ] All images uploaded
-- [ ] Face swap done (if needed)
-- [ ] Size chart from 1688 data (not guessed)
-- [ ] Size names converted
-- [ ] Price ≥ 2× cost
-- [ ] Saved as DRAFT
-- [ ] Ledger updated with draft URL
+### What AI does (for each approved product):
 
-**Exit:** "QA passed: [product]. All [N] checklist items verified."
+1. **Import to BuckyDrop** — Paste 1688 URL, import product
+2. **Extract FULL cost breakdown:**
+   - Product price (from 1688)
+   - Domestic shipping (factory → BuckyDrop warehouse)
+   - International shipping (YunExpress → USA)
+   - BuckyDrop platform fees
+   - Value-added services
+3. **Extract product weight** (adult size) — needed for shipping calc
+4. **Add marketing allocation** — 15% of subtotal
+5. **Calculate total cost** — Sum of ALL above
+6. **Calculate minimum price** — Total cost ÷ 0.5 = price for 50% profit
+7. **Research competitors** — Search Amazon, Etsy, Google Shopping for similar products
+8. **Recommend price** — Competitive AND ≥ 50% profit after all costs
+
+### Output (written to task card):
+
+```markdown
+## Cost & Price Report — [Date]
+
+| Product          | Cost Breakdown                                                | Total  | Min Price (50%) | Competitors | Recommended       |
+| ---------------- | ------------------------------------------------------------- | ------ | --------------- | ----------- | ----------------- |
+| Red Heart Fleece | prod $5.42 + dom $0.84 + intl $6.56 + fees $2.61 + mktg $2.31 | $17.74 | $35.48          | $22-39      | $34.99 (49.3%)    |
+| Boho Dress       | prod $8.98 + dom $1.20 + intl $7.80 + fees $3.10 + mktg $3.16 | $24.24 | $48.48          | $28-45      | $44.99 (46.1%) ⚠️ |
+
+### Detail: Red Heart Fleece Hoodie
+
+├── Product: $5.42 (¥37 × 0.1465)
+├── Domestic: $0.84
+├── Intl (Yun): $6.56
+├── BD fees: $2.61
+├── Marketing: $2.31 (15%)
+├── TOTAL COST: $17.74
+├── Min price: $35.48 (50% profit)
+├── Competitors: $22.99 - $38.99 (Amazon/Etsy avg $29.99)
+└── RECOMMENDED: $34.99 (margin: 49.3%)
+
+⚠️ Boho Dress: competitors top at $45, but 50% margin needs $48.48.
+Options: find cheaper source, accept 40% margin, or skip.
+
+**Your action:** Approve prices or adjust. Drop any that don't work.
+```
+
+### Then: Card moves to `human` lane.
 
 ---
 
-### Gate 7: Closeout
+## HUMAN CHECKPOINT 2: PRICE APPROVAL
 
-For the cohort:
+**Lane:** `human`
+**Time:** ~1-2 minutes
 
-1. **Update ledger:** All products to status = Complete
-2. **Browser cleanup:** Close unneeded tabs, keep ≤ 4
-3. **Update tracking files:**
-   - state.json → progress count
-   - memory file → session log
-4. **Summary report:**
+### What Francisco does:
 
-```
-Cohort complete: [N] products
-- [Product 1]: $[price], [margin]%, draft URL
-- [Product 2]: $[price], [margin]%, draft URL
-...
-Blocked: [list any blocked items]
-Human queue: [list any pending tickets]
-Ready for Francisco's review.
-```
+1. Review cost breakdowns — are they complete?
+2. Check competitor data — does the price make sense in market?
+3. Approve, adjust, or drop each product
+4. Reply: "All approved" or "Drop #2, adjust #1 to $32.99"
+
+### Then: Card moves back to `bot_queue` with approved prices.
 
 ---
 
-## Quick Reference
+## AI PHASE 3: CREATE DRAFT
 
-### Pre-Flight Checklist
-- [ ] Read this procedure completely
-- [ ] Check ledger for current state
-- [ ] Session health check (BuckyDrop logged in?)
-- [ ] Browser tabs checked (ONE per domain)
-- [ ] Identify current gate position
+**Lane:** `bot_current`
+**Token budget:** ~15-20K (Shopify browser work)
+**Method:** Browser automation for Shopify Admin
 
-### Common Mistakes to Avoid
+### What AI does (for each approved product):
 
-❌ Starting Shopify draft before BuckyDrop complete
-❌ Sourcing without checking duplicates
-❌ Picking unreliable vendors
-❌ Skipping cost calculation
-❌ Pricing below 2× cost
+1. **Create new product in Shopify Admin** (admin.shopify.com)
+2. **Fill all fields:**
+   - **Title:** SEO-friendly, ≤60 chars
+   - **Description:** Benefits, materials, sizing — English-native, brand-appropriate
+   - **Product type:** Set correctly
+3. **Category metafields:** Color, Size, Fabric, Age group, Target gender
+4. **Product metafields:** Pattern, Style, Type, SubCategory
+5. **Tags:** color + collection + relationship + brand + product type
+6. **Collections:** "Mommy and Me" (always) + seasonal + category
+7. **Images:** Upload all product images from 1688
+8. **Size chart:** Extract from 1688 data, convert sizes (Kids: 80-150cm, Adults: S-3XL)
+9. **Variants:** All sizes with APPROVED price
+10. **Save as DRAFT** — NEVER publish active
+
+### Output (written to task card):
+
+```markdown
+## Drafts Created — [Date]
+
+| Product          | Draft URL     | Price  | Margin | Images     | Tags   | Size Chart |
+| ---------------- | ------------- | ------ | ------ | ---------- | ------ | ---------- |
+| Red Heart Fleece | [admin→](url) | $34.99 | 49.3%  | 6 uploaded | 8 tags | ✅         |
+| ...              |
+
+**Your action:**
+
+- [ ] Check each draft visually
+- [ ] Face swap needed? (Chinese faces → American faces)
+- [ ] Approve and publish: Draft → Active
+```
+
+### Then: Card moves to `human` lane.
+
+---
+
+## HUMAN CHECKPOINT 3: ACTIVATE
+
+**Lane:** `human`
+**Time:** ~5 minutes per product
+
+### What Francisco does:
+
+1. Open each draft URL in Shopify Admin
+2. Visual QA: photos look good? Description reads well? Price correct?
+3. Face swap if needed (aifaceswap.io or similar)
+4. **Publish:** Change status from Draft → Active
+5. Only Francisco can do this step. AI cannot.
+
+### Then: Card moves to `done_today` lane.
+
+---
+
+## LEDGER TRACKING
+
+### Required fields per product:
+
+| Field            | Purpose                              |
+| ---------------- | ------------------------------------ |
+| product          | Name                                 |
+| 1688_url         | Source link                          |
+| phase            | scout / cost / draft / active        |
+| status           | pending / in_progress / human / done |
+| vendor_score     | 0-10 from vetting                    |
+| weight_g         | For shipping calc                    |
+| cost_breakdown   | product + dom + intl + fees + mktg   |
+| total_cost       | Sum of all costs                     |
+| competitor_range | "$X - $Y (source)"                   |
+| approved_price   | Francisco's final price              |
+| margin_pct       | Calculated profit %                  |
+| draft_url        | Shopify draft URL                    |
+| notes            | Free-form                            |
+
+### State saves:
+
+Write to `memory/tasks/<task-id>.md` after each AI phase completes.
+On resume: read task card → continue from current phase. Never rely on memory.
+
+---
+
+## BATCH RULES
+
+| Phase        | Batch Size                            | Why                             |
+| ------------ | ------------------------------------- | ------------------------------- |
+| Scout        | Full search (40-100 products scanned) | JS extraction is cheap          |
+| Cost & Price | 3-5 products per session              | BuckyDrop browser work is heavy |
+| Create Draft | 3-5 products per session              | Shopify browser work is heavy   |
+
+---
+
+## TOKEN BUDGET SUMMARY
+
+| Phase     | Method            | Tokens      | Old Method        | Old Tokens    |
+| --------- | ----------------- | ----------- | ----------------- | ------------- |
+| Scout     | JS extraction     | ~3-5K       | Screenshots + DOM | ~50-100K      |
+| Cost      | BuckyDrop browser | ~10-15K     | Same              | ~15-20K       |
+| Draft     | Shopify browser   | ~15-20K     | Full snapshots    | ~50-80K       |
+| **TOTAL** |                   | **~30-40K** |                   | **~115-200K** |
+
+**4-5x cheaper. Same output. Better quality.**
+
+---
+
+## COMMON MISTAKES
+
+❌ Taking screenshots to "see" products on 1688
+❌ Starting Shopify draft before BuckyDrop costs extracted
+❌ Pricing without competitor research
 ❌ Publishing active instead of draft
+❌ Accepting < 50% margin without flagging
 ❌ Leaving Chinese faces in photos
-❌ Relying on memory instead of ledger
+❌ Relying on memory instead of ledger/task card
 
-✅ Always check BuckyDrop gate before draft
-✅ Always verify vendor reputation
-✅ Always get FULL cost breakdown
-✅ Always 50% minimum margin
-✅ Always save as DRAFT
-✅ Always update ledger after each step
+✅ JS extraction for data, zero screenshots
+✅ Full cost breakdown including marketing allocation
+✅ Competitor research on every product
+✅ Always DRAFT, Francisco publishes
+✅ 50% profit after ALL costs or flag it
+✅ Update ledger after every step

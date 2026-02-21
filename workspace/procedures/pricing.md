@@ -1,211 +1,138 @@
----
-version: "1.1"
-created: "2026-01-29"
-updated: "2026-01-31"
-verified: "2026-01-31"
-confidence: "high"
-type: "procedure"
----
+# Pricing Procedure
 
-# 💰 Pricing Procedure (MANDATORY)
-
-## 🧭 EPISTEMIC DISCIPLINE (READ FIRST)
-
-```
-EVERY response I give
-EVERY analysis I make
-EVERY recommendation I offer
-EVERY claim I accept
-EVERY action I take
-        ↓
-   SOUND LOGIC
- VERIFIED EVIDENCE
-   NO FALLACIES
-```
-
-### Before completing this procedure, verify:
-- [ ] Logic is sound (no gaps in reasoning)
-- [ ] Evidence is verified (not assumed)
-- [ ] Fallacies checked (see Pricing Logic Check below)
+_Updated: 2026-02-21_
 
 ---
 
-**Read this COMPLETELY before ANY price calculation.**
+## The Rule
+
+```
+MINIMUM PRICE = TOTAL COST ÷ 0.5
+(50% profit after ALL costs including marketing)
+
+Shortcut: TOTAL COST × 2 = minimum selling price
+```
+
+**Non-negotiable. No exceptions without Francisco's explicit approval.**
 
 ---
 
-## The Golden Rule
+## Total Cost = ALL of These
 
-```
-╔═══════════════════════════════════════════════════════════════════╗
-║  MINIMUM PRICE = TOTAL COST + 50% PROFIT                          ║
-║                                                                   ║
-║  TOTAL COST = Product + Domestic Ship + Intl Ship + Marketing +   ║
-║               Returns Allowance                                   ║
-╚═══════════════════════════════════════════════════════════════════╝
-```
+| #   | Component              | Source                            | Notes                             |
+| --- | ---------------------- | --------------------------------- | --------------------------------- |
+| 1   | Product price          | 1688 listing                      | Convert CNY → USD                 |
+| 2   | Domestic shipping      | BuckyDrop (factory → warehouse)   | Always present                    |
+| 3   | International shipping | BuckyDrop (YunExpress → USA)      | Use adult weight, USA destination |
+| 4   | Platform fees          | BuckyDrop (service + value-added) | Extracted during import           |
+| 5   | Marketing allocation   | 15% of subtotal (items 1-4)       | Budget for ads/promotion          |
+|     | **TOTAL COST**         | **Sum of 1-5**                    | **This is the floor**             |
 
-**Never deviate without Francisco's explicit approval.**
-
----
-
-## Cost Components (Get ALL of These)
-
-### 1. Product Price
-- From 1688 or supplier listing
-
-### 2. Domestic Shipping (Factory → BuckyDrop Warehouse)
-- **Source:** BuckyDrop provides this when you upload the product URL
-- All products have this because they ship from factory to warehouse first
-
-### 3. International Shipping (BuckyDrop → Customer)  
-- **Source:** BuckyDrop estimate
-- **How to get:** Select country (USA), input product weight
-- **⚠️ GET WEIGHT FROM 1688 LISTING** — the product listing shows weight, use that
-- **⚠️ SELECT YUNEXPRESS ROUTE** — "YunExpress clothing Registered Air Mail" (14-21 days)
-- **⚠️ USE USA SHIPPING FOR ALL MARKETS** — USA is biggest market, use that price globally
-
-### 4. Marketing Allowance
-- Estimate ~10-15% of product cost for ads/promotion
-
-### 5. Returns Allowance
-- Estimate ~5-10% for returns/refunds
+**Do NOT skip any component.** A "cheap" product with expensive shipping is NOT cheap.
 
 ---
 
-## Formula
+## Competitor Research (Required)
 
-```
-Total Cost = Product + Domestic Ship + Intl Ship + Platform Fee + Value-Added Services
-Minimum Price = Total Cost × 1.5  (adds 50% profit)
-```
+Before recommending a price, research what competitors sell similar products for.
 
-**The 50% profit margin is NON-NEGOTIABLE.**
+**Where to check:**
 
----
+- Amazon — search same product type
+- Etsy — "mommy and me [product type]"
+- Google Shopping — broader market view
+- Direct competitors — PatPat, SHEIN, similar Shopify stores
 
-## 🔍 Competitor Research (REQUIRED)
+**What to capture per product:**
 
-**Before setting final price, check what competitors charge:**
+- Price range (lowest → highest)
+- Average price
+- Whether they charge shipping separately
+- Number of competitors found
 
-### Where to Check:
-1. **Amazon** — search same product type
-2. **Etsy** — mommy and me / matching outfits
-3. **Other Shopify stores** — Google "[product] mommy and me"
-4. **DressLikeMommy competitors** — PatPat, SHEIN, etc.
-
-### What to Capture:
-- Competitor price range (low / high)
-- Shipping costs they charge
-- Any bundles or upsells
-
-### Pricing Decision Matrix:
-
-| Competitor Price | vs Our Min (2× cost) | Action |
-|------------------|----------------------|--------|
-| **Higher** | They charge $40, our min is $25 | ✅ Price at $34.99 — room for more margin! |
-| **Same** | They charge $25, our min is $25 | ✅ Price at $24.99 — competitive |
-| **Lower** | They charge $18, our min is $25 | ⚠️ STOP — either find cheaper supplier or skip product |
-
-### The Sweet Spot:
-```
-IDEAL PRICE = Competitor average - $1 to $5 (undercut slightly)
-BUT NEVER below our 50% margin minimum
-```
-
-### Pricing Logic Check (MANDATORY — Fallacy Prevention)
-Before setting final price, verify:
-- [ ] **Not Bandwagon** — not following competitors blindly (they may be wrong)
-- [ ] **Price justified by OUR costs** — not just "market rate"
-- [ ] **"Perceived value" backed by evidence** — not assumptions
-- [ ] **Not False Cause** — not assuming high price = high sales
-- [ ] **Competitor data is current** — not outdated prices
-- [ ] **Sample size sufficient** — checked 3+ competitors, not just 1
-
-### Verification Gate (Competitor Check):
-> "Competitor check: [Product] sells for $[X]-$[Y] on [Amazon/Etsy]. Our cost is $[Z]. Setting price at $[P] (margin: [M]%)."
-
-If competitors are ALL below our minimum → **flag to Francisco before listing**.
+**Minimum:** Check 3+ competitors. One data point is not research.
 
 ---
 
-## Real Example (from BuckyDrop)
+## Pricing Decision
+
+```
+TOTAL COST × 2 = Minimum Price (50% profit)
+Competitor Average = Market Price
+```
+
+| Situation                  | Action                                                                |
+| -------------------------- | --------------------------------------------------------------------- |
+| Market price > our minimum | Price competitively within range. More margin = good.                 |
+| Market price ≈ our minimum | Price at minimum. Tight but viable.                                   |
+| Market price < our minimum | ⚠️ FLAG to Francisco. Options: cheaper source, lower margin, or skip. |
+
+**Sweet spot:** Slightly below competitor average BUT always above our minimum.
+
+---
+
+## Output Format (for task card)
+
+```
+### Product: [Name]
+├── Product:      $X.XX
+├── Domestic:     $X.XX
+├── Intl (Yun):   $X.XX
+├── BD fees:      $X.XX
+├── Marketing:    $X.XX (15%)
+├── TOTAL COST:   $X.XX
+├── Min price:    $X.XX (50% profit)
+├── Competitors:  $XX - $XX (Amazon/Etsy, N sellers)
+└── RECOMMENDED:  $XX.XX (margin: XX.X%)
+```
+
+---
+
+## Real Example
 
 Product: Red Heart Sweatshirt (150g, shipped to USA)
 
-| Component | CNY | USD |
-|-----------|-----|-----|
-| Product price | ¥36.9 | $5.19 |
-| Domestic Shipping | ¥6 | $0.84 |
-| Global Shipping (USA) | ¥46.65 | $6.56 |
-| Platform service | ¥5.5 | $0.77 |
-| Value-added services | ¥13.1 | $1.84 |
-| **TOTAL COST** | **¥108.15** | **$15.21** |
-
-**Minimum Price (50% profit):** $15.21 × 1.5 = **$22.82 → round to $22.99 or $24.99**
-
----
-
-## Quick Calculation
-
-| Cost | Minimum Price | Profit Margin |
-|------|---------------|---------------|
-| $5   | $10           | 50%           |
-| $10  | $20           | 50%           |
-| $15  | $30           | 50%           |
-| $20  | $40           | 50%           |
-| $25  | $50           | 50%           |
-| $30  | $60           | 50%           |
-
-**Formula:** Just double the cost. That's your floor.
+| Component                  | Amount                        |
+| -------------------------- | ----------------------------- |
+| Product price              | $5.19                         |
+| Domestic shipping          | $0.84                         |
+| Intl shipping (YunExpress) | $6.56                         |
+| Platform fees              | $2.61                         |
+| Marketing (15%)            | $2.28                         |
+| **TOTAL COST**             | **$17.48**                    |
+| **Min price (×2)**         | **$34.96 → $34.99**           |
+| Competitors                | $22.99 - $38.99 (Amazon/Etsy) |
+| **Recommended**            | **$34.99 (margin: 50.1%)**    |
 
 ---
 
-## Verification Gate
+## Quick Reference
 
-**Before setting ANY price, state BOTH:**
-
-> "Pricing check: Cost is $[X]. Minimum price (×1.5) is $[Y]."
-> "Competitor check: Similar items sell for $[A]-$[B] on [platform]. Setting price to $[Z] ([M]% margin)."
-
-**Red flags:**
-- If Z < Y → STOP. You're pricing too low.
-- If Z > B (highest competitor) → STOP. You may not sell.
-- If Y > A (competitors cheaper than our minimum) → FLAG to Francisco.
+| Total Cost | Min Price | You Keep |
+| ---------- | --------- | -------- |
+| $10        | $20       | $10      |
+| $15        | $30       | $15      |
+| $20        | $40       | $20      |
+| $25        | $50       | $25      |
+| $30        | $60       | $30      |
 
 ---
 
 ## Compare-At Pricing (Optional)
 
-For perceived value, you can set a compare-at (strikethrough) price:
+Create perceived value with strikethrough pricing:
 
-- Actual price: 2× cost (minimum)
-- Compare-at: 2.5× to 3× cost (creates "sale" perception)
+- Selling price: 2× cost (minimum)
+- Compare-at: 2.5-3× cost (shows "sale")
 
-Example:
-- Cost: $15
-- Price: $30 (2× - minimum)
-- Compare-at: $45 (3× - perceived discount)
+Example: Cost $15 → Price $30 → Compare-at $45 (looks like 33% off)
 
 ---
 
-## Red Flags (STOP and recalculate)
+## Red Flags
 
-🚩 Price is less than cost (losing money on every sale)
-🚩 Price is between 1× and 2× cost (losing money after fees)
-🚩 You're "guessing" the price without knowing cost
-🚩 Someone suggests a price without cost basis
-
-**If any red flag appears:** STOP, get the exact cost, apply 2× formula.
-
----
-
-## Exception Process
-
-The ONLY way to price below 2× cost:
-
-1. Francisco explicitly says "price this at $X even though margin is low"
-2. You document the exception in memory
-3. You note it's a deliberate exception, not the rule
-
-**No other exception is valid.**
+- Price < total cost × 2 without Francisco's approval
+- Missing ANY cost component (especially marketing allocation)
+- Competitor data from fewer than 3 sources
+- "Guessing" price without knowing exact BuckyDrop costs
+- Competitors all below our minimum → FLAG, don't list
