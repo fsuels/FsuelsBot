@@ -189,8 +189,8 @@ Options: find cheaper source, accept 40% margin, or skip.
 5. **Tags:** color + collection + relationship + brand + product type
 6. **Collections:** "Mommy and Me" (always) + seasonal + category
 7. **Images:** Upload all product images from 1688
-8. **Size chart:** Extract from 1688 data, convert sizes (Kids: 80-150cm, Adults: S-3XL)
-9. **Variants:** All sizes with APPROVED price
+8. **Size chart:** Follow `procedures/size-chart-guide.md` — extract 1688 measurements, build HTML table with inline CSS, include "sizes run small" warning + "How to Measure" guide, show both inches & CM
+9. **Variants:** Follow `procedures/size-chart-guide.md` § 4 — use US-friendly labels like `3T (100cm)` for kids, `M (US S)` for adults. For sets: Option 1 = Mom Size, Option 2 = Child Size. Every variant needs SKU, price, weight.
 10. **Save as DRAFT** — NEVER publish active
 
 ### Output (written to task card):
