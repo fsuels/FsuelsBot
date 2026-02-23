@@ -11,8 +11,9 @@
 
 ## Mission Control
 
-- URL: http://localhost:8765/ (separate from OpenClaw gateway at :18789)
-- Source: `workspace/mission-control/index.html` (single HTML file + Python server)
+- URL: http://localhost:18789 (served by OpenClaw gateway)
+- Mobile: http://192.168.7.50:18789
+- Note: Previously ran on port 8765 via separate Python server (Windows era); now integrated into gateway
 - User requested full task/cron reset and delete functionality fixes
 - Cron delete/count behavior was patched; UI count shows zero
 - Task card UI improvement is queued
