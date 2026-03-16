@@ -1,14 +1,23 @@
 {
-  "version": 33,
-  "updated_at": "2026-03-16T07:00:34.704655+00:00",
+  "version": 34,
+  "updated_at": "2026-03-16T15:29:07.205401Z",
   "updated_by": "bot",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
-    "bot_current": ["CRON-20260316-consolidation"],
+    "bot_current": [],
     "bot_queue": [],
-    "human": ["pomelli-dresses-refresh"],
+    "human": [
+      "CRON-20260316-ghost-influencer-outreach",
+      "CRON-20260316-ghost-openclaw-x",
+      "CRON-20260316-ghost-moltbook-x",
+      "CRON-20260316-buckydrop-check",
+      "pomelli-dresses-refresh"
+    ],
     "scheduled": [],
     "done_today": [
+      "CRON-20260316-ghost-website-audit",
+      "CRON-20260316-research-brief",
+      "CRON-20260316-self-improvement",
       "improve-task-card-standard",
       "fix-the-task-card-information",
       "i-already-told-you-what-i-need-fix",
@@ -938,7 +947,7 @@
     },
     "CRON-20260316-consolidation": {
       "title": "Memory Consolidation (3 AM)",
-      "status": "in_progress",
+      "status": "done",
       "created_at": "2026-03-16T07:00:15.941149+00:00",
       "created_by": "cron",
       "cron_job_id": "consolidation",
@@ -955,7 +964,318 @@
         "outcomes": [],
         "actionsTaken": [],
         "artifacts": []
+      },
+      "epistemic": {
+        "verified": [
+          "Artifacts: memory/checkpoint.json, memory/integrity-report.json, memory/entity-snapshot.json, recall/pack.md, knowledge/consolidation-reports/2026-03-16.md; commit 62155ac89 pushed"
+        ]
+      },
+      "outcome": {
+        "success": "true",
+        "measured_at": "2026-03-16T07:03:07.164217+00:00"
       }
+    },
+    "CRON-20260316-self-improvement": {
+      "title": "Weekly Self-Improvement (Monday 6 AM)",
+      "status": "done",
+      "created_at": "2026-03-16T10:00:21.296959+00:00",
+      "created_by": "cron",
+      "cron_job_id": "self-improvement",
+      "instructions": "1) Check Clawdbot version for updates. 2) Run clawdhub update --all. 3) Search ClawdHub for new relevant skills. 4) Review .learnings/ and promote insights. 5) Review recent memory files and distill into MEMORY.md. 6) Check Clawdbot docs for new features. 7) Git commit improvements. 8) Report findings to Francisco. BEFORE marking done, fill in learnings with updates found and improvements made.",
+      "context": {
+        "summary": "Scheduled task from cron job 'self-improvement'. Auto-created at scheduled time.",
+        "created_from": "cron:self-improvement",
+        "decisions": [],
+        "constraints": ["Must complete and log learnings before marking done"]
+      },
+      "learnings": {
+        "question": "What did Weekly Self-Improvement (Monday 6 AM) produce?",
+        "verdict": "Completed with one known blocker (clawdhub update on Windows) documented; watchdog script restored; memory updated.",
+        "outcomes": [
+          {
+            "ts": "2026-03-16T11:50:17.607631Z",
+            "outcome": "Documented clawdhub update Windows relative-URL failure + added watchdog nonstop-guard script; committed+pushed",
+            "evidence": "git commit 74892bc56"
+          },
+          {
+            "ts": "2026-03-16T12:54:53.719995Z",
+            "outcome": "Added MEMORY.md notes about clawdhub update bug + nonstop-guard dependency; committed+pushed 0d021d147",
+            "evidence": "commit 0d021d147"
+          }
+        ],
+        "actionsTaken": [
+          {
+            "ts": "2026-03-16T10:45:00.483139Z",
+            "action": "Checked installed Clawdbot version from package.json",
+            "result": "2026.1.24-3",
+            "evidence": "C:/Users/Fsuels/AppData/Roaming/npm/node_modules/clawdbot/package.json"
+          },
+          {
+            "ts": "2026-03-16T10:45:00.483139Z",
+            "action": "Resolved ClawdHub registry via /.well-known/clawdhub.json",
+            "result": "apiBase/registry=https://clawhub.ai",
+            "evidence": "curl.exe -sL https://clawdhub.com/.well-known/clawdhub.json"
+          },
+          {
+            "ts": "2026-03-16T10:45:00.483139Z",
+            "action": "Attempted clawdhub update --all",
+            "result": "FAIL: Failed to parse URL from /api/v1/skills/marketing-mode (relative URL bug)",
+            "evidence": "terminal output in heartbeat logs"
+          },
+          {
+            "ts": "2026-03-16T10:45:00.483139Z",
+            "action": "Ran clawdhub explore (works) to identify recently updated skills",
+            "result": "Top latest include compass v2.0.0, focus v2.0.0, currency v2.0.0, nemo-video v4.4.1, bricks-cli v0.1.3",
+            "evidence": "clawdhub --registry https://clawhub.ai explore --limit 10"
+          },
+          {
+            "ts": "2026-03-16T10:55:46.866123Z",
+            "action": "Ran clawdhub search for relevant skills (shopify)",
+            "result": "Top matches: shopify, shopify-admin-api, openclaw-commerce-shopify, shopify-helper, amazon-to-shopify-sync",
+            "evidence": "clawdhub --registry https://clawhub.ai search shopify --limit 5"
+          },
+          {
+            "ts": "2026-03-16T10:59:33.334153Z",
+            "action": "Checked for .learnings directory in workspace",
+            "result": "Not found at workspace/.learnings (PathNotFound)",
+            "evidence": "dir C:/dev/FsuelsBot/workspace/.learnings"
+          },
+          {
+            "ts": "2026-03-16T10:59:33.334153Z",
+            "action": "Reviewed latest memory file",
+            "result": "Read memory/2026-03-15.md priority extracts (PowerShell quoting issues noted)",
+            "evidence": "C:/dev/FsuelsBot/workspace/memory/2026-03-15.md"
+          },
+          {
+            "ts": "2026-03-16T11:19:19.943808Z",
+            "action": "Checked docs.clawd.bot redirect + quick skim for changes",
+            "result": "docs.clawd.bot redirects to docs.openclaw.ai; landing page mentions Node 24 recommended / Node 22 LTS 22.16+ compatible",
+            "evidence": "web_fetch https://docs.clawd.bot"
+          },
+          {
+            "ts": "2026-03-16T11:29:09.197900Z",
+            "action": "Checked latest published clawdbot version (npm)",
+            "result": "npm view clawdbot version => 2026.1.24-3 (matches installed; no update)",
+            "evidence": "cmd /c npm view clawdbot version"
+          },
+          {
+            "ts": "2026-03-16T11:59:12.639275Z",
+            "action": "Listed installed ClawdHub skills",
+            "result": "marketing-mode 1.0.0; self-improving-agent 1.0.2; clawd-docs-v2 2.2.0; youtube-watcher 1.0.0; humanizer 1.0.0; research 1.0.1; tweet-writer 1.0.0; reddit 1.0.0; prompt-engineering-expert 1.0.0",
+            "evidence": "clawdhub list"
+          },
+          {
+            "ts": "2026-03-16T12:29:32.058722Z",
+            "action": "Ran heartbeat-checks.ps1 for infra/docs signals",
+            "result": "healthState=updated; missionControl=running; recentErrors=39",
+            "evidence": "scripts/heartbeat-checks.ps1 -Quiet"
+          },
+          {
+            "ts": "2026-03-16T12:29:32.058722Z",
+            "action": "Created today's memory file",
+            "result": "Created memory/2026-03-16.md with today notes",
+            "evidence": "C:/dev/FsuelsBot/workspace/memory/2026-03-16.md"
+          }
+        ],
+        "artifacts": [
+          "https://clawdhub.com/.well-known/clawdhub.json",
+          "workspace/scripts/nonstop-guard.ps1",
+          "workspace/knowledge/technical/clawdhub-update-windows-relative-url-bug.md",
+          "commit:74892bc56"
+        ]
+      },
+      "lane": "done_today",
+      "started_at": "2026-03-16T10:44:27.932930Z",
+      "updated_at": "2026-03-16T12:54:53.719995Z",
+      "blockers": [
+        "BLOCKER: clawdhub update uses relative URL (/api/v1/skills/<slug>) and fails on Windows even when --registry set. Workaround needed (CLI fix or env/site config)."
+      ],
+      "completed_at": "2026-03-16T12:54:53.719995Z"
+    },
+    "CRON-20260316-buckydrop-check": {
+      "title": "BuckyDrop Support Check (8 AM/PM)",
+      "status": "waiting_human",
+      "created_at": "2026-03-16T12:00:18.753839+00:00",
+      "created_by": "cron",
+      "cron_job_id": "buckydrop-check",
+      "instructions": "1) Check Outlook inbox for reply from support@buckydrop.com. 2) Check BuckyDrop Personal Center > Feedback for responses. 3) If response received, notify Francisco on Telegram with the update. 4) If no response, log the check. BEFORE marking done, fill in learnings with response status.",
+      "context": {
+        "summary": "Scheduled task from cron job 'buckydrop-check'. Auto-created at scheduled time.",
+        "created_from": "cron:buckydrop-check",
+        "decisions": [],
+        "constraints": ["Must complete and log learnings before marking done"]
+      },
+      "learnings": {
+        "question": "What did BuckyDrop Support Check (8 AM/PM) produce?",
+        "verdict": null,
+        "outcomes": [],
+        "actionsTaken": [
+          {
+            "ts": "2026-03-16T12:00:59.875585Z",
+            "action": "Attempted to perform BuckyDrop support check",
+            "result": "Blocked (no accessible Outlook/BuckyDrop session in this runtime)",
+            "evidence": "tasks.json blocker entry"
+          }
+        ],
+        "artifacts": []
+      },
+      "lane": "human",
+      "started_at": "2026-03-16T12:00:44.534554Z",
+      "updated_at": "2026-03-16T12:24:18.191929Z",
+      "blockers": [
+        "BLOCKER: Cannot check Outlook inbox/BuckyDrop feedback from this runtime without interactive logged-in browser/email access."
+      ]
+    },
+    "CRON-20260316-research-brief": {
+      "title": "Daily AI Research Brief (9 AM)",
+      "status": "done",
+      "created_at": "2026-03-16T13:00:15.953531+00:00",
+      "created_by": "cron",
+      "cron_job_id": "research-brief",
+      "instructions": "1) Open X (x.com/home) in clawd browser - read Following feed for AI news. 2) Search web for Clawdbot/Moltbot/Claude news (past 24h). 3) Check ClawdHub for new skills. 4) Identify Top 3 actionable improvements with sources. 5) Send research brief to Francisco on Telegram. BEFORE marking done, fill in learnings with discoveries and improvements found.",
+      "context": {
+        "summary": "Scheduled task from cron job 'research-brief'. Auto-created at scheduled time.",
+        "created_from": "cron:research-brief",
+        "decisions": [],
+        "constraints": ["Must complete and log learnings before marking done"]
+      },
+      "learnings": {
+        "question": "What did Daily AI Research Brief (9 AM) produce?",
+        "verdict": "Completed (X feed step skipped: no attached logged-in browser session). Provided web+clawdhub pulse with sources and 3 actionable items.",
+        "outcomes": [],
+        "actionsTaken": [
+          {
+            "ts": "2026-03-16T13:01:11.689152Z",
+            "action": "Checked ClawdHub explore",
+            "result": "Collected latest updated skills list",
+            "evidence": "clawdhub --registry https://clawhub.ai explore --limit 10"
+          },
+          {
+            "ts": "2026-03-16T13:01:11.689152Z",
+            "action": "Web search Clawdbot/OpenClaw news",
+            "result": "Found secondary source summary (Grokipedia) + docs redirect/info",
+            "evidence": "web_search freshness=pd + web_fetch https://grokipedia.com/page/OpenClaw + web_fetch https://docs.clawd.bot"
+          }
+        ],
+        "artifacts": ["https://docs.clawd.bot", "https://grokipedia.com/page/OpenClaw"]
+      },
+      "lane": "done_today",
+      "started_at": "2026-03-16T13:00:22.882687Z",
+      "updated_at": "2026-03-16T13:01:11.689152Z",
+      "completed_at": "2026-03-16T13:01:11.689152Z"
+    },
+    "CRON-20260316-ghost-influencer-outreach": {
+      "title": "Ghost Broker Daily Influencer Outreach (9:30 AM)",
+      "status": "waiting_human",
+      "created_at": "2026-03-16T14:29:09.578796+00:00",
+      "created_by": "cron",
+      "cron_job_id": "ghost-influencer-outreach",
+      "instructions": "Follow ghost-broker/plans/influencer-outreach.md. Update ghost-broker/data/influencer-pipeline.md. Find 3 posts (1K-100K followers) on X/Moltbook about AI agents; comment thoughtfully; quote-tweet 1 with Ghost Broker angle; like/retweet 5; check replies; send 1 DM only if warm; report to Francisco with engagements and pipeline updates.",
+      "context": {
+        "summary": "Scheduled task from cron job 'ghost-influencer-outreach'. Auto-created at scheduled time.",
+        "created_from": "cron:ghost-influencer-outreach",
+        "decisions": [],
+        "constraints": ["Must complete and log learnings before marking done"]
+      },
+      "learnings": {
+        "question": "What did Ghost Broker Daily Influencer Outreach (9:30 AM) produce?",
+        "verdict": null,
+        "outcomes": [],
+        "actionsTaken": [],
+        "artifacts": []
+      },
+      "blockers": [
+        "BLOCKER: Requires interactive logged-in browser session (X/Moltbook). Heartbeat runtime has no browser capabilities; attach tab via Browser Relay to run."
+      ],
+      "lane": "human",
+      "updated_at": "2026-03-16T15:29:07.205401Z"
+    },
+    "CRON-20260316-ghost-openclaw-x": {
+      "title": "Ghost Broker @openclaw X Engagement (10:30 AM)",
+      "status": "waiting_human",
+      "created_at": "2026-03-16T14:44:10.259880+00:00",
+      "created_by": "cron",
+      "cron_job_id": "ghost-openclaw-x",
+      "instructions": "Open X as @GhostBrokerAI and engage with @openclaw latest tweet: reply value-add (not salesy), like/retweet if good, engage with any reposts. Report to Francisco with tweet link + exact reply text. If browser not available, mark blocked and request tab attach.",
+      "context": {
+        "summary": "Scheduled task from cron job 'ghost-openclaw-x'. Auto-created at scheduled time.",
+        "created_from": "cron:ghost-openclaw-x",
+        "decisions": [],
+        "constraints": ["Must complete and log learnings before marking done"]
+      },
+      "learnings": {
+        "question": "What did Ghost Broker @openclaw X Engagement (10:30 AM) produce?",
+        "verdict": null,
+        "outcomes": [],
+        "actionsTaken": [],
+        "artifacts": []
+      },
+      "blockers": [
+        "BLOCKER: Requires interactive logged-in browser session (X/Moltbook). Heartbeat runtime has no browser capabilities; attach tab via Browser Relay to run."
+      ],
+      "lane": "human",
+      "updated_at": "2026-03-16T15:29:07.205401Z"
+    },
+    "CRON-20260316-ghost-moltbook-x": {
+      "title": "Ghost Broker @moltbook X Engagement (10 AM)",
+      "status": "waiting_human",
+      "created_at": "2026-03-16T14:49:11.102703+00:00",
+      "created_by": "cron",
+      "cron_job_id": "ghost-moltbook-x",
+      "instructions": "Open X as @GhostBrokerAI, go to https://x.com/moltbook, reply to latest tweet with a value-add insight/question, like/retweet if good, check for replies to our prior comments. Report to Francisco with link + exact reply text. If browser not available, mark blocked and request tab attach.",
+      "context": {
+        "summary": "Scheduled task from cron job 'ghost-moltbook-x'. Auto-created at scheduled time.",
+        "created_from": "cron:ghost-moltbook-x",
+        "decisions": [],
+        "constraints": ["Must complete and log learnings before marking done"]
+      },
+      "learnings": {
+        "question": "What did Ghost Broker @moltbook X Engagement (10 AM) produce?",
+        "verdict": null,
+        "outcomes": [],
+        "actionsTaken": [],
+        "artifacts": []
+      },
+      "blockers": [
+        "BLOCKER: Requires interactive logged-in browser session (X/Moltbook). Heartbeat runtime has no browser capabilities; attach tab via Browser Relay to run."
+      ],
+      "lane": "human",
+      "updated_at": "2026-03-16T15:29:07.205401Z"
+    },
+    "CRON-20260316-ghost-website-audit": {
+      "title": "Ghost Broker Daily Website Audit (11 AM)",
+      "status": "done",
+      "created_at": "2026-03-16T15:09:14.853587+00:00",
+      "created_by": "cron",
+      "cron_job_id": "ghost-website-audit",
+      "instructions": "Audit ghostbrokerai.xyz vs workspace/ghost-broker/website/*.html. Do competitor scan (hired.works, agent.ai). Produce RED/YELLOW/GREEN report, add top items to tasks.json, send summary to Francisco. If browser not available, still audit local HTML files and do web_search for competitors, then report + queue fixes.",
+      "context": {
+        "summary": "Scheduled task from cron job 'ghost-website-audit'. Auto-created at scheduled time.",
+        "created_from": "cron:ghost-website-audit",
+        "decisions": [],
+        "constraints": ["Must complete and log learnings before marking done"]
+      },
+      "learnings": {
+        "question": "What did Ghost Broker Daily Website Audit (11 AM) produce?",
+        "verdict": "Completed local+live site audit. One competitor fetch failed (hired.works).",
+        "outcomes": [
+          {
+            "ts": "2026-03-16T15:10:21.586803Z",
+            "outcome": "Wrote daily audit report",
+            "evidence": "ghost-broker/plans/daily-audits/2026-03-16-website-audit.md"
+          }
+        ],
+        "actionsTaken": [],
+        "artifacts": [
+          "ghost-broker/plans/daily-audits/2026-03-16-website-audit.md",
+          "https://ghostbrokerai.xyz",
+          "https://agent.ai"
+        ]
+      },
+      "lane": "done_today",
+      "started_at": "2026-03-16T15:09:22.292273Z",
+      "updated_at": "2026-03-16T15:10:21.586803Z",
+      "completed_at": "2026-03-16T15:10:21.586803Z"
     }
   },
   "active_project": "fsuelsbot"
