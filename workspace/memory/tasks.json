@@ -1,10 +1,10 @@
 {
-  "version": 30,
-  "updated_at": "2026-03-16T03:45:23.109711+00:00",
+  "version": 33,
+  "updated_at": "2026-03-16T07:00:34.704655+00:00",
   "updated_by": "bot",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
-    "bot_current": ["CRON-20260315-backup"],
+    "bot_current": ["CRON-20260316-consolidation"],
     "bot_queue": [],
     "human": ["pomelli-dresses-refresh"],
     "scheduled": [],
@@ -910,7 +910,7 @@
     },
     "CRON-20260315-backup": {
       "title": "Daily GitHub Backup (11:45 PM)",
-      "status": "in_progress",
+      "status": "done",
       "created_at": "2026-03-16T03:45:07.623569+00:00",
       "created_by": "cron",
       "cron_job_id": "backup",
@@ -923,6 +923,34 @@
       },
       "learnings": {
         "question": "What did Daily GitHub Backup (11:45 PM) produce?",
+        "verdict": null,
+        "outcomes": [],
+        "actionsTaken": [],
+        "artifacts": []
+      },
+      "epistemic": {
+        "verified": ["git commit 5e20623f5 pushed to origin/main"]
+      },
+      "outcome": {
+        "success": "true",
+        "measured_at": "2026-03-16T03:46:18.005026+00:00"
+      }
+    },
+    "CRON-20260316-consolidation": {
+      "title": "Memory Consolidation (3 AM)",
+      "status": "in_progress",
+      "created_at": "2026-03-16T07:00:15.941149+00:00",
+      "created_by": "cron",
+      "cron_job_id": "consolidation",
+      "instructions": "Follow knowledge/procedures/memory-consolidation.md EXACTLY. 1) Git safety net first. 2) Read today's memory file. 3) Extract events to ledger.jsonl. 4) Update knowledge files. 5) Check open loops. 6) Run integrity checks. 7) Regenerate recall/pack.md. 8) Git commit all changes. BEFORE marking done, fill in learnings with what was produced.",
+      "context": {
+        "summary": "Scheduled task from cron job 'consolidation'. Auto-created at scheduled time.",
+        "created_from": "cron:consolidation",
+        "decisions": [],
+        "constraints": ["Must complete and log learnings before marking done"]
+      },
+      "learnings": {
+        "question": "What did Memory Consolidation (3 AM) produce?",
         "verdict": null,
         "outcomes": [],
         "actionsTaken": [],
