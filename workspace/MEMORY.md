@@ -63,6 +63,8 @@ Peak: ~$100K/yr (pandemic); dropped to ~$15K/yr after focus shift to crypto.
 ## Key Technical Notes
 
 - **Large sessions crash** (118K+ tokens) → Keep sessions compact, use /compact
+- **ClawdHub CLI (Windows) update bug:** `clawdhub update --all` can fail with `Failed to parse URL from /api/v1/skills/<slug>` due to a relative-URL resolution issue; `explore/search` work with `--registry https://clawhub.ai`. See: `workspace/knowledge/technical/clawdhub-update-windows-relative-url-bug.md`.
+- **Watchdog dependency:** `WATCHDOG_NONSTOP_GUARD` expects `workspace/scripts/nonstop-guard.ps1` to exist (created 2026-03-16).
 - Gateway launchd: `~/Library/LaunchAgents/bot.molt.gateway.plist`
 - Session state: `~/.clawdbot/agents/main/sessions/sessions.json`
 - Config: `~/.clawdbot/moltbot.json`
