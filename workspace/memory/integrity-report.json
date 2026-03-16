@@ -1,0 +1,16 @@
+{
+  "ts": "2026-03-16T07:02:45Z",
+  "checks_passed": 4,
+  "checks_failed": 0,
+  "failures": [],
+  "warnings": [
+    "Daily memory file missing for 2026-03-16 (no new events extracted).",
+    "Ledger schema uses {ts, kind, fact, source_session}; procedure v1.0 expects {id,type,...}. No transformation performed this run."
+  ],
+  "checks": {
+    "ledger_json_valid": true,
+    "ledger_nonempty_lines": 13,
+    "open_loops_index_valid": true,
+    "checkpoint_valid": true
+  }
+}

@@ -1,31 +1,30 @@
-﻿# Recall Pack - 2026-02-02
-*Auto-generated context for session start*
+# Recall Pack - 2026-03-16
+
+_Auto-generated context for session start (lightweight)_
 
 ## Current State
-- **Status:** Idle - awaiting task assignment
-- **Last work:** T215 complete (Anthropic best practices: Plan Mode, MCP, Hooks)
-- **Agent Squad:** Added to Mission Control - clickable profiles
 
-## Open Loops (Human)
-- T174: GB Arena 2.0 Campaign - Steps 4-5 need human (send DMs, post Discord)
-- Tawk.to color change (#6366f1)
-- Activate agent squad?
+- **Status:** Maintenance / cron
+- **Current task:** CRON-20260316-consolidation (Memory Consolidation 3 AM)
+- **Mission Control:** running (per heartbeat-checks.ps1)
 
-## Key Artifacts Created
-- agents/*.md (7 files) - Agent profiles
-- procedures/plan-mode.md - 6-phase planning
-- procedures/peer-review.md - Mandatory review
-- scripts/validate-tasks-integrity.ps1 - Corruption prevention
-- .claude/hooks/*.cjs (5 files) - Deterministic hooks
-- mission-control/index.html - Agent Squad panel + profile viewer
+## Open Loops (Index)
 
-## Standing Rules
-- TASK ID IN EVERY RESPONSE
-- VALIDATE tasks.json BEFORE ANY WRITE
-- MISSION CONTROL ALWAYS OPEN (Tab 1)
-- INBOX FIRST before analysis
+- Open commitments: 0 (memory/index/open-loops.json)
 
-## Stats
-- Events: 327 in ledger
-- Human queue: 16 tasks
-- Bot queue: 27 tasks
+## Recent Ships (evidence)
+
+- `knowledge/gmc-reinstatement-best-practices.md` (commit 5be412d70)
+- `workspace/scripts/*` restored (commit 076f9ee4d)
+
+## Standing Rules (high signal)
+
+- VALIDATE `memory/tasks.json` BEFORE ANY WRITE
+- Receipts rule: never claim tools/actions without observable output
+- One task per session; switch via `/task`
+
+## Quick Stats
+
+- Ledger lines: 13 (`memory/ledger.jsonl`)
+- Human lane size: 1
+- Bot queue size: 0
