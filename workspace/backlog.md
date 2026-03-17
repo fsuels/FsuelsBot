@@ -17,11 +17,11 @@ _Updated by: nightly compound loop, curiosity engine, manual additions_
 
 ### GMC Reinstatement (CRITICAL — Distribution Blocked)
 
-| Task                                      | Persona | Revenue Impact | Confidence | Human Min | Risk | TPS  | Status  |
-| ----------------------------------------- | ------- | -------------- | ---------- | --------- | ---- | ---- | ------- |
-| Audit GMC suspension requirements         | Traffic | 10             | 0.8        | 10        | 1    | 0.80 | pending |
-| Fix product data feed issues              | Catalog | 10             | 0.6        | 15        | 2    | 0.20 | pending |
-| Research GMC reinstatement best practices | Traffic | 9              | 0.9        | 3         | 1    | 2.70 | pending |
+| Task                                      | Persona | Revenue Impact | Confidence | Human Min | Risk | TPS  | Status                                                   |
+| ----------------------------------------- | ------- | -------------- | ---------- | --------- | ---- | ---- | -------------------------------------------------------- |
+| Audit GMC suspension requirements         | Traffic | 10             | 0.8        | 10        | 1    | 0.80 | pending                                                  |
+| Fix product data feed issues              | Catalog | 10             | 0.6        | 15        | 2    | 0.20 | pending                                                  |
+| Research GMC reinstatement best practices | Traffic | 9              | 0.9        | 3         | 1    | 2.70 | done (see knowledge/gmc-reinstatement-best-practices.md) |
 
 ### Store Optimization (Ongoing)
 
