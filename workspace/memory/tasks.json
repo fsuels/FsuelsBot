@@ -1,6 +1,6 @@
 {
-  "version": 45,
-  "updated_at": "2026-03-17T22:50:00.759983+00:00",
+  "version": 46,
+  "updated_at": "2026-03-17T23:40:02.841740+00:00",
   "updated_by": "maintenance",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
@@ -43,7 +43,10 @@
       "we-need-to-improve-the-task-card",
       "research-review-heartbeat-md",
       "research-review-heartbeat-md-2",
-      "research-review-heartbeat-md-3"
+      "research-review-heartbeat-md-3",
+      "CRON-20260315-ship",
+      "CRON-20260315-backup",
+      "CRON-20260316-consolidation"
     ],
     "trash": ["fix-that-and-make-sure-that-never-happens-again"]
   },
@@ -932,7 +935,8 @@
           "message": "Shipped GMC reinstatement checklist doc; sources cited; committed+push: 5be412d70",
           "crossed_out": false
         }
-      ]
+      ],
+      "updated_at": "2026-03-17T23:40:02.841740+00:00"
     },
     "CRON-20260315-backup": {
       "title": "Daily GitHub Backup (11:45 PM)",
@@ -960,7 +964,8 @@
       "outcome": {
         "success": "true",
         "measured_at": "2026-03-16T03:46:18.005026+00:00"
-      }
+      },
+      "updated_at": "2026-03-17T23:40:02.841740+00:00"
     },
     "CRON-20260316-consolidation": {
       "title": "Memory Consolidation (3 AM)",
@@ -990,7 +995,8 @@
       "outcome": {
         "success": "true",
         "measured_at": "2026-03-16T07:03:07.164217+00:00"
-      }
+      },
+      "updated_at": "2026-03-17T23:40:02.841740+00:00"
     },
     "CRON-20260316-self-improvement": {
       "title": "Weekly Self-Improvement (Monday 6 AM)",
