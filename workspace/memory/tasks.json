@@ -1,12 +1,14 @@
 {
   "version": 34,
-  "updated_at": "2026-03-17T13:30:16.314265+00:00",
+  "updated_at": "2026-03-17T14:00:33.438180+00:00",
   "updated_by": "cron-to-task",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
     "bot_current": [],
     "bot_queue": [],
     "human": [
+      "CRON-20260317-ghost-credibility-monitor",
+      "CRON-20260317-ghost-moltbook-x",
       "CRON-20260317-ghost-influencer-outreach",
       "CRON-20260317-buckydrop-check",
       "CRON-20260316-epistemic-review-evening",
@@ -1625,6 +1627,61 @@
           "note": "Attempted to read ghost-broker/plans/influencer-outreach.md and ghost-broker/data/influencer-pipeline.md; both missing. plans/ folder exists but empty; data/ folder absent."
         }
       ]
+    },
+    "CRON-20260317-ghost-credibility-monitor": {
+      "title": "Ghost Broker Daily Credibility Monitor (10 AM)",
+      "status": "waiting_human",
+      "created_at": "2026-03-17T14:00:32.775133+00:00",
+      "created_by": "cron",
+      "cron_job_id": "ghost-credibility-monitor",
+      "instructions": "1) Read ghost-broker/scripts/credibility-monitor.md for execution guide. 2) Read ghost-broker/plans/credibility-building.md for current scores. 3) Check X @GhostBrokerAI: followers + engagement on last posts. 4) Check Moltbook: karma/followers/comments. 5) Web search: 'ghost broker ai' mentions; 'ai agent marketplace' conversations. 6) Identify competitor trust signals + new directories. 7) Propose 1 directory submission + 1 drafted response + website trust quick wins. 8) Update credibility-building.md; report to Francisco with metrics/opps/actions+blockers.",
+      "context": {
+        "summary": "Scheduled task from cron job 'ghost-credibility-monitor'. Auto-created at scheduled time.",
+        "created_from": "cron:ghost-credibility-monitor",
+        "decisions": [],
+        "constraints": ["Must complete and log learnings before marking done"]
+      },
+      "learnings": {
+        "question": "What did Ghost Broker Daily Credibility Monitor (10 AM) produce?",
+        "verdict": null,
+        "outcomes": [],
+        "actionsTaken": [],
+        "artifacts": []
+      },
+      "blocker": "Missing credibility monitor guide + credibility-building plan files.",
+      "notes": [
+        {
+          "ts": "2026-03-17T10:02:52.276813-04:00",
+          "note": "Missing ghost-broker/scripts/credibility-monitor.md and ghost-broker/plans/credibility-building.md; cannot update score as specified."
+        }
+      ]
+    },
+    "CRON-20260317-ghost-moltbook-x": {
+      "title": "Ghost Broker @moltbook X Engagement (10 AM)",
+      "status": "waiting_human",
+      "created_at": "2026-03-17T14:00:33.438126+00:00",
+      "created_by": "cron",
+      "cron_job_id": "ghost-moltbook-x",
+      "instructions": "1) Open X in clawd as @GhostBrokerAI. 2) Go to https://x.com/moltbook. 3) Read latest tweet and draft a value-add reply (not salesy). 4) Like/retweet if genuinely good. 5) Check for replies to our previous comments. 6) Report to Francisco with link + drafted reply text + suggested like/retweet.",
+      "context": {
+        "summary": "Scheduled task from cron job 'ghost-moltbook-x'. Auto-created at scheduled time.",
+        "created_from": "cron:ghost-moltbook-x",
+        "decisions": [],
+        "constraints": ["Must complete and log learnings before marking done"]
+      },
+      "learnings": {
+        "question": "What did Ghost Broker @moltbook X Engagement (10 AM) produce?",
+        "verdict": null,
+        "outcomes": ["Prepared value-add reply draft to @moltbook; awaiting approval to submit."],
+        "actionsTaken": ["Opened @moltbook and drafted reply in reply box (not submitted)."],
+        "artifacts": [
+          {
+            "type": "screenshot",
+            "path": "C:/Users/Fsuels/.clawdbot/media/browser/08d83f1f-47b2-4e08-917c-46857dcafb1d.jpg"
+          }
+        ]
+      },
+      "blocker": "Needs approval to post public reply/like/retweet on X."
     }
   },
   "active_project": "fsuelsbot"
