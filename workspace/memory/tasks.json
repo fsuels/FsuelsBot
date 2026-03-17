@@ -1,12 +1,13 @@
 {
   "version": 34,
-  "updated_at": "2026-03-17T07:03:33.662670Z",
-  "updated_by": "bot",
+  "updated_at": "2026-03-17T12:00:14.531651+00:00",
+  "updated_by": "cron-to-task",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
     "bot_current": [],
     "bot_queue": [],
     "human": [
+      "CRON-20260317-buckydrop-check",
       "CRON-20260316-epistemic-review-evening",
       "CRON-20260316-ghost-influencer-outreach",
       "CRON-20260316-ghost-openclaw-x",
@@ -1497,6 +1498,34 @@
       "started_at": "2026-03-17T07:03:03.958099Z",
       "updated_at": "2026-03-17T07:03:33.662670Z",
       "completed_at": "2026-03-17T07:03:33.662670Z"
+    },
+    "CRON-20260317-buckydrop-check": {
+      "title": "BuckyDrop Support Check (8 AM/PM)",
+      "status": "waiting_human",
+      "created_at": "2026-03-17T12:00:14.531632+00:00",
+      "created_by": "cron",
+      "cron_job_id": "buckydrop-check",
+      "instructions": "1) Check Outlook inbox for reply from support@buckydrop.com. 2) Check BuckyDrop Personal Center > Feedback for responses. 3) If response received, notify Francisco on Telegram with the update. 4) If no response, log the check. BEFORE marking done, fill in learnings with response status.",
+      "context": {
+        "summary": "Scheduled task from cron job 'buckydrop-check'. Auto-created at scheduled time.",
+        "created_from": "cron:buckydrop-check",
+        "decisions": [],
+        "constraints": ["Must complete and log learnings before marking done"]
+      },
+      "learnings": {
+        "question": "What did BuckyDrop Support Check (8 AM/PM) produce?",
+        "verdict": null,
+        "outcomes": [],
+        "actionsTaken": [],
+        "artifacts": []
+      },
+      "notes": [
+        {
+          "ts": "2026-03-17T08:49:00-04:00",
+          "note": "Checked Outlook search for support@buckydrop.com: no new support reply; only automated notices. Reached BuckyDrop login page but missing credentials to check Personal Center > Feedback."
+        }
+      ],
+      "blocker": "Need BuckyDrop account email+password to log in and check Personal Center > Feedback."
     }
   },
   "active_project": "fsuelsbot"
