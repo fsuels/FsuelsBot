@@ -1,10 +1,10 @@
 {
   "version": 34,
-  "updated_at": "2026-03-17T03:01:16.900773Z",
+  "updated_at": "2026-03-17T03:45:39.829720Z",
   "updated_by": "bot",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
-    "bot_current": [],
+    "bot_current": ["CRON-20260316-backup"],
     "bot_queue": [],
     "human": [
       "CRON-20260316-epistemic-review-evening",
@@ -1418,6 +1418,30 @@
       "started_at": "2026-03-17T03:00:28.849925Z",
       "updated_at": "2026-03-17T03:01:16.900773Z",
       "completed_at": "2026-03-17T03:01:16.900773Z"
+    },
+    "CRON-20260316-backup": {
+      "title": "Daily GitHub Backup (11:45 PM)",
+      "status": "in_progress",
+      "created_at": "2026-03-17T03:45:33.374366+00:00",
+      "created_by": "cron",
+      "cron_job_id": "backup",
+      "instructions": "1) cd C:\\dev\\FsuelsBot. 2) git add workspace/. 3) git commit -m 'daily-backup YYYY-MM-DD'. 4) git push origin main. 5) Report if changes were pushed or nothing to sync. BEFORE marking done, fill in learnings with files changed and push status.",
+      "context": {
+        "summary": "Scheduled task from cron job 'backup'. Auto-created at scheduled time.",
+        "created_from": "cron:backup",
+        "decisions": [],
+        "constraints": ["Must complete and log learnings before marking done"]
+      },
+      "learnings": {
+        "question": "What did Daily GitHub Backup (11:45 PM) produce?",
+        "verdict": null,
+        "outcomes": [],
+        "actionsTaken": [],
+        "artifacts": []
+      },
+      "lane": "bot_current",
+      "started_at": "2026-03-17T03:45:39.829720Z",
+      "updated_at": "2026-03-17T03:45:39.829720Z"
     }
   },
   "active_project": "fsuelsbot"
