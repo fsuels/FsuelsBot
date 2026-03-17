@@ -1,10 +1,10 @@
 {
   "version": 34,
-  "updated_at": "2026-03-17T07:03:03.958099Z",
+  "updated_at": "2026-03-17T07:03:33.662670Z",
   "updated_by": "bot",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
-    "bot_current": ["CRON-20260317-consolidation"],
+    "bot_current": [],
     "bot_queue": [],
     "human": [
       "CRON-20260316-epistemic-review-evening",
@@ -16,6 +16,7 @@
     ],
     "scheduled": [],
     "done_today": [
+      "CRON-20260317-consolidation",
       "CRON-20260316-backup",
       "CRON-20260316-ship",
       "CRON-20260316-learn",
@@ -1461,7 +1462,7 @@
     },
     "CRON-20260317-consolidation": {
       "title": "Memory Consolidation (3 AM)",
-      "status": "in_progress",
+      "status": "done",
       "created_at": "2026-03-17T07:02:57.185239+00:00",
       "created_by": "cron",
       "cron_job_id": "consolidation",
@@ -1474,14 +1475,28 @@
       },
       "learnings": {
         "question": "What did Memory Consolidation (3 AM) produce?",
-        "verdict": null,
+        "verdict": "Consolidation complete; committed/pushed 68fa4aeec.",
         "outcomes": [],
-        "actionsTaken": [],
-        "artifacts": []
+        "actionsTaken": [
+          {
+            "ts": "2026-03-17T07:03:33.662670Z",
+            "action": "Consolidated daily memory into ledger + regenerated recall pack + wrote reports",
+            "evidence": "knowledge/consolidation-reports/2026-03-17.md"
+          }
+        ],
+        "artifacts": [
+          "memory/ledger.jsonl",
+          "memory/checkpoint.json",
+          "memory/integrity-report.json",
+          "memory/entity-snapshot.json",
+          "recall/pack.md",
+          "knowledge/consolidation-reports/2026-03-17.md"
+        ]
       },
-      "lane": "bot_current",
+      "lane": "done_today",
       "started_at": "2026-03-17T07:03:03.958099Z",
-      "updated_at": "2026-03-17T07:03:03.958099Z"
+      "updated_at": "2026-03-17T07:03:33.662670Z",
+      "completed_at": "2026-03-17T07:03:33.662670Z"
     }
   },
   "active_project": "fsuelsbot"
