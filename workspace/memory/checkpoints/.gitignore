@@ -1,0 +1,8 @@
+# Generated checkpoints (should not be versioned)
+checkpoint_*.json
+checkpoint_*.md
+checkpoint_*_tasks.json
+checkpoint_*_active-thread.md
+
+# Safety
+!.gitignore
