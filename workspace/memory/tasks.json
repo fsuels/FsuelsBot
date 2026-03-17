@@ -1,6 +1,6 @@
 {
   "version": 34,
-  "updated_at": "2026-03-17T12:00:14.531651+00:00",
+  "updated_at": "2026-03-17T13:00:15.610341+00:00",
   "updated_by": "cron-to-task",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
@@ -17,6 +17,7 @@
     ],
     "scheduled": [],
     "done_today": [
+      "CRON-20260317-research-brief",
       "CRON-20260317-consolidation",
       "CRON-20260316-backup",
       "CRON-20260316-ship",
@@ -1526,6 +1527,41 @@
         }
       ],
       "blocker": "Need BuckyDrop account email+password to log in and check Personal Center > Feedback."
+    },
+    "CRON-20260317-research-brief": {
+      "title": "Daily AI Research Brief (9 AM)",
+      "status": "done",
+      "created_at": "2026-03-17T13:00:15.610320+00:00",
+      "created_by": "cron",
+      "cron_job_id": "research-brief",
+      "instructions": "1) Open X (x.com/home) in clawd browser - read Following feed for AI news. 2) Search web for Clawdbot/Moltbot/Claude news (past 24h). 3) Check ClawdHub for new skills. 4) Identify Top 3 actionable improvements with sources. 5) Send research brief to Francisco on Telegram. BEFORE marking done, fill in learnings with discoveries and improvements found.",
+      "context": {
+        "summary": "Scheduled task from cron job 'research-brief'. Auto-created at scheduled time.",
+        "created_from": "cron:research-brief",
+        "decisions": [],
+        "constraints": ["Must complete and log learnings before marking done"]
+      },
+      "learnings": {
+        "question": "What did Daily AI Research Brief (9 AM) produce?",
+        "verdict": "done",
+        "outcomes": ["Sent research brief to Francisco (Telegram msgId=9632)."],
+        "actionsTaken": [
+          "Opened X (x.com/home) in clawd browser; confirmed logged in as @GhostBrokerAI; scanned Explore/AI items (treated as unverified unless sourced).",
+          "Opened ClawHub homepage and noted highlighted/popular skills list.",
+          "Fetched OpenClaw security article for hardening takeaways.",
+          "Attempted Brave web_search; encountered 429 rate limit on additional queries."
+        ],
+        "artifacts": [
+          {
+            "type": "link",
+            "value": "https://clawdhub.com/"
+          },
+          {
+            "type": "link",
+            "value": "https://www.daledumbsitdown.com/reviews/openclaw-security-with-twingate-how-i-test-a-viral-ai-agent-without-opening-public-ports/"
+          }
+        ]
+      }
     }
   },
   "active_project": "fsuelsbot"
