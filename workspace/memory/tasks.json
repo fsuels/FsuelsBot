@@ -1,12 +1,13 @@
 {
-  "version": 36,
-  "updated_at": "2026-03-17T16:55:52.281354+00:00",
+  "version": 39,
+  "updated_at": "2026-03-17T17:00:51.172048+00:00",
   "updated_by": "work_loop",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
-    "bot_current": ["GB-SEO-robots-sitemap-fix"],
-    "bot_queue": ["GB-WAITLIST-formspree-unify", "GB-TRUST-directory-copy-fix"],
+    "bot_current": [],
+    "bot_queue": ["GB-TRUST-directory-copy-fix"],
     "human": [
+      "GB-SEO-robots-sitemap-fix",
       "CRON-20260317-ghost-openclaw-x",
       "CRON-20260317-ghost-credibility-monitor",
       "CRON-20260317-ghost-moltbook-x",
@@ -21,6 +22,7 @@
     ],
     "scheduled": [],
     "done_today": [
+      "GB-WAITLIST-formspree-unify",
       "CRON-20260317-ghost-website-audit",
       "CRON-20260317-epistemic-review-morning",
       "CRON-20260317-research-brief",
@@ -1752,10 +1754,10 @@
     },
     "GB-SEO-robots-sitemap-fix": {
       "title": "Fix production robots.txt + sitemap.xml (Cloudflare mis-serve)",
-      "status": "in_progress",
-      "lane": "bot_current",
+      "status": "waiting_human",
+      "lane": "human",
       "created_at": "2026-03-17T15:03:13.662617+00:00",
-      "updated_at": "2026-03-17T16:55:52.281354+00:00",
+      "updated_at": "2026-03-17T16:59:39.148752+00:00",
       "kind": "general",
       "summary": "Production endpoints appear to return wrong content (robots includes appended HTML; sitemap returns homepage HTML). Ensure correct static files and content-type are served.",
       "next_action": "Confirm what hosting stack is (Cloudflare Pages/GitHub Pages). Then: ensure /sitemap.xml is actually deployed (exists in public root) and not overridden by rewrite to /index.html. Check Cloudflare rules: Always Use HTTPS, redirect rules, Workers, Pages functions, static asset routing.",
@@ -1774,20 +1776,45 @@
             "path": "ghost-broker/plans/daily-audits/curl-snippets.ps1",
             "notes": "Shows robots is Cloudflare managed signals text; sitemap returns HTML doctype (homepage)."
           }
+        ],
+        "outcomes": [
+          {
+            "ts": "2026-03-17T16:59:39.148752+00:00",
+            "outcome": "Verified via curl that Cloudflare is serving /sitemap.xml as HTML and /robots.txt as Cloudflare-managed robots (not repo files).",
+            "evidence": [
+              "workspace/ghost-broker/plans/daily-audits/fetch-robots-sitemap.ps1",
+              "workspace/ghost-broker/plans/daily-audits/curl-snippets.ps1"
+            ]
+          }
         ]
-      }
+      },
+      "blocker": "Need access to Cloudflare dashboard / DNS/Pages settings for ghostbrokerai.xyz to fix routing (or confirm where the site is hosted)."
     },
     "GB-WAITLIST-formspree-unify": {
       "title": "Unify Formspree endpoints (homepage waitlist vs hire/register)",
-      "status": "new",
-      "lane": "bot_queue",
+      "status": "done",
+      "lane": "done_today",
       "created_at": "2026-03-17T15:03:13.662617+00:00",
-      "updated_at": "2026-03-17T15:03:13.662617+00:00",
+      "updated_at": "2026-03-17T17:00:51.172048+00:00",
       "kind": "general",
       "summary": "Homepage waitlist form action uses a likely-invalid Formspree URL; hire/register use xpwzgkvr. Make consistent and test end-to-end.",
-      "next_action": "Update index.html waitlist form action to the correct Formspree form ID and verify successful submission.",
+      "next_action": "Inspect local index.html waitlist form action and unify to correct Formspree endpoint (likely xpwzgkvr). Create patch in website HTML.",
       "project": "ghost-broker",
-      "project_source": "derived"
+      "project_source": "derived",
+      "started_at": "2026-03-17T16:59:59.688004+00:00",
+      "learnings": {
+        "outcomes": [
+          {
+            "ts": "2026-03-17T17:00:51.172048+00:00",
+            "outcome": "Updated homepage waitlist form action to match hire/register Formspree endpoint",
+            "evidence": [
+              "ghost-broker/website/index.html (action=https://formspree.io/f/xpwzgkvr)",
+              "ghost-broker/website/hire.html (fetch https://formspree.io/f/xpwzgkvr)"
+            ]
+          }
+        ]
+      },
+      "completed_at": "2026-03-17T17:00:51.172048+00:00"
     },
     "GB-TRUST-directory-copy-fix": {
       "title": "Directory: remove/qualify ‘verified’ claims or implement real verification",
