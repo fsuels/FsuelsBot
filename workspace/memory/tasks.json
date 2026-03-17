@@ -1,12 +1,13 @@
 {
   "version": 34,
-  "updated_at": "2026-03-17T13:14:36.308144+00:00",
+  "updated_at": "2026-03-17T13:30:16.314265+00:00",
   "updated_by": "cron-to-task",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
     "bot_current": [],
     "bot_queue": [],
     "human": [
+      "CRON-20260317-ghost-influencer-outreach",
       "CRON-20260317-buckydrop-check",
       "CRON-20260316-epistemic-review-evening",
       "CRON-20260316-ghost-influencer-outreach",
@@ -1596,6 +1597,34 @@
           }
         ]
       }
+    },
+    "CRON-20260317-ghost-influencer-outreach": {
+      "title": "Ghost Broker Daily Influencer Outreach (9:30 AM)",
+      "status": "waiting_human",
+      "created_at": "2026-03-17T13:30:16.314245+00:00",
+      "created_by": "cron",
+      "cron_job_id": "ghost-influencer-outreach",
+      "instructions": "1) Read ghost-broker/plans/influencer-outreach.md for full strategy. 2) Check ghost-broker/data/influencer-pipeline.md for current status. 3) Find 3 relevant posts (X: 'AI agent'/'agent economy'/'autonomous AI'; Moltbook m/general). 4) Engage thoughtfully on each; quote-tweet 1; like/retweet 5. 5) Check for replies; send 1 DM only if warm. 6) Update influencer-pipeline.md. 7) Brief report to Francisco with engagements/responses/opportunities.",
+      "context": {
+        "summary": "Scheduled task from cron job 'ghost-influencer-outreach'. Auto-created at scheduled time.",
+        "created_from": "cron:ghost-influencer-outreach",
+        "decisions": [],
+        "constraints": ["Must complete and log learnings before marking done"]
+      },
+      "learnings": {
+        "question": "What did Ghost Broker Daily Influencer Outreach (9:30 AM) produce?",
+        "verdict": null,
+        "outcomes": [],
+        "actionsTaken": [],
+        "artifacts": []
+      },
+      "blocker": "Missing Ghost Broker outreach plan + pipeline files in workspace.",
+      "notes": [
+        {
+          "ts": "2026-03-17T09:31:22.422997-04:00",
+          "note": "Attempted to read ghost-broker/plans/influencer-outreach.md and ghost-broker/data/influencer-pipeline.md; both missing. plans/ folder exists but empty; data/ folder absent."
+        }
+      ]
     }
   },
   "active_project": "fsuelsbot"
