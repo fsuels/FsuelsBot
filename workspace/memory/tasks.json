@@ -1,6 +1,6 @@
 {
   "version": 34,
-  "updated_at": "2026-03-17T00:24:44.910324Z",
+  "updated_at": "2026-03-17T01:01:48.976857Z",
   "updated_by": "bot",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
@@ -15,6 +15,7 @@
     ],
     "scheduled": [],
     "done_today": [
+      "CRON-20260316-curiosity",
       "CRON-20260316-ghost-website-audit",
       "CRON-20260316-research-brief",
       "CRON-20260316-self-improvement",
@@ -1282,6 +1283,37 @@
       "started_at": "2026-03-16T15:09:22.292273Z",
       "updated_at": "2026-03-16T15:10:21.586803Z",
       "completed_at": "2026-03-16T15:10:21.586803Z"
+    },
+    "CRON-20260316-curiosity": {
+      "title": "Curiosity Engine (9 PM)",
+      "status": "done",
+      "created_at": "2026-03-17T01:00:21.422238+00:00",
+      "created_by": "cron",
+      "cron_job_id": "curiosity",
+      "instructions": "1) Check recent memory files for metric anomalies. 2) Check for competitor moves or platform changes. 3) Scan for tooling leverage opportunities. 4) Generate max 3 proposals with TPS scores. 5) Append proposals to backlog.md. FORBIDDEN: new product categories, new traffic channels, brand pivots. BEFORE marking done, fill in learnings with proposals generated.",
+      "context": {
+        "summary": "Scheduled task from cron job 'curiosity'. Auto-created at scheduled time.",
+        "created_from": "cron:curiosity",
+        "decisions": [],
+        "constraints": ["Must complete and log learnings before marking done"]
+      },
+      "learnings": {
+        "question": "What did Curiosity Engine (9 PM) produce?",
+        "verdict": "Completed: proposals appended (3).",
+        "outcomes": [
+          {
+            "ts": "2026-03-17T01:01:48.976857Z",
+            "outcome": "Appended 3 TPS-scored proposals to backlog.md",
+            "evidence": "backlog.md section Curiosity Engine Proposals (2026-03-16 9:00 PM)"
+          }
+        ],
+        "actionsTaken": [],
+        "artifacts": ["backlog.md"]
+      },
+      "lane": "done_today",
+      "started_at": "2026-03-17T01:00:31.755035Z",
+      "updated_at": "2026-03-17T01:01:48.976857Z",
+      "completed_at": "2026-03-17T01:01:48.976857Z"
     }
   },
   "active_project": "fsuelsbot"
