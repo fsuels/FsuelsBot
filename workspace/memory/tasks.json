@@ -1,7 +1,7 @@
 {
-  "version": 44,
-  "updated_at": "2026-03-17T21:56:55.365840+00:00",
-  "updated_by": "epistemic-review",
+  "version": 45,
+  "updated_at": "2026-03-17T22:50:00.759983+00:00",
+  "updated_by": "maintenance",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
     "bot_current": [],
@@ -1144,10 +1144,11 @@
       },
       "lane": "human",
       "started_at": "2026-03-16T12:00:44.534554Z",
-      "updated_at": "2026-03-17T00:24:44.910324Z",
+      "updated_at": "2026-03-17T22:50:00.759983+00:00",
       "blockers": [
         "BLOCKER: Cannot check Outlook inbox/BuckyDrop feedback from this runtime without interactive logged-in browser/email access."
-      ]
+      ],
+      "blocker": "Need BuckyDrop account email+password to log in and check Personal Center > Feedback."
     },
     "CRON-20260316-research-brief": {
       "title": "Daily AI Research Brief (9 AM)",
@@ -1211,7 +1212,8 @@
         "BLOCKER: Requires interactive logged-in browser session (X/Moltbook). Heartbeat runtime has no browser capabilities; attach tab via Browser Relay to run."
       ],
       "lane": "human",
-      "updated_at": "2026-03-16T15:29:07.205401Z"
+      "updated_at": "2026-03-17T22:50:00.759983+00:00",
+      "blocker": "Missing Ghost Broker outreach plan + pipeline files in workspace."
     },
     "CRON-20260316-ghost-openclaw-x": {
       "title": "Ghost Broker @openclaw X Engagement (10:30 AM)",
@@ -1237,7 +1239,8 @@
         "BLOCKER: Requires interactive logged-in browser session (X/Moltbook). Heartbeat runtime has no browser capabilities; attach tab via Browser Relay to run."
       ],
       "lane": "human",
-      "updated_at": "2026-03-16T15:29:07.205401Z"
+      "updated_at": "2026-03-17T22:50:00.759983+00:00",
+      "blocker": "Needs approval to post public reply/like/retweet on X."
     },
     "CRON-20260316-ghost-moltbook-x": {
       "title": "Ghost Broker @moltbook X Engagement (10 AM)",
@@ -1263,7 +1266,8 @@
         "BLOCKER: Requires interactive logged-in browser session (X/Moltbook). Heartbeat runtime has no browser capabilities; attach tab via Browser Relay to run."
       ],
       "lane": "human",
-      "updated_at": "2026-03-16T15:29:07.205401Z"
+      "updated_at": "2026-03-17T22:50:00.759983+00:00",
+      "blocker": "Needs approval to post public reply/like/retweet on X."
     },
     "CRON-20260316-ghost-website-audit": {
       "title": "Ghost Broker Daily Website Audit (11 AM)",
