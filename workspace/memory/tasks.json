@@ -1,6 +1,6 @@
 {
   "version": 34,
-  "updated_at": "2026-03-17T01:24:27.818446Z",
+  "updated_at": "2026-03-17T02:31:27.933098Z",
   "updated_by": "bot",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
@@ -16,6 +16,7 @@
     ],
     "scheduled": [],
     "done_today": [
+      "CRON-20260316-learn",
       "CRON-20260316-curiosity",
       "CRON-20260316-ghost-website-audit",
       "CRON-20260316-research-brief",
@@ -1341,6 +1342,37 @@
         "BLOCKER: Requires external AI via browser (Grok on X) + logged-in session; heartbeat runtime has no browser capabilities."
       ],
       "updated_at": "2026-03-17T01:24:27.818446Z"
+    },
+    "CRON-20260316-learn": {
+      "title": "Compound Loop: LEARN (10:30 PM)",
+      "status": "done",
+      "created_at": "2026-03-17T02:30:29.192870+00:00",
+      "created_by": "cron",
+      "cron_job_id": "learn",
+      "instructions": "1) Read today's memory file. 2) Review git commits from past 24h. 3) Extract max 5 atomic lessons (Context/Failure/Fix/Prevention). 4) Update relevant knowledge files. 5) Git commit with message 'nightly-learn YYYY-MM-DD: [summary]'. Timeout: 15 min max. BEFORE marking done, fill in learnings with lessons extracted.",
+      "context": {
+        "summary": "Scheduled task from cron job 'learn'. Auto-created at scheduled time.",
+        "created_from": "cron:learn",
+        "decisions": [],
+        "constraints": ["Must complete and log learnings before marking done"]
+      },
+      "learnings": {
+        "question": "What did Compound Loop: LEARN (10:30 PM) produce?",
+        "verdict": "Completed (5 lessons distilled).",
+        "outcomes": [
+          {
+            "ts": "2026-03-17T02:31:27.933098Z",
+            "outcome": "Extracted 5 atomic lessons and wrote knowledge/ops/nightly-learn-2026-03-16.md",
+            "evidence": "knowledge/ops/nightly-learn-2026-03-16.md"
+          }
+        ],
+        "actionsTaken": [],
+        "artifacts": ["knowledge/ops/nightly-learn-2026-03-16.md"]
+      },
+      "lane": "done_today",
+      "started_at": "2026-03-17T02:30:39.434176Z",
+      "updated_at": "2026-03-17T02:31:27.933098Z",
+      "completed_at": "2026-03-17T02:31:27.933098Z"
     }
   },
   "active_project": "fsuelsbot"
