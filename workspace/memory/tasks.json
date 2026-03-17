@@ -1,12 +1,13 @@
 {
   "version": 34,
-  "updated_at": "2026-03-17T01:01:48.976857Z",
+  "updated_at": "2026-03-17T01:24:27.818446Z",
   "updated_by": "bot",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
     "bot_current": [],
     "bot_queue": [],
     "human": [
+      "CRON-20260316-epistemic-review-evening",
       "CRON-20260316-ghost-influencer-outreach",
       "CRON-20260316-ghost-openclaw-x",
       "CRON-20260316-ghost-moltbook-x",
@@ -1314,6 +1315,32 @@
       "started_at": "2026-03-17T01:00:31.755035Z",
       "updated_at": "2026-03-17T01:01:48.976857Z",
       "completed_at": "2026-03-17T01:01:48.976857Z"
+    },
+    "CRON-20260316-epistemic-review-evening": {
+      "title": "Epistemic Review (Evening 9 PM)",
+      "status": "waiting_human",
+      "created_at": "2026-03-17T01:19:18.158390+00:00",
+      "created_by": "cron",
+      "cron_job_id": "epistemic-review-evening",
+      "instructions": "1) Read procedures/epistemic-review.md. 2) Load today's memory file (memory/2026-03-16.md). 3) Extract key actions/claims. 4) Submit to EXTERNAL AI reviewer (Mon=Grok) via browser automation. 5) Log findings to memory/epistemic-reviews.jsonl. 6) If violations: alert Francisco + create correction task.",
+      "context": {
+        "summary": "Scheduled task from cron job 'epistemic-review-evening'. Auto-created at scheduled time.",
+        "created_from": "cron:epistemic-review-evening",
+        "decisions": [],
+        "constraints": ["Must complete and log learnings before marking done"]
+      },
+      "learnings": {
+        "question": "What did Epistemic Review (Evening 9 PM) produce?",
+        "verdict": null,
+        "outcomes": [],
+        "actionsTaken": [],
+        "artifacts": []
+      },
+      "lane": "human",
+      "blockers": [
+        "BLOCKER: Requires external AI via browser (Grok on X) + logged-in session; heartbeat runtime has no browser capabilities."
+      ],
+      "updated_at": "2026-03-17T01:24:27.818446Z"
     }
   },
   "active_project": "fsuelsbot"
