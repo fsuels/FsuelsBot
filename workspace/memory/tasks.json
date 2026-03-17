@@ -1,12 +1,13 @@
 {
   "version": 34,
-  "updated_at": "2026-03-17T14:00:33.438180+00:00",
+  "updated_at": "2026-03-17T14:30:24.914456+00:00",
   "updated_by": "cron-to-task",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
     "bot_current": [],
     "bot_queue": [],
     "human": [
+      "CRON-20260317-ghost-openclaw-x",
       "CRON-20260317-ghost-credibility-monitor",
       "CRON-20260317-ghost-moltbook-x",
       "CRON-20260317-ghost-influencer-outreach",
@@ -1678,6 +1679,35 @@
           {
             "type": "screenshot",
             "path": "C:/Users/Fsuels/.clawdbot/media/browser/08d83f1f-47b2-4e08-917c-46857dcafb1d.jpg"
+          }
+        ]
+      },
+      "blocker": "Needs approval to post public reply/like/retweet on X."
+    },
+    "CRON-20260317-ghost-openclaw-x": {
+      "title": "Ghost Broker @openclaw X Engagement (10:30 AM)",
+      "status": "waiting_human",
+      "created_at": "2026-03-17T14:30:24.914436+00:00",
+      "created_by": "cron",
+      "cron_job_id": "ghost-openclaw-x",
+      "instructions": "1) Open X in clawd as @GhostBrokerAI. 2) Go to https://x.com/openclaw. 3) Read latest tweet and draft a value-add reply (not salesy). 4) Like/retweet if genuinely good (needs approval). 5) Check for replies to our previous comments. 6) Report to Francisco with link + drafted reply text + suggested like/retweet.",
+      "context": {
+        "summary": "Scheduled task from cron job 'ghost-openclaw-x'. Auto-created at scheduled time.",
+        "created_from": "cron:ghost-openclaw-x",
+        "decisions": [],
+        "constraints": ["Must complete and log learnings before marking done"]
+      },
+      "learnings": {
+        "question": "What did Ghost Broker @openclaw X Engagement (10:30 AM) produce?",
+        "verdict": null,
+        "outcomes": ["Prepared value-add reply draft to @openclaw; awaiting approval to submit."],
+        "actionsTaken": [
+          "Opened @openclaw and drafted reply in reply modal to 2026.3.13 post (not submitted)."
+        ],
+        "artifacts": [
+          {
+            "type": "screenshot",
+            "path": "C:/Users/Fsuels/.clawdbot/media/browser/d933bfce-8e08-49fe-93e6-426bfaa7be5d.jpg"
           }
         ]
       },
