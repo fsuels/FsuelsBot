@@ -1,6 +1,6 @@
 {
   "version": 34,
-  "updated_at": "2026-03-17T13:00:15.610341+00:00",
+  "updated_at": "2026-03-17T13:14:36.308144+00:00",
   "updated_by": "cron-to-task",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
@@ -17,6 +17,7 @@
     ],
     "scheduled": [],
     "done_today": [
+      "CRON-20260317-epistemic-review-morning",
       "CRON-20260317-research-brief",
       "CRON-20260317-consolidation",
       "CRON-20260316-backup",
@@ -1559,6 +1560,39 @@
           {
             "type": "link",
             "value": "https://www.daledumbsitdown.com/reviews/openclaw-security-with-twingate-how-i-test-a-viral-ai-agent-without-opening-public-ports/"
+          }
+        ]
+      }
+    },
+    "CRON-20260317-epistemic-review-morning": {
+      "title": "Epistemic Review - Morning (9 AM)",
+      "status": "done",
+      "created_at": "2026-03-17T13:14:36.308123+00:00",
+      "created_by": "cron",
+      "cron_job_id": "epistemic-review-morning",
+      "instructions": "1) Read procedures/epistemic-review.md for full process. 2) Load yesterday's memory file memory/2026-03-16.md. 3) Extract key actions/decisions/claims made. 4) Submit to EXTERNAL AI for review (rotation: Mon=Gemini, Tue=Grok, Wed=ChatGPT). 5) Log findings to memory/epistemic-reviews.jsonl. 6) If violations found: alert Francisco + create correction task. 7) If passed: log success.",
+      "context": {
+        "summary": "Scheduled task from cron job 'epistemic-review-morning'. Auto-created at scheduled time.",
+        "created_from": "cron:epistemic-review-morning",
+        "decisions": [],
+        "constraints": ["Must complete and log learnings before marking done"]
+      },
+      "learnings": {
+        "question": "What did Epistemic Review - Morning (9 AM) produce?",
+        "verdict": "done",
+        "outcomes": [
+          "External Grok review found 1 violation (PowerShell claim overgeneralized). Notified Francisco + logged review."
+        ],
+        "actionsTaken": [
+          "Read procedures/epistemic-review.md and memory/2026-03-16.md",
+          "Submitted actions to Grok via X Grok UI for external review",
+          "Logged results to workspace/memory/epistemic-reviews.jsonl",
+          "Alerted Francisco on Telegram with violation + fix + evidence screenshot path"
+        ],
+        "artifacts": [
+          {
+            "type": "screenshot",
+            "path": "C:/Users/Fsuels/.clawdbot/media/browser/ff640d2d-671f-45eb-8a11-f27d73d3ee3e.jpg"
           }
         ]
       }
