@@ -1,11 +1,15 @@
 {
-  "version": 34,
-  "updated_at": "2026-03-17T14:30:24.914456+00:00",
-  "updated_by": "cron-to-task",
+  "version": 35,
+  "updated_at": "2026-03-17T15:03:13.662617+00:00",
+  "updated_by": "ghost-website-audit",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
     "bot_current": [],
-    "bot_queue": [],
+    "bot_queue": [
+      "GB-SEO-robots-sitemap-fix",
+      "GB-WAITLIST-formspree-unify",
+      "GB-TRUST-directory-copy-fix"
+    ],
     "human": [
       "CRON-20260317-ghost-openclaw-x",
       "CRON-20260317-ghost-credibility-monitor",
@@ -21,6 +25,7 @@
     ],
     "scheduled": [],
     "done_today": [
+      "CRON-20260317-ghost-website-audit",
       "CRON-20260317-epistemic-review-morning",
       "CRON-20260317-research-brief",
       "CRON-20260317-consolidation",
@@ -1712,6 +1717,78 @@
         ]
       },
       "blocker": "Needs approval to post public reply/like/retweet on X."
+    },
+    "CRON-20260317-ghost-website-audit": {
+      "title": "Ghost Broker Daily Website Audit (11 AM)",
+      "status": "done",
+      "created_at": "2026-03-17T15:03:13.662617+00:00",
+      "created_by": "cron",
+      "cron_job_id": "ghost-website-audit",
+      "instructions": "Audit ghostbrokerai.xyz vs workspace/ghost-broker/website/*.html. Do competitor scan (hired.works, agent.ai, etc). Produce RED/YELLOW/GREEN report, add top items to tasks.json, send summary to Francisco.",
+      "context": {
+        "summary": "Scheduled task from cron job 'ghost-website-audit'. Auto-created at scheduled time.",
+        "created_from": "cron:ghost-website-audit",
+        "decisions": [],
+        "constraints": ["Must complete and log learnings before marking done"]
+      },
+      "learnings": {
+        "question": "What did Ghost Broker Daily Website Audit (11 AM) produce?",
+        "verdict": "Completed local+live site audit. Identified production robots/sitemap anomalies and form endpoint inconsistency.",
+        "outcomes": [
+          {
+            "ts": "2026-03-17T15:03:13.662617+00:00",
+            "outcome": "Wrote daily audit report",
+            "evidence": "ghost-broker/plans/daily-audits/2026-03-17-website-audit.md"
+          }
+        ],
+        "actionsTaken": [],
+        "artifacts": [
+          "ghost-broker/plans/daily-audits/2026-03-17-website-audit.md",
+          "https://ghostbrokerai.xyz",
+          "https://agent.ai",
+          "https://clawhub.ai"
+        ]
+      },
+      "lane": "done_today",
+      "started_at": "2026-03-17T15:03:13.662617+00:00",
+      "updated_at": "2026-03-17T15:03:13.662617+00:00",
+      "completed_at": "2026-03-17T15:03:13.662617+00:00"
+    },
+    "GB-SEO-robots-sitemap-fix": {
+      "title": "Fix production robots.txt + sitemap.xml (Cloudflare mis-serve)",
+      "status": "new",
+      "lane": "bot_queue",
+      "created_at": "2026-03-17T15:03:13.662617+00:00",
+      "updated_at": "2026-03-17T15:03:13.662617+00:00",
+      "kind": "general",
+      "summary": "Production endpoints appear to return wrong content (robots includes appended HTML; sitemap returns homepage HTML). Ensure correct static files and content-type are served.",
+      "next_action": "Reproduce via curl/web_fetch, then adjust hosting/Cloudflare settings to serve /robots.txt and /sitemap.xml as plain text/XML from repo root.",
+      "project": "ghost-broker",
+      "project_source": "derived"
+    },
+    "GB-WAITLIST-formspree-unify": {
+      "title": "Unify Formspree endpoints (homepage waitlist vs hire/register)",
+      "status": "new",
+      "lane": "bot_queue",
+      "created_at": "2026-03-17T15:03:13.662617+00:00",
+      "updated_at": "2026-03-17T15:03:13.662617+00:00",
+      "kind": "general",
+      "summary": "Homepage waitlist form action uses a likely-invalid Formspree URL; hire/register use xpwzgkvr. Make consistent and test end-to-end.",
+      "next_action": "Update index.html waitlist form action to the correct Formspree form ID and verify successful submission.",
+      "project": "ghost-broker",
+      "project_source": "derived"
+    },
+    "GB-TRUST-directory-copy-fix": {
+      "title": "Directory: remove/qualify ‘verified’ claims or implement real verification",
+      "status": "new",
+      "lane": "bot_queue",
+      "created_at": "2026-03-17T15:03:13.662617+00:00",
+      "updated_at": "2026-03-17T15:03:13.662617+00:00",
+      "kind": "general",
+      "summary": "Directory is demo/sample data but claims agents are vetted/verified with stats. Adjust copy + add beta/demo disclaimers or build real data + verification page.",
+      "next_action": "Decide: (A) label directory as demo, or (B) implement real agent profiles + verification checklist + proof page.",
+      "project": "ghost-broker",
+      "project_source": "derived"
     }
   },
   "active_project": "fsuelsbot"
