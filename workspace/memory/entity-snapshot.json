@@ -1,16 +1,18 @@
 {
-  "generated": "2026-03-16T07:02:45Z",
-  "ledger_lines": 13,
+  "generated": "2026-03-17T07:02:15.383731Z",
+  "ledger_lines": 16,
   "kind_counts": {
     "workflow_preference": 4,
-    "priority_preference": 2,
     "interaction_preference": 1,
+    "priority_preference": 2,
     "project_goal": 1,
     "architecture_preference": 1,
     "family_context": 1,
     "config_change": 1,
     "task_principle": 1,
-    "tool_status": 1
+    "tool_status": 2,
+    "tooling_fix": 1,
+    "tool_bug": 1
   },
   "open_commitments": 0
 }

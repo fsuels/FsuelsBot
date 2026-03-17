@@ -1,6 +1,6 @@
 {
-  "last_processed_event_id": null,
-  "events_processed": 0,
-  "updated_at": "2026-03-16T07:02:45Z",
-  "note": "No daily memory file found for 2026-03-16; no new events extracted."
+  "last_processed_event_id": "ledger_line_16",
+  "events_processed": 16,
+  "updated_at": "2026-03-17T07:02:22.202509Z",
+  "note": "Consolidated 2026-03-16 daily memory notes into ledger (3 new events)."
 }
