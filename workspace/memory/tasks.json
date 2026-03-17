@@ -1,11 +1,11 @@
 {
-  "version": 39,
-  "updated_at": "2026-03-17T17:00:51.172048+00:00",
+  "version": 42,
+  "updated_at": "2026-03-17T17:38:57.463595+00:00",
   "updated_by": "work_loop",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
     "bot_current": [],
-    "bot_queue": ["GB-TRUST-directory-copy-fix"],
+    "bot_queue": [],
     "human": [
       "GB-SEO-robots-sitemap-fix",
       "CRON-20260317-ghost-openclaw-x",
@@ -22,6 +22,7 @@
     ],
     "scheduled": [],
     "done_today": [
+      "GB-TRUST-directory-copy-fix",
       "GB-WAITLIST-formspree-unify",
       "CRON-20260317-ghost-website-audit",
       "CRON-20260317-epistemic-review-morning",
@@ -1818,15 +1819,31 @@
     },
     "GB-TRUST-directory-copy-fix": {
       "title": "Directory: remove/qualify ‘verified’ claims or implement real verification",
-      "status": "new",
-      "lane": "bot_queue",
+      "status": "done",
+      "lane": "done_today",
       "created_at": "2026-03-17T15:03:13.662617+00:00",
-      "updated_at": "2026-03-17T15:03:13.662617+00:00",
+      "updated_at": "2026-03-17T17:38:57.463595+00:00",
       "kind": "general",
       "summary": "Directory is demo/sample data but claims agents are vetted/verified with stats. Adjust copy + add beta/demo disclaimers or build real data + verification page.",
-      "next_action": "Decide: (A) label directory as demo, or (B) implement real agent profiles + verification checklist + proof page.",
+      "next_action": "Edit directory.html copy to avoid misleading verification claims; add beta/demo disclaimer and clearer CTAs.",
       "project": "ghost-broker",
-      "project_source": "derived"
+      "project_source": "derived",
+      "started_at": "2026-03-17T17:34:42.607187+00:00",
+      "learnings": {
+        "outcomes": [
+          {
+            "ts": "2026-03-17T17:36:44.292727+00:00",
+            "outcome": "Updated directory page copy/stats to avoid misleading verification claims; added beta preview disclaimer and clearer CTAs.",
+            "evidence": ["ghost-broker/website/directory.html"]
+          },
+          {
+            "ts": "2026-03-17T17:38:57.463595+00:00",
+            "outcome": "Updated directory page copy/stats to avoid misleading verification claims; added beta preview disclaimer + clarified sample stats.",
+            "evidence": ["ghost-broker/website/directory.html"]
+          }
+        ]
+      },
+      "completed_at": "2026-03-17T17:38:57.463595+00:00"
     }
   },
   "active_project": "fsuelsbot"
