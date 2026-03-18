@@ -1,10 +1,10 @@
 {
-  "version": 56,
-  "updated_at": "2026-03-18T03:00:30.046567+00:00",
+  "version": 57,
+  "updated_at": "2026-03-18T03:02:16.969895+00:00",
   "updated_by": "ship",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
-    "bot_current": ["CRON-20260317-ship"],
+    "bot_current": [],
     "bot_queue": [],
     "human": [
       "GB-SEO-robots-sitemap-fix",
@@ -21,6 +21,7 @@
     ],
     "scheduled": [],
     "done_today": [
+      "CRON-20260317-ship",
       "CRON-20260317-learn",
       "GB-EPISTEMIC-failed-fetch-unverified",
       "CRON-20260317-epistemic-review-evening",
@@ -2003,7 +2004,7 @@
     },
     "CRON-20260317-ship": {
       "title": "Compound Loop: SHIP (11 PM)",
-      "status": "in_progress",
+      "status": "done",
       "created_at": "2026-03-18T03:00:13.281493+00:00",
       "created_by": "cron",
       "cron_job_id": "ship",
@@ -2016,14 +2017,25 @@
       },
       "learnings": {
         "question": "What did Compound Loop: SHIP (11 PM) produce?",
-        "verdict": null,
+        "verdict": "Shipped PDP template; overall cascade score 0.88",
         "outcomes": [],
         "actionsTaken": [],
-        "artifacts": []
+        "artifacts": [],
+        "shipped": "knowledge/business/dlm/product-description-template.md",
+        "scores": {
+          "cascade": {
+            "layer1_correctness": 0.9,
+            "layer2_completeness": 0.85,
+            "layer3_usability": 0.85,
+            "layer4_leverage": 0.9
+          },
+          "overall": 0.88
+        }
       },
-      "lane": "bot_current",
+      "lane": "done_today",
       "started_at": "2026-03-18T03:00:30.046567+00:00",
-      "updated_at": "2026-03-18T03:00:30.046567+00:00"
+      "updated_at": "2026-03-18T03:02:16.969895+00:00",
+      "completed_at": "2026-03-18T03:02:16.969895+00:00"
     }
   },
   "active_project": "fsuelsbot"
