@@ -1,10 +1,10 @@
 {
-  "version": 58,
-  "updated_at": "2026-03-18T03:45:34.180775+00:00",
+  "version": 59,
+  "updated_at": "2026-03-18T03:46:17.500474+00:00",
   "updated_by": "backup",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
-    "bot_current": ["CRON-20260317-backup"],
+    "bot_current": [],
     "bot_queue": [],
     "human": [
       "GB-SEO-robots-sitemap-fix",
@@ -21,6 +21,7 @@
     ],
     "scheduled": [],
     "done_today": [
+      "CRON-20260317-backup",
       "CRON-20260317-ship",
       "CRON-20260317-learn",
       "GB-EPISTEMIC-failed-fetch-unverified",
@@ -2039,7 +2040,7 @@
     },
     "CRON-20260317-backup": {
       "title": "Daily GitHub Backup (11:45 PM)",
-      "status": "in_progress",
+      "status": "done",
       "created_at": "2026-03-18T03:45:21.717652+00:00",
       "created_by": "cron",
       "cron_job_id": "backup",
@@ -2052,14 +2053,17 @@
       },
       "learnings": {
         "question": "What did Daily GitHub Backup (11:45 PM) produce?",
-        "verdict": null,
+        "verdict": "Backed up workspace changes via git commit+push.",
         "outcomes": [],
         "actionsTaken": [],
-        "artifacts": []
+        "artifacts": [],
+        "files_changed": ["workspace/memory/tasks.json"],
+        "push_status": "pushed to origin main"
       },
-      "lane": "bot_current",
+      "lane": "done_today",
       "started_at": "2026-03-18T03:45:34.180775+00:00",
-      "updated_at": "2026-03-18T03:45:34.180775+00:00"
+      "updated_at": "2026-03-18T03:46:17.500474+00:00",
+      "completed_at": "2026-03-18T03:46:17.500474+00:00"
     }
   },
   "active_project": "fsuelsbot"
