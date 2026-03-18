@@ -1,12 +1,11 @@
 {
-  "version": 65,
-  "updated_at": "2026-03-18T07:31:37.501982+00:00",
-  "updated_by": "proactive-sprint",
+  "version": 67,
+  "updated_at": "2026-03-18T08:00:56.074841+00:00",
+  "updated_by": "credibility-monitor",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
     "bot_current": [],
     "bot_queue": [
-      "CRON-20260317-ghost-credibility-monitor",
       "CRON-20260317-ghost-influencer-outreach",
       "CRON-20260316-ghost-influencer-outreach"
     ],
@@ -22,6 +21,7 @@
     ],
     "scheduled": [],
     "done_today": [
+      "CRON-20260317-ghost-credibility-monitor",
       "CRON-20260318-consolidation",
       "CRON-20260317-backup",
       "CRON-20260317-ship",
@@ -1666,7 +1666,7 @@
     },
     "CRON-20260317-ghost-credibility-monitor": {
       "title": "Ghost Broker Daily Credibility Monitor (10 AM)",
-      "status": "new",
+      "status": "done",
       "created_at": "2026-03-17T14:00:32.775133+00:00",
       "created_by": "cron",
       "cron_job_id": "ghost-credibility-monitor",
@@ -1679,10 +1679,14 @@
       },
       "learnings": {
         "question": "What did Ghost Broker Daily Credibility Monitor (10 AM) produce?",
-        "verdict": null,
+        "verdict": "Credibility check logged; robots/sitemap still anomalous (Cloudflare content-signal + sitemap served as HTML).",
         "outcomes": [],
         "actionsTaken": [],
-        "artifacts": []
+        "artifacts": [
+          "workspace/ghost-broker/plans/credibility-log.md",
+          "web_fetch https://ghostbrokerai.xyz/robots.txt",
+          "web_fetch https://ghostbrokerai.xyz/sitemap.xml"
+        ]
       },
       "blocker": null,
       "notes": [
@@ -1691,8 +1695,10 @@
           "note": "Missing ghost-broker/scripts/credibility-monitor.md and ghost-broker/plans/credibility-building.md; cannot update score as specified."
         }
       ],
-      "updated_at": "2026-03-18T07:31:37.501982+00:00",
-      "lane": "bot_queue"
+      "updated_at": "2026-03-18T08:00:56.074841+00:00",
+      "lane": "done_today",
+      "started_at": "2026-03-18T07:59:44.695075+00:00",
+      "completed_at": "2026-03-18T08:00:56.074841+00:00"
     },
     "CRON-20260317-ghost-moltbook-x": {
       "title": "Ghost Broker @moltbook X Engagement (10 AM)",
