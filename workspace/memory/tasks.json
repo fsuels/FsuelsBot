@@ -1,12 +1,14 @@
 {
-  "version": 79,
-  "updated_at": "2026-03-18T12:01:20.324534+00:00",
-  "updated_by": "ghost-blog",
+  "version": 83,
+  "updated_at": "2026-03-18T13:03:04.442899+00:00",
+  "updated_by": "epistemic-review",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
     "bot_current": [],
     "bot_queue": [],
     "human": [
+      "CRON-20260318-epistemic-review-morning",
+      "CRON-20260318-x-daily-marketing",
       "CRON-20260318-ghost-daily-blog",
       "CRON-20260318-buckydrop-check",
       "CRON-20260318-ghost-moltbook-daily-marketing",
@@ -21,6 +23,7 @@
     ],
     "scheduled": [],
     "done_today": [
+      "CRON-20260318-research-brief",
       "OPS-powershell-property-syntax",
       "OPS-cron-tool-schema",
       "CRON-20260316-ghost-influencer-outreach",
@@ -2220,6 +2223,96 @@
       "updated_at": "2026-03-18T12:01:20.324534+00:00",
       "blocker": "Missing plan file ghost-broker/plans/daily-blog-post.md (style guide) and posting is public content (Tier 2) requiring approval. Also need the blog index file ghost-broker/website/blog.html if not present.",
       "instructions": "If approved + plan present: research topic per weekday, write 1500-2000 word post, create ghost-broker/website/blog/YYYY-MM-DD-slug.html, update blog.html, report to Francisco."
+    },
+    "CRON-20260318-research-brief": {
+      "title": "Daily AI Research Brief (9 AM)",
+      "status": "done",
+      "created_at": "2026-03-18T13:00:19.167304+00:00",
+      "created_by": "cron",
+      "cron_job_id": "research-brief",
+      "instructions": "1) Open X (x.com/home) in clawd browser - read Following feed for AI news. 2) Search web for Clawdbot/Moltbot/Claude news (past 24h). 3) Check ClawdHub for new skills. 4) Identify Top 3 actionable improvements with sources. 5) Send research brief to Francisco on Telegram. BEFORE marking done, fill in learnings with discoveries and improvements found.",
+      "context": {
+        "summary": "Scheduled task from cron job 'research-brief'. Auto-created at scheduled time.",
+        "created_from": "cron:research-brief",
+        "decisions": [],
+        "constraints": ["Must complete and log learnings before marking done"]
+      },
+      "learnings": {
+        "question": "What did Daily AI Research Brief (9 AM) produce?",
+        "verdict": null,
+        "outcomes": [],
+        "actionsTaken": [],
+        "artifacts": [],
+        "discoveries": [
+          {
+            "item": "Anthropic: 1M context GA for Opus 4.6 + Sonnet 4.6 (standard pricing; up to 600 images/PDF pages)",
+            "source": "https://claude.com/blog/1m-context-ga"
+          },
+          {
+            "item": "ClawHub positioning: skill dock with versioning/rollback + npx install snippet (useful clarity pattern)",
+            "source": "https://clawhub.ai/"
+          },
+          {
+            "item": "hired.works fetch failed in web_fetch (UNVERIFIED)",
+            "source": "https://hired.works/ (web_fetch failed)"
+          }
+        ],
+        "top3_improvements": [
+          {
+            "improvement": "Use long-context mode deliberately when doing large audits/catalog reads (1M context GA).",
+            "why": "Fewer chunking failures; better cross-doc reasoning.",
+            "source": "https://claude.com/blog/1m-context-ga"
+          },
+          {
+            "improvement": "Ghost Broker: add concrete packages above-the-fold (ClawHub-style clarity).",
+            "why": "Improves conversion by answering what you get today.",
+            "source": "https://clawhub.ai/"
+          },
+          {
+            "improvement": "Keep UNVERIFIED discipline on failed competitor fetches; log failures explicitly.",
+            "why": "Avoid hasty generalization/false-cause.",
+            "source": "workspace/ghost-broker/plans/daily-audits/fetch-competitors.ps1"
+          }
+        ]
+      },
+      "lane": "done_today",
+      "started_at": "2026-03-18T13:01:01.070112+00:00",
+      "updated_at": "2026-03-18T13:02:49.441956+00:00",
+      "completed_at": "2026-03-18T13:02:49.441956+00:00"
+    },
+    "CRON-20260318-x-daily-marketing": {
+      "id": "CRON-20260318-x-daily-marketing",
+      "title": "Ghost Broker X Daily Marketing (9 AM)",
+      "status": "waiting_human",
+      "lane": "human",
+      "created_at": "2026-03-18T13:00:38.037958+00:00",
+      "updated_at": "2026-03-18T13:00:38.037958+00:00",
+      "blocker": "Public posting/replying on X is Tier 2 and requires Francisco approval. Also requires logged-in @GhostBrokerAI session in browser.",
+      "instructions": "If approved: open x.com as @GhostBrokerAI, respond to mentions, post 1 tweet, quote-tweet 1 news item, reply to 3-5 influencer posts, track metrics, brief Francisco."
+    },
+    "CRON-20260318-epistemic-review-morning": {
+      "title": "Epistemic Review - Morning (9 AM)",
+      "status": "waiting_human",
+      "created_at": "2026-03-18T13:00:47.178471+00:00",
+      "created_by": "cron",
+      "cron_job_id": "epistemic-review-morning",
+      "instructions": "1) Read procedures/epistemic-review.md. 2) Load yesterday's memory file (memory/2026-03-17.md). 3) Extract key actions/claims. 4) Submit to EXTERNAL AI reviewer (rotation: Wed=ChatGPT). 5) Log findings to memory/epistemic-reviews.jsonl. 6) If violations: alert Francisco + create correction task.",
+      "context": {
+        "summary": "Scheduled task from cron job 'epistemic-review-morning'. Auto-created at scheduled time.",
+        "created_from": "cron:epistemic-review-morning",
+        "decisions": [],
+        "constraints": ["Must complete and log learnings before marking done"]
+      },
+      "learnings": {
+        "question": "What did Epistemic Review - Morning (9 AM) produce?",
+        "verdict": null,
+        "outcomes": [],
+        "actionsTaken": [],
+        "artifacts": []
+      },
+      "lane": "human",
+      "updated_at": "2026-03-18T13:03:04.442899+00:00",
+      "blocker": "Rotation calls for ChatGPT review (Wed), but chat.openai.com is not logged in in clawd browser. Need logged-in session (or approve using Gemini as alternate reviewer)."
     }
   },
   "active_project": "fsuelsbot"
