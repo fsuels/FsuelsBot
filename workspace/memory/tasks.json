@@ -1,11 +1,11 @@
 {
-  "version": 74,
-  "updated_at": "2026-03-18T11:33:33.729478+00:00",
+  "version": 76,
+  "updated_at": "2026-03-18T11:50:33.699352+00:00",
   "updated_by": "ops",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
     "bot_current": [],
-    "bot_queue": ["OPS-powershell-property-syntax"],
+    "bot_queue": [],
     "human": [
       "CRON-20260318-ghost-moltbook-daily-marketing",
       "CRON-20260318-aplus-validation",
@@ -19,6 +19,7 @@
     ],
     "scheduled": [],
     "done_today": [
+      "OPS-powershell-property-syntax",
       "OPS-cron-tool-schema",
       "CRON-20260316-ghost-influencer-outreach",
       "CRON-20260317-ghost-influencer-outreach",
@@ -2171,11 +2172,17 @@
     "OPS-powershell-property-syntax": {
       "id": "OPS-powershell-property-syntax",
       "title": "Fix recurring PowerShell property syntax failures",
-      "status": "new",
-      "lane": "bot_queue",
+      "status": "done",
+      "lane": "done_today",
       "created_at": "2026-03-18T11:19:59.721336+00:00",
-      "updated_at": "2026-03-18T11:19:59.721336+00:00",
-      "instructions": "Document + enforce correct PowerShell object property syntax in one-liners (use .Path not .Path) and avoid complex one-liners; add to rules/procedure."
+      "updated_at": "2026-03-18T11:50:33.699352+00:00",
+      "instructions": "Document + enforce correct PowerShell object property syntax in one-liners (use .Path not .Path) and avoid complex one-liners; add to rules/procedure.",
+      "started_at": "2026-03-18T11:50:02.407084+00:00",
+      "learnings": {
+        "verdict": "Updated memory/global/rules.md with PowerShell exec gotchas: avoid &&/||, use .Property, avoid complex one-liners.",
+        "artifacts": ["workspace/memory/global/rules.md"]
+      },
+      "completed_at": "2026-03-18T11:50:33.699352+00:00"
     }
   },
   "active_project": "fsuelsbot"

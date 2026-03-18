@@ -40,11 +40,23 @@
 
 ## Windows / PowerShell Ops
 
-- [rule][confidence: high] In Windows PowerShell, avoid chaining commands with `&&`; run as separate commands or use `;`.
-  - context: `git add ... && git commit ...` failed under the tool runner.
-  - fix: split into two `exec` calls.
-  - source: observed tool failure 2026-03-17
-  - captured: 2026-03-17
+- [rule][confidence: high] In Windows PowerShell, avoid chaining commands with `&&` or `||`; run as separate commands or use `;`.
+  - context: `git add ... && git commit ...` and `cmd1 || cmd2` failed under the tool runner.
+  - fix: split into multiple `exec` calls.
+  - source: observed tool failures 2026-03-17 to 2026-03-18
+  - captured: 2026-03-18
+
+- [rule][confidence: high] Use correct object-property access in PowerShell: `$_.Path`, `$_.FullName`, not `.Path` / `.FullName`.
+  - context: multiple `ForEach-Object { .Path }` / `{ .FullName }` failures in exec.
+  - fix: always reference the pipeline object as `$_` inside scriptblocks.
+  - source: observed tool failures 2026-03-18
+  - captured: 2026-03-18
+
+- [rule][confidence: high] Avoid complex PowerShell one-liners inside `exec`; prefer short scripts or Python for parsing/log processing.
+  - context: quoting/parentheses issues caused repeat errors while appending multi-line markdown.
+  - fix: do text writes with Python or file-based `.ps1` scripts.
+  - source: observed tool failures 2026-03-18
+  - captured: 2026-03-18
 
 ## Repo Hygiene
 
