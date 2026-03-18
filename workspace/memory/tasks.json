@@ -1,12 +1,13 @@
 {
-  "version": 93,
-  "updated_at": "2026-03-18T15:18:59.876140+00:00",
-  "updated_by": "gb-packages",
+  "version": 95,
+  "updated_at": "2026-03-18T15:27:50.653437+00:00",
+  "updated_by": "dir-copy-fix",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
     "bot_current": [],
-    "bot_queue": ["GB-DIR-live-verified-claim"],
+    "bot_queue": [],
     "human": [
+      "GB-DIR-live-verified-claim",
       "CRON-20260318-openclaw-x-engagement-1030",
       "CRON-20260318-moltbook-x-engagement",
       "CRON-20260318-credibility-monitor-10am",
@@ -2402,11 +2403,20 @@
     "GB-DIR-live-verified-claim": {
       "id": "GB-DIR-live-verified-claim",
       "title": "Ghost Broker: remove verified/vetted claim from live /directory",
-      "status": "new",
-      "lane": "bot_queue",
+      "status": "waiting_human",
+      "lane": "human",
       "created_at": "2026-03-18T15:04:00.771708+00:00",
-      "updated_at": "2026-03-18T15:04:00.771708+00:00",
-      "instructions": "Update production site so /directory no longer asserts verified/vetted unless verification process exists. Verify live copy after deploy."
+      "updated_at": "2026-03-18T15:27:50.653437+00:00",
+      "instructions": "Update production site so /directory no longer asserts verified/vetted unless verification process exists. Verify live copy after deploy.",
+      "started_at": "2026-03-18T15:25:13.623726+00:00",
+      "learnings": {
+        "verdict": "Pushed directory meta description change to website repo (commit ec5b60a). Live /directory still shows verified/vetted body copy; needs Cloudflare/deploy alignment.",
+        "artifacts": [
+          "ghost-broker/website/directory.html commit ec5b60a",
+          "web_fetch https://ghostbrokerai.xyz/directory"
+        ]
+      },
+      "blocker": "Changes pushed to website repo (ec5b60a) but live /directory still shows verified/vetted body copy; likely deploy/routing mismatch. Needs Cloudflare access to ensure correct content is served."
     },
     "GB-PACKAGES-hero": {
       "id": "GB-PACKAGES-hero",
