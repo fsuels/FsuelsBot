@@ -1,11 +1,11 @@
 {
-  "version": 62,
-  "updated_at": "2026-03-18T07:03:15.135215+00:00",
-  "updated_by": "aplus",
+  "version": 63,
+  "updated_at": "2026-03-18T07:04:35.065867+00:00",
+  "updated_by": "consolidation",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
-    "bot_current": [],
-    "bot_queue": ["CRON-20260318-consolidation"],
+    "bot_current": ["CRON-20260318-consolidation"],
+    "bot_queue": [],
     "human": [
       "CRON-20260318-aplus-validation",
       "GB-SEO-robots-sitemap-fix",
@@ -2068,7 +2068,7 @@
     },
     "CRON-20260318-consolidation": {
       "title": "Memory Consolidation (3 AM)",
-      "status": "pending",
+      "status": "in_progress",
       "created_at": "2026-03-18T07:00:24.157030+00:00",
       "created_by": "cron",
       "cron_job_id": "consolidation",
@@ -2085,7 +2085,10 @@
         "outcomes": [],
         "actionsTaken": [],
         "artifacts": []
-      }
+      },
+      "lane": "bot_current",
+      "started_at": "2026-03-18T07:04:35.065867+00:00",
+      "updated_at": "2026-03-18T07:04:35.065867+00:00"
     },
     "CRON-20260318-aplus-validation": {
       "title": "Weekly Council A+ Validation (Wed 3 AM)",
