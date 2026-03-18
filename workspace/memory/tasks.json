@@ -1,11 +1,11 @@
 {
-  "version": 88,
-  "updated_at": "2026-03-18T14:30:32.503352+00:00",
-  "updated_by": "openclaw-engagement",
+  "version": 91,
+  "updated_at": "2026-03-18T15:04:00.771708+00:00",
+  "updated_by": "website-audit",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
     "bot_current": [],
-    "bot_queue": [],
+    "bot_queue": ["GB-PACKAGES-hero", "GB-DIR-live-verified-claim"],
     "human": [
       "CRON-20260318-openclaw-x-engagement-1030",
       "CRON-20260318-moltbook-x-engagement",
@@ -28,6 +28,7 @@
     ],
     "scheduled": [],
     "done_today": [
+      "CRON-20260318-ghost-website-audit",
       "CRON-20260318-research-brief",
       "OPS-powershell-property-syntax",
       "OPS-cron-tool-schema",
@@ -2381,6 +2382,39 @@
       "updated_at": "2026-03-18T14:30:32.503352+00:00",
       "blocker": "Public reply/like/retweet on X is Tier 2; requires Francisco approval and logged-in @GhostBrokerAI session.",
       "instructions": "If approved: open x.com/openclaw, reply to latest tweet with value-add, like/RT if appropriate, note engagement, report to Francisco."
+    },
+    "CRON-20260318-ghost-website-audit": {
+      "id": "CRON-20260318-ghost-website-audit",
+      "title": "Ghost Broker Daily Website Audit (11 AM)",
+      "status": "done",
+      "lane": "done_today",
+      "created_at": "2026-03-18T15:00:17.997682+00:00",
+      "updated_at": "2026-03-18T15:04:00.771708+00:00",
+      "instructions": "Read local ghost-broker/website/*.html, compare to live ghostbrokerai.xyz, do quick competitor scan (2-3), produce RED/YELLOW/GREEN report, add top items to tasks.json, send summary to Francisco.",
+      "started_at": "2026-03-18T15:00:37.892189+00:00",
+      "learnings": {
+        "artifacts": ["workspace/ghost-broker/plans/daily-audits/2026-03-18-website-audit.md"],
+        "verdict": "Audit written; added 2 follow-up tasks (live directory trust copy + homepage packages)."
+      },
+      "completed_at": "2026-03-18T15:04:00.771708+00:00"
+    },
+    "GB-DIR-live-verified-claim": {
+      "id": "GB-DIR-live-verified-claim",
+      "title": "Ghost Broker: remove verified/vetted claim from live /directory",
+      "status": "new",
+      "lane": "bot_queue",
+      "created_at": "2026-03-18T15:04:00.771708+00:00",
+      "updated_at": "2026-03-18T15:04:00.771708+00:00",
+      "instructions": "Update production site so /directory no longer asserts verified/vetted unless verification process exists. Verify live copy after deploy."
+    },
+    "GB-PACKAGES-hero": {
+      "id": "GB-PACKAGES-hero",
+      "title": "Ghost Broker: add 3 concrete packages above the fold",
+      "status": "new",
+      "lane": "bot_queue",
+      "created_at": "2026-03-18T15:04:00.771708+00:00",
+      "updated_at": "2026-03-18T15:04:00.771708+00:00",
+      "instructions": "Add 3 example packages (deliverables + turnaround + price range) on homepage to mirror competitor clarity. Requires content + HTML update + deploy."
     }
   },
   "active_project": "fsuelsbot"
