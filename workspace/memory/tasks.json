@@ -1,7 +1,7 @@
 {
-  "version": 84,
-  "updated_at": "2026-03-18T13:30:36.080597+00:00",
-  "updated_by": "influencer-daily",
+  "version": 85,
+  "updated_at": "2026-03-18T13:55:22.746830+00:00",
+  "updated_by": "discussion-note",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
     "bot_current": [],
@@ -572,7 +572,7 @@
       "title": "Fix that and make sure that never happens again",
       "status": "trashed",
       "lane": "trash",
-      "updated_at": "2026-02-20T14:49:24.903Z",
+      "updated_at": "2026-03-18T13:55:22.746830+00:00",
       "created_at": "2026-02-20T13:29:12.930Z",
       "started_at": "2026-02-20T13:29:12.930Z",
       "kind": "general",
@@ -603,6 +603,11 @@
           "ts": "2026-02-20T13:52:32.235688+00:00",
           "author": "human",
           "message": "What is happening with fix-that-and-make-sure-that-never-happens-again?"
+        },
+        {
+          "ts": "2026-03-18T13:55:22.746830+00:00",
+          "author": "bot",
+          "message": "Status: TRASHED. This was an old meta-task; no active work is pending under it. If you want it revived with concrete scope, tell me the specific failure to prevent."
         }
       ],
       "project": "dlm",
