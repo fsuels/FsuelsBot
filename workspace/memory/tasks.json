@@ -1,12 +1,13 @@
 {
-  "version": 87,
-  "updated_at": "2026-03-18T14:02:21.921248+00:00",
-  "updated_by": "credibility-monitor",
+  "version": 88,
+  "updated_at": "2026-03-18T14:30:32.503352+00:00",
+  "updated_by": "openclaw-engagement",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
     "bot_current": [],
     "bot_queue": [],
     "human": [
+      "CRON-20260318-openclaw-x-engagement-1030",
       "CRON-20260318-moltbook-x-engagement",
       "CRON-20260318-credibility-monitor-10am",
       "CRON-20260318-linkedin-marketing",
@@ -2370,6 +2371,16 @@
       "updated_at": "2026-03-18T14:00:36.251580+00:00",
       "blocker": "Reply/like/retweet on X is public action (Tier 2) and requires logged-in @GhostBrokerAI session.",
       "instructions": "See cron text in system message. Prepare drafts and report to Francisco; do not post without approval."
+    },
+    "CRON-20260318-openclaw-x-engagement-1030": {
+      "id": "CRON-20260318-openclaw-x-engagement-1030",
+      "title": "Ghost Broker @openclaw X Engagement (10:30 AM)",
+      "status": "waiting_human",
+      "lane": "human",
+      "created_at": "2026-03-18T14:30:32.503352+00:00",
+      "updated_at": "2026-03-18T14:30:32.503352+00:00",
+      "blocker": "Public reply/like/retweet on X is Tier 2; requires Francisco approval and logged-in @GhostBrokerAI session.",
+      "instructions": "If approved: open x.com/openclaw, reply to latest tweet with value-add, like/RT if appropriate, note engagement, report to Francisco."
     }
   },
   "active_project": "fsuelsbot"
