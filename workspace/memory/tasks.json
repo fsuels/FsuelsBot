@@ -1,10 +1,10 @@
 {
-  "version": 55,
-  "updated_at": "2026-03-18T02:33:40.442912+00:00",
-  "updated_by": "learn",
+  "version": 56,
+  "updated_at": "2026-03-18T03:00:30.046567+00:00",
+  "updated_by": "ship",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
-    "bot_current": [],
+    "bot_current": ["CRON-20260317-ship"],
     "bot_queue": [],
     "human": [
       "GB-SEO-robots-sitemap-fix",
@@ -2000,6 +2000,30 @@
       "started_at": "2026-03-18T02:32:17.090678+00:00",
       "updated_at": "2026-03-18T02:33:40.442912+00:00",
       "completed_at": "2026-03-18T02:33:40.442912+00:00"
+    },
+    "CRON-20260317-ship": {
+      "title": "Compound Loop: SHIP (11 PM)",
+      "status": "in_progress",
+      "created_at": "2026-03-18T03:00:13.281493+00:00",
+      "created_by": "cron",
+      "cron_job_id": "ship",
+      "instructions": "1) Read backlog.md for pending tasks with TPS scores. 2) Pick HIGHEST TPS task passing safety gates. 3) Execute the task. 4) Score output using 4-layer cascade. 5) If score >= 0.8: save as draft, commit. 6) Send overnight report to Francisco on Telegram. Timeout: 45 min max. BEFORE marking done, fill in learnings with what was shipped and scores.",
+      "context": {
+        "summary": "Scheduled task from cron job 'ship'. Auto-created at scheduled time.",
+        "created_from": "cron:ship",
+        "decisions": [],
+        "constraints": ["Must complete and log learnings before marking done"]
+      },
+      "learnings": {
+        "question": "What did Compound Loop: SHIP (11 PM) produce?",
+        "verdict": null,
+        "outcomes": [],
+        "actionsTaken": [],
+        "artifacts": []
+      },
+      "lane": "bot_current",
+      "started_at": "2026-03-18T03:00:30.046567+00:00",
+      "updated_at": "2026-03-18T03:00:30.046567+00:00"
     }
   },
   "active_project": "fsuelsbot"
