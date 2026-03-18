@@ -1,12 +1,13 @@
 {
-  "version": 70,
-  "updated_at": "2026-03-18T08:21:11.993796+00:00",
-  "updated_by": "influencer-outreach",
+  "version": 71,
+  "updated_at": "2026-03-18T11:00:55.412077+00:00",
+  "updated_by": "moltbook-marketing",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
     "bot_current": [],
     "bot_queue": [],
     "human": [
+      "CRON-20260318-ghost-moltbook-daily-marketing",
       "CRON-20260318-aplus-validation",
       "GB-SEO-robots-sitemap-fix",
       "CRON-20260317-ghost-openclaw-x",
@@ -2137,6 +2138,16 @@
       "started_at": "2026-03-18T07:00:58.263582+00:00",
       "updated_at": "2026-03-18T07:03:15.135215+00:00",
       "blocker": "Infra changed, but Council validation requires authenticated access to external AIs (ChatGPT/Grok) or approved alternative reviewer set. In this runtime, ChatGPT/Grok sessions are not available (login required)."
+    },
+    "CRON-20260318-ghost-moltbook-daily-marketing": {
+      "id": "CRON-20260318-ghost-moltbook-daily-marketing",
+      "title": "Ghost Broker Moltbook Daily Marketing (7 AM)",
+      "status": "waiting_human",
+      "lane": "human",
+      "created_at": "2026-03-18T11:00:55.412077+00:00",
+      "updated_at": "2026-03-18T11:00:55.412077+00:00",
+      "blocker": "Requires (1) marketing strategy file ghost-broker/plans/marketing-strategy.md (missing) and (2) approval to post/comment publicly on Moltbook. Also requires API credentials file; will not expose secrets in chat.",
+      "instructions": "If approved + strategy present: check replies/comments on Moltbook, respond to all, post daily content per weekday theme, comment on 2-3 hot posts in m/general, track metrics, brief Francisco."
     }
   },
   "active_project": "fsuelsbot"
