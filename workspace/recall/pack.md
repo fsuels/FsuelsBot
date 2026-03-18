@@ -1,10 +1,10 @@
-# Recall Pack - 2026-03-17
+# Recall Pack - 2026-03-18
 
 _Auto-generated context for session start (lightweight)_
 
 ## Current State
 
-- **Status:** Cron / maintenance (no runnable bot_current)
+- **Status:** Maintenance / cron
 - **Mission Control:** running (per heartbeat-checks.ps1)
 
 ## P0 Constraints / Standing Rules
@@ -16,17 +16,17 @@ _Auto-generated context for session start (lightweight)_
 ## Open Loops (Index)
 
 - Open commitments: 0 (`memory/index/open-loops.json`)
-- **WAITING_HUMAN tasks:** 6 (`memory/tasks.json` → lanes.human)
-  - Epistemic review (needs Grok/X browser)
-  - GhostBroker X engagement tasks (need attached X tab)
-  - BuckyDrop check (needs logged-in session)
-  - Pomelli dresses refresh (resume)
+- **WAITING_HUMAN tasks:** 10 (`memory/tasks.json` → lanes.human)
+  - GhostBroker Cloudflare fix (needs Cloudflare access)
+  - GhostBroker X engagement (needs approval)
+  - GhostBroker credibility/influencer plan files missing
+  - BuckyDrop checks need login/attached tab
 
 ## Recent Ships (evidence)
 
-- `workspace/knowledge/ops/nightly-learn-2026-03-16.md` (commit 23deb3166)
-- Backlog status correction for GMC best-practices research (commit 918cc16b0)
-- Daily backup (commit 6ca312b25)
+- `workspace/knowledge/business/dlm/product-description-template.md` (ship 2026-03-17)
+- `workspace/ghost-broker/plans/daily-audits/fetch-competitors.ps1` (epistemic UNVERIFIED rule)
+- `workspace/memory/global/rules.md` (nightly learn 2026-03-17)
 
 ## Quick Stats
 
