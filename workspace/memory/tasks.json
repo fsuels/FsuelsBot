@@ -1,12 +1,14 @@
 {
-  "version": 76,
-  "updated_at": "2026-03-18T11:50:33.699352+00:00",
-  "updated_by": "ops",
+  "version": 79,
+  "updated_at": "2026-03-18T12:01:20.324534+00:00",
+  "updated_by": "ghost-blog",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
     "bot_current": [],
     "bot_queue": [],
     "human": [
+      "CRON-20260318-ghost-daily-blog",
+      "CRON-20260318-buckydrop-check",
       "CRON-20260318-ghost-moltbook-daily-marketing",
       "CRON-20260318-aplus-validation",
       "GB-SEO-robots-sitemap-fix",
@@ -2183,6 +2185,41 @@
         "artifacts": ["workspace/memory/global/rules.md"]
       },
       "completed_at": "2026-03-18T11:50:33.699352+00:00"
+    },
+    "CRON-20260318-buckydrop-check": {
+      "title": "BuckyDrop Support Check (8 AM/PM)",
+      "status": "waiting_human",
+      "created_at": "2026-03-18T12:00:11.412496+00:00",
+      "created_by": "cron",
+      "cron_job_id": "buckydrop-check",
+      "instructions": "1) Check Outlook inbox for reply from support@buckydrop.com. 2) Check BuckyDrop Personal Center > Feedback for responses. 3) If response received, notify Francisco on Telegram with the update. 4) If no response, log the check. BEFORE marking done, fill in learnings with response status.",
+      "context": {
+        "summary": "Scheduled task from cron job 'buckydrop-check'. Auto-created at scheduled time.",
+        "created_from": "cron:buckydrop-check",
+        "decisions": [],
+        "constraints": ["Must complete and log learnings before marking done"]
+      },
+      "learnings": {
+        "question": "What did BuckyDrop Support Check (8 AM/PM) produce?",
+        "verdict": "Blocked: no authenticated Outlook/BuckyDrop session in this runtime.",
+        "outcomes": [],
+        "actionsTaken": [],
+        "artifacts": []
+      },
+      "lane": "human",
+      "started_at": "2026-03-18T12:00:38.137491+00:00",
+      "updated_at": "2026-03-18T12:00:55.301021+00:00",
+      "blocker": "Need either (A) BuckyDrop login via attached browser tab (preferred) or (B) credentials to log in; Outlook inbox access also required to check support@buckydrop.com email."
+    },
+    "CRON-20260318-ghost-daily-blog": {
+      "id": "CRON-20260318-ghost-daily-blog",
+      "title": "Ghost Broker Daily Blog (8 AM)",
+      "status": "waiting_human",
+      "lane": "human",
+      "created_at": "2026-03-18T12:01:20.324534+00:00",
+      "updated_at": "2026-03-18T12:01:20.324534+00:00",
+      "blocker": "Missing plan file ghost-broker/plans/daily-blog-post.md (style guide) and posting is public content (Tier 2) requiring approval. Also need the blog index file ghost-broker/website/blog.html if not present.",
+      "instructions": "If approved + plan present: research topic per weekday, write 1500-2000 word post, create ghost-broker/website/blog/YYYY-MM-DD-slug.html, update blog.html, report to Francisco."
     }
   },
   "active_project": "fsuelsbot"
