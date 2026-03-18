@@ -1,10 +1,10 @@
 {
-  "version": 54,
-  "updated_at": "2026-03-18T02:32:17.090678+00:00",
+  "version": 55,
+  "updated_at": "2026-03-18T02:33:40.442912+00:00",
   "updated_by": "learn",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
-    "bot_current": ["CRON-20260317-learn"],
+    "bot_current": [],
     "bot_queue": [],
     "human": [
       "GB-SEO-robots-sitemap-fix",
@@ -21,6 +21,7 @@
     ],
     "scheduled": [],
     "done_today": [
+      "CRON-20260317-learn",
       "GB-EPISTEMIC-failed-fetch-unverified",
       "CRON-20260317-epistemic-review-evening",
       "CRON-20260317-curiosity",
@@ -1959,7 +1960,7 @@
     },
     "CRON-20260317-learn": {
       "title": "Compound Loop: LEARN (10:30 PM)",
-      "status": "in_progress",
+      "status": "done",
       "created_at": "2026-03-18T02:32:09.353419+00:00",
       "created_by": "cron",
       "cron_job_id": "learn",
@@ -1972,14 +1973,33 @@
       },
       "learnings": {
         "question": "What did Compound Loop: LEARN (10:30 PM) produce?",
-        "verdict": null,
+        "verdict": "Extracted 4 atomic lessons and updated memory/global/rules.md; committed/pushed.",
         "outcomes": [],
         "actionsTaken": [],
-        "artifacts": []
+        "artifacts": [],
+        "lessons": [
+          {
+            "lesson": "Competitor fetch failures => UNVERIFIED (no inference)",
+            "file": "memory/global/rules.md"
+          },
+          {
+            "lesson": "PowerShell: avoid && chaining under tool runner",
+            "file": "memory/global/rules.md"
+          },
+          {
+            "lesson": "Ignored paths: keep docs in tracked locations vs git add -f",
+            "file": "memory/global/rules.md"
+          },
+          {
+            "lesson": "Create daily memory file before scheduled reviews",
+            "file": "memory/global/rules.md"
+          }
+        ]
       },
-      "lane": "bot_current",
+      "lane": "done_today",
       "started_at": "2026-03-18T02:32:17.090678+00:00",
-      "updated_at": "2026-03-18T02:32:17.090678+00:00"
+      "updated_at": "2026-03-18T02:33:40.442912+00:00",
+      "completed_at": "2026-03-18T02:33:40.442912+00:00"
     }
   },
   "active_project": "fsuelsbot"
