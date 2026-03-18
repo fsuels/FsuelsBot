@@ -34,6 +34,34 @@ _Updated by: nightly compound loop, curiosity engine, manual additions_
 
 ---
 
+## Curiosity Engine Proposals (2026-03-17 9:00 PM)
+
+### Proposal 1: Fix Ghost Broker SEO plumbing (Cloudflare serving wrong robots/sitemap)
+
+- **Discovery:** `https://ghostbrokerai.xyz/sitemap.xml` is served as `text/html` (homepage HTML), and `robots.txt` is Cloudflare-managed “Content-Signal” robots, not our repo files.
+- **Why it matters:** This can cripple indexing + discoverability (sitemap ignored, robots directives not ours).
+- **Suggested task:** Get into Cloudflare (Pages/DNS/rules) and ensure `/robots.txt` and `/sitemap.xml` are served from the deployed repo root with correct content-types.
+- **TPS estimate:** Revenue Impact 8 × Confidence 0.7 ÷ Human Min 15 ÷ Risk 1.5 = **0.25**
+- **Persona:** Traffic / Technical SEO
+
+### Proposal 2: Eliminate inline PowerShell breakage with a minimal repro + wrapper
+
+- **Discovery:** This runtime appears to strip `$var` assignments in inline PowerShell one-liners (e.g., `$x=1` becoming `=1`). Grok flagged “hasty generalization risk” unless we scope + reproduce.
+- **Why it matters:** It creates recurring command failures + slows execution (recentErrors stays high).
+- **Suggested task:** Add a tiny reproducible test script + document the scope (“this agent runtime / toolchain”), and add a helper pattern (prefer file-based `.ps1` scripts or Python for JSON parsing).
+- **TPS estimate:** Revenue Impact 4 × Confidence 0.9 ÷ Human Min 8 ÷ Risk 1 = **0.45**
+- **Persona:** Ops / Reliability
+
+### Proposal 3: Create the missing Ghost Broker “Credibility Monitor” + “Influencer Outreach” playbooks
+
+- **Discovery:** Two daily Ghost Broker ops crons are blocked because plan/guide files are missing (credibility monitor + influencer outreach pipeline).
+- **Why it matters:** These are repeatable growth/trust workflows; missing docs = recurring stalls.
+- **Suggested task:** Author the two playbooks + a lightweight tracker (CSV/JSON) so daily checks can run without human intervention.
+- **TPS estimate:** Revenue Impact 6 × Confidence 0.75 ÷ Human Min 20 ÷ Risk 1 = **0.23**
+- **Persona:** Ops / Growth (within existing channels)
+
+---
+
 ## Curiosity Engine Proposals (2026-03-16 9:00 PM)
 
 ### Proposal 1: Stop PowerShell one-liner breakage (reduce recentErrors)

@@ -1,7 +1,7 @@
 {
-  "version": 46,
-  "updated_at": "2026-03-17T23:40:02.841740+00:00",
-  "updated_by": "maintenance",
+  "version": 50,
+  "updated_at": "2026-03-18T01:06:43.747176+00:00",
+  "updated_by": "epistemic-review",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
     "bot_current": [],
@@ -21,6 +21,8 @@
     ],
     "scheduled": [],
     "done_today": [
+      "CRON-20260317-epistemic-review-evening",
+      "CRON-20260317-curiosity",
       "CRON-20260316-epistemic-review-evening",
       "GB-TRUST-directory-copy-fix",
       "GB-WAITLIST-formspree-unify",
@@ -1864,6 +1866,70 @@
         ]
       },
       "completed_at": "2026-03-17T17:38:57.463595+00:00"
+    },
+    "CRON-20260317-curiosity": {
+      "title": "Curiosity Engine (9 PM)",
+      "status": "done",
+      "created_at": "2026-03-18T01:01:09.307042+00:00",
+      "created_by": "cron",
+      "cron_job_id": "curiosity",
+      "instructions": "1) Check recent memory files for metric anomalies. 2) Check for competitor moves or platform changes. 3) Scan for tooling leverage opportunities. 4) Generate max 3 proposals with TPS scores. 5) Append proposals to backlog.md. FORBIDDEN: new product categories, new traffic channels, brand pivots. BEFORE marking done, fill in learnings with proposals generated.",
+      "context": {
+        "summary": "Scheduled task from cron job 'curiosity'. Auto-created at scheduled time.",
+        "created_from": "cron:curiosity",
+        "decisions": [],
+        "constraints": ["Must complete and log learnings before marking done"]
+      },
+      "learnings": {
+        "question": "What did Curiosity Engine (9 PM) produce?",
+        "verdict": "Generated 3 TPS-scored proposals and appended to backlog.md",
+        "outcomes": [
+          {
+            "ts": "2026-03-18T01:03:18.298996+00:00",
+            "outcome": "Appended Curiosity proposals to backlog.md",
+            "evidence": "backlog.md (Curiosity Engine Proposals 2026-03-17)"
+          }
+        ],
+        "actionsTaken": [],
+        "artifacts": ["backlog.md"]
+      },
+      "lane": "done_today",
+      "started_at": "2026-03-18T01:01:53.461268+00:00",
+      "updated_at": "2026-03-18T01:03:18.298996+00:00",
+      "completed_at": "2026-03-18T01:03:18.298996+00:00"
+    },
+    "CRON-20260317-epistemic-review-evening": {
+      "title": "Epistemic Review - Evening (9 PM)",
+      "status": "done",
+      "created_at": "2026-03-18T01:03:39.860833+00:00",
+      "created_by": "cron",
+      "cron_job_id": "epistemic-review-evening",
+      "instructions": "1) Read procedures/epistemic-review.md. 2) Load today's memory file (memory/2026-03-17.md). 3) Extract key actions/claims. 4) Submit to EXTERNAL AI reviewer (rotation: different from AM). 5) Log findings to memory/epistemic-reviews.jsonl. 6) If violations: alert Francisco + create correction task.",
+      "context": {
+        "summary": "Scheduled task from cron job 'epistemic-review-evening'. Auto-created at scheduled time.",
+        "created_from": "cron:epistemic-review-evening",
+        "decisions": [],
+        "constraints": ["Must complete and log learnings before marking done"]
+      },
+      "learnings": {
+        "question": "What did Epistemic Review - Evening (9 PM) produce?",
+        "verdict": "Gemini web review complete: 1 minor evidence-risk flagged (don’t over-infer from competitor fetch failures); otherwise logic/hygiene good.",
+        "outcomes": [
+          {
+            "ts": "2026-03-18T01:06:43.747176+00:00",
+            "outcome": "External epistemic review completed (Gemini web)",
+            "evidence": "memory/epistemic-reviews.jsonl (2026-03-17-PM)"
+          }
+        ],
+        "actionsTaken": [],
+        "artifacts": [
+          "C:/Users/Fsuels/.clawdbot/media/browser/3884be89-3aaf-4d68-ae1d-58456ceae4d4.png"
+        ]
+      },
+      "lane": "done_today",
+      "started_at": "2026-03-18T01:03:55.004573+00:00",
+      "updated_at": "2026-03-18T01:06:43.747176+00:00",
+      "completed_at": "2026-03-18T01:06:43.747176+00:00"
     }
   },
   "active_project": "fsuelsbot"
