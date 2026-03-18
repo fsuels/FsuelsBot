@@ -1,20 +1,21 @@
 {
-  "version": 64,
-  "updated_at": "2026-03-18T07:08:30.979357+00:00",
-  "updated_by": "consolidation",
+  "version": 65,
+  "updated_at": "2026-03-18T07:31:37.501982+00:00",
+  "updated_by": "proactive-sprint",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
     "bot_current": [],
-    "bot_queue": [],
+    "bot_queue": [
+      "CRON-20260317-ghost-credibility-monitor",
+      "CRON-20260317-ghost-influencer-outreach",
+      "CRON-20260316-ghost-influencer-outreach"
+    ],
     "human": [
       "CRON-20260318-aplus-validation",
       "GB-SEO-robots-sitemap-fix",
       "CRON-20260317-ghost-openclaw-x",
-      "CRON-20260317-ghost-credibility-monitor",
       "CRON-20260317-ghost-moltbook-x",
-      "CRON-20260317-ghost-influencer-outreach",
       "CRON-20260317-buckydrop-check",
-      "CRON-20260316-ghost-influencer-outreach",
       "CRON-20260316-ghost-openclaw-x",
       "CRON-20260316-ghost-moltbook-x",
       "CRON-20260316-buckydrop-check"
@@ -1204,7 +1205,7 @@
     },
     "CRON-20260316-ghost-influencer-outreach": {
       "title": "Ghost Broker Daily Influencer Outreach (9:30 AM)",
-      "status": "waiting_human",
+      "status": "new",
       "created_at": "2026-03-16T14:29:09.578796+00:00",
       "created_by": "cron",
       "cron_job_id": "ghost-influencer-outreach",
@@ -1225,9 +1226,9 @@
       "blockers": [
         "BLOCKER: Requires interactive logged-in browser session (X/Moltbook). Heartbeat runtime has no browser capabilities; attach tab via Browser Relay to run."
       ],
-      "lane": "human",
-      "updated_at": "2026-03-17T22:50:00.759983+00:00",
-      "blocker": "Missing Ghost Broker outreach plan + pipeline files in workspace."
+      "lane": "bot_queue",
+      "updated_at": "2026-03-18T07:31:37.501982+00:00",
+      "blocker": null
     },
     "CRON-20260316-ghost-openclaw-x": {
       "title": "Ghost Broker @openclaw X Engagement (10:30 AM)",
@@ -1635,7 +1636,7 @@
     },
     "CRON-20260317-ghost-influencer-outreach": {
       "title": "Ghost Broker Daily Influencer Outreach (9:30 AM)",
-      "status": "waiting_human",
+      "status": "new",
       "created_at": "2026-03-17T13:30:16.314245+00:00",
       "created_by": "cron",
       "cron_job_id": "ghost-influencer-outreach",
@@ -1653,17 +1654,19 @@
         "actionsTaken": [],
         "artifacts": []
       },
-      "blocker": "Missing Ghost Broker outreach plan + pipeline files in workspace.",
+      "blocker": null,
       "notes": [
         {
           "ts": "2026-03-17T09:31:22.422997-04:00",
           "note": "Attempted to read ghost-broker/plans/influencer-outreach.md and ghost-broker/data/influencer-pipeline.md; both missing. plans/ folder exists but empty; data/ folder absent."
         }
-      ]
+      ],
+      "updated_at": "2026-03-18T07:31:37.501982+00:00",
+      "lane": "bot_queue"
     },
     "CRON-20260317-ghost-credibility-monitor": {
       "title": "Ghost Broker Daily Credibility Monitor (10 AM)",
-      "status": "waiting_human",
+      "status": "new",
       "created_at": "2026-03-17T14:00:32.775133+00:00",
       "created_by": "cron",
       "cron_job_id": "ghost-credibility-monitor",
@@ -1681,13 +1684,15 @@
         "actionsTaken": [],
         "artifacts": []
       },
-      "blocker": "Missing credibility monitor guide + credibility-building plan files.",
+      "blocker": null,
       "notes": [
         {
           "ts": "2026-03-17T10:02:52.276813-04:00",
           "note": "Missing ghost-broker/scripts/credibility-monitor.md and ghost-broker/plans/credibility-building.md; cannot update score as specified."
         }
-      ]
+      ],
+      "updated_at": "2026-03-18T07:31:37.501982+00:00",
+      "lane": "bot_queue"
     },
     "CRON-20260317-ghost-moltbook-x": {
       "title": "Ghost Broker @moltbook X Engagement (10 AM)",

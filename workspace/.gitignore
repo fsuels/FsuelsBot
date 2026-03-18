@@ -21,6 +21,9 @@ Desktop.ini
 # Claude/AI session files
 .claude/
 
+# Heartbeat runtime state (generated; do not commit)
+memory/last-healthy-state.json
+
 memory/.lock
 memory/.lock.tmp
 memory/.txn/
