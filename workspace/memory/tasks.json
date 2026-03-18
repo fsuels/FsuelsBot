@@ -1,11 +1,11 @@
 {
-  "version": 72,
-  "updated_at": "2026-03-18T11:19:59.721336+00:00",
-  "updated_by": "ops-scout",
+  "version": 74,
+  "updated_at": "2026-03-18T11:33:33.729478+00:00",
+  "updated_by": "ops",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
     "bot_current": [],
-    "bot_queue": ["OPS-cron-tool-schema", "OPS-powershell-property-syntax"],
+    "bot_queue": ["OPS-powershell-property-syntax"],
     "human": [
       "CRON-20260318-ghost-moltbook-daily-marketing",
       "CRON-20260318-aplus-validation",
@@ -19,6 +19,7 @@
     ],
     "scheduled": [],
     "done_today": [
+      "OPS-cron-tool-schema",
       "CRON-20260316-ghost-influencer-outreach",
       "CRON-20260317-ghost-influencer-outreach",
       "CRON-20260317-ghost-credibility-monitor",
@@ -2152,11 +2153,20 @@
     "OPS-cron-tool-schema": {
       "id": "OPS-cron-tool-schema",
       "title": "Fix cron.add schema usage",
-      "status": "new",
-      "lane": "bot_queue",
+      "status": "done",
+      "lane": "done_today",
       "created_at": "2026-03-18T11:19:59.721336+00:00",
-      "updated_at": "2026-03-18T11:19:59.721336+00:00",
-      "instructions": "Update internal procedure/notes for cron tool schema (requires name/sessionTarget/payload). Prevent repeat invalid cron.add errors."
+      "updated_at": "2026-03-18T11:33:33.729478+00:00",
+      "instructions": "Update internal procedure/notes for cron tool schema (requires name/sessionTarget/payload). Prevent repeat invalid cron.add errors.",
+      "started_at": "2026-03-18T11:29:15.875567+00:00",
+      "learnings": {
+        "verdict": "Documented cron tool schema + example in procedures/cron-jobs.md to prevent future invalid cron.add calls.",
+        "artifacts": [
+          "workspace/procedures/cron-jobs.md",
+          "clawdbot/dist/gateway/protocol/schema/cron.js"
+        ]
+      },
+      "completed_at": "2026-03-18T11:33:33.729478+00:00"
     },
     "OPS-powershell-property-syntax": {
       "id": "OPS-powershell-property-syntax",
