@@ -1,7 +1,7 @@
 {
-  "version": 95,
-  "updated_at": "2026-03-18T15:27:50.653437+00:00",
-  "updated_by": "dir-copy-fix",
+  "version": 97,
+  "updated_at": "2026-03-19T01:02:17.367635+00:00",
+  "updated_by": "curiosity-engine",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
     "bot_current": [],
@@ -29,6 +29,7 @@
     ],
     "scheduled": [],
     "done_today": [
+      "CRON-20260318-curiosity",
       "GB-PACKAGES-hero",
       "CRON-20260318-ghost-website-audit",
       "CRON-20260318-research-brief",
@@ -2432,6 +2433,40 @@
         "artifacts": ["workspace/ghost-broker/website/index.html"]
       },
       "completed_at": "2026-03-18T15:18:59.876140+00:00"
+    },
+    "CRON-20260318-curiosity": {
+      "title": "Curiosity Engine (9 PM)",
+      "status": "done",
+      "created_at": "2026-03-19T01:00:10.460531+00:00",
+      "created_by": "cron",
+      "cron_job_id": "curiosity",
+      "instructions": "1) Check recent memory files for metric anomalies. 2) Check for competitor moves or platform changes. 3) Scan for tooling leverage opportunities. 4) Generate max 3 proposals with TPS scores. 5) Append proposals to backlog.md. FORBIDDEN: new product categories, new traffic channels, brand pivots. BEFORE marking done, fill in learnings with proposals generated.",
+      "context": {
+        "summary": "Scheduled task from cron job 'curiosity'. Auto-created at scheduled time.",
+        "created_from": "cron:curiosity",
+        "decisions": [],
+        "constraints": ["Must complete and log learnings before marking done"]
+      },
+      "learnings": {
+        "question": "What did Curiosity Engine (9 PM) produce?",
+        "verdict": null,
+        "outcomes": [],
+        "actionsTaken": [],
+        "artifacts": [],
+        "proposals": [
+          "Fix Cloudflare-managed robots.txt + sitemap routing (TPS~0.27)",
+          "Standardize WAITING_HUMAN prerequisites checklist (TPS~0.28)",
+          "Epistemic review fallback automation when reviewer not logged in (TPS~0.34)"
+        ],
+        "backlog_path": "workspace/backlog.md",
+        "evidence": [
+          "web_fetch https://developers.cloudflare.com/bots/additional-configurations/managed-robots-txt/"
+        ]
+      },
+      "lane": "done_today",
+      "started_at": "2026-03-19T01:00:24.929348+00:00",
+      "updated_at": "2026-03-19T01:02:17.367635+00:00",
+      "completed_at": "2026-03-19T01:02:17.367635+00:00"
     }
   },
   "active_project": "fsuelsbot"

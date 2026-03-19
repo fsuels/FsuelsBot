@@ -34,6 +34,35 @@ _Updated by: nightly compound loop, curiosity engine, manual additions_
 
 ---
 
+## Curiosity Engine Proposals (2026-03-18 9:00 PM)
+
+### Proposal 1: Fix Cloudflare-managed robots.txt + sitemap routing (stop serving “Content Signals” block + HTML at /sitemap.xml)
+
+- **Discovery:** Live `ghostbrokerai.xyz/robots.txt` appears to be Cloudflare-managed “Content Signals Policy”, and `ghostbrokerai.xyz/sitemap.xml` has been served as HTML (homepage) instead of XML.
+- **Verified evidence:** Cloudflare docs confirm the “managed robots.txt setting” can prepend/serve a Cloudflare policy block when enabled: https://developers.cloudflare.com/bots/additional-configurations/managed-robots-txt/
+- **Why it matters:** Indexing + SEO reliability (robots directives + sitemap ingestion) can be broken/misleading.
+- **Suggested task:** In Cloudflare dashboard: locate Bot/robots feature + any redirect/page rules/workers; ensure `/robots.txt` and `/sitemap.xml` are served from the deployed repo with correct content-type (`text/plain`, `application/xml`). Re-verify via `curl -I` + content fetch.
+- **TPS estimate:** Revenue Impact 8 × Confidence 0.75 ÷ Human Min 15 ÷ Risk 1.5 = **0.27**
+- **Persona:** Traffic / Technical SEO
+
+### Proposal 2: Unblock daily ops by standardizing “WAITING_HUMAN” prerequisites (logins/approvals) into one checklist
+
+- **Discovery:** Many cron tasks are consistently blocked by the same prerequisites: (1) logged-in browser sessions (X, LinkedIn, Outlook, BuckyDrop), (2) Tier-2 approval for public actions.
+- **Why it matters:** Reduces repeated stalls; makes it easy for Francisco to grant access once, then tasks run autonomously.
+- **Suggested task:** Create `procedures/waiting-human-prereqs.md` + a 1-screen checklist Francisco can follow (attach Chrome tab via Browser Relay; confirm which accounts are authorized; approve allowed public actions scope). Update blocked tasks to reference that checklist.
+- **TPS estimate:** Revenue Impact 5 × Confidence 0.8 ÷ Human Min 12 ÷ Risk 1 = **0.28**
+- **Persona:** Ops / Throughput
+
+### Proposal 3: Epistemic review automation fallback when ChatGPT/Grok sessions aren’t available
+
+- **Discovery:** Evening epistemic review rotation can’t run when the required reviewer isn’t authenticated in the available browser runtime (common blocker).
+- **Why it matters:** This is a safety mechanism; if it fails repeatedly, errors compound unnoticed.
+- **Suggested task:** Update `procedures/epistemic-review.md` to include an explicit fallback chain: preferred reviewer by rotation → if not logged in, use Gemini CLI (still external) + record “fallback used” in `memory/epistemic-reviews.jsonl`.
+- **TPS estimate:** Revenue Impact 4 × Confidence 0.85 ÷ Human Min 10 ÷ Risk 1 = **0.34**
+- **Persona:** Safety / Quality
+
+---
+
 ## Curiosity Engine Proposals (2026-03-17 9:00 PM)
 
 ### Proposal 1: Fix Ghost Broker SEO plumbing (Cloudflare serving wrong robots/sitemap)
