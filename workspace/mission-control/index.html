@@ -4123,6 +4123,46 @@
           );
         }
 
+        if (task.autoresearch_strategy) {
+          let strategyHtml =
+            '<div style="margin-bottom:10px;"><strong>🧪 AutoResearch Strategy (Karpathy-inspired):</strong>';
+
+          if (typeof task.autoresearch_strategy === "string") {
+            strategyHtml +=
+              '<div style="margin-top:4px;">' + html(task.autoresearch_strategy) + "</div>";
+          } else if (Array.isArray(task.autoresearch_strategy)) {
+            let items = "";
+            task.autoresearch_strategy.forEach((x, idx) => {
+              items += "<li><strong>" + (idx + 1) + ".</strong> " + html(x) + "</li>";
+            });
+            strategyHtml += '<ol style="margin:4px 0 0 16px;">' + items + "</ol>";
+          } else {
+            if (task.autoresearch_strategy.exact_user_text) {
+              let lines = "";
+              task.autoresearch_strategy.exact_user_text.forEach((x) => {
+                lines += "<li><code>" + html(x) + "</code></li>";
+              });
+              strategyHtml +=
+                '<div style="margin-top:6px;"><strong>Exact user text:</strong><ul style="margin:4px 0 0 16px;">' +
+                lines +
+                "</ul></div>";
+            }
+            if (task.autoresearch_strategy.loop && task.autoresearch_strategy.loop.length > 0) {
+              let items = "";
+              task.autoresearch_strategy.loop.forEach((x, idx) => {
+                items += "<li><strong>" + (idx + 1) + ".</strong> " + html(x) + "</li>";
+              });
+              strategyHtml +=
+                '<div style="margin-top:6px;"><strong>Loop:</strong><ol style="margin:4px 0 0 16px;">' +
+                items +
+                "</ol></div>";
+            }
+          }
+
+          strategyHtml += "</div>";
+          briefParts.push(strategyHtml);
+        }
+
         if (briefParts.length > 0) {
           document.getElementById("modalApproach").innerHTML = briefParts.join("");
           approachSection.style.display = "block";
