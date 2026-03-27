@@ -2012,47 +2012,6 @@
           <button class="modal-close" onclick="closeModal()">&times;</button>
         </div>
         <div class="modal-body">
-          <!-- Epistemic Motto - Our Operating Principle -->
-          <div
-            class="modal-section"
-            style="
-              background: linear-gradient(
-                135deg,
-                rgba(139, 92, 246, 0.12) 0%,
-                rgba(88, 166, 255, 0.08) 100%
-              );
-              border: 1px solid rgba(139, 92, 246, 0.25);
-              border-radius: 10px;
-              padding: 14px;
-              margin-bottom: 16px;
-              text-align: center;
-            "
-          >
-            <div
-              style="
-                font-size: 11px;
-                color: #a78bfa;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-                margin-bottom: 8px;
-                font-weight: 600;
-              "
-            >
-              OUR OPERATING PRINCIPLE
-            </div>
-            <div style="font-size: 12px; color: #c9d1d9; line-height: 1.6">
-              EVERY response I give<br />
-              EVERY analysis I make<br />
-              EVERY recommendation I offer<br />
-              EVERY claim I accept<br />
-              EVERY action I take<br />
-              <span style="font-size: 16px; color: #60a5fa; display: block; margin: 6px 0">↓</span>
-              <strong style="color: #3fb950; font-size: 13px">SOUND LOGIC</strong><br />
-              <strong style="color: #fbbf24; font-size: 13px">VERIFIED EVIDENCE</strong><br />
-              <strong style="color: #f472b6; font-size: 13px">NO FALLACIES</strong>
-            </div>
-          </div>
-
           <div class="modal-section">
             <div class="modal-label">Status</div>
             <span class="modal-status" id="modalStatus">pending</span>
@@ -2120,6 +2079,10 @@
           <div class="modal-section" id="modalContextSection">
             <div class="modal-label">💡 Context / Why This Exists</div>
             <div class="modal-content" id="modalContext"></div>
+          </div>
+          <div class="modal-section" id="modalRequestMappingSection" style="display: none">
+            <div class="modal-label">🧩 Your Exact Input → My Task Understanding</div>
+            <div class="modal-content" id="modalRequestMapping"></div>
           </div>
           <div class="modal-section" id="modalEpistemicSection" style="display: none">
             <div class="modal-label">🔬 Epistemic Status (Evidence & Verification)</div>
@@ -3822,6 +3785,96 @@
           contextSection.style.display = "block";
         } else {
           contextSection.style.display = "none";
+        }
+
+        // Request Mapping (exact user text + interpreted scope + execution plan)
+        const requestMappingSection = document.getElementById("modalRequestMappingSection");
+        const requestMappingEl = document.getElementById("modalRequestMapping");
+        const req = task.requirements || {};
+        let requestMappingParts = [];
+
+        const exactInputItems = [];
+        if (Array.isArray(req.goals)) {
+          req.goals.forEach((x) => {
+            if (x) exactInputItems.push("Goal: " + x);
+          });
+        }
+        if (Array.isArray(req.constraints)) {
+          req.constraints.forEach((x) => {
+            if (x) exactInputItems.push("Constraint: " + x);
+          });
+        }
+        if (Array.isArray(req.acceptance_criteria)) {
+          req.acceptance_criteria.forEach((x) => {
+            if (x) exactInputItems.push("Acceptance: " + x);
+          });
+        }
+        if (task.next_action) {
+          exactInputItems.push("Latest requested action: " + task.next_action);
+        }
+        if (task.snowball && task.snowball.last_message) {
+          exactInputItems.push("Last captured message: " + task.snowball.last_message);
+        }
+
+        if (exactInputItems.length > 0) {
+          let lines = "";
+          exactInputItems.forEach((line) => {
+            lines +=
+              '<li style="margin-bottom:4px;"><code style="white-space:pre-wrap;">' +
+              html(line) +
+              "</code></li>";
+          });
+          requestMappingParts.push(
+            '<div style="margin-bottom:12px;"><strong>🗣️ Exact text captured from your messages</strong><ul style="margin:6px 0 0 16px;">' +
+              lines +
+              "</ul></div>",
+          );
+        }
+
+        const understoodItems = [];
+        if (task.summary) understoodItems.push("Summary: " + task.summary);
+        if (task.goal) understoodItems.push("Goal: " + task.goal);
+        if (task.context && task.context.summary) {
+          understoodItems.push("Context: " + task.context.summary);
+        }
+
+        if (understoodItems.length > 0) {
+          let lines = "";
+          understoodItems.forEach((line) => {
+            lines += "<li>" + html(line) + "</li>";
+          });
+          requestMappingParts.push(
+            '<div style="margin-bottom:12px;"><strong>🧠 What I understood from your input</strong><ul style="margin:6px 0 0 16px;">' +
+              lines +
+              "</ul></div>",
+          );
+        }
+
+        if (task.steps && task.steps.length > 0) {
+          let lines = "";
+          task.steps.forEach((step, idx) => {
+            const status = step.status || "todo";
+            lines +=
+              "<li><strong>" +
+              (idx + 1) +
+              ".</strong> " +
+              html(step.step || step.text || "") +
+              ' <span style="color:#8b949e;">[' +
+              html(status) +
+              "]</span></li>";
+          });
+          requestMappingParts.push(
+            '<div style="margin-bottom:0;"><strong>🛠️ Plan to tackle it</strong><ol style="margin:6px 0 0 16px;">' +
+              lines +
+              "</ol></div>",
+          );
+        }
+
+        if (requestMappingParts.length > 0) {
+          requestMappingEl.innerHTML = requestMappingParts.join("");
+          requestMappingSection.style.display = "block";
+        } else {
+          requestMappingSection.style.display = "none";
         }
 
         // Epistemic Section (ROUND 2 - Show verification status, claims, evidence, outcome)
