@@ -3719,22 +3719,43 @@
         projectCustom.style.display = "none";
         projectSaveBtn.style.display = "none";
 
-        // Set current value
-        if (task.project) {
-          // Check if it's a known project
-          const knownProjects = ["FsuelsBot", "123LegalDoc", "DressLikeMommy"];
-          if (knownProjects.includes(task.project)) {
-            projectSelect.value = task.project;
+        // Set current value (auto-infer when missing)
+        const knownProjects = ["FsuelsBot", "123LegalDoc", "DressLikeMommy"];
+        let inferredProject = task.project;
+        if (!inferredProject) {
+          const projectText =
+            `${id || ""} ${task.title || ""} ${task.summary || ""} ${task.goal || ""} ${task.next_action || ""}`.toLowerCase();
+          if (
+            projectText.includes("dresslikemommy") ||
+            projectText.includes("shopify") ||
+            projectText.includes("gtm") ||
+            projectText.includes("ga4") ||
+            projectText.includes("google ads") ||
+            projectText.includes("merchant center") ||
+            projectText.includes("gmc") ||
+            projectText.includes("dlm")
+          ) {
+            inferredProject = "DressLikeMommy";
+          } else if (projectText.includes("123legaldoc")) {
+            inferredProject = "123LegalDoc";
+          } else if (projectText.includes("mission control") || projectText.includes("fsuelsbot")) {
+            inferredProject = "FsuelsBot";
+          }
+        }
+
+        if (inferredProject) {
+          if (knownProjects.includes(inferredProject)) {
+            projectSelect.value = inferredProject;
           } else {
             // Add custom option if not in list
             const customOpt = document.createElement("option");
-            customOpt.value = task.project;
-            customOpt.textContent = task.project;
+            customOpt.value = inferredProject;
+            customOpt.textContent = inferredProject;
             projectSelect.insertBefore(
               customOpt,
               projectSelect.querySelector('option[value="__custom__"]'),
             );
-            projectSelect.value = task.project;
+            projectSelect.value = inferredProject;
           }
         } else {
           projectSelect.value = "";
