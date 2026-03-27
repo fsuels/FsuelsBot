@@ -3688,6 +3688,57 @@
             console.warn("Falling back to summary task payload:", e);
           }
         }
+
+        // Client-side safety net: strip non-task operating-principles boilerplate if it ever leaks in.
+        const stripBoilerplate = (value) => {
+          if (typeof value !== "string" || !value.trim()) return value;
+          const dropSnippets = [
+            "our operating principle",
+            "every response i give",
+            "every analysis i make",
+            "every recommendation i offer",
+            "every claim i accept",
+            "every action i take",
+            "sound logic",
+            "verified evidence",
+            "no fallacies",
+          ];
+          return value
+            .split("\n")
+            .filter((line) => {
+              const lower = line.trim().toLowerCase();
+              if (!lower) return true;
+              if (lower === "↓") return false;
+              return !dropSnippets.some((snippet) => lower.includes(snippet));
+            })
+            .join("\n")
+            .trim();
+        };
+
+        const scrubTask = (raw) => {
+          if (!raw || typeof raw !== "object") return raw;
+          const t = JSON.parse(JSON.stringify(raw));
+          ["title", "summary", "goal", "next_action", "approach", "notes"].forEach((k) => {
+            if (typeof t[k] === "string") t[k] = stripBoilerplate(t[k]);
+          });
+          if (t.context && typeof t.context === "object") {
+            ["summary", "goal", "why_exists", "benefit_to_you"].forEach((k) => {
+              if (typeof t.context[k] === "string") t.context[k] = stripBoilerplate(t.context[k]);
+            });
+          }
+          if (Array.isArray(t.discussion)) {
+            t.discussion = t.discussion.map((d) => {
+              if (d && typeof d === "object" && typeof d.message === "string") {
+                return { ...d, message: stripBoilerplate(d.message) };
+              }
+              return d;
+            });
+          }
+          return t;
+        };
+
+        task = scrubTask(task);
+
         const safeTaskId = escapeJsString(id);
         const html = escapeHtml;
 
