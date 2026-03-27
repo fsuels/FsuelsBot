@@ -4012,6 +4012,15 @@
               stepInfo += "</ul></div>";
             }
 
+            if (step.evidence && Array.isArray(step.evidence) && step.evidence.length > 0) {
+              stepInfo +=
+                '<div style="margin-top:6px;font-size:11px;color:#7ee787;"><strong>🧾 What was done:</strong><ul style="margin:4px 0 0 16px;">';
+              step.evidence.forEach((item) => {
+                stepInfo += "<li>" + html(item) + "</li>";
+              });
+              stepInfo += "</ul></div>";
+            }
+
             if (step.waiting_for) {
               stepInfo +=
                 '<div style="font-size:11px;color:#d29922;margin-top:6px;">⏳ Waiting for: ' +
@@ -4030,7 +4039,7 @@
         <div style="display:flex;gap:10px;padding:8px;border-radius:6px;background:${bgColor};${border}">
           <span style="font-size:16px;">${icon}</span>
           <div style="flex:1;">
-            <div style="color:${step.status === "done" ? "#8b949e" : "#e6edf3"};${step.status === "done" ? "text-decoration:line-through;" : ""}">${stepInfo}</div>
+            <div style="color:${step.status === "done" ? "#c9d1d9" : "#e6edf3"};">${stepInfo}</div>
           </div>
           <span style="font-size:11px;color:#8b949e;">${idx + 1}/${task.steps.length}</span>
         </div>
