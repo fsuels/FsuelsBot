@@ -3940,17 +3940,36 @@
             }
             const isCurrent = idx === currentStep && step.status !== "done";
             const border = isCurrent ? "border: 1px solid " + color + ";" : "";
-            let stepInfo = html(step.step || "");
+            const stepTitle = step.step || step.text || "";
+            let stepInfo = '<div style="font-weight:600;">' + html(stepTitle) + "</div>";
+
+            if (step.definitionOfDone) {
+              stepInfo +=
+                '<div style="font-size:11px;color:#8b949e;margin-top:4px;">✅ Done when: ' +
+                html(step.definitionOfDone) +
+                "</div>";
+            }
+
+            if (step.procedure && Array.isArray(step.procedure) && step.procedure.length > 0) {
+              stepInfo +=
+                '<div style="margin-top:6px;font-size:11px;color:#c9d1d9;"><strong>How:</strong><ul style="margin:4px 0 0 16px;">';
+              step.procedure.forEach((item) => {
+                stepInfo += "<li>" + html(item) + "</li>";
+              });
+              stepInfo += "</ul></div>";
+            }
+
             if (step.waiting_for) {
               stepInfo +=
-                '<div style="font-size:11px;color:#d29922;margin-top:4px;">⏳ Waiting for: ' +
+                '<div style="font-size:11px;color:#d29922;margin-top:6px;">⏳ Waiting for: ' +
                 html(step.waiting_for) +
                 "</div>";
             }
+
             if (step.completed_at) {
               const completedTime = new Date(step.completed_at).toLocaleString();
               stepInfo +=
-                '<div style="font-size:10px;color:#8b949e;margin-top:2px;">✓ ' +
+                '<div style="font-size:10px;color:#8b949e;margin-top:4px;">✓ Completed: ' +
                 completedTime +
                 "</div>";
             }
@@ -3975,10 +3994,84 @@
           stepsSection.style.display = "none";
         }
 
-        // Approach
+        // Approach / Execution Contract (show complete task brief)
         const approachSection = document.getElementById("modalApproachSection");
+        const briefParts = [];
+
+        if (task.goal) {
+          briefParts.push(
+            '<div style="margin-bottom:10px;"><strong>🎯 Goal:</strong><div style="margin-top:4px;">' +
+              html(task.goal) +
+              "</div></div>",
+          );
+        }
+
+        if (task.next_action) {
+          briefParts.push(
+            '<div style="margin-bottom:10px;"><strong>➡️ Current Next Action:</strong><div style="margin-top:4px;">' +
+              html(task.next_action) +
+              "</div></div>",
+          );
+        }
+
         if (task.approach) {
-          document.getElementById("modalApproach").textContent = task.approach;
+          briefParts.push(
+            '<div style="margin-bottom:10px;"><strong>✅ Approval / Validation Method:</strong><div style="margin-top:4px;">' +
+              html(task.approach) +
+              "</div></div>",
+          );
+        }
+
+        if (task.minimum_inputs_required && task.minimum_inputs_required.length > 0) {
+          let items = "";
+          task.minimum_inputs_required.forEach((x) => {
+            items += "<li>" + html(x) + "</li>";
+          });
+          briefParts.push(
+            '<div style="margin-bottom:10px;"><strong>📥 Minimum Inputs Required:</strong><ul style="margin:4px 0 0 16px;">' +
+              items +
+              "</ul></div>",
+          );
+        }
+
+        if (task.required_output_sections && task.required_output_sections.length > 0) {
+          let items = "";
+          task.required_output_sections.forEach((x) => {
+            items += "<li>" + html(x) + "</li>";
+          });
+          briefParts.push(
+            '<div style="margin-bottom:10px;"><strong>📤 Required Deliverables:</strong><ul style="margin:4px 0 0 16px;">' +
+              items +
+              "</ul></div>",
+          );
+        }
+
+        if (task.acceptanceCriteria && task.acceptanceCriteria.length > 0) {
+          let items = "";
+          task.acceptanceCriteria.forEach((x) => {
+            items += "<li>" + html(x) + "</li>";
+          });
+          briefParts.push(
+            '<div style="margin-bottom:10px;"><strong>🏁 Definition of Done:</strong><ul style="margin:4px 0 0 16px;">' +
+              items +
+              "</ul></div>",
+          );
+        }
+
+        if (task.audit_order && task.audit_order.length > 0) {
+          let items = "";
+          task.audit_order.forEach((x, idx) => {
+            items += "<li><strong>" + (idx + 1) + ".</strong> " + html(x) + "</li>";
+          });
+          briefParts.push(
+            '<div style="margin-bottom:10px;"><strong>🧭 Audit Order:</strong><ol style="margin:4px 0 0 16px;">' +
+              items +
+              "</ol></div>",
+          );
+        }
+
+        if (briefParts.length > 0) {
+          document.getElementById("modalApproach").innerHTML = briefParts.join("");
           approachSection.style.display = "block";
         } else {
           approachSection.style.display = "none";
