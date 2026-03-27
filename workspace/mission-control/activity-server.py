@@ -720,6 +720,45 @@ def _contains_boilerplate(text):
     return matches >= 2  # Need at least 2 markers to flag as boilerplate
 
 
+def _strip_boilerplate_text(text):
+    """Remove non-task boilerplate motto text while preserving task-relevant content."""
+    if not isinstance(text, str) or not text.strip():
+        return text
+
+    lower = text.lower()
+    # Fast path: if no known marker, keep as-is
+    if not any(marker in lower for marker in _BOILERPLATE_MARKERS):
+        return text
+
+    drop_line_markers = [
+        "our operating principle",
+        "every response i give",
+        "every analysis i make",
+        "every recommendation i offer",
+        "every claim i accept",
+        "every action i take",
+        "sound logic",
+        "verified evidence",
+        "no fallacies",
+    ]
+
+    kept = []
+    for line in text.splitlines():
+        line_lower = line.strip().lower()
+        if not line_lower:
+            kept.append(line)
+            continue
+        if any(marker in line_lower for marker in drop_line_markers):
+            continue
+        # Drop decorative divider-only lines
+        if line_lower in {"↓", "->", "=>"}:
+            continue
+        kept.append(line)
+
+    cleaned = "\n".join(kept).strip()
+    return cleaned
+
+
 def _resolve_display_title(task_id, task):
     """Deterministic title fallback: title > summary > goal > next_action > humanized id."""
     if not isinstance(task, dict):
@@ -727,9 +766,14 @@ def _resolve_display_title(task_id, task):
     for field in ("title", "summary", "goal", "next_action"):
         value = task.get(field)
         if isinstance(value, str) and value.strip() and len(value.strip()) > 3:
-            candidate = value.strip()
+            candidate = _strip_boilerplate_text(value.strip())
+            if not candidate:
+                continue
             # Skip values that start with "Complete:" (not useful titles)
             if candidate.lower().startswith("complete:"):
+                continue
+            # Skip boilerplate payloads entirely
+            if _contains_boilerplate(candidate):
                 continue
             # Truncate long values for title use
             if len(candidate) > 120:
@@ -753,20 +797,35 @@ def _sanitize_task_for_detail(task_id, task):
     result = dict(task)  # shallow copy
     # Ensure clean display title
     result["title"] = _resolve_display_title(task_id, task)
-    # Strip boilerplate from context.summary
+
+    # Strip boilerplate from top-level text fields used by task card modal
+    for key in ("summary", "goal", "notes", "approach", "next_action"):
+        if key in result:
+            result[key] = _strip_boilerplate_text(result.get(key, ""))
+
+    # Strip boilerplate from context fields
     ctx = result.get("context")
     if isinstance(ctx, dict):
         ctx = dict(ctx)
-        if _contains_boilerplate(ctx.get("summary", "")):
-            ctx["summary"] = ""
-        if _contains_boilerplate(ctx.get("goal", "")):
-            ctx["goal"] = ""
+        for key in ("summary", "goal", "why_exists", "benefit_to_you"):
+            if key in ctx:
+                ctx[key] = _strip_boilerplate_text(ctx.get(key, ""))
         result["context"] = ctx
-    # Strip boilerplate from top-level summary/goal
-    if _contains_boilerplate(result.get("summary", "")):
-        result["summary"] = ""
-    if _contains_boilerplate(result.get("goal", "")):
-        result["goal"] = ""
+
+    # Clean discussion messages too (prevents motto spam in audit trail)
+    discussion = result.get("discussion")
+    if isinstance(discussion, list):
+        cleaned_discussion = []
+        for item in discussion:
+            if not isinstance(item, dict):
+                cleaned_discussion.append(item)
+                continue
+            msg = dict(item)
+            if "message" in msg:
+                msg["message"] = _strip_boilerplate_text(msg.get("message", ""))
+            cleaned_discussion.append(msg)
+        result["discussion"] = cleaned_discussion
+
     return result
 
 
