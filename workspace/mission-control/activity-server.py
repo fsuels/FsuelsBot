@@ -1319,6 +1319,72 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
             return
+
+        if path == '/api/tasks':
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            try:
+                data = json.loads(body) if body else {}
+            except Exception:
+                data = {}
+
+            action = data.get('action')
+            if action != 'update_project':
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "unsupported action for POST /api/tasks"}).encode('utf-8'))
+                return
+
+            task_id = data.get('task_id')
+            project = data.get('project')
+            if not isinstance(task_id, str) or not task_id.strip():
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "task_id is required"}).encode('utf-8'))
+                return
+            if not isinstance(project, str) or not project.strip():
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": "project is required"}).encode('utf-8'))
+                return
+
+            tasks_file = os.path.join(WORKSPACE_DIR, "memory", "tasks.json")
+            try:
+                tasks_data = load_json_file(tasks_file)
+                tasks = tasks_data.get('tasks', {}) if isinstance(tasks_data, dict) else {}
+                task = tasks.get(task_id.strip()) if isinstance(tasks, dict) else None
+                if not isinstance(task, dict):
+                    self.send_response(404)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({"error": f"task not found: {task_id}"}).encode('utf-8'))
+                    return
+
+                task['project'] = project.strip()
+                task['project_source'] = 'manual'
+                task['updated_at'] = datetime.now(timezone.utc).isoformat()
+                tasks_data['updated_at'] = task['updated_at']
+
+                with open(tasks_file, 'w', encoding='utf-8') as f:
+                    json.dump(tasks_data, f, indent=2, ensure_ascii=False)
+
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "ok": True,
+                    "task_id": task_id.strip(),
+                    "project": project.strip()
+                }).encode('utf-8'))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+            return
         
         # Agent profile API - POST to save agent MD file
         if path == '/api/agent-profile':

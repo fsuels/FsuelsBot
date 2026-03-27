@@ -2017,9 +2017,18 @@
             <span class="modal-status" id="modalStatus">pending</span>
           </div>
           <div class="modal-section" id="modalProjectSection">
-            <div class="modal-label">
+            <div
+              class="modal-label"
+              style="cursor: pointer"
+              onclick="focusProjectEditor()"
+              title="Click to edit project"
+            >
               📁 Project <span style="font-size: 9px; color: #6e7681">(click to edit)</span>
             </div>
+            <div
+              id="modalProjectDetails"
+              style="font-size: 12px; color: #8b949e; margin-bottom: 6px"
+            ></div>
             <select
               id="modalProjectSelect"
               style="
@@ -2083,6 +2092,10 @@
           <div class="modal-section" id="modalRequestMappingSection" style="display: none">
             <div class="modal-label">🧩 Your Exact Input → My Task Understanding</div>
             <div class="modal-content" id="modalRequestMapping"></div>
+          </div>
+          <div class="modal-section" id="modalObjectiveSection" style="display: none">
+            <div class="modal-label">🎯 Objective + 🔒 Locked Constraints</div>
+            <div class="modal-content" id="modalObjective"></div>
           </div>
           <div class="modal-section" id="modalEpistemicSection" style="display: none">
             <div class="modal-label">🔬 Epistemic Status (Evidence & Verification)</div>
@@ -3700,6 +3713,7 @@
         const projectCustom = document.getElementById("modalProjectCustom");
         const projectSaveBtn = document.getElementById("modalProjectSaveBtn");
         const projectSection = document.getElementById("modalProjectSection");
+        const projectDetails = document.getElementById("modalProjectDetails");
 
         // Reset custom input visibility
         projectCustom.style.display = "none";
@@ -3725,6 +3739,10 @@
         } else {
           projectSelect.value = "";
         }
+
+        const currentProjectLabel = task.project ? html(task.project) : "Unassigned";
+        const projectSource = task.project_source ? ` • source: ${html(task.project_source)}` : "";
+        projectDetails.innerHTML = `<strong>Current:</strong> ${currentProjectLabel}${projectSource}`;
         projectSection.style.display = "block";
 
         // Context (the WHY)
@@ -3875,6 +3893,50 @@
           requestMappingSection.style.display = "block";
         } else {
           requestMappingSection.style.display = "none";
+        }
+
+        // Objective + locked constraints (explicit section for auditability)
+        const objectiveSection = document.getElementById("modalObjectiveSection");
+        const objectiveEl = document.getElementById("modalObjective");
+        const objectiveParts = [];
+
+        if (Array.isArray(req.goals) && req.goals.length > 0) {
+          objectiveParts.push(
+            '<div style="margin-bottom:10px;"><strong>Objective</strong><ul style="margin:6px 0 0 16px;">' +
+              req.goals.map((x) => `<li>${html(String(x))}</li>`).join("") +
+              "</ul></div>",
+          );
+        } else if (task.goal) {
+          objectiveParts.push(
+            '<div style="margin-bottom:10px;"><strong>Objective</strong><div style="margin-top:6px;">' +
+              html(task.goal) +
+              "</div></div>",
+          );
+        }
+
+        if (Array.isArray(req.constraints) && req.constraints.length > 0) {
+          objectiveParts.push(
+            '<div style="margin-bottom:10px;"><strong>Locked Constraints</strong><ul style="margin:6px 0 0 16px;">' +
+              req.constraints.map((x) => `<li>${html(String(x))}</li>`).join("") +
+              "</ul></div>",
+          );
+        } else if (
+          task.context &&
+          Array.isArray(task.context.constraints) &&
+          task.context.constraints.length > 0
+        ) {
+          objectiveParts.push(
+            '<div style="margin-bottom:10px;"><strong>Locked Constraints</strong><ul style="margin:6px 0 0 16px;">' +
+              task.context.constraints.map((x) => `<li>${html(String(x))}</li>`).join("") +
+              "</ul></div>",
+          );
+        }
+
+        if (objectiveParts.length > 0) {
+          objectiveEl.innerHTML = objectiveParts.join("");
+          objectiveSection.style.display = "block";
+        } else {
+          objectiveSection.style.display = "none";
         }
 
         // Epistemic Section (ROUND 2 - Show verification status, claims, evidence, outcome)
@@ -4881,6 +4943,20 @@
       let pendingDeleteType = "task"; // 'task' or 'cron'
 
       // Project editing functions
+      function focusProjectEditor() {
+        const select = document.getElementById("modalProjectSelect");
+        if (!select) return;
+        select.focus();
+        // Show dropdown on supported browsers so label click feels truly clickable
+        if (typeof select.showPicker === "function") {
+          try {
+            select.showPicker();
+          } catch (_) {
+            // ignore
+          }
+        }
+      }
+
       function updateTaskProject(value) {
         const customInput = document.getElementById("modalProjectCustom");
         const saveBtn = document.getElementById("modalProjectSaveBtn");
@@ -4940,8 +5016,12 @@
 
           if (resp.ok) {
             console.log("Project updated:", taskId, projectName);
-            // Refresh to show updated badges
-            loadTasks();
+            // Refresh board + keep modal details in sync
+            loadTaskBoard();
+            if (window.currentTaskId) {
+              showTaskDetail(window.currentTaskId);
+            }
+            showToast(`Project updated: ${projectName}`, "success");
           } else {
             console.error("Failed to save project");
             alert("Failed to save project. Check console.");
@@ -5141,7 +5221,7 @@
             // Human verification is final - task goes directly to done
             btn.textContent = "✅ Done!";
             showToast(`✅ ${taskId} marked complete!`);
-            setTimeout(() => loadTasks(), 500);
+            setTimeout(() => loadTaskBoard(), 500);
           } else {
             btn.textContent = "❌ Error";
             btn.classList.remove("pending");
