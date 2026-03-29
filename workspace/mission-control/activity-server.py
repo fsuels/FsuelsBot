@@ -851,6 +851,8 @@ def summarize_task_for_dashboard(task_id, task):
         "required_agent": task.get("required_agent"),
         "owner": task.get("owner"),
         "needs_verification": task.get("needs_verification"),
+        "project": task.get("project"),
+        "project_source": task.get("project_source"),
         "epistemic": {
             "verification_status": epistemic.get("verification_status"),
         },
