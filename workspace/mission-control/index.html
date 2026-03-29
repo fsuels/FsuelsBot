@@ -5066,7 +5066,7 @@
       }
 
       async function saveTaskProject(projectName) {
-        const taskId = currentModalTaskId;
+        const taskId = window.currentTaskId;
         if (!taskId) return;
 
         try {
