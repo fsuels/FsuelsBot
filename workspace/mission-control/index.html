@@ -3794,27 +3794,33 @@
           }
         }
 
-        if (inferredProject) {
-          if (knownProjects.includes(inferredProject)) {
-            projectSelect.value = inferredProject;
+        if (task.project) {
+          if (knownProjects.includes(task.project)) {
+            projectSelect.value = task.project;
           } else {
             // Add custom option if not in list
             const customOpt = document.createElement("option");
-            customOpt.value = inferredProject;
-            customOpt.textContent = inferredProject;
+            customOpt.value = task.project;
+            customOpt.textContent = task.project;
             projectSelect.insertBefore(
               customOpt,
               projectSelect.querySelector('option[value="__custom__"]'),
             );
-            projectSelect.value = inferredProject;
+            projectSelect.value = task.project;
           }
         } else {
+          // Keep blank until user explicitly saves a project.
+          // This avoids showing an inferred value as if it were already persisted.
           projectSelect.value = "";
         }
 
         const currentProjectLabel = task.project ? html(task.project) : "Unassigned";
         const projectSource = task.project_source ? ` • source: ${html(task.project_source)}` : "";
-        projectDetails.innerHTML = `<strong>Current:</strong> ${currentProjectLabel}${projectSource}`;
+        const inferredHint =
+          !task.project && inferredProject
+            ? `<div style="margin-top:4px;color:#8b949e;">Suggested: <code>${html(inferredProject)}</code> (select to save)</div>`
+            : "";
+        projectDetails.innerHTML = `<strong>Current:</strong> ${currentProjectLabel}${projectSource}${inferredHint}`;
         projectSection.style.display = "block";
 
         // Context (the WHY)
