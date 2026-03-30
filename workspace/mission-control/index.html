@@ -2065,11 +2065,11 @@
                 border: 1px solid rgba(96, 165, 250, 0.3);
                 width: 150px;
               "
-              onkeypress="if (event.key === 'Enter') saveCustomProject();"
+              onkeypress="if (event.key === 'Enter') saveSelectedProject();"
             />
             <button
               id="modalProjectSaveBtn"
-              onclick="saveCustomProject()"
+              onclick="saveSelectedProject()"
               style="
                 display: none;
                 margin-left: 4px;
@@ -2082,7 +2082,7 @@
                 cursor: pointer;
               "
             >
-              Save
+              Save Project
             </button>
           </div>
           <div class="modal-section" id="modalContextSection">
@@ -3767,6 +3767,7 @@
         const projectDetails = document.getElementById("modalProjectDetails");
 
         // Reset custom input visibility
+        pendingProjectSelection = "";
         projectCustom.style.display = "none";
         projectSaveBtn.style.display = "none";
 
@@ -5021,6 +5022,8 @@
       let pendingDeleteType = "task"; // 'task' or 'cron'
 
       // Project editing functions
+      let pendingProjectSelection = "";
+
       function focusProjectEditor() {
         const select = document.getElementById("modalProjectSelect");
         if (!select) return;
@@ -5039,36 +5042,59 @@
         const customInput = document.getElementById("modalProjectCustom");
         const saveBtn = document.getElementById("modalProjectSaveBtn");
 
+        pendingProjectSelection = "";
+
         if (value === "__custom__") {
-          // Show custom input
+          // Show custom input and wait for explicit save
           customInput.style.display = "inline-block";
           saveBtn.style.display = "inline-block";
+          saveBtn.textContent = "Save Project";
           customInput.focus();
-        } else if (value) {
-          // Save the selected project
-          customInput.style.display = "none";
+          return;
+        }
+
+        customInput.style.display = "none";
+
+        if (value) {
+          pendingProjectSelection = value;
+          saveBtn.style.display = "inline-block";
+          saveBtn.textContent = "Save Project";
+        } else {
           saveBtn.style.display = "none";
-          saveTaskProject(value);
         }
       }
 
-      function saveCustomProject() {
+      function saveSelectedProject() {
+        const select = document.getElementById("modalProjectSelect");
         const customInput = document.getElementById("modalProjectCustom");
-        const value = customInput.value.trim();
-        if (value) {
-          saveTaskProject(value);
-          customInput.value = "";
-          customInput.style.display = "none";
-          document.getElementById("modalProjectSaveBtn").style.display = "none";
+        const saveBtn = document.getElementById("modalProjectSaveBtn");
 
-          // Add to dropdown for future use
-          const select = document.getElementById("modalProjectSelect");
+        let value = "";
+        if (select && select.value === "__custom__") {
+          value = (customInput?.value || "").trim();
+        } else {
+          value = (pendingProjectSelection || select?.value || "").trim();
+        }
+
+        if (!value || value === "__custom__") return;
+
+        // Add custom option to dropdown for future use
+        if (select && !Array.from(select.options).some((opt) => opt.value === value)) {
           const customOpt = document.createElement("option");
           customOpt.value = value;
           customOpt.textContent = value;
           select.insertBefore(customOpt, select.querySelector('option[value="__custom__"]'));
-          select.value = value;
         }
+
+        saveTaskProject(value);
+
+        if (customInput) {
+          customInput.value = "";
+          customInput.style.display = "none";
+        }
+        if (saveBtn) saveBtn.style.display = "none";
+        if (select) select.value = value;
+        pendingProjectSelection = "";
       }
 
       async function saveTaskProject(projectName) {
