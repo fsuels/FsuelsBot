@@ -3,7 +3,6 @@ import path from "node:path";
 import type { AnyAgentTool } from "./common.js";
 import { loadConfig } from "../../config/config.js";
 import { callGateway } from "../../gateway/call.js";
-import { runReliableOperation } from "../../infra/reliability.js";
 import { isSubagentSessionKey, resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
 import { defineOpenClawTool } from "../tool-contract.js";
 import {
@@ -97,8 +96,6 @@ const SessionsListToolOutputSchema = Type.Object(
   { additionalProperties: false },
 );
 
-const HISTORY_LOOKUP_TIMEOUT_MS = 1_500;
-
 function buildSessionsListOperatorManual() {
   return [
     "Read-only discovery across main, group, cron, hook, node, and sub-agent sessions.",
@@ -107,6 +104,16 @@ function buildSessionsListOperatorManual() {
     '- `{"activeMinutes":30,"messageLimit":2}` -> active sessions with up to 2 recent non-tool messages',
     "If `partial=true`, some per-session history lookups failed; inspect `warnings`.",
   ].join("\n");
+}
+
+function extractErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message || String(error);
+  }
+  if (typeof error === "string") {
+    return error;
+  }
+  return String(error);
 }
 
 function summarizeSessionPreview(row: SessionListRow): Record<string, unknown> {
@@ -284,7 +291,6 @@ export function createSessionsListTool(opts?: {
           kind,
           channel: derivedChannel,
           label: typeof entry.label === "string" ? entry.label : undefined,
-          tag: typeof entry.tag === "string" ? entry.tag : undefined,
           displayName: typeof entry.displayName === "string" ? entry.displayName : undefined,
           deliveryContext:
             deliveryChannel || deliveryTo || deliveryAccountId
@@ -323,44 +329,26 @@ export function createSessionsListTool(opts?: {
               alias,
               mainKey,
             });
-            const historyResult = await runReliableOperation({
-              name: `sessions_list chat.history ${resolvedKey}`,
-              criticality: "best_effort",
-              timeoutMs: HISTORY_LOOKUP_TIMEOUT_MS,
-              fallback: () => [] as Array<unknown>,
-              task: async () => {
-                const history = await callGateway<{ messages: Array<unknown> }>({
-                  method: "chat.history",
-                  params: { sessionKey: resolvedKey, limit: messageLimit },
-                  timeoutMs: HISTORY_LOOKUP_TIMEOUT_MS,
-                });
-                return Array.isArray(history?.messages) ? history.messages : [];
-              },
-            });
-
-            if (!historyResult.ok) {
+            try {
+              const history = await callGateway<{ messages: Array<unknown> }>({
+                method: "chat.history",
+                params: { sessionKey: resolvedKey, limit: messageLimit },
+              });
+              const rawMessages = Array.isArray(history?.messages) ? history.messages : [];
+              const filtered = stripToolMessages(rawMessages);
+              return {
+                sessionKey: row.key,
+                messages: filtered.length > messageLimit ? filtered.slice(-messageLimit) : filtered,
+              };
+            } catch (error) {
               return {
                 sessionKey: row.key,
                 warning: {
                   sessionKey: row.key,
-                  reason: historyResult.message,
+                  reason: extractErrorMessage(error),
                 } satisfies SessionsListWarning,
               };
             }
-
-            const filtered = stripToolMessages(historyResult.value);
-            return {
-              sessionKey: row.key,
-              messages: filtered.length > messageLimit ? filtered.slice(-messageLimit) : filtered,
-              ...(historyResult.fallbackUsed && historyResult.message
-                ? {
-                    warning: {
-                      sessionKey: row.key,
-                      reason: historyResult.message,
-                    } satisfies SessionsListWarning,
-                  }
-                : {}),
-            };
           }),
         );
 
@@ -369,15 +357,11 @@ export function createSessionsListTool(opts?: {
           if (!row) {
             continue;
           }
-          if ("warning" in result && result.warning) {
+          if ("warning" in result) {
             warnings.push(result.warning);
-            if (!("messages" in result)) {
-              continue;
-            }
+            continue;
           }
-          if ("messages" in result) {
-            row.messages = result.messages;
-          }
+          row.messages = result.messages;
         }
       }
 

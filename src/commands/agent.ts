@@ -39,6 +39,7 @@ import { formatCliCommand } from "../cli/command-format.js";
 import { type CliDeps, createDefaultDeps } from "../cli/deps.js";
 import { loadConfig } from "../config/config.js";
 import {
+  captureSessionWorkspaceFingerprint,
   resolveAgentIdFromSessionKey,
   resolveSessionFilePath,
   type SessionEntry,
@@ -103,6 +104,11 @@ export async function agentCommand(
     ensureBootstrapFiles: !agentCfg?.skipBootstrap,
   });
   const workspaceDir = workspace.dir;
+  const workspaceFingerprint = await captureSessionWorkspaceFingerprint({
+    workspaceDir,
+    cwd: process.cwd(),
+    agentId: sessionAgentId,
+  });
   const configuredModel = resolveConfiguredModelRef({
     cfg,
     defaultProvider: DEFAULT_PROVIDER,
@@ -143,6 +149,7 @@ export async function agentCommand(
     sessionId: opts.sessionId,
     sessionKey: opts.sessionKey,
     agentId: agentIdOverride,
+    workspaceFingerprint,
   });
 
   const {
@@ -154,11 +161,19 @@ export async function agentCommand(
     isNewSession,
     persistedThinking,
     persistedVerbose,
+    resumeNotice,
   } = sessionResolution;
   let sessionEntry = resolvedSessionEntry;
   const runId = opts.runId?.trim() || sessionId;
 
+  const withWorkspaceFingerprint = (entry: SessionEntry): SessionEntry =>
+    workspaceFingerprint ? { ...entry, workspaceFingerprint } : entry;
+
   try {
+    if (resumeNotice) {
+      runtime.log(resumeNotice);
+    }
+
     if (opts.deliver === true) {
       const sendPolicy = resolveSendPolicy({
         cfg,
@@ -212,18 +227,23 @@ export async function agentCommand(
         updatedAt: Date.now(),
         skillsSnapshot,
       };
-      sessionStore[sessionKey] = next;
+      const fingerprintedNext = withWorkspaceFingerprint(next);
+      sessionStore[sessionKey] = fingerprintedNext;
       await updateSessionStore(storePath, (store) => {
-        store[sessionKey] = next;
+        store[sessionKey] = fingerprintedNext;
       });
-      sessionEntry = next;
+      sessionEntry = fingerprintedNext;
     }
 
     // Persist explicit /command overrides to the session store when we have a key.
     if (sessionStore && sessionKey) {
       const entry = sessionStore[sessionKey] ??
         sessionEntry ?? { sessionId, updatedAt: Date.now() };
-      const next: SessionEntry = { ...entry, sessionId, updatedAt: Date.now() };
+      const next: SessionEntry = withWorkspaceFingerprint({
+        ...entry,
+        sessionId,
+        updatedAt: Date.now(),
+      });
       if (thinkOverride) {
         if (thinkOverride === "off") {
           delete next.thinkingLevel;
@@ -363,7 +383,7 @@ export async function agentCommand(
       }
       resolvedThinkLevel = "high";
       if (sessionEntry && sessionStore && sessionKey && sessionEntry.thinkingLevel === "xhigh") {
-        const entry = sessionEntry;
+        const entry = withWorkspaceFingerprint(sessionEntry);
         entry.thinkingLevel = "high";
         entry.updatedAt = Date.now();
         sessionStore[sessionKey] = entry;
@@ -465,6 +485,8 @@ export async function agentCommand(
             lane: opts.lane,
             abortSignal: opts.abortSignal,
             extraSystemPrompt: opts.extraSystemPrompt,
+            cacheSafeFork: opts.cacheSafeFork,
+            forkRequestContext: opts.forkRequestContext,
             streamParams: opts.streamParams,
             agentDir,
             onAgentEvent: (evt) => {
@@ -520,6 +542,7 @@ export async function agentCommand(
         sessionKey,
         storePath,
         sessionStore,
+        workspaceFingerprint,
         defaultProvider: provider,
         defaultModel: model,
         fallbackProvider,
