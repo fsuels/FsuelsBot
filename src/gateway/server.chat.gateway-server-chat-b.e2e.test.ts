@@ -89,7 +89,11 @@ describe("gateway server chat", () => {
           largeLines.join("\n"),
           "utf-8",
         );
-        const cappedRes = await rpcReq<{ messages?: unknown[] }>(ws, "chat.history", {
+        const cappedRes = await rpcReq<{
+          messages?: unknown[];
+          firstCursor?: number | null;
+          hasMore?: boolean;
+        }>(ws, "chat.history", {
           sessionKey: "main",
           limit: 1000,
         });
@@ -98,6 +102,8 @@ describe("gateway server chat", () => {
         const bytes = Buffer.byteLength(JSON.stringify(cappedMsgs), "utf8");
         expect(bytes).toBeLessThanOrEqual(historyMaxBytes);
         expect(cappedMsgs.length).toBeLessThan(60);
+        expect(typeof cappedRes.payload?.firstCursor).toBe("number");
+        expect(cappedRes.payload?.hasMore).toBe(true);
 
         await writeStore({
           main: {

@@ -18,8 +18,12 @@ import {
   isChatStopCommandText,
   resolveChatRunExpiresAtMs,
 } from "../chat-abort.js";
-import { type ChatImageContent, parseMessageWithAttachments } from "../chat-attachments.js";
-import { stripEnvelopeFromMessages } from "../chat-sanitize.js";
+import {
+  type ChatImageContent,
+  normalizeChatAttachmentInput,
+  parseMessageWithAttachments,
+} from "../chat-attachments.js";
+import { stripEnvelopeFromMessage } from "../chat-sanitize.js";
 import { GATEWAY_CLIENT_CAPS, hasGatewayClientCap } from "../protocol/client-info.js";
 import {
   ErrorCodes,
@@ -34,7 +38,7 @@ import { getMaxChatHistoryMessagesBytes } from "../server-constants.js";
 import {
   capArrayByJsonBytes,
   loadSessionEntry,
-  readSessionMessages,
+  readSessionHistoryPage,
   resolveSessionModelRef,
 } from "../session-utils.js";
 import { formatForLog } from "../ws-log.js";
@@ -221,18 +225,39 @@ export const chatHandlers: GatewayRequestHandlers = {
     const { sessionKey, limit } = params as {
       sessionKey: string;
       limit?: number;
+      beforeCursor?: number;
     };
+    const beforeCursorRaw = (params as { beforeCursor?: unknown }).beforeCursor;
+    const beforeCursor =
+      typeof beforeCursorRaw === "number" && Number.isFinite(beforeCursorRaw)
+        ? Math.max(0, Math.floor(beforeCursorRaw))
+        : undefined;
     const { cfg, storePath, entry } = loadSessionEntry(sessionKey);
     const sessionId = entry?.sessionId;
-    const rawMessages =
-      sessionId && storePath ? readSessionMessages(sessionId, storePath, entry?.sessionFile) : [];
     const hardMax = 1000;
     const defaultLimit = 200;
     const requested = typeof limit === "number" ? limit : defaultLimit;
     const max = Math.min(hardMax, requested);
-    const sliced = rawMessages.length > max ? rawMessages.slice(-max) : rawMessages;
-    const sanitized = stripEnvelopeFromMessages(sliced);
-    const capped = capArrayByJsonBytes(sanitized, getMaxChatHistoryMessagesBytes()).items;
+    const page =
+      sessionId && storePath
+        ? readSessionHistoryPage(sessionId, storePath, entry?.sessionFile, max, beforeCursor)
+        : {
+            items: [],
+            firstCursor: null,
+            hasMore: false,
+          };
+    const sanitizedItems = page.items.map((item) => ({
+      cursor: item.cursor,
+      message: stripEnvelopeFromMessage(item.message),
+    }));
+    const cappedMessages = capArrayByJsonBytes(
+      sanitizedItems.map((item) => item.message),
+      getMaxChatHistoryMessagesBytes(),
+    );
+    const droppedByBytes = cappedMessages.items.length < sanitizedItems.length;
+    const cappedItems = droppedByBytes
+      ? sanitizedItems.slice(sanitizedItems.length - cappedMessages.items.length)
+      : sanitizedItems;
     let thinkingLevel = entry?.thinkingLevel;
     if (!thinkingLevel) {
       const configured = cfg.agents?.defaults?.thinkingDefault;
@@ -254,7 +279,9 @@ export const chatHandlers: GatewayRequestHandlers = {
     respond(true, {
       sessionKey,
       sessionId,
-      messages: capped,
+      messages: cappedItems.map((item) => item.message),
+      firstCursor: cappedItems[0]?.cursor ?? null,
+      hasMore: page.hasMore || droppedByBytes,
       thinkingLevel,
       verboseLevel,
     });
@@ -350,22 +377,10 @@ export const chatHandlers: GatewayRequestHandlers = {
     const stopCommand = isChatStopCommandText(p.message);
     const normalizedAttachments =
       p.attachments
-        ?.map((a) => ({
-          type: typeof a?.type === "string" ? a.type : undefined,
-          mimeType: typeof a?.mimeType === "string" ? a.mimeType : undefined,
-          fileName: typeof a?.fileName === "string" ? a.fileName : undefined,
-          content:
-            typeof a?.content === "string"
-              ? a.content
-              : ArrayBuffer.isView(a?.content)
-                ? Buffer.from(
-                    a.content.buffer,
-                    a.content.byteOffset,
-                    a.content.byteLength,
-                  ).toString("base64")
-                : undefined,
-        }))
-        .filter((a) => a.content) ?? [];
+        ?.map((attachment) => normalizeChatAttachmentInput(attachment))
+        .filter((attachment): attachment is NonNullable<typeof attachment> =>
+          Boolean(attachment?.content),
+        ) ?? [];
     const rawMessage = p.message.trim();
     if (!rawMessage && normalizedAttachments.length === 0) {
       respond(

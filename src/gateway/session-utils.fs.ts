@@ -11,6 +11,19 @@ import {
 } from "../utils/visible-message.js";
 import { stripEnvelope } from "./chat-sanitize.js";
 
+export type SessionHistoryPageItem = {
+  cursor: number;
+  message: unknown;
+};
+
+export type SessionHistoryPage = {
+  items: SessionHistoryPageItem[];
+  firstCursor: number | null;
+  hasMore: boolean;
+};
+
+const HISTORY_PAGE_SCAN_BYTES = 64 * 1024;
+
 export function readSessionMessages(
   sessionId: string,
   storePath: string | undefined,
@@ -56,6 +69,153 @@ export function readSessionMessages(
     }
   }
   return messages;
+}
+
+function trimTrailingLineBreak(buffer: Buffer): Buffer {
+  if (buffer.length === 0) {
+    return buffer;
+  }
+  if (buffer[buffer.length - 1] === 0x0d) {
+    return buffer.subarray(0, buffer.length - 1);
+  }
+  return buffer;
+}
+
+function toCompactionMessage(parsed: Record<string, unknown>): unknown {
+  const ts = typeof parsed.timestamp === "string" ? Date.parse(parsed.timestamp) : Number.NaN;
+  const timestamp = Number.isFinite(ts) ? ts : Date.now();
+  return {
+    role: "system",
+    content: [{ type: "text", text: "Compaction" }],
+    timestamp,
+    __openclaw: {
+      kind: "compaction",
+      id: typeof parsed.id === "string" ? parsed.id : undefined,
+    },
+  };
+}
+
+function parseSessionHistoryPageItem(line: Buffer, cursor: number): SessionHistoryPageItem | null {
+  const trimmed = trimTrailingLineBreak(line);
+  if (trimmed.length === 0) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed.toString("utf-8")) as Record<string, unknown>;
+    if ("message" in parsed) {
+      return { cursor, message: parsed.message };
+    }
+    if (parsed.type === "compaction") {
+      return {
+        cursor,
+        message: toCompactionMessage(parsed),
+      };
+    }
+  } catch {
+    // ignore malformed lines
+  }
+  return null;
+}
+
+export function readSessionHistoryPage(
+  sessionId: string,
+  storePath: string | undefined,
+  sessionFile: string | undefined,
+  limit: number,
+  beforeCursor?: number,
+  agentId?: string,
+): SessionHistoryPage {
+  const candidates = resolveSessionTranscriptCandidates(sessionId, storePath, sessionFile, agentId);
+  const filePath = candidates.find((p) => fs.existsSync(p));
+  if (!filePath) {
+    return {
+      items: [],
+      firstCursor: null,
+      hasMore: false,
+    };
+  }
+
+  const boundedLimit = Math.max(1, Math.floor(limit));
+  let fd: number | null = null;
+  try {
+    fd = fs.openSync(filePath, "r");
+    const stat = fs.fstatSync(fd);
+    const fileSize = stat.size;
+    const scanEndRaw =
+      typeof beforeCursor === "number" && Number.isFinite(beforeCursor)
+        ? Math.floor(beforeCursor)
+        : fileSize;
+    const scanEnd = Math.max(0, Math.min(fileSize, scanEndRaw));
+    if (scanEnd === 0) {
+      return {
+        items: [],
+        firstCursor: null,
+        hasMore: false,
+      };
+    }
+
+    const targetCount = boundedLimit + 1;
+    const collectedNewestFirst: SessionHistoryPageItem[] = [];
+    let offset = scanEnd;
+    let leftover = Buffer.alloc(0);
+
+    while (offset > 0 && collectedNewestFirst.length < targetCount) {
+      const readLen = Math.min(HISTORY_PAGE_SCAN_BYTES, offset);
+      const readStart = offset - readLen;
+      const chunk = Buffer.allocUnsafe(readLen);
+      fs.readSync(fd, chunk, 0, readLen, readStart);
+      const combined = leftover.length > 0 ? Buffer.concat([chunk, leftover]) : chunk;
+
+      let end = combined.length;
+      while (end > 0 && collectedNewestFirst.length < targetCount) {
+        const newlineIndex = combined.lastIndexOf(0x0a, end - 1);
+        if (newlineIndex === -1) {
+          break;
+        }
+        const lineStart = newlineIndex + 1;
+        const item = parseSessionHistoryPageItem(
+          combined.subarray(lineStart, end),
+          readStart + lineStart,
+        );
+        if (item) {
+          collectedNewestFirst.push(item);
+        }
+        end = newlineIndex;
+      }
+
+      leftover = combined.subarray(0, end);
+      offset = readStart;
+    }
+
+    if (offset === 0 && leftover.length > 0 && collectedNewestFirst.length < targetCount) {
+      const item = parseSessionHistoryPageItem(leftover, 0);
+      if (item) {
+        collectedNewestFirst.push(item);
+      }
+    }
+
+    const hasMore = collectedNewestFirst.length > boundedLimit;
+    const pageNewestFirst = hasMore
+      ? collectedNewestFirst.slice(0, boundedLimit)
+      : collectedNewestFirst;
+    const items = pageNewestFirst.toReversed();
+    return {
+      items,
+      firstCursor: items[0]?.cursor ?? null,
+      hasMore,
+    };
+  } catch {
+    return {
+      items: [],
+      firstCursor: null,
+      hasMore: false,
+    };
+  } finally {
+    if (fd !== null) {
+      fs.closeSync(fd);
+    }
+  }
 }
 
 export function resolveSessionTranscriptCandidates(

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import {
   readFirstUserMessageFromTranscript,
   readLastMessagePreviewFromTranscript,
+  readSessionHistoryPage,
   readSessionMessages,
   readSessionPreviewItemsFromTranscript,
   resolveSessionTranscriptCandidates,
@@ -389,6 +390,149 @@ describe("readSessionMessages", () => {
     expect(marker.__openclaw?.kind).toBe("compaction");
     expect(marker.__openclaw?.id).toBe("comp-1");
     expect(typeof marker.timestamp).toBe("number");
+  });
+});
+
+describe("readSessionHistoryPage", () => {
+  let tmpDir: string;
+  let storePath: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-session-history-page-"));
+    storePath = path.join(tmpDir, "sessions.json");
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  test("returns the latest page in chronological order", () => {
+    const sessionId = "history-latest";
+    const transcriptPath = path.join(tmpDir, `${sessionId}.jsonl`);
+    const lines = Array.from({ length: 10 }, (_, index) =>
+      JSON.stringify({
+        type: "message",
+        id: `m-${index}`,
+        message: {
+          role: "user",
+          content: [{ type: "text", text: `m${index}` }],
+        },
+      }),
+    );
+    fs.writeFileSync(transcriptPath, lines.join("\n"), "utf-8");
+
+    const page = readSessionHistoryPage(sessionId, storePath, undefined, 3);
+    const texts = page.items.map((item) => {
+      const message = item.message as { content?: Array<{ text?: string }> };
+      return message.content?.[0]?.text;
+    });
+
+    expect(texts).toEqual(["m7", "m8", "m9"]);
+    expect(typeof page.firstCursor).toBe("number");
+    expect(page.hasMore).toBe(true);
+  });
+
+  test("pages older messages using beforeCursor", () => {
+    const sessionId = "history-older";
+    const transcriptPath = path.join(tmpDir, `${sessionId}.jsonl`);
+    const lines = Array.from({ length: 10 }, (_, index) =>
+      JSON.stringify({
+        type: "message",
+        id: `m-${index}`,
+        message: {
+          role: "assistant",
+          content: [{ type: "text", text: `m${index}` }],
+        },
+      }),
+    );
+    fs.writeFileSync(transcriptPath, lines.join("\n"), "utf-8");
+
+    const latest = readSessionHistoryPage(sessionId, storePath, undefined, 4);
+    expect(latest.firstCursor).not.toBeNull();
+
+    const older = readSessionHistoryPage(
+      sessionId,
+      storePath,
+      undefined,
+      4,
+      latest.firstCursor ?? undefined,
+    );
+    const texts = older.items.map((item) => {
+      const message = item.message as { content?: Array<{ text?: string }> };
+      return message.content?.[0]?.text;
+    });
+
+    expect(texts).toEqual(["m2", "m3", "m4", "m5"]);
+    expect(typeof older.firstCursor).toBe("number");
+    expect(older.hasMore).toBe(true);
+
+    const oldest = readSessionHistoryPage(
+      sessionId,
+      storePath,
+      undefined,
+      4,
+      older.firstCursor ?? undefined,
+    );
+    const oldestTexts = oldest.items.map((item) => {
+      const message = item.message as { content?: Array<{ text?: string }> };
+      return message.content?.[0]?.text;
+    });
+    expect(oldestTexts).toEqual(["m0", "m1"]);
+    expect(oldest.hasMore).toBe(false);
+  });
+
+  test("returns an empty page when scanning before the start of the file", () => {
+    const sessionId = "history-empty";
+    const transcriptPath = path.join(tmpDir, `${sessionId}.jsonl`);
+    fs.writeFileSync(
+      transcriptPath,
+      JSON.stringify({
+        type: "message",
+        id: "m-1",
+        message: { role: "user", content: [{ type: "text", text: "only" }] },
+      }),
+      "utf-8",
+    );
+
+    const page = readSessionHistoryPage(sessionId, storePath, undefined, 5, 0);
+    expect(page.items).toEqual([]);
+    expect(page.firstCursor).toBeNull();
+    expect(page.hasMore).toBe(false);
+  });
+
+  test("includes synthetic compaction markers in paged results", () => {
+    const sessionId = "history-compaction";
+    const transcriptPath = path.join(tmpDir, `${sessionId}.jsonl`);
+    fs.writeFileSync(
+      transcriptPath,
+      [
+        JSON.stringify({
+          type: "message",
+          id: "m-1",
+          message: { role: "user", content: [{ type: "text", text: "before" }] },
+        }),
+        JSON.stringify({
+          type: "compaction",
+          id: "comp-1",
+          timestamp: "2026-03-01T00:00:00.000Z",
+        }),
+        JSON.stringify({
+          type: "message",
+          id: "m-2",
+          message: { role: "assistant", content: [{ type: "text", text: "after" }] },
+        }),
+      ].join("\n"),
+      "utf-8",
+    );
+
+    const page = readSessionHistoryPage(sessionId, storePath, undefined, 3);
+    expect(page.items).toHaveLength(3);
+    const marker = page.items[1]?.message as
+      | { role?: string; __openclaw?: { kind?: string; id?: string } }
+      | undefined;
+    expect(marker?.role).toBe("system");
+    expect(marker?.__openclaw?.kind).toBe("compaction");
+    expect(marker?.__openclaw?.id).toBe("comp-1");
   });
 });
 

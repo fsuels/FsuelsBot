@@ -233,6 +233,24 @@ public struct OpenClawChatHistoryPayload: Codable, Sendable {
     public let sessionId: String?
     public let messages: [AnyCodable]?
     public let thinkingLevel: String?
+    public let firstCursor: Int?
+    public let hasMore: Bool?
+
+    public init(
+        sessionKey: String,
+        sessionId: String? = nil,
+        messages: [AnyCodable]? = nil,
+        thinkingLevel: String? = nil,
+        firstCursor: Int? = nil,
+        hasMore: Bool? = nil
+    ) {
+        self.sessionKey = sessionKey
+        self.sessionId = sessionId
+        self.messages = messages
+        self.thinkingLevel = thinkingLevel
+        self.firstCursor = firstCursor
+        self.hasMore = hasMore
+    }
 }
 
 public struct OpenClawSessionPreviewItem: Codable, Hashable, Sendable {

@@ -27,6 +27,12 @@ export const ChatHistoryParamsSchema = Type.Object(
   {
     sessionKey: NonEmptyString,
     limit: Type.Optional(Type.Integer({ minimum: 1, maximum: 1000 })),
+    beforeCursor: Type.Optional(
+      Type.Integer({
+        minimum: 0,
+        description: "Opaque cursor from a prior chat.history response to fetch older messages.",
+      }),
+    ),
   },
   { additionalProperties: false },
 );

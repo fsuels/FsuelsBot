@@ -2564,17 +2564,21 @@ public struct DevicePairResolvedEvent: Codable, Sendable {
 public struct ChatHistoryParams: Codable, Sendable {
     public let sessionkey: String
     public let limit: Int?
+    public let beforecursor: Int?
 
     public init(
         sessionkey: String,
-        limit: Int?
+        limit: Int?,
+        beforecursor: Int?
     ) {
         self.sessionkey = sessionkey
         self.limit = limit
+        self.beforecursor = beforecursor
     }
     private enum CodingKeys: String, CodingKey {
         case sessionkey = "sessionKey"
         case limit
+        case beforecursor = "beforeCursor"
     }
 }
 

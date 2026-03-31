@@ -40,6 +40,7 @@ export {
   capArrayByJsonBytes,
   readFirstUserMessageFromTranscript,
   readLastMessagePreviewFromTranscript,
+  readSessionHistoryPage,
   readSessionPreviewItemsFromTranscript,
   readSessionMessages,
   resolveSessionTranscriptCandidates,
@@ -53,6 +54,7 @@ export type {
   SessionsPreviewEntry,
   SessionsPreviewResult,
 } from "./session-utils.types.js";
+export type { SessionHistoryPage, SessionHistoryPageItem } from "./session-utils.fs.js";
 
 const DERIVED_TITLE_MAX_LEN = 60;
 const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
