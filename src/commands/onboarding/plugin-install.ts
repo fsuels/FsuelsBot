@@ -6,9 +6,9 @@ import type { RuntimeEnv } from "../../runtime.js";
 import type { WizardPrompter } from "../../wizard/prompts.js";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../../agents/agent-scope.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
-import { enablePluginInConfig } from "../../plugins/enable.js";
+import { runPluginConfigWizard } from "../../plugins/configure-wizard.js";
 import { installPluginFromNpmSpec } from "../../plugins/install.js";
-import { recordPluginInstall } from "../../plugins/installs.js";
+import { applyInstalledPluginState } from "../../plugins/lifecycle.js";
 import { loadOpenClawPlugins } from "../../plugins/loader.js";
 
 type InstallChoice = "npm" | "local" | "skip";
@@ -55,21 +55,6 @@ function resolveLocalPath(
     }
   }
   return null;
-}
-
-function addPluginLoadPath(cfg: OpenClawConfig, pluginPath: string): OpenClawConfig {
-  const existing = cfg.plugins?.load?.paths ?? [];
-  const merged = Array.from(new Set([...existing, pluginPath]));
-  return {
-    ...cfg,
-    plugins: {
-      ...cfg.plugins,
-      load: {
-        ...cfg.plugins?.load,
-        paths: merged,
-      },
-    },
-  };
 }
 
 async function promptInstallChoice(params: {
@@ -125,6 +110,57 @@ function resolveInstallDefaultChoice(params: {
   return localPath ? "local" : "npm";
 }
 
+async function finalizeOnboardingPlugin(params: {
+  cfg: OpenClawConfig;
+  pluginId: string;
+  runtime: RuntimeEnv;
+  prompter: WizardPrompter;
+  workspaceDir?: string;
+  loadPath?: string;
+  install?: {
+    source: "npm" | "path";
+    spec?: string;
+    sourcePath?: string;
+    installPath?: string;
+    version?: string;
+  };
+}): Promise<InstallResult> {
+  const lifecycle = applyInstalledPluginState({
+    config: params.cfg,
+    pluginId: params.pluginId,
+    loadPath: params.loadPath,
+    workspaceDir: params.workspaceDir,
+    install: params.install
+      ? {
+          pluginId: params.pluginId,
+          ...params.install,
+        }
+      : undefined,
+  });
+
+  if (lifecycle.status === "not_found" || lifecycle.status === "blocked") {
+    await params.prompter.note(lifecycle.message, "Plugin install");
+    params.runtime.error?.(lifecycle.message);
+    return { cfg: lifecycle.config, installed: false };
+  }
+
+  let next = lifecycle.config;
+  const wizardResult = await runPluginConfigWizard({
+    config: next,
+    pluginId: params.pluginId,
+    workspaceDir: params.workspaceDir,
+    prompter: params.prompter,
+    mode: "required",
+  });
+  if (wizardResult.status === "configured") {
+    next = wizardResult.config;
+  } else if (wizardResult.status === "error") {
+    await params.prompter.note(wizardResult.message, "Plugin config");
+  }
+
+  return { cfg: next, installed: true };
+}
+
 export async function ensureOnboardingPluginInstalled(params: {
   cfg: OpenClawConfig;
   entry: ChannelPluginCatalogEntry;
@@ -153,9 +189,19 @@ export async function ensureOnboardingPluginInstalled(params: {
   }
 
   if (choice === "local" && localPath) {
-    next = addPluginLoadPath(next, localPath);
-    next = enablePluginInConfig(next, entry.id).config;
-    return { cfg: next, installed: true };
+    return await finalizeOnboardingPlugin({
+      cfg: next,
+      pluginId: entry.id,
+      runtime,
+      prompter,
+      workspaceDir,
+      loadPath: localPath,
+      install: {
+        source: "path",
+        sourcePath: localPath,
+        installPath: localPath,
+      },
+    });
   }
 
   const result = await installPluginFromNpmSpec({
@@ -167,15 +213,19 @@ export async function ensureOnboardingPluginInstalled(params: {
   });
 
   if (result.ok) {
-    next = enablePluginInConfig(next, result.pluginId).config;
-    next = recordPluginInstall(next, {
+    return await finalizeOnboardingPlugin({
+      cfg: next,
       pluginId: result.pluginId,
-      source: "npm",
-      spec: entry.install.npmSpec,
-      installPath: result.targetDir,
-      version: result.version,
+      runtime,
+      prompter,
+      workspaceDir,
+      install: {
+        source: "npm",
+        spec: entry.install.npmSpec,
+        installPath: result.targetDir,
+        version: result.version,
+      },
     });
-    return { cfg: next, installed: true };
   }
 
   await prompter.note(
@@ -189,9 +239,19 @@ export async function ensureOnboardingPluginInstalled(params: {
       initialValue: true,
     });
     if (fallback) {
-      next = addPluginLoadPath(next, localPath);
-      next = enablePluginInConfig(next, entry.id).config;
-      return { cfg: next, installed: true };
+      return await finalizeOnboardingPlugin({
+        cfg: next,
+        pluginId: entry.id,
+        runtime,
+        prompter,
+        workspaceDir,
+        loadPath: localPath,
+        install: {
+          source: "path",
+          sourcePath: localPath,
+          installPath: localPath,
+        },
+      });
     }
   }
 

@@ -5,9 +5,13 @@ import type { OpenClawConfig } from "../config/config.js";
 import type { PluginRecord } from "../plugins/registry.js";
 import { loadConfig, writeConfigFile } from "../config/config.js";
 import { resolveArchiveKind } from "../infra/archive.js";
+import { runPluginConfigWizard } from "../plugins/configure-wizard.js";
 import { installPluginFromNpmSpec, installPluginFromPath } from "../plugins/install.js";
-import { recordPluginInstall } from "../plugins/installs.js";
-import { applyExclusiveSlotSelection } from "../plugins/slots.js";
+import {
+  applyInstalledPluginState,
+  disablePluginLifecycle,
+  enablePluginLifecycle,
+} from "../plugins/lifecycle.js";
 import { buildPluginStatusReport } from "../plugins/status.js";
 import { updateNpmInstalledPlugins } from "../plugins/update.js";
 import { defaultRuntime } from "../runtime.js";
@@ -15,6 +19,7 @@ import { formatDocsLink } from "../terminal/links.js";
 import { renderTable } from "../terminal/table.js";
 import { theme } from "../terminal/theme.js";
 import { resolveUserPath, shortenHomeInString, shortenHomePath } from "../utils.js";
+import { createClackPrompter } from "../wizard/clack-prompter.js";
 
 export type PluginsListOptions = {
   json?: boolean;
@@ -31,6 +36,10 @@ export type PluginUpdateOptions = {
   dryRun?: boolean;
 };
 
+type PluginConfigureOptions = {
+  advanced?: boolean;
+};
+
 function formatPluginLine(plugin: PluginRecord, verbose = false): string {
   const status =
     plugin.status === "loaded"
@@ -39,7 +48,7 @@ function formatPluginLine(plugin: PluginRecord, verbose = false): string {
         ? theme.warn("disabled")
         : plugin.status === "unavailable"
           ? theme.warn("unavailable")
-        : theme.error("error");
+          : theme.error("error");
   const name = theme.command(plugin.name || plugin.id);
   const idSuffix = plugin.name && plugin.name !== plugin.id ? theme.muted(` (${plugin.id})`) : "";
   const desc = plugin.description
@@ -74,24 +83,6 @@ function formatPluginLine(plugin: PluginRecord, verbose = false): string {
   return parts.join("\n");
 }
 
-function applySlotSelectionForPlugin(
-  config: OpenClawConfig,
-  pluginId: string,
-): { config: OpenClawConfig; warnings: string[] } {
-  const report = buildPluginStatusReport({ config });
-  const plugin = report.plugins.find((entry) => entry.id === pluginId);
-  if (!plugin) {
-    return { config, warnings: [] };
-  }
-  const result = applyExclusiveSlotSelection({
-    config,
-    selectedId: plugin.id,
-    selectedKind: plugin.kind,
-    registry: report,
-  });
-  return { config: result.config, warnings: result.warnings };
-}
-
 function logSlotWarnings(warnings: string[]) {
   if (warnings.length === 0) {
     return;
@@ -99,6 +90,43 @@ function logSlotWarnings(warnings: string[]) {
   for (const warning of warnings) {
     defaultRuntime.log(theme.warn(warning));
   }
+}
+
+function handlePluginLifecycleFailure(result: { message: string; remediation: string }) {
+  defaultRuntime.error(result.message);
+  defaultRuntime.log(theme.muted(result.remediation));
+  process.exit(1);
+}
+
+function supportsInteractivePrompts(): boolean {
+  return Boolean(process.stdin.isTTY && process.stdout.isTTY);
+}
+
+async function maybeConfigurePlugin(params: {
+  config: OpenClawConfig;
+  pluginId: string;
+  mode: "required" | "guided";
+  includeAdvanced?: boolean;
+}): Promise<OpenClawConfig> {
+  if (!supportsInteractivePrompts()) {
+    return params.config;
+  }
+
+  const result = await runPluginConfigWizard({
+    config: params.config,
+    pluginId: params.pluginId,
+    prompter: createClackPrompter(),
+    mode: params.mode,
+    includeAdvanced: params.includeAdvanced,
+  });
+
+  if (result.status === "configured") {
+    return result.config;
+  }
+  if (result.status === "error") {
+    defaultRuntime.log(theme.warn(result.message));
+  }
+  return params.config;
 }
 
 export function registerPluginsCli(program: Command) {
@@ -119,9 +147,7 @@ export function registerPluginsCli(program: Command) {
     .option("--verbose", "Show detailed entries", false)
     .action((opts: PluginsListOptions) => {
       const report = buildPluginStatusReport();
-      const list = opts.enabled
-        ? report.plugins.filter((p) => p.enabled)
-        : report.plugins;
+      const list = opts.enabled ? report.plugins.filter((p) => p.enabled) : report.plugins;
 
       if (opts.json) {
         const payload = {
@@ -158,7 +184,7 @@ export function registerPluginsCli(program: Command) {
                   ? theme.warn("disabled")
                   : plugin.status === "unavailable"
                     ? theme.warn("unavailable")
-                  : theme.error("error"),
+                    : theme.error("error"),
             Source: sourceLine,
             Version: plugin.version ?? "",
           };
@@ -274,24 +300,24 @@ export function registerPluginsCli(program: Command) {
     .argument("<id>", "Plugin id")
     .action(async (id: string) => {
       const cfg = loadConfig();
-      let next: OpenClawConfig = {
-        ...cfg,
-        plugins: {
-          ...cfg.plugins,
-          entries: {
-            ...cfg.plugins?.entries,
-            [id]: {
-              ...(cfg.plugins?.entries as Record<string, { enabled?: boolean }> | undefined)?.[id],
-              enabled: true,
-            },
-          },
-        },
-      };
-      const slotResult = applySlotSelectionForPlugin(next, id);
-      next = slotResult.config;
+      const enableResult = enablePluginLifecycle({ config: cfg, pluginId: id });
+      if (enableResult.status === "not_found" || enableResult.status === "blocked") {
+        handlePluginLifecycleFailure(enableResult);
+      }
+      if (enableResult.status === "unchanged") {
+        defaultRuntime.log(enableResult.message);
+        return;
+      }
+
+      let next = enableResult.config;
+      next = await maybeConfigurePlugin({
+        config: next,
+        pluginId: id,
+        mode: "required",
+      });
       await writeConfigFile(next);
-      logSlotWarnings(slotResult.warnings);
-      defaultRuntime.log(`Enabled plugin "${id}". Restart the gateway to apply.`);
+      logSlotWarnings(enableResult.warnings);
+      defaultRuntime.log(`${enableResult.message} Restart the gateway to apply.`);
     });
 
   plugins
@@ -300,21 +326,14 @@ export function registerPluginsCli(program: Command) {
     .argument("<id>", "Plugin id")
     .action(async (id: string) => {
       const cfg = loadConfig();
-      const next = {
-        ...cfg,
-        plugins: {
-          ...cfg.plugins,
-          entries: {
-            ...cfg.plugins?.entries,
-            [id]: {
-              ...(cfg.plugins?.entries as Record<string, { enabled?: boolean }> | undefined)?.[id],
-              enabled: false,
-            },
-          },
-        },
-      };
-      await writeConfigFile(next);
-      defaultRuntime.log(`Disabled plugin "${id}". Restart the gateway to apply.`);
+      const disableResult = disablePluginLifecycle({ config: cfg, pluginId: id });
+      if (disableResult.status === "unchanged") {
+        defaultRuntime.log(disableResult.message);
+        return;
+      }
+      await writeConfigFile(disableResult.config);
+      logSlotWarnings(disableResult.warnings);
+      defaultRuntime.log(`${disableResult.message} Restart the gateway to apply.`);
     });
 
   plugins
@@ -328,43 +347,45 @@ export function registerPluginsCli(program: Command) {
 
       if (fs.existsSync(resolved)) {
         if (opts.link) {
-          const existing = cfg.plugins?.load?.paths ?? [];
-          const merged = Array.from(new Set([...existing, resolved]));
           const probe = await installPluginFromPath({ path: resolved, dryRun: true });
           if (!probe.ok) {
             defaultRuntime.error(probe.error);
             process.exit(1);
           }
 
-          let next: OpenClawConfig = {
-            ...cfg,
-            plugins: {
-              ...cfg.plugins,
-              load: {
-                ...cfg.plugins?.load,
-                paths: merged,
-              },
-              entries: {
-                ...cfg.plugins?.entries,
-                [probe.pluginId]: {
-                  ...(cfg.plugins?.entries?.[probe.pluginId] as object | undefined),
-                  enabled: true,
-                },
-              },
-            },
-          };
-          next = recordPluginInstall(next, {
+          const lifecycle = applyInstalledPluginState({
+            config: cfg,
             pluginId: probe.pluginId,
-            source: "path",
-            sourcePath: resolved,
-            installPath: resolved,
-            version: probe.version,
+            loadPath: resolved,
+            install: {
+              pluginId: probe.pluginId,
+              source: "path",
+              sourcePath: resolved,
+              installPath: resolved,
+              version: probe.version,
+            },
           });
-          const slotResult = applySlotSelectionForPlugin(next, probe.pluginId);
-          next = slotResult.config;
+          if (lifecycle.status === "not_found") {
+            handlePluginLifecycleFailure(lifecycle);
+          }
+          let next = lifecycle.config;
+          if (lifecycle.status !== "blocked") {
+            next = await maybeConfigurePlugin({
+              config: next,
+              pluginId: probe.pluginId,
+              mode: "required",
+            });
+          }
+          if (lifecycle.status === "blocked") {
+            defaultRuntime.log(theme.warn(lifecycle.message));
+            defaultRuntime.log(theme.muted(lifecycle.remediation));
+          }
           await writeConfigFile(next);
-          logSlotWarnings(slotResult.warnings);
+          logSlotWarnings(lifecycle.warnings);
           defaultRuntime.log(`Linked plugin path: ${shortenHomePath(resolved)}`);
+          if (lifecycle.status === "blocked") {
+            defaultRuntime.log(`Plugin was linked, but it remains disabled.`);
+          }
           defaultRuntime.log(`Restart the gateway to load plugins.`);
           return;
         }
@@ -381,31 +402,36 @@ export function registerPluginsCli(program: Command) {
           process.exit(1);
         }
 
-        let next: OpenClawConfig = {
-          ...cfg,
-          plugins: {
-            ...cfg.plugins,
-            entries: {
-              ...cfg.plugins?.entries,
-              [result.pluginId]: {
-                ...(cfg.plugins?.entries?.[result.pluginId] as object | undefined),
-                enabled: true,
-              },
-            },
-          },
-        };
         const source: "archive" | "path" = resolveArchiveKind(resolved) ? "archive" : "path";
-        next = recordPluginInstall(next, {
+        const lifecycle = applyInstalledPluginState({
+          config: cfg,
           pluginId: result.pluginId,
-          source,
-          sourcePath: resolved,
-          installPath: result.targetDir,
-          version: result.version,
+          install: {
+            pluginId: result.pluginId,
+            source,
+            sourcePath: resolved,
+            installPath: result.targetDir,
+            version: result.version,
+          },
         });
-        const slotResult = applySlotSelectionForPlugin(next, result.pluginId);
-        next = slotResult.config;
+        if (lifecycle.status === "not_found") {
+          handlePluginLifecycleFailure(lifecycle);
+        }
+
+        let next = lifecycle.config;
+        if (lifecycle.status !== "blocked") {
+          next = await maybeConfigurePlugin({
+            config: next,
+            pluginId: result.pluginId,
+            mode: "required",
+          });
+        }
         await writeConfigFile(next);
-        logSlotWarnings(slotResult.warnings);
+        logSlotWarnings(lifecycle.warnings);
+        if (lifecycle.status === "blocked") {
+          defaultRuntime.log(theme.warn(lifecycle.message));
+          defaultRuntime.log(theme.muted(lifecycle.remediation));
+        }
         defaultRuntime.log(`Installed plugin: ${result.pluginId}`);
         defaultRuntime.log(`Restart the gateway to load plugins.`);
         return;
@@ -445,32 +471,71 @@ export function registerPluginsCli(program: Command) {
         process.exit(1);
       }
 
-      let next: OpenClawConfig = {
-        ...cfg,
-        plugins: {
-          ...cfg.plugins,
-          entries: {
-            ...cfg.plugins?.entries,
-            [result.pluginId]: {
-              ...(cfg.plugins?.entries?.[result.pluginId] as object | undefined),
-              enabled: true,
-            },
-          },
-        },
-      };
-      next = recordPluginInstall(next, {
+      const lifecycle = applyInstalledPluginState({
+        config: cfg,
         pluginId: result.pluginId,
-        source: "npm",
-        spec: raw,
-        installPath: result.targetDir,
-        version: result.version,
+        install: {
+          pluginId: result.pluginId,
+          source: "npm",
+          spec: raw,
+          installPath: result.targetDir,
+          version: result.version,
+        },
       });
-      const slotResult = applySlotSelectionForPlugin(next, result.pluginId);
-      next = slotResult.config;
+      if (lifecycle.status === "not_found") {
+        handlePluginLifecycleFailure(lifecycle);
+      }
+
+      let next = lifecycle.config;
+      if (lifecycle.status !== "blocked") {
+        next = await maybeConfigurePlugin({
+          config: next,
+          pluginId: result.pluginId,
+          mode: "required",
+        });
+      }
       await writeConfigFile(next);
-      logSlotWarnings(slotResult.warnings);
+      logSlotWarnings(lifecycle.warnings);
+      if (lifecycle.status === "blocked") {
+        defaultRuntime.log(theme.warn(lifecycle.message));
+        defaultRuntime.log(theme.muted(lifecycle.remediation));
+      }
       defaultRuntime.log(`Installed plugin: ${result.pluginId}`);
       defaultRuntime.log(`Restart the gateway to load plugins.`);
+    });
+
+  plugins
+    .command("configure")
+    .description("Configure plugin settings from the plugin manifest schema")
+    .argument("<id>", "Plugin id")
+    .option("--advanced", "Include advanced fields", false)
+    .action(async (id: string, opts: PluginConfigureOptions) => {
+      if (!supportsInteractivePrompts()) {
+        defaultRuntime.error("`openclaw plugins configure` requires an interactive terminal.");
+        process.exit(1);
+      }
+
+      const cfg = loadConfig();
+      const result = await runPluginConfigWizard({
+        config: cfg,
+        pluginId: id,
+        prompter: createClackPrompter(),
+        mode: "guided",
+        includeAdvanced: opts.advanced,
+      });
+
+      if (result.status === "error") {
+        defaultRuntime.error(result.message);
+        process.exit(1);
+      }
+      if (result.status === "skipped") {
+        defaultRuntime.log(result.message);
+        return;
+      }
+
+      await writeConfigFile(result.config);
+      defaultRuntime.log(result.message);
+      defaultRuntime.log(`Restart the gateway to apply.`);
     });
 
   plugins
