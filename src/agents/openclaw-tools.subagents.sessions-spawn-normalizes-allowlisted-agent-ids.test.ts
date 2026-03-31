@@ -24,7 +24,7 @@ vi.mock("../config/config.js", async (importOriginal) => {
 import { emitAgentEvent } from "../infra/agent-events.js";
 import "./test-helpers/fast-core-tools.js";
 import { createOpenClawTools } from "./openclaw-tools.js";
-import { resetSubagentRegistryForTests } from "./subagent-registry.js";
+import { getSubagentRunBySessionKey, resetSubagentRegistryForTests } from "./subagent-registry.js";
 
 describe("openclaw-tools: subagents", () => {
   beforeEach(() => {
@@ -340,5 +340,89 @@ describe("openclaw-tools: subagents", () => {
     expect(announceParams?.deliver).toBe(true);
     expect(announceParams?.channel).toBe("whatsapp");
     expect(announceParams?.accountId).toBe("kev");
+  });
+
+  it("rejects impossible requiredTools for the selected profile", async () => {
+    resetSubagentRegistryForTests();
+    callGatewayMock.mockReset();
+
+    const tool = createOpenClawTools({
+      agentSessionKey: "main",
+      agentChannel: "whatsapp",
+    }).find((candidate) => candidate.name === "sessions_spawn");
+    if (!tool) {
+      throw new Error("missing sessions_spawn tool");
+    }
+
+    const result = await tool.execute("call3", {
+      task: "edit code",
+      profile: "research",
+      requiredTools: ["write"],
+    });
+
+    expect(result.details).toMatchObject({ status: "error" });
+    expect((result.details as { error?: string }).error).toContain("cannot satisfy requiredTools");
+    expect(callGatewayMock).not.toHaveBeenCalled();
+  });
+
+  it("persists per-run profile policy and injects it into the child prompt", async () => {
+    resetSubagentRegistryForTests();
+    callGatewayMock.mockReset();
+    let childSessionKey: string | undefined;
+    let extraSystemPrompt: string | undefined;
+
+    callGatewayMock.mockImplementation(async (opts: unknown) => {
+      const request = opts as { method?: string; params?: unknown };
+      if (request.method === "agent") {
+        const params = request.params as {
+          extraSystemPrompt?: string;
+          sessionKey?: string;
+        };
+        extraSystemPrompt = params.extraSystemPrompt;
+        childSessionKey = params.sessionKey;
+        return { runId: "run-profile", status: "accepted", acceptedAt: 7000 };
+      }
+      if (request.method === "agent.wait") {
+        return { status: "timeout" };
+      }
+      return {};
+    });
+
+    const tool = createOpenClawTools({
+      agentSessionKey: "main",
+      agentChannel: "whatsapp",
+    }).find((candidate) => candidate.name === "sessions_spawn");
+    if (!tool) {
+      throw new Error("missing sessions_spawn tool");
+    }
+
+    const result = await tool.execute("call4", {
+      task: "investigate auth failures",
+      label: "schema-audit",
+      profile: "research",
+      requiredTools: ["read"],
+      toolDeny: ["web_fetch"],
+    });
+
+    expect(result.details).toMatchObject({
+      status: "accepted",
+      runId: "run-profile",
+      profile: "research",
+    });
+    expect(extraSystemPrompt).toContain("## Capability Profile");
+    expect(extraSystemPrompt).toContain("- Profile: research");
+    expect(extraSystemPrompt).toContain("- Expected tools: read");
+    expect(extraSystemPrompt).toContain("Tool access has been restricted");
+
+    const run = childSessionKey ? getSubagentRunBySessionKey(childSessionKey) : undefined;
+    expect(run).toMatchObject({
+      runId: "run-profile",
+      profile: "research",
+      requiredTools: ["read"],
+      sessionToolPolicy: {
+        allow: expect.arrayContaining(["read"]),
+        deny: expect.arrayContaining(["web_fetch"]),
+      },
+    });
   });
 });

@@ -180,6 +180,18 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain("Anti-patterns: do not use for immediate work.");
   });
 
+  it("includes subagent orchestration guidance when worker tools are available", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/openclaw",
+      toolNames: ["delegate", "sessions_spawn", "sessions_send", "sessions_history"],
+    });
+
+    expect(prompt).toContain("## Subagent Orchestration");
+    expect(prompt).toContain("Use `delegate` for one-shot tasks");
+    expect(prompt).toContain("Capability profiles: `research`");
+    expect(prompt).toContain("Silence from a subagent after it finishes is normal.");
+  });
+
   it("preserves tool casing in the prompt", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/openclaw",

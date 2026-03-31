@@ -15,6 +15,8 @@ import {
   loadSubagentRegistryFromDisk,
   saveSubagentRegistryToDisk,
 } from "./subagent-registry.store.js";
+import type { SubagentCapabilityProfileId } from "./subagent-policy.js";
+import type { SandboxToolPolicy } from "./sandbox.js";
 import { resolveAgentTimeoutMs } from "./timeout.js";
 
 export type SubagentRunRecord = {
@@ -38,6 +40,9 @@ export type SubagentRunRecord = {
   cleanupError?: string;
   cleanupAttempts?: number;
   cleanupLastAttemptAt?: number;
+  profile?: SubagentCapabilityProfileId;
+  requiredTools?: string[];
+  sessionToolPolicy?: SandboxToolPolicy;
 };
 
 const subagentRuns = new Map<string, SubagentRunRecord>();
@@ -436,6 +441,9 @@ export function registerSubagentRun(params: {
   cleanup: "delete" | "keep";
   label?: string;
   runTimeoutSeconds?: number;
+  profile?: SubagentCapabilityProfileId;
+  requiredTools?: string[];
+  sessionToolPolicy?: SandboxToolPolicy;
 }) {
   const now = Date.now();
   const cfg = loadConfig();
@@ -458,6 +466,9 @@ export function registerSubagentRun(params: {
     cleanupHandled: false,
     cleanupState: "pending",
     cleanupAttempts: 0,
+    profile: params.profile,
+    requiredTools: params.requiredTools,
+    sessionToolPolicy: params.sessionToolPolicy,
   });
   ensureListener();
   persistSubagentRuns();
@@ -557,11 +568,21 @@ export function releaseSubagentRun(runId: string) {
 }
 
 export function listSubagentRunsForRequester(requesterSessionKey: string): SubagentRunRecord[] {
+  restoreSubagentRunsOnce();
   const key = requesterSessionKey.trim();
   if (!key) {
     return [];
   }
   return [...subagentRuns.values()].filter((entry) => entry.requesterSessionKey === key);
+}
+
+export function getSubagentRunBySessionKey(childSessionKey: string): SubagentRunRecord | undefined {
+  restoreSubagentRunsOnce();
+  const key = childSessionKey.trim();
+  if (!key) {
+    return undefined;
+  }
+  return [...subagentRuns.values()].find((entry) => entry.childSessionKey === key);
 }
 
 export function initSubagentRegistry() {

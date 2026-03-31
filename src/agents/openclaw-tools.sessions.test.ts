@@ -73,6 +73,7 @@ describe("sessions tools", () => {
     expect(schemaProp("sessions_spawn", "thinking").type).toBe("string");
     expect(schemaProp("sessions_spawn", "runTimeoutSeconds").type).toBe("number");
     expect(schemaProp("sessions_spawn", "timeoutSeconds").type).toBe("number");
+    expect(schemaProp("sessions_spawn", "profile").type).toBe("string");
   });
 
   it("exposes task_tracker with a provider-safe schema", () => {

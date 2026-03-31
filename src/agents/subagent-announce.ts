@@ -23,6 +23,11 @@ import {
   queueEmbeddedPiMessage,
   waitForEmbeddedPiRunEnd,
 } from "./pi-embedded.js";
+import {
+  buildSubagentCapabilityContext,
+  type SubagentCapabilityProfileId,
+} from "./subagent-policy.js";
+import type { SandboxToolPolicy } from "./sandbox.js";
 import { type AnnounceQueueItem, enqueueAnnounce } from "./subagent-announce-queue.js";
 import { readLatestAssistantReply } from "./tools/agent-step.js";
 
@@ -311,6 +316,9 @@ export function buildSubagentSystemPrompt(params: {
   childSessionKey: string;
   label?: string;
   task?: string;
+  profile?: SubagentCapabilityProfileId;
+  requiredTools?: string[];
+  sessionToolPolicy?: SandboxToolPolicy;
 }) {
   const taskText =
     typeof params.task === "string" && params.task.trim()
@@ -332,6 +340,11 @@ export function buildSubagentSystemPrompt(params: {
     "3. **Don't initiate** - No heartbeats, no proactive actions, no side quests",
     "4. **Be ephemeral** - You may be terminated after task completion. That's fine.",
     "",
+    ...buildSubagentCapabilityContext({
+      profile: params.profile,
+      requiredTools: params.requiredTools,
+      sessionToolPolicy: params.sessionToolPolicy,
+    }),
     "## Output Format",
     "When complete, your final response should include:",
     "- What you accomplished or found",

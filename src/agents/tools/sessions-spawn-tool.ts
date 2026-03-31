@@ -13,7 +13,13 @@ import {
 import { normalizeDeliveryContext } from "../../utils/delivery-context.js";
 import { resolveAgentConfig } from "../agent-scope.js";
 import { AGENT_LANE_SUBAGENT } from "../lanes.js";
+import { isToolAllowedByPolicies, resolveSubagentToolPolicy } from "../pi-tools.policy.js";
 import { optionalStringEnum } from "../schema/typebox.js";
+import {
+  buildSubagentSessionToolPolicy,
+  normalizeSubagentCapabilityProfile,
+  normalizeSubagentRequiredTools,
+} from "../subagent-policy.js";
 import { buildSubagentSystemPrompt } from "../subagent-announce.js";
 import { registerSubagentRun } from "../subagent-registry.js";
 import { assertKnownParams, jsonResult, readStringParam } from "./common.js";
@@ -63,6 +69,12 @@ const SessionsSpawnToolSchema = Type.Object(
       }),
     ),
     cleanup: optionalStringEnum(["delete", "keep"] as const),
+    profile: optionalStringEnum(
+      ["research", "implementation", "test-runner", "planner", "custom"] as const,
+    ),
+    requiredTools: Type.Optional(Type.Array(Type.String())),
+    toolAllow: Type.Optional(Type.Array(Type.String())),
+    toolDeny: Type.Optional(Type.Array(Type.String())),
   },
   { additionalProperties: false },
 );
@@ -131,6 +143,10 @@ export function createSessionsSpawnTool(opts?: {
             "runTimeoutSeconds",
             "timeoutSeconds",
             "cleanup",
+            "profile",
+            "requiredTools",
+            "toolAllow",
+            "toolDeny",
           ],
           { label: "sessions_spawn" },
         );
@@ -149,8 +165,25 @@ export function createSessionsSpawnTool(opts?: {
       const requestedAgentId = readStringParam(params, "agentId");
       const modelOverride = readStringParam(params, "model");
       const thinkingOverrideRaw = readStringParam(params, "thinking");
+      const profileRaw = readStringParam(params, "profile");
       const cleanup =
         params.cleanup === "keep" || params.cleanup === "delete" ? params.cleanup : "keep";
+      const profile = normalizeSubagentCapabilityProfile(profileRaw);
+      if (profileRaw && !profile) {
+        return jsonResult({
+          status: "error",
+          error:
+            'Invalid profile. Use one of: "research", "implementation", "test-runner", "planner", "custom".',
+        });
+      }
+      const requiredTools = normalizeSubagentRequiredTools(params.requiredTools);
+      const toolAllow = normalizeSubagentRequiredTools(params.toolAllow);
+      const toolDeny = normalizeSubagentRequiredTools(params.toolDeny);
+      const sessionToolPolicy = buildSubagentSessionToolPolicy({
+        profile,
+        toolAllow,
+        toolDeny,
+      });
       const requesterOrigin = normalizeDeliveryContext({
         channel: opts?.agentChannel,
         accountId: opts?.agentAccountId,
@@ -222,6 +255,22 @@ export function createSessionsSpawnTool(opts?: {
             error: `agentId is not allowed for sessions_spawn (allowed: ${allowedText})`,
           });
         }
+      }
+      const blockedRequiredTools = (requiredTools ?? []).filter(
+        (toolName) =>
+          !isToolAllowedByPolicies(toolName, [
+            resolveSubagentToolPolicy(cfg),
+            sessionToolPolicy,
+          ]),
+      );
+      if (blockedRequiredTools.length > 0) {
+        const profileLabel = profile ?? "default";
+        return jsonResult({
+          status: "error",
+          error:
+            `Subagent profile "${profileLabel}" cannot satisfy requiredTools: ` +
+            blockedRequiredTools.join(", "),
+        });
       }
       const childSessionKey = `agent:${targetAgentId}:subagent:${crypto.randomUUID()}`;
       const spawnedByKey = requesterInternalKey;
@@ -298,6 +347,9 @@ export function createSessionsSpawnTool(opts?: {
         childSessionKey,
         label: label || undefined,
         task,
+        profile,
+        requiredTools,
+        sessionToolPolicy,
       });
 
       const childIdem = crypto.randomUUID();
@@ -351,12 +403,16 @@ export function createSessionsSpawnTool(opts?: {
         cleanup,
         label: label || undefined,
         runTimeoutSeconds,
+        profile,
+        requiredTools,
+        sessionToolPolicy,
       });
 
       return jsonResult({
         status: "accepted",
         childSessionKey,
         runId: childRunId,
+        profile,
         modelApplied: resolvedModel ? modelApplied : undefined,
         warning: modelWarning,
       });
