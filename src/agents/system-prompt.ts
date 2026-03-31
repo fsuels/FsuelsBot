@@ -5,6 +5,7 @@ import type { ResolvedTimeFormat } from "./date-time.js";
 import type { DriftPromptInjection } from "./drift-detection.js";
 import type { EmbeddedContextFile } from "./pi-embedded-helpers.js";
 import { SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
+import { buildSubagentOrchestrationSection } from "./subagent-policy.js";
 import { listDeliverableMessageChannels } from "../utils/message-channel.js";
 
 /**
@@ -124,7 +125,8 @@ function buildMessagingSection(params: {
   return [
     "## Messaging",
     "- Reply in current session → automatically routes to the source channel (Signal, Telegram, etc.)",
-    "- Cross-session messaging → use sessions_send(sessionKey, message)",
+    "- Cross-session messaging → use `sessions_send({ label, message })` when a worker has a stable label; otherwise use `sessions_send({ sessionKey, message })`.",
+    "- Cross-session collaboration is plain text. Send only the next action or delta, not a full transcript re-quote unless the other session truly needs fresh context.",
     "- Never use exec/curl for provider messaging; OpenClaw handles all routing internally.",
     params.availableTools.has("message")
       ? [
@@ -463,6 +465,14 @@ export function buildAgentSystemPrompt(params: {
           "When delegating: include ALL context in the task field (the delegate has no history). Relay the result naturally without mentioning delegation.",
           "",
         ]
+      : []),
+    ...(!isMinimal
+      ? buildSubagentOrchestrationSection({
+          hasDelegate: availableTools.has("delegate"),
+          hasSessionsSpawn: availableTools.has("sessions_spawn"),
+          hasSessionsSend: availableTools.has("sessions_send"),
+          hasSessionsHistory: availableTools.has("sessions_history"),
+        })
       : []),
     ...safetySection,
     "## OpenClaw CLI Quick Reference",
