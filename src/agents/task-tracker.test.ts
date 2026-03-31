@@ -3,9 +3,12 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  createTaskTrackerTask,
+  formatTaskTrackerStateForPrompt,
   loadTaskTrackerState,
   replaceTaskTrackerState,
   resolveTaskTrackerStatePath,
+  updateTaskTrackerTask,
   type TaskTrackerContext,
   type TaskTrackerTaskInput,
 } from "./task-tracker.js";
@@ -249,5 +252,131 @@ describe("task-tracker", () => {
     expect(result.state.activeTasks).toEqual([]);
     expect(result.state.archivedTasks).toEqual([]);
     expect(result.state.submittedTasks).toEqual([]);
+  });
+
+  it("creates pending implementation tasks with default lifecycle fields", async () => {
+    const context = makeContext("main", "sess-create-defaults");
+
+    const result = await createTaskTrackerTask({
+      context,
+      subject: "Fix auth bug",
+      description: "Fix the login redirect loop and verify it with a regression test.",
+    });
+
+    expect(result.created).toBe(true);
+    expect(result.duplicate).toBe(false);
+    expect(result.task).toMatchObject({
+      status: "pending",
+      type: "implementation",
+      subject: "Fix auth bug",
+      description: "Fix the login redirect loop and verify it with a regression test.",
+      content: "Fix the login redirect loop and verify it with a regression test.",
+      activeForm: "Working on: Fix auth bug",
+      ownerAgentId: "main",
+      sessionId: "sess-create-defaults",
+    });
+    expect(result.task.metadata).toBeUndefined();
+
+    const state = await loadTaskTrackerState(context);
+    expect(state.activeTasks).toHaveLength(1);
+    expect(state.activeTasks[0]?.id).toBe(result.task.id);
+  });
+
+  it("stores explicit activeForm and metadata for created tasks", async () => {
+    const context = makeContext("main", "sess-create-metadata");
+
+    const result = await createTaskTrackerTask({
+      context,
+      subject: "Write regression tests",
+      description: "Add a regression test for the login redirect edge case.",
+      activeForm: "Writing regression tests",
+      metadata: {
+        ticket: "BUG-123",
+        files: ["src/auth.ts", "src/auth.test.ts"],
+      },
+    });
+
+    expect(result.task.activeForm).toBe("Writing regression tests");
+    expect(result.task.metadata).toEqual({
+      ticket: "BUG-123",
+      files: ["src/auth.ts", "src/auth.test.ts"],
+    });
+
+    const prompt = formatTaskTrackerStateForPrompt(await loadTaskTrackerState(context));
+    expect(prompt).toContain("Write regression tests");
+    expect(prompt).toContain("Add a regression test for the login redirect edge case.");
+  });
+
+  it("returns the existing active task for normalized duplicate subjects", async () => {
+    const context = makeContext("main", "sess-duplicates");
+
+    const first = await createTaskTrackerTask({
+      context,
+      subject: "Fix auth bug",
+      description: "Fix the login redirect loop.",
+    });
+    const duplicate = await createTaskTrackerTask({
+      context,
+      subject: "  fix   AUTH   bug  ",
+      description: "This should resolve to the original task instead of creating a duplicate.",
+    });
+
+    expect(first.created).toBe(true);
+    expect(duplicate.created).toBe(false);
+    expect(duplicate.duplicate).toBe(true);
+    expect(duplicate.task.id).toBe(first.task.id);
+
+    const state = await loadTaskTrackerState(context);
+    expect(state.activeTasks).toHaveLength(1);
+    expect(state.activeTasks[0]?.id).toBe(first.task.id);
+  });
+
+  it("does not persist invalid tasks when post-create validation fails", async () => {
+    const context = makeContext("main", "sess-create-validation");
+
+    await expect(
+      createTaskTrackerTask({
+        context,
+        subject: "Refactor auth flow",
+        description: "Refactor the auth flow and update tests.",
+        validators: [
+          () => ["task description is not handoff-ready", "attach a clearer verification plan"],
+        ],
+      }),
+    ).rejects.toThrow(
+      /Task creation blocked: task description is not handoff-ready; attach a clearer verification plan/i,
+    );
+
+    const state = await loadTaskTrackerState(context);
+    expect(state.activeTasks).toEqual([]);
+    expect(state.archivedTasks).toEqual([]);
+    expect(state.submittedTasks).toEqual([]);
+  });
+
+  it("supports explicit lifecycle transitions for created tasks", async () => {
+    const context = makeContext("main", "sess-update-lifecycle");
+
+    const created = await createTaskTrackerTask({
+      context,
+      subject: "Fix auth bug",
+      description: "Fix the login redirect loop and add coverage.",
+    });
+    const started = await updateTaskTrackerTask({
+      context,
+      taskId: created.task.id,
+      status: "in_progress",
+      activeForm: "Fixing auth bug",
+    });
+    const finished = await updateTaskTrackerTask({
+      context,
+      taskId: created.task.id,
+      status: "completed",
+    });
+
+    expect(started.task.status).toBe("in_progress");
+    expect(started.task.activeForm).toBe("Fixing auth bug");
+    expect(finished.task.status).toBe("completed");
+    expect(finished.state.activeTasks).toEqual([]);
+    expect(finished.state.archivedTasks.map((task) => task.id)).toContain(created.task.id);
   });
 });

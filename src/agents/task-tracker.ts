@@ -29,10 +29,13 @@ export type TaskTrackerSessionState = z.infer<typeof TaskTrackerSessionStateSche
 const IsoDateStringSchema = z.string().refine((value) => !Number.isNaN(Date.parse(value)), {
   message: "Expected ISO timestamp",
 });
+const TaskTrackerMetadataSchema = z.record(z.string(), z.unknown());
 
 const BaseTaskTrackerTaskSchema = z.object({
   id: z.string().trim().min(1),
   content: z.string().trim().min(1),
+  subject: z.string().trim().min(1).optional(),
+  description: z.string().trim().min(1).optional(),
   activeForm: z.string().trim().min(1),
   status: TaskTrackerStatusSchema,
   type: TaskTrackerTypeSchema,
@@ -40,6 +43,7 @@ const BaseTaskTrackerTaskSchema = z.object({
   sessionId: z.string().trim().min(1),
   createdAt: IsoDateStringSchema,
   updatedAt: IsoDateStringSchema,
+  metadata: TaskTrackerMetadataSchema.optional(),
   blockedReason: z.string().trim().min(1).optional(),
   unblockAction: z.string().trim().min(1).optional(),
   followUpTaskId: z.string().trim().min(1).optional(),
@@ -70,6 +74,8 @@ const TaskTrackerTaskInputSchema = z
   .object({
     id: z.string().trim().min(1),
     content: z.string().trim().min(1),
+    subject: z.string().trim().min(1).optional(),
+    description: z.string().trim().min(1).optional(),
     activeForm: z.string().trim().min(1),
     status: TaskTrackerStatusSchema,
     type: TaskTrackerTypeSchema,
@@ -77,6 +83,7 @@ const TaskTrackerTaskInputSchema = z
     sessionId: z.string().trim().min(1).optional(),
     createdAt: IsoDateStringSchema.optional(),
     updatedAt: IsoDateStringSchema.optional(),
+    metadata: TaskTrackerMetadataSchema.optional(),
     blockedReason: z.string().trim().min(1).optional(),
     unblockAction: z.string().trim().min(1).optional(),
     followUpTaskId: z.string().trim().min(1).optional(),
@@ -105,6 +112,12 @@ const TaskTrackerTaskInputSchema = z
 
 export type TaskTrackerTask = z.infer<typeof TaskTrackerTaskSchema>;
 export type TaskTrackerTaskInput = z.infer<typeof TaskTrackerTaskInputSchema>;
+export type TaskTrackerCreateValidator = (params: {
+  task: TaskTrackerTask;
+  nextState: TaskTrackerState;
+  previousState: TaskTrackerState;
+  context: TaskTrackerContext;
+}) => void | string | string[] | Promise<void | string | string[]>;
 
 export const TaskTrackerStateSchema = z
   .object({
@@ -134,6 +147,16 @@ export type TaskTrackerUpdateResult = {
   finalizationReason?: string;
 };
 
+export type TaskTrackerCreateResult = TaskTrackerUpdateResult & {
+  task: TaskTrackerTask;
+  created: boolean;
+  duplicate: boolean;
+};
+
+export type TaskTrackerTaskPatchResult = TaskTrackerUpdateResult & {
+  task: TaskTrackerTask;
+};
+
 function toIsoString(value?: number): string {
   return new Date(value ?? Date.now()).toISOString();
 }
@@ -143,8 +166,20 @@ function normalizeTaskOwnerContext(value?: string): string {
   return normalized || DEFAULT_AGENT_ID;
 }
 
-function taskLabel(task: Pick<TaskTrackerTask, "id" | "content">): string {
-  return `${task.id} (${task.content})`;
+function getTaskSubject(task: Pick<TaskTrackerTask, "content"> & { subject?: string }): string {
+  return task.subject?.trim() || task.content;
+}
+
+function taskLabel(task: Pick<TaskTrackerTask, "id" | "content"> & { subject?: string }): string {
+  return `${task.id} (${getTaskSubject(task)})`;
+}
+
+function normalizeTaskSubjectForComparison(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function deriveDefaultActiveForm(subject: string): string {
+  return `Working on: ${subject}`;
 }
 
 function deriveFollowUpActiveForm(content: string): string {
@@ -162,6 +197,8 @@ function buildAutoTask(params: {
   return TaskTrackerTaskSchema.parse({
     id: params.id,
     content: params.content,
+    subject: params.content,
+    description: params.content,
     activeForm: params.activeForm,
     status: "pending",
     type: params.type,
@@ -186,6 +223,27 @@ function makeUniqueTaskId(base: string, existingIds: Set<string>, nowIso: string
     counter += 1;
   }
   return nextId;
+}
+
+function findTaskById(state: TaskTrackerState, taskId: string): TaskTrackerTask | undefined {
+  return (
+    state.activeTasks.find((task) => task.id === taskId) ??
+    state.archivedTasks.find((task) => task.id === taskId) ??
+    state.submittedTasks.find((task) => task.id === taskId)
+  );
+}
+
+function findDuplicateActiveTaskBySubject(
+  state: TaskTrackerState,
+  subject: string,
+): TaskTrackerTask | undefined {
+  const normalizedSubject = normalizeTaskSubjectForComparison(subject);
+  if (!normalizedSubject) {
+    return undefined;
+  }
+  return state.activeTasks.find(
+    (task) => normalizeTaskSubjectForComparison(getTaskSubject(task)) === normalizedSubject,
+  );
 }
 
 function transitionIsAllowed(previous: TaskTrackerStatus, next: TaskTrackerStatus): boolean {
@@ -563,6 +621,180 @@ export async function replaceTaskTrackerState(params: {
   return result;
 }
 
+async function runTaskCreateValidators(params: {
+  validators: TaskTrackerCreateValidator[];
+  task: TaskTrackerTask;
+  nextState: TaskTrackerState;
+  previousState: TaskTrackerState;
+  context: TaskTrackerContext;
+}): Promise<string[]> {
+  const errors: string[] = [];
+  for (const validator of params.validators) {
+    const result = await validator({
+      task: params.task,
+      nextState: params.nextState,
+      previousState: params.previousState,
+      context: params.context,
+    });
+    if (typeof result === "string") {
+      const message = result.trim();
+      if (message) {
+        errors.push(message);
+      }
+      continue;
+    }
+    if (!Array.isArray(result)) {
+      continue;
+    }
+    for (const entry of result) {
+      if (typeof entry !== "string") {
+        continue;
+      }
+      const message = entry.trim();
+      if (message) {
+        errors.push(message);
+      }
+    }
+  }
+  return errors;
+}
+
+export async function createTaskTrackerTask(params: {
+  context: TaskTrackerContext;
+  subject: string;
+  description: string;
+  activeForm?: string;
+  metadata?: Record<string, unknown>;
+  now?: number;
+  validators?: TaskTrackerCreateValidator[];
+}): Promise<TaskTrackerCreateResult> {
+  const existing = await loadTaskTrackerState(params.context);
+  const duplicate = findDuplicateActiveTaskBySubject(existing, params.subject);
+  if (duplicate) {
+    return {
+      state: existing,
+      task: duplicate,
+      created: false,
+      duplicate: true,
+      autoCreatedTasks: [],
+      finalizationBlocked: false,
+      finalizationReason: undefined,
+    };
+  }
+
+  const nowIso = toIsoString(params.now);
+  const existingIds = new Set<string>();
+  for (const task of [
+    ...existing.activeTasks,
+    ...existing.archivedTasks,
+    ...existing.submittedTasks,
+  ]) {
+    existingIds.add(task.id);
+  }
+  const nextTask = TaskTrackerTaskSchema.parse({
+    id: makeUniqueTaskId(params.subject, existingIds, nowIso),
+    content: params.description,
+    subject: params.subject,
+    description: params.description,
+    activeForm: params.activeForm?.trim() || deriveDefaultActiveForm(params.subject),
+    status: "pending",
+    type: "implementation",
+    ownerAgentId: params.context.agentId,
+    sessionId: params.context.sessionId,
+    createdAt: nowIso,
+    updatedAt: nowIso,
+    metadata: params.metadata,
+  });
+
+  const result = applyTaskTrackerUpdate({
+    existing,
+    tasks: [...existing.activeTasks, nextTask],
+    context: params.context,
+    now: params.now,
+  });
+  const createdTask = findTaskById(result.state, nextTask.id);
+  if (!createdTask) {
+    throw new Error(`Task creation failed to persist task ${nextTask.id}`);
+  }
+
+  const validationErrors = await runTaskCreateValidators({
+    validators: params.validators ?? [],
+    task: createdTask,
+    nextState: result.state,
+    previousState: existing,
+    context: params.context,
+  });
+  if (validationErrors.length > 0) {
+    throw new Error(`Task creation blocked: ${validationErrors.join("; ")}`);
+  }
+
+  await saveTaskTrackerState(params.context, result.state);
+  return {
+    ...result,
+    state: result.state,
+    task: createdTask,
+    created: true,
+    duplicate: false,
+  };
+}
+
+export async function updateTaskTrackerTask(params: {
+  context: TaskTrackerContext;
+  taskId: string;
+  status?: TaskTrackerStatus;
+  activeForm?: string;
+  subject?: string;
+  description?: string;
+  metadata?: Record<string, unknown>;
+  blockedReason?: string;
+  unblockAction?: string;
+  followUpTaskId?: string;
+  abandonedReason?: string;
+  now?: number;
+}): Promise<TaskTrackerTaskPatchResult> {
+  const existing = await loadTaskTrackerState(params.context);
+  const current = existing.activeTasks.find((task) => task.id === params.taskId);
+  if (!current) {
+    throw new Error(`Active task not found: ${params.taskId}`);
+  }
+
+  const nextDescription = params.description?.trim() || current.description || current.content;
+  const patchedTask: TaskTrackerTaskInput = {
+    ...current,
+    ...(params.status ? { status: params.status } : {}),
+    ...(params.activeForm?.trim() ? { activeForm: params.activeForm.trim() } : {}),
+    ...(params.subject?.trim() ? { subject: params.subject.trim() } : {}),
+    ...(params.description?.trim()
+      ? {
+          description: nextDescription,
+          content: nextDescription,
+        }
+      : {}),
+    ...(params.metadata !== undefined ? { metadata: params.metadata } : {}),
+    ...(params.blockedReason?.trim() ? { blockedReason: params.blockedReason.trim() } : {}),
+    ...(params.unblockAction?.trim() ? { unblockAction: params.unblockAction.trim() } : {}),
+    ...(params.followUpTaskId?.trim() ? { followUpTaskId: params.followUpTaskId.trim() } : {}),
+    ...(params.abandonedReason?.trim() ? { abandonedReason: params.abandonedReason.trim() } : {}),
+  };
+
+  const result = applyTaskTrackerUpdate({
+    existing,
+    tasks: existing.activeTasks.map((task) => (task.id === params.taskId ? patchedTask : task)),
+    context: params.context,
+    now: params.now,
+  });
+  const updatedTask = findTaskById(result.state, params.taskId);
+  if (!updatedTask) {
+    throw new Error(`Task update removed task ${params.taskId}`);
+  }
+
+  await saveTaskTrackerState(params.context, result.state);
+  return {
+    ...result,
+    task: updatedTask,
+  };
+}
+
 export async function resolveTaskTrackerContextFromSessionKey(
   sessionKey: string,
 ): Promise<TaskTrackerContext> {
@@ -590,14 +822,24 @@ export function formatTaskTrackerStateForPrompt(state: TaskTrackerState): string
     lines.push("");
     lines.push("## Active Tasks");
     for (const task of state.activeTasks) {
-      lines.push(`- [${task.status}] ${task.id} (${task.type}) ${task.content}`);
+      const subject = getTaskSubject(task);
+      const description = task.description?.trim();
+      lines.push(
+        `- [${task.status}] ${task.id} (${task.type}) ${subject}` +
+          (description && description !== subject ? ` :: ${description}` : ""),
+      );
     }
   }
   if (state.archivedTasks.length > 0) {
     lines.push("");
     lines.push("## Archived Tasks");
     for (const task of state.archivedTasks.slice(-5)) {
-      lines.push(`- [${task.status}] ${task.id} (${task.type}) ${task.content}`);
+      const subject = getTaskSubject(task);
+      const description = task.description?.trim();
+      lines.push(
+        `- [${task.status}] ${task.id} (${task.type}) ${subject}` +
+          (description && description !== subject ? ` :: ${description}` : ""),
+      );
     }
   }
   lines.push("");
@@ -620,6 +862,7 @@ export function summarizeTaskTrackerUpdate(
     autoCreatedTasks: result.autoCreatedTasks.map((task) => ({
       id: task.id,
       type: task.type,
+      subject: getTaskSubject(task),
       content: task.content,
     })),
   };

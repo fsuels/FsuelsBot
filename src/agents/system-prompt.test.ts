@@ -100,7 +100,36 @@ describe("buildAgentSystemPrompt", () => {
 
     expect(prompt).toContain("## Task Tracker");
     expect(prompt).toContain("3+ distinct steps");
+    expect(prompt).toContain("action=create");
+    expect(prompt).toContain("action=update");
     expect(prompt).toContain("call `task_tracker` with `action=get`");
+  });
+
+  it("keeps trivial single-step work out of the task tracker policy", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/clawd",
+      toolNames: ["task_tracker"],
+    });
+
+    expect(prompt).toContain("Do not use `task_tracker` for one-step trivial edits");
+  });
+
+  it("adds worker handoff detail to task tracker policy when subagent tools exist", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/clawd",
+      toolNames: ["task_tracker", "sessions_spawn"],
+    });
+
+    expect(prompt).toContain("another worker could execute the task");
+  });
+
+  it("omits worker handoff detail from task tracker policy in single-agent mode", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/clawd",
+      toolNames: ["task_tracker"],
+    });
+
+    expect(prompt).not.toContain("another worker could execute the task");
   });
 
   it("adds reasoning tag hint when enabled", () => {

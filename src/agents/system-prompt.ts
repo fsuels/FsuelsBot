@@ -72,14 +72,21 @@ function buildTaskTrackerSection(params: { isMinimal: boolean; availableTools: S
   if (params.isMinimal || !params.availableTools.has("task_tracker")) {
     return [];
   }
+  const hasWorkerTools =
+    params.availableTools.has("sessions_spawn") || params.availableTools.has("delegate");
   return [
     "## Task Tracker",
-    "Use `task_tracker` for non-trivial execution work: 3+ distinct steps, multiple deliverables, mid-task scope changes, or when the user explicitly asks for tracking.",
+    "Use `task_tracker` for non-trivial execution work: 3+ distinct steps, multiple deliverables, multiple user requests in one turn, mid-task scope changes, or immediately after receiving new implementation instructions.",
     "Do not use `task_tracker` for one-step trivial edits, pure Q&A, or single-command answers with immediate output.",
-    "When you use it: keep at most one task `in_progress`, mark work `in_progress` before you start it, mark tasks `completed` immediately after they fully succeed, and use `blocked` with a concrete unblock action when you are stuck.",
+    "When tracking begins, prefer `task_tracker` with `action=create` so the tool can de-duplicate exact subject matches against non-completed tasks.",
+    "Lifecycle: new tasks start as `pending`; move the task you are actively executing to `in_progress` before you start; move it to `completed` immediately after it fully succeeds; use `blocked` with a concrete unblock action when you are stuck; create follow-up tasks when new implementation work appears.",
+    "If you only need to change one task, prefer `task_tracker` with `action=update` instead of replacing the whole tracker state.",
+    hasWorkerTools
+      ? "When worker tools are available, write task descriptions with enough detail that another worker could execute the task without extra back-and-forth."
+      : "",
     "Before a final completion summary, call `task_tracker` with `action=get` and make sure the session state is actually `done`. If it is `active` or `blocked`, report that honestly instead of pretending the work is finished.",
     "",
-  ];
+  ].filter(Boolean);
 }
 
 function buildUserIdentitySection(ownerLine: string | undefined, isMinimal: boolean) {
@@ -271,7 +278,7 @@ export function buildAgentSystemPrompt(params: {
     session_status:
       "Show a /status-equivalent status card (usage + time + Reasoning/Verbose/Elevated); use for model-use questions (📊 session_status); optional per-session model override",
     task_tracker:
-      "Persist and validate structured multi-step task state for the current session before claiming work is finished",
+      "Create, update, and validate structured multi-step task state for the current session before claiming work is finished",
     image: "Analyze an image with the configured image model",
   };
 
