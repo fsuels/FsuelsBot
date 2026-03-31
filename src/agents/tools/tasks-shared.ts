@@ -125,9 +125,13 @@ export function resolveTaskToolContext(opts?: {
     sessionKey: opts?.agentSessionKey,
     config,
   });
+  const workspaceDir =
+    (typeof opts?.workspaceDir === "string" && opts.workspaceDir.trim()) ||
+    resolveAgentWorkspaceDir(config, agentId) ||
+    process.cwd();
   return {
     config,
     agentId,
-    workspaceDir: opts?.workspaceDir ?? resolveAgentWorkspaceDir(config, agentId),
+    workspaceDir,
   };
 }

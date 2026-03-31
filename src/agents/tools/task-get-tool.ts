@@ -21,6 +21,23 @@ const TaskGetToolSchema = Type.Object(
   { additionalProperties: false },
 );
 
+const TaskGetToolFailureSchema = Type.Object(
+  {
+    ok: Type.Literal(false),
+    success: Type.Literal(false),
+    found: Type.Literal(false),
+    tool: Type.String(),
+    code: Type.Literal("not_found"),
+    error: Type.String(),
+    message: Type.String(),
+    taskId: Type.String(),
+    knownTaskIds: Type.Array(Type.String()),
+  },
+  { additionalProperties: false },
+);
+
+const TaskGetToolOutputSchema = Type.Union([TaskBoardTaskDetailSchema, TaskGetToolFailureSchema]);
+
 export function createTaskGetTool(opts?: {
   workspaceDir?: string;
   agentSessionKey?: string;
@@ -33,7 +50,7 @@ export function createTaskGetTool(opts?: {
       "Get the full normalized task card for a task id. Use this after tasks_list before acting on a task.",
     parameters: TaskGetToolSchema,
     inputSchema: TaskGetToolSchema,
-    outputSchema: TaskBoardTaskDetailSchema,
+    outputSchema: TaskGetToolOutputSchema,
     userFacingName: () => "Task Detail",
     isReadOnly: () => true,
     isConcurrencySafe: () => true,
