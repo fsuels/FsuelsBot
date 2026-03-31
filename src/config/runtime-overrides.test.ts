@@ -48,4 +48,13 @@ describe("runtime overrides", () => {
       expect(Object.keys(getConfigOverrides()).length).toBe(0);
     }
   });
+
+  it("supports array paths", () => {
+    setConfigOverride("commands.ownerAllowFrom[0]", "+15551234567");
+    expect(getConfigOverrides()).toEqual({
+      commands: {
+        ownerAllowFrom: ["+15551234567"],
+      },
+    });
+  });
 });

@@ -14,8 +14,16 @@ export const REDACTED_SENTINEL = "__OPENCLAW_REDACTED__";
  */
 const SENSITIVE_KEY_PATTERNS = [/token/i, /password/i, /secret/i, /api.?key/i];
 
-function isSensitiveKey(key: string): boolean {
+export function isSensitiveConfigKey(key: string): boolean {
   return SENSITIVE_KEY_PATTERNS.some((pattern) => pattern.test(key));
+}
+
+export function isSensitiveConfigPath(pathRaw: string): boolean {
+  return pathRaw
+    .split(/[.[\]]+/)
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+    .some((segment) => isSensitiveConfigKey(segment));
 }
 
 /**
@@ -34,7 +42,7 @@ function redactObject(obj: unknown): unknown {
   }
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
-    if (isSensitiveKey(key) && value !== null && value !== undefined) {
+    if (isSensitiveConfigKey(key) && value !== null && value !== undefined) {
       result[key] = REDACTED_SENTINEL;
     } else if (typeof value === "object" && value !== null) {
       result[key] = redactObject(value);
@@ -65,7 +73,7 @@ function collectSensitiveValues(obj: unknown): string[] {
     return values;
   }
   for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
-    if (isSensitiveKey(key) && typeof value === "string" && value.length > 0) {
+    if (isSensitiveConfigKey(key) && typeof value === "string" && value.length > 0) {
       values.push(value);
     } else if (typeof value === "object" && value !== null) {
       values.push(...collectSensitiveValues(value));
@@ -93,7 +101,7 @@ function redactRawText(raw: string, config: unknown): string {
     keyValuePattern,
     (match, prefix, keyExpr, _keyQuote, keyQuoted, keyBare, sep, valQuote, val) => {
       const key = (keyQuoted ?? keyBare) as string | undefined;
-      if (!key || !isSensitiveKey(key)) {
+      if (!key || !isSensitiveConfigKey(key)) {
         return match;
       }
       if (val === REDACTED_SENTINEL) {
@@ -151,7 +159,7 @@ export function restoreRedactedValues(incoming: unknown, original: unknown): unk
       : {};
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(incoming as Record<string, unknown>)) {
-    if (isSensitiveKey(key) && value === REDACTED_SENTINEL) {
+    if (isSensitiveConfigKey(key) && value === REDACTED_SENTINEL) {
       if (!(key in orig)) {
         throw new Error(
           `config write rejected: "${key}" is redacted; set an explicit value instead of ${REDACTED_SENTINEL}`,

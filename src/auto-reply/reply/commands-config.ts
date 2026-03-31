@@ -1,17 +1,14 @@
+import { isDeepStrictEqual } from "node:util";
 import type { CommandHandler } from "./commands-types.js";
 import { resolveChannelConfigWrites } from "../../channels/plugins/config-writes.js";
 import { normalizeChannelId } from "../../channels/registry.js";
+import { mutateConfigAtPath, readConfigPathValues } from "../../config/config-mutations.js";
+import { readConfigFileSnapshot } from "../../config/config.js";
 import {
-  getConfigValueAtPath,
-  parseConfigPath,
-  setConfigValueAtPath,
-  unsetConfigValueAtPath,
-} from "../../config/config-paths.js";
-import {
-  readConfigFileSnapshot,
-  validateConfigObjectWithPlugins,
-  writeConfigFile,
-} from "../../config/config.js";
+  isSensitiveConfigPath,
+  redactConfigObject,
+  redactConfigSnapshot,
+} from "../../config/redact-snapshot.js";
 import {
   getConfigOverrides,
   resetConfigOverrides,
@@ -21,6 +18,13 @@ import {
 import { logVerbose } from "../../globals.js";
 import { parseConfigCommand } from "./config-commands.js";
 import { parseDebugCommand } from "./debug-commands.js";
+
+function renderConfigValue(value: unknown, exists: boolean): string {
+  if (!exists) {
+    return "`(unset)`";
+  }
+  return `\`\`\`json\n${JSON.stringify(value ?? null, null, 2)}\n\`\`\``;
+}
 
 export const handleConfigCommand: CommandHandler = async (params, allowTextCommands) => {
   if (!allowTextCommands) {
@@ -72,69 +76,77 @@ export const handleConfigCommand: CommandHandler = async (params, allowTextComma
     }
   }
 
-  const snapshot = await readConfigFileSnapshot();
-  if (!snapshot.valid || !snapshot.parsed || typeof snapshot.parsed !== "object") {
-    return {
-      shouldContinue: false,
-      reply: {
-        text: "⚠️ Config file is invalid; fix it before using /config.",
-      },
-    };
-  }
-  const parsedBase = structuredClone(snapshot.parsed as Record<string, unknown>);
-
   if (configCommand.action === "show") {
     const pathRaw = configCommand.path?.trim();
     if (pathRaw) {
-      const parsedPath = parseConfigPath(pathRaw);
-      if (!parsedPath.ok || !parsedPath.path) {
+      const readResult = await readConfigPathValues({
+        pathRaw,
+        effectiveConfig: params.cfg,
+      });
+      if (!readResult.ok) {
         return {
           shouldContinue: false,
-          reply: { text: `⚠️ ${parsedPath.error ?? "Invalid path."}` },
+          reply: { text: `⚠️ ${readResult.errorMessage}` },
         };
       }
-      const value = getConfigValueAtPath(parsedBase, parsedPath.path);
-      const rendered = JSON.stringify(value ?? null, null, 2);
+      if (!readResult.storedExists && !readResult.effectiveExists) {
+        return {
+          shouldContinue: false,
+          reply: { text: `⚙️ No config value found for ${pathRaw}.` },
+        };
+      }
+      const showEffective = !isDeepStrictEqual(
+        { exists: readResult.storedExists, value: readResult.storedValue },
+        { exists: readResult.effectiveExists, value: readResult.effectiveValue },
+      );
       return {
         shouldContinue: false,
         reply: {
-          text: `⚙️ Config ${pathRaw}:\n\`\`\`json\n${rendered}\n\`\`\``,
+          text:
+            `⚙️ Config ${pathRaw}:\n` +
+            `Stored on disk:\n${renderConfigValue(readResult.storedValue, readResult.storedExists)}` +
+            (showEffective
+              ? `\nEffective now:\n${renderConfigValue(
+                  readResult.effectiveValue,
+                  readResult.effectiveExists,
+                )}`
+              : ""),
         },
       };
     }
-    const json = JSON.stringify(parsedBase, null, 2);
+    const snapshot = await readConfigFileSnapshot();
+    if (!snapshot.valid || !snapshot.parsed || typeof snapshot.parsed !== "object") {
+      return {
+        shouldContinue: false,
+        reply: {
+          text: "⚠️ Config file is invalid; fix it before using /config.",
+        },
+      };
+    }
+    const redactedSnapshot = redactConfigSnapshot(snapshot);
+    const json = JSON.stringify(redactedSnapshot.parsed ?? {}, null, 2);
     return {
       shouldContinue: false,
-      reply: { text: `⚙️ Config (raw):\n\`\`\`json\n${json}\n\`\`\`` },
+      reply: { text: `⚙️ Config (stored, redacted):\n\`\`\`json\n${json}\n\`\`\`` },
     };
   }
 
   if (configCommand.action === "unset") {
-    const parsedPath = parseConfigPath(configCommand.path);
-    if (!parsedPath.ok || !parsedPath.path) {
-      return {
-        shouldContinue: false,
-        reply: { text: `⚠️ ${parsedPath.error ?? "Invalid path."}` },
-      };
-    }
-    const removed = unsetConfigValueAtPath(parsedBase, parsedPath.path);
-    if (!removed) {
-      return {
-        shouldContinue: false,
-        reply: { text: `⚙️ No config value found for ${configCommand.path}.` },
-      };
-    }
-    const validated = validateConfigObjectWithPlugins(parsedBase);
-    if (!validated.ok) {
-      const issue = validated.issues[0];
+    const mutation = await mutateConfigAtPath({
+      operation: "unset",
+      pathRaw: configCommand.path,
+    });
+    if (!mutation.ok) {
       return {
         shouldContinue: false,
         reply: {
-          text: `⚠️ Config invalid after unset (${issue.path}: ${issue.message}).`,
+          text:
+            mutation.errorCode === "NOT_FOUND"
+              ? `⚙️ No config value found for ${configCommand.path}.`
+              : `⚠️ ${mutation.errorMessage}`,
         },
       };
     }
-    await writeConfigFile(validated.config);
     return {
       shouldContinue: false,
       reply: { text: `⚙️ Config updated: ${configCommand.path} removed.` },
@@ -142,27 +154,22 @@ export const handleConfigCommand: CommandHandler = async (params, allowTextComma
   }
 
   if (configCommand.action === "set") {
-    const parsedPath = parseConfigPath(configCommand.path);
-    if (!parsedPath.ok || !parsedPath.path) {
-      return {
-        shouldContinue: false,
-        reply: { text: `⚠️ ${parsedPath.error ?? "Invalid path."}` },
-      };
-    }
-    setConfigValueAtPath(parsedBase, parsedPath.path, configCommand.value);
-    const validated = validateConfigObjectWithPlugins(parsedBase);
-    if (!validated.ok) {
-      const issue = validated.issues[0];
+    const mutation = await mutateConfigAtPath({
+      operation: "set",
+      pathRaw: configCommand.path,
+      value: configCommand.value,
+    });
+    if (!mutation.ok) {
       return {
         shouldContinue: false,
         reply: {
-          text: `⚠️ Config invalid after set (${issue.path}: ${issue.message}).`,
+          text: `⚠️ ${mutation.errorMessage}`,
         },
       };
     }
-    await writeConfigFile(validated.config);
-    const valueLabel =
-      typeof configCommand.value === "string"
+    const valueLabel = isSensitiveConfigPath(configCommand.path)
+      ? "(redacted)"
+      : typeof configCommand.value === "string"
         ? `"${configCommand.value}"`
         : JSON.stringify(configCommand.value);
     return {
@@ -213,11 +220,11 @@ export const handleDebugCommand: CommandHandler = async (params, allowTextComman
         reply: { text: "⚙️ Debug overrides: (none)" },
       };
     }
-    const json = JSON.stringify(overrides, null, 2);
+    const json = JSON.stringify(redactConfigObject(overrides), null, 2);
     return {
       shouldContinue: false,
       reply: {
-        text: `⚙️ Debug overrides (memory-only):\n\`\`\`json\n${json}\n\`\`\``,
+        text: `⚙️ Debug overrides (memory-only, redacted):\n\`\`\`json\n${json}\n\`\`\``,
       },
     };
   }
@@ -257,8 +264,9 @@ export const handleDebugCommand: CommandHandler = async (params, allowTextComman
         reply: { text: `⚠️ ${result.error ?? "Invalid override."}` },
       };
     }
-    const valueLabel =
-      typeof debugCommand.value === "string"
+    const valueLabel = isSensitiveConfigPath(debugCommand.path)
+      ? "(redacted)"
+      : typeof debugCommand.value === "string"
         ? `"${debugCommand.value}"`
         : JSON.stringify(debugCommand.value);
     return {

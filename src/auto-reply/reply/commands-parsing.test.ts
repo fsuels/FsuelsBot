@@ -64,11 +64,17 @@ describe("parseConfigCommand", () => {
       action: "unset",
       path: "foo.bar",
     });
+    expect(parseConfigCommand("/config reset foo.bar")).toEqual({
+      action: "unset",
+      path: "foo.bar",
+    });
   });
 
-  it("parses set with JSON", () => {
+  it("parses set with JSON5", () => {
     const cmd = parseConfigCommand('/config set foo={"a":1}');
     expect(cmd).toEqual({ action: "set", path: "foo", value: { a: 1 } });
+    const json5Cmd = parseConfigCommand("/config set foo={a:1,}");
+    expect(json5Cmd).toEqual({ action: "set", path: "foo", value: { a: 1 } });
   });
 });
 

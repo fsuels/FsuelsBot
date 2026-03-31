@@ -28,9 +28,10 @@ export function parseConfigCommand(raw: string): ConfigCommand | null {
       return { action: "show", path: args || undefined };
     case "get":
       return { action: "show", path: args || undefined };
-    case "unset": {
+    case "unset":
+    case "reset": {
       if (!args) {
-        return { action: "error", message: "Usage: /config unset path" };
+        return { action: "error", message: "Usage: /config unset|reset path" };
       }
       return { action: "unset", path: args };
     }
@@ -65,7 +66,7 @@ export function parseConfigCommand(raw: string): ConfigCommand | null {
     default:
       return {
         action: "error",
-        message: "Usage: /config show|set|unset",
+        message: "Usage: /config show|get|set|unset|reset",
       };
   }
 }
