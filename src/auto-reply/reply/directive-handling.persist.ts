@@ -1,31 +1,26 @@
 import type { OpenClawConfig } from "../../config/config.js";
 import type { InlineDirectives } from "./directive-handling.parse.js";
 import type { ElevatedLevel, ReasoningLevel } from "./directives.js";
-import {
-  resolveAgentDir,
-  resolveDefaultAgentId,
-  resolveSessionAgentId,
-} from "../../agents/agent-scope.js";
 import { lookupContextTokens } from "../../agents/context.js";
 import { DEFAULT_CONTEXT_TOKENS } from "../../agents/defaults.js";
 import {
   buildModelAliasIndex,
   type ModelAliasIndex,
-  modelKey,
   resolveDefaultModelForAgent,
-  resolveModelRefFromString,
 } from "../../agents/model-selection.js";
 import { type SessionEntry, updateSessionStore } from "../../config/sessions.js";
 import { enqueueSystemEvent } from "../../infra/system-events.js";
 import { applyVerboseOverride } from "../../sessions/level-overrides.js";
-import { applyModelOverrideToSessionEntry } from "../../sessions/model-overrides.js";
-import { resolveProfileOverride } from "./directive-handling.auth.js";
 import { formatElevatedEvent, formatReasoningEvent } from "./directive-handling.shared.js";
 import { switchLmStudioModelIfNeeded } from "./lmstudio-switch.js";
+import { type ModelDirectiveSelection } from "./model-selection.js";
+import { applySessionModelSelectionTransition } from "./model-transition.js";
 
 export async function persistInlineDirectives(params: {
   directives: InlineDirectives;
   effectiveModelDirective?: string;
+  modelSelection?: ModelDirectiveSelection;
+  profileOverride?: string;
   cfg: OpenClawConfig;
   agentDir?: string;
   sessionEntry?: SessionEntry;
@@ -46,26 +41,20 @@ export async function persistInlineDirectives(params: {
 }): Promise<{ provider: string; model: string; contextTokens: number }> {
   const {
     directives,
-    cfg,
     sessionEntry,
     sessionStore,
     sessionKey,
     storePath,
     elevatedEnabled,
     elevatedAllowed,
-    defaultProvider,
-    defaultModel,
-    aliasIndex,
-    allowedModelKeys,
     initialModelLabel,
     formatModelSwitchEvent,
     agentCfg,
   } = params;
   let { provider, model } = params;
-  const activeAgentId = sessionKey
-    ? resolveSessionAgentId({ sessionKey, config: cfg })
-    : resolveDefaultAgentId(cfg);
-  const agentDir = resolveAgentDir(cfg, activeAgentId);
+  let pendingModelEvent:
+    | { nextLabel: string; contextKey: string; alias?: string; provider: string; model: string }
+    | undefined;
 
   if (sessionEntry && sessionStore && sessionKey) {
     const prevElevatedLevel =
@@ -138,59 +127,30 @@ export async function persistInlineDirectives(params: {
       }
     }
 
-    const modelDirective =
+    const resolvedSelection =
       directives.hasModelDirective && params.effectiveModelDirective
-        ? params.effectiveModelDirective
+        ? params.modelSelection
         : undefined;
-    if (modelDirective) {
-      const resolved = resolveModelRefFromString({
-        raw: modelDirective,
-        defaultProvider,
-        aliasIndex,
+    if (resolvedSelection) {
+      const transition = applySessionModelSelectionTransition({
+        entry: sessionEntry,
+        selection: resolvedSelection,
+        profileOverride: params.profileOverride,
+        currentProvider: provider,
+        currentModel: model,
       });
-      if (resolved) {
-        const key = modelKey(resolved.ref.provider, resolved.ref.model);
-        if (allowedModelKeys.size === 0 || allowedModelKeys.has(key)) {
-          let profileOverride: string | undefined;
-          if (directives.rawModelProfile) {
-            const profileResolved = resolveProfileOverride({
-              rawProfile: directives.rawModelProfile,
-              provider: resolved.ref.provider,
-              cfg,
-              agentDir,
-            });
-            if (profileResolved.error) {
-              throw new Error(profileResolved.error);
-            }
-            profileOverride = profileResolved.profileId;
-          }
-          const isDefault =
-            resolved.ref.provider === defaultProvider && resolved.ref.model === defaultModel;
-          const { updated: modelUpdated } = applyModelOverrideToSessionEntry({
-            entry: sessionEntry,
-            selection: {
-              provider: resolved.ref.provider,
-              model: resolved.ref.model,
-              isDefault,
-            },
-            profileOverride,
-          });
-          provider = resolved.ref.provider;
-          model = resolved.ref.model;
-          const nextLabel = `${provider}/${model}`;
-          if (nextLabel !== initialModelLabel) {
-            // Auto-switch LM Studio model when switching to/from lmstudio provider
-            if (provider === "lmstudio") {
-              switchLmStudioModelIfNeeded(model);
-            }
-            enqueueSystemEvent(formatModelSwitchEvent(nextLabel, resolved.alias), {
-              sessionKey,
-              contextKey: `model:${nextLabel}`,
-            });
-          }
-          updated = updated || modelUpdated;
-        }
+      provider = transition.provider;
+      model = transition.model;
+      if (transition.modelChanged && transition.nextLabel !== initialModelLabel) {
+        pendingModelEvent = {
+          nextLabel: transition.nextLabel,
+          contextKey: `model:${transition.nextLabel}`,
+          alias: resolvedSelection.alias,
+          provider: transition.provider,
+          model: transition.model,
+        };
       }
+      updated = updated || transition.updated;
     }
     if (directives.hasQueueDirective && directives.queueReset) {
       delete sessionEntry.queueMode;
@@ -198,6 +158,23 @@ export async function persistInlineDirectives(params: {
       delete sessionEntry.queueCap;
       delete sessionEntry.queueDrop;
       updated = true;
+    } else if (directives.hasQueueDirective) {
+      if (directives.queueMode) {
+        sessionEntry.queueMode = directives.queueMode;
+        updated = true;
+      }
+      if (typeof directives.debounceMs === "number") {
+        sessionEntry.queueDebounceMs = directives.debounceMs;
+        updated = true;
+      }
+      if (typeof directives.cap === "number") {
+        sessionEntry.queueCap = directives.cap;
+        updated = true;
+      }
+      if (directives.dropPolicy) {
+        sessionEntry.queueDrop = directives.dropPolicy;
+        updated = true;
+      }
     }
 
     if (updated) {
@@ -207,6 +184,18 @@ export async function persistInlineDirectives(params: {
         await updateSessionStore(storePath, (store) => {
           store[sessionKey] = sessionEntry;
         });
+      }
+      if (pendingModelEvent) {
+        if (pendingModelEvent.provider === "lmstudio") {
+          switchLmStudioModelIfNeeded(pendingModelEvent.model);
+        }
+        enqueueSystemEvent(
+          formatModelSwitchEvent(pendingModelEvent.nextLabel, pendingModelEvent.alias),
+          {
+            sessionKey,
+            contextKey: pendingModelEvent.contextKey,
+          },
+        );
       }
       if (elevatedChanged) {
         const nextElevated = (sessionEntry.elevatedLevel ?? "off") as ElevatedLevel;

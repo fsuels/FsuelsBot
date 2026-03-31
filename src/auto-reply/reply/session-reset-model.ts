@@ -10,9 +10,9 @@ import {
   type ModelAliasIndex,
 } from "../../agents/model-selection.js";
 import { updateSessionStore } from "../../config/sessions.js";
-import { applyModelOverrideToSessionEntry } from "../../sessions/model-overrides.js";
 import { formatInboundBodyWithSenderMeta } from "./inbound-sender-meta.js";
 import { resolveModelDirectiveSelection, type ModelDirectiveSelection } from "./model-selection.js";
+import { applySessionModelSelectionTransition } from "./model-transition.js";
 
 type ResetModelResult = {
   selection?: ModelDirectiveSelection;
@@ -69,9 +69,11 @@ function applySelectionToSession(params: {
   if (!sessionEntry || !sessionStore || !sessionKey) {
     return;
   }
-  const { updated } = applyModelOverrideToSessionEntry({
+  const { updated } = applySessionModelSelectionTransition({
     entry: sessionEntry,
     selection,
+    currentProvider: sessionEntry.providerOverride?.trim() || selection.provider,
+    currentModel: sessionEntry.modelOverride?.trim() || selection.model,
   });
   if (!updated) {
     return;

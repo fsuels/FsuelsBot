@@ -5,7 +5,8 @@ import type { MsgContext } from "../templating.js";
 import type { ReplyPayload } from "../types.js";
 import type { InlineDirectives } from "./directive-handling.parse.js";
 import type { ElevatedLevel, ReasoningLevel, ThinkLevel, VerboseLevel } from "./directives.js";
-import { handleDirectiveOnly } from "./directive-handling.impl.js";
+import type { ModelDirectiveSelection } from "./model-selection.js";
+import { resolveDirectiveOnly } from "./directive-handling.impl.js";
 import { isDirectiveOnly } from "./directive-handling.parse.js";
 
 export async function applyInlineDirectivesFastLane(params: {
@@ -44,7 +45,13 @@ export async function applyInlineDirectivesFastLane(params: {
     >;
     resetModelOverride: boolean;
   };
-}): Promise<{ directiveAck?: ReplyPayload; provider: string; model: string }> {
+}): Promise<{
+  directiveAck?: ReplyPayload;
+  provider: string;
+  model: string;
+  modelSelection?: ModelDirectiveSelection;
+  profileOverride?: string;
+}> {
   const {
     directives,
     commandAuthorized,
@@ -100,7 +107,7 @@ export async function applyInlineDirectivesFastLane(params: {
     (sessionEntry?.elevatedLevel as ElevatedLevel | undefined) ??
     (agentCfg?.elevatedDefault as ElevatedLevel | undefined);
 
-  const directiveAck = await handleDirectiveOnly({
+  const resolution = await resolveDirectiveOnly({
     cfg,
     directives,
     sessionEntry,
@@ -127,12 +134,11 @@ export async function applyInlineDirectivesFastLane(params: {
     currentElevatedLevel,
   });
 
-  if (sessionEntry?.providerOverride) {
-    provider = sessionEntry.providerOverride;
-  }
-  if (sessionEntry?.modelOverride) {
-    model = sessionEntry.modelOverride;
-  }
-
-  return { directiveAck, provider, model };
+  return {
+    directiveAck: resolution.reply,
+    provider,
+    model,
+    modelSelection: resolution.modelSelection,
+    profileOverride: resolution.profileOverride,
+  };
 }

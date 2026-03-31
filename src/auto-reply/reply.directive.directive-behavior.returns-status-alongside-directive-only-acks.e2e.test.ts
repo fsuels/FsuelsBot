@@ -104,6 +104,47 @@ describe("directive behavior", () => {
       expect(runEmbeddedPiAgent).not.toHaveBeenCalled();
     });
   });
+  it("shows the updated model in status after a directive-only /model switch", async () => {
+    await withTempHome(async (home) => {
+      vi.mocked(runEmbeddedPiAgent).mockReset();
+      const storePath = path.join(home, "sessions.json");
+
+      const res = await getReplyFromConfig(
+        {
+          Body: "/model openai/gpt-4.1-mini\n/status",
+          From: "+1222",
+          To: "+1222",
+          Provider: "whatsapp",
+          SenderE164: "+1222",
+          CommandAuthorized: true,
+        },
+        {},
+        {
+          agents: {
+            defaults: {
+              model: "anthropic/claude-opus-4-5",
+              workspace: path.join(home, "openclaw"),
+              models: {
+                "anthropic/claude-opus-4-5": {},
+                "openai/gpt-4.1-mini": {},
+              },
+            },
+          },
+          channels: { whatsapp: { allowFrom: ["+1222"] } },
+          session: { store: storePath },
+        },
+      );
+
+      const text = Array.isArray(res) ? res[0]?.text : res?.text;
+      expect(text).toContain("Model set to openai/gpt-4.1-mini.");
+      expect(text).toContain("🧠 Model: openai/gpt-4.1-mini");
+
+      const store = loadSessionStore(storePath);
+      expect(store[MAIN_SESSION_KEY]?.providerOverride).toBe("openai");
+      expect(store[MAIN_SESSION_KEY]?.modelOverride).toBe("gpt-4.1-mini");
+      expect(runEmbeddedPiAgent).not.toHaveBeenCalled();
+    });
+  });
   it("shows elevated off in status when per-agent elevated is disabled", async () => {
     await withTempHome(async (home) => {
       vi.mocked(runEmbeddedPiAgent).mockReset();
