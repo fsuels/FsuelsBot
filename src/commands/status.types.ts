@@ -43,6 +43,20 @@ export type StatusSummary = {
     agents: HeartbeatStatus[];
   };
   channelSummary: string[];
+  channels?: {
+    rows: Array<{
+      id: ChannelId;
+      label: string;
+      enabled: boolean;
+      state: "ok" | "setup" | "warn" | "off";
+      detail: string;
+    }>;
+    details?: Array<{
+      title: string;
+      columns: string[];
+      rows: Array<Record<string, string>>;
+    }>;
+  };
   queuedSystemEvents: string[];
   sessions: {
     paths: string[];

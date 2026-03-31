@@ -152,6 +152,9 @@ const buildAccountNotes = (params: {
   if (snapshot.dmPolicy) {
     notes.push(`dm:${snapshot.dmPolicy}`);
   }
+  if (snapshot.allowUnmentionedGroups) {
+    notes.push("mentions:optional");
+  }
   if (snapshot.tokenSource && snapshot.tokenSource !== "none") {
     notes.push(`token:${snapshot.tokenSource}`);
   }
@@ -190,6 +193,22 @@ const buildAccountNotes = (params: {
 
   return notes;
 };
+
+function collectRiskWarnings(accounts: ChannelAccountRow[]): string[] {
+  const warnings: string[] = [];
+  for (const entry of accounts) {
+    if (!entry.enabled) {
+      continue;
+    }
+    if (entry.snapshot.dmPolicy === "open") {
+      warnings.push("open inbound DMs can carry prompt-injection risk");
+    }
+    if (entry.snapshot.allowUnmentionedGroups) {
+      warnings.push("group messages without mentions can carry prompt-injection risk");
+    }
+  }
+  return warnings;
+}
 
 function resolveLinkFields(summary: unknown): {
   linked: boolean | null;
@@ -387,6 +406,7 @@ export async function buildChannelsTable(
     const issues = plugin.status?.collectStatusIssues
       ? plugin.status.collectStatusIssues(accounts.map((a) => a.snapshot))
       : [];
+    const riskWarnings = collectRiskWarnings(accounts);
 
     const label = plugin.meta.label ?? plugin.id;
 
@@ -398,6 +418,9 @@ export async function buildChannelsTable(
         return "warn";
       }
       if (issues.length > 0) {
+        return "warn";
+      }
+      if (riskWarnings.length > 0) {
         return "warn";
       }
       if (link.linked === false) {
@@ -427,6 +450,9 @@ export async function buildChannelsTable(
       }
       if (issues.length > 0) {
         return issues[0]?.message ?? "misconfigured";
+      }
+      if (riskWarnings.length > 0) {
+        return riskWarnings[0] ?? "risky inbound policy";
       }
 
       if (link.linked !== null) {

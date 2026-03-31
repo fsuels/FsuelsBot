@@ -28,6 +28,27 @@ export function formatStatusSummary(summary: GatewayStatusSummary) {
     }
   }
 
+  const channelRows = Array.isArray(summary.channels?.rows) ? summary.channels.rows : [];
+  if (channelRows.length > 0) {
+    lines.push("");
+    lines.push("Channels:");
+    for (const channel of channelRows) {
+      const label = channel.label ?? channel.id ?? "unknown";
+      const state = channel.state ?? "setup";
+      const detail = channel.detail?.trim() ?? "";
+      lines.push(`  - ${label}: ${state}${detail ? ` | ${detail}` : ""}`);
+    }
+  } else {
+    const channelSummary = Array.isArray(summary.channelSummary) ? summary.channelSummary : [];
+    if (channelSummary.length > 0) {
+      lines.push("");
+      lines.push("Channels:");
+      for (const line of channelSummary) {
+        lines.push(`  ${line}`);
+      }
+    }
+  }
+
   const heartbeatAgents = summary.heartbeat?.agents ?? [];
   if (heartbeatAgents.length > 0) {
     const heartbeatParts = heartbeatAgents.map((agent) => {

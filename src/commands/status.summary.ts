@@ -14,6 +14,7 @@ import { buildChannelSummary } from "../infra/channel-summary.js";
 import { resolveHeartbeatSummaryForAgent } from "../infra/heartbeat-runner.js";
 import { peekSystemEvents } from "../infra/system-events.js";
 import { parseAgentSessionKey } from "../routing/session-key.js";
+import { buildChannelsTable } from "./status-all/channels.js";
 import { resolveLinkChannelContext } from "./status.link-channel.js";
 
 const classifyKey = (key: string, entry?: SessionEntry): SessionStatus["kind"] => {
@@ -74,6 +75,7 @@ export async function getStatusSummary(): Promise<StatusSummary> {
   const cfg = loadConfig();
   const linkContext = await resolveLinkChannelContext(cfg);
   const agentList = listAgentsForGateway(cfg);
+  const channelDiagnostics = await buildChannelsTable(cfg, { showSecrets: false });
   const heartbeatAgents: HeartbeatStatus[] = agentList.agents.map((agent) => {
     const summary = resolveHeartbeatSummaryForAgent(cfg, agent.id);
     return {
@@ -195,6 +197,7 @@ export async function getStatusSummary(): Promise<StatusSummary> {
       agents: heartbeatAgents,
     },
     channelSummary,
+    channels: channelDiagnostics,
     queuedSystemEvents,
     sessions: {
       paths: Array.from(paths),

@@ -31,11 +31,16 @@ import { createCommandHandlers } from "./tui-command-handlers.js";
 import { createEventHandlers } from "./tui-event-handlers.js";
 import { formatTokens } from "./tui-formatters.js";
 import { createEditorKeybindingsManager, TuiShortcutManager } from "./tui-keybindings.js";
+import { formatTuiFooterLine, formatTuiHeaderLine } from "./tui-layout.js";
 import { createLocalShellRunner } from "./tui-local-shell.js";
 import { createOverlayHandlers, handleOverlayEscape } from "./tui-overlays.js";
 import { createSessionActions } from "./tui-session-actions.js";
+import {
+  buildBusyStatusLine,
+  buildIdleStatusLine,
+  resolveStatusTickMs,
+} from "./tui-status-line.js";
 import { createTuiTurnLifecycleStore } from "./tui-turn-lifecycle.js";
-import { buildWaitingStatusMessage, defaultWaitingPhrases } from "./tui-waiting.js";
 
 export { resolveFinalAssistantText } from "./tui-formatters.js";
 export type { TuiOptions } from "./tui-types.js";
@@ -109,7 +114,6 @@ export async function runTui(opts: TuiOptions) {
   let activityStatus = "idle";
   let connectionStatus = "connecting";
   let statusTimeout: NodeJS.Timeout | null = null;
-  let statusTimer: NodeJS.Timeout | null = null;
   const turnLifecycle = createTuiTurnLifecycleStore();
 
   const state: TuiStateAccess = {
@@ -328,23 +332,17 @@ export async function runTui(opts: TuiOptions) {
     const agentLabel = formatAgentLabel(currentAgentId);
     header.setText(
       theme.header(
-        `openclaw tui - ${client.connection.url} - agent ${agentLabel} - session ${sessionLabel}`,
+        formatTuiHeaderLine({
+          connectionUrl: client.connection.url,
+          agentLabel,
+          sessionLabel,
+        }),
       ),
     );
   };
 
   let statusText: Text | null = null;
   let statusLoader: Loader | null = null;
-
-  const formatElapsed = (startMs: number) => {
-    const totalSeconds = Math.max(0, Math.floor((Date.now() - startMs) / 1000));
-    if (totalSeconds < 60) {
-      return `${totalSeconds}s`;
-    }
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}m ${seconds}s`;
-  };
 
   const ensureStatusText = () => {
     if (statusText) {
@@ -373,103 +371,90 @@ export async function runTui(opts: TuiOptions) {
   };
 
   let waitingTick = 0;
-  let waitingTimer: NodeJS.Timeout | null = null;
-  let waitingPhrase: string | null = null;
+  let statusTickTimer: NodeJS.Timeout | null = null;
+  let statusTickDelayMs: number | null = null;
 
   const updateBusyStatusMessage = () => {
     const snapshot = turnLifecycle.getSnapshot();
-    if (!statusLoader || !snapshot.isLoading || snapshot.activeSinceMs === null) {
+    if (!statusLoader || !snapshot.isLoading) {
       return;
     }
-    const elapsed = formatElapsed(snapshot.activeSinceMs);
-
-    if (snapshot.activityLabel === "waiting") {
-      waitingTick++;
-      statusLoader.setMessage(
-        buildWaitingStatusMessage({
-          theme,
-          tick: waitingTick,
-          elapsed,
-          connectionStatus,
-          phrases: waitingPhrase ? [waitingPhrase] : undefined,
-        }),
-      );
-      return;
-    }
-
-    statusLoader.setMessage(`${snapshot.activityLabel} • ${elapsed} | ${connectionStatus}`);
+    statusLoader.setMessage(
+      buildBusyStatusLine({
+        snapshot,
+        connectionStatus,
+        width: process.stdout.columns ?? 80,
+        theme,
+        nowMs: Date.now(),
+        tick: waitingTick,
+      }),
+    );
   };
 
-  const startStatusTimer = () => {
-    if (statusTimer) {
+  const stopStatusTicker = () => {
+    if (!statusTickTimer) {
       return;
     }
-    statusTimer = setInterval(() => {
-      if (!turnLifecycle.getSnapshot().isLoading) {
-        return;
-      }
-      updateBusyStatusMessage();
-    }, 1000);
+    clearTimeout(statusTickTimer);
+    statusTickTimer = null;
+    statusTickDelayMs = null;
   };
 
-  const stopStatusTimer = () => {
-    if (!statusTimer) {
+  const syncStatusTicker = () => {
+    const snapshot = turnLifecycle.getSnapshot();
+    const nextDelay = resolveStatusTickMs(snapshot, Date.now());
+    if (nextDelay === null) {
+      stopStatusTicker();
       return;
     }
-    clearInterval(statusTimer);
-    statusTimer = null;
-  };
-
-  const startWaitingTimer = () => {
-    if (waitingTimer) {
+    if (statusTickTimer && statusTickDelayMs === nextDelay) {
       return;
     }
+    stopStatusTicker();
+    statusTickDelayMs = nextDelay;
 
-    // Pick a phrase once per waiting session.
-    if (!waitingPhrase) {
-      const idx = Math.floor(Math.random() * defaultWaitingPhrases.length);
-      waitingPhrase = defaultWaitingPhrases[idx] ?? defaultWaitingPhrases[0] ?? "waiting";
-    }
+    const tick = () => {
+      statusTickTimer = setTimeout(() => {
+        const current = turnLifecycle.getSnapshot();
+        if (!current.isLoading) {
+          stopStatusTicker();
+          return;
+        }
+        if (current.activityLabel === "waiting") {
+          waitingTick += 1;
+        }
+        updateBusyStatusMessage();
+        syncStatusTicker();
+      }, nextDelay);
+      statusTickTimer.unref?.();
+    };
 
-    waitingTick = 0;
-
-    waitingTimer = setInterval(() => {
-      if (turnLifecycle.getSnapshot().activityLabel !== "waiting") {
-        return;
-      }
-      updateBusyStatusMessage();
-    }, 120);
-  };
-
-  const stopWaitingTimer = () => {
-    if (!waitingTimer) {
-      return;
-    }
-    clearInterval(waitingTimer);
-    waitingTimer = null;
-    waitingPhrase = null;
+    tick();
   };
 
   const renderStatus = () => {
     const snapshot = turnLifecycle.getSnapshot();
     if (snapshot.isLoading) {
       ensureStatusLoader();
-      if (snapshot.activityLabel === "waiting") {
-        stopStatusTimer();
-        startWaitingTimer();
-      } else {
-        stopWaitingTimer();
-        startStatusTimer();
+      if (snapshot.activityLabel !== "waiting") {
+        waitingTick = 0;
       }
+      syncStatusTicker();
       updateBusyStatusMessage();
     } else {
-      stopStatusTimer();
-      stopWaitingTimer();
+      waitingTick = 0;
+      stopStatusTicker();
       statusLoader?.stop();
       statusLoader = null;
       ensureStatusText();
-      const text = activityStatus ? `${connectionStatus} | ${activityStatus}` : connectionStatus;
-      statusText?.setText(theme.dim(text));
+      statusText?.setText(
+        buildIdleStatusLine({
+          connectionStatus,
+          activityStatus,
+          width: process.stdout.columns ?? 80,
+          theme,
+        }),
+      );
     }
   };
 
@@ -513,16 +498,18 @@ export async function runTui(opts: TuiOptions) {
     const reasoning = sessionInfo.reasoningLevel ?? "off";
     const reasoningLabel =
       reasoning === "on" ? "reasoning" : reasoning === "stream" ? "reasoning:stream" : null;
-    const footerParts = [
-      `agent ${agentLabel}`,
-      `session ${sessionLabel}`,
-      modelLabel,
-      think !== "off" ? `think ${think}` : null,
-      verbose !== "off" ? `verbose ${verbose}` : null,
-      reasoningLabel,
-      tokens,
-    ].filter(Boolean);
-    footer.setText(theme.dim(footerParts.join(" | ")));
+    footer.setText(
+      theme.dim(
+        formatTuiFooterLine({
+          sessionLabel: `${agentLabel} · ${sessionLabel}`,
+          modelLabel,
+          tokensLabel: tokens,
+          thinkLabel: think !== "off" ? `think ${think}` : null,
+          verboseLabel: verbose !== "off" ? `verbose ${verbose}` : null,
+          reasoningLabel,
+        }),
+      ),
+    );
   };
 
   const { openOverlay, closeOverlay, hasActiveOverlay } = createOverlayHandlers(tui, editor);
@@ -707,13 +694,24 @@ export async function runTui(opts: TuiOptions) {
     tui.requestRender();
   };
 
+  const handleResize = () => {
+    updateHeader();
+    updateFooter();
+    renderStatus();
+    tui.requestRender();
+  };
+  process.stdout.on("resize", handleResize);
+
   updateHeader();
   setConnectionStatus("connecting");
   updateFooter();
   tui.start();
   client.start();
   await new Promise<void>((resolve) => {
-    const finish = () => resolve();
+    const finish = () => {
+      process.stdout.off("resize", handleResize);
+      resolve();
+    };
     process.once("exit", finish);
     process.once("SIGINT", finish);
     process.once("SIGTERM", finish);
