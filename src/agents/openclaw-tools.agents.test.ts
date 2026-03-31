@@ -36,12 +36,18 @@ describe("agents_list", () => {
     if (!tool) {
       throw new Error("missing agents_list tool");
     }
+    expect(tool.isReadOnly?.()).toBe(true);
+    expect(tool.isConcurrencySafe?.()).toBe(true);
+    expect(tool.userFacingName?.()).toBe("Agents");
 
     const result = await tool.execute("call1", {});
     expect(result.details).toMatchObject({
       requester: "main",
       allowAny: false,
     });
+    expect(result.content[0]?.text).toBe(
+      '{"requester":"main","allowAny":false,"agents":[{"id":"main","configured":false}]}',
+    );
     const agents = (result.details as { agents?: Array<{ id: string }> }).agents;
     expect(agents?.map((agent) => agent.id)).toEqual(["main"]);
   });

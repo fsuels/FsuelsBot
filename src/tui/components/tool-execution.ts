@@ -12,7 +12,7 @@ type ToolResultContent = {
 
 type ToolResult = {
   content?: ToolResultContent[];
-  details?: Record<string, unknown>;
+  details?: unknown;
 };
 
 const PREVIEW_LINES = 12;
@@ -35,7 +35,7 @@ function formatArgs(toolName: string, args: unknown): string {
 
 function extractText(result?: ToolResult): string {
   if (!result?.content) {
-    return "";
+    return formatStructuredDetails(result?.details) ?? "";
   }
   const lines: string[] = [];
   for (const entry of result.content) {
@@ -48,7 +48,24 @@ function extractText(result?: ToolResult): string {
       lines.push(`[${mime}${size}${omitted}]`);
     }
   }
-  return lines.join("\n").trim();
+  const raw = lines.join("\n").trim();
+  return formatStructuredDetails(result.details, raw) ?? raw;
+}
+
+function formatStructuredDetails(details: unknown, rawText?: string): string | undefined {
+  if (details === undefined) {
+    return undefined;
+  }
+  const trimmed = rawText?.trim() ?? "";
+  if (trimmed && !trimmed.startsWith("{") && !trimmed.startsWith("[")) {
+    return undefined;
+  }
+  try {
+    const pretty = JSON.stringify(details, null, 2);
+    return typeof pretty === "string" ? pretty : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export class ToolExecutionComponent extends Container {

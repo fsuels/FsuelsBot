@@ -1,3 +1,4 @@
+import { Type } from "@sinclair/typebox";
 import type { AnyAgentTool } from "./common.js";
 import { loadConfig } from "../../config/config.js";
 import {
@@ -7,7 +8,7 @@ import {
 } from "../../routing/session-key.js";
 import { resolveAgentConfig } from "../agent-scope.js";
 import { createStrictEmptyObjectSchema, defineOpenClawTool } from "../tool-contract.js";
-import { jsonResult } from "./common.js";
+import { formatStructuredResultForModel, jsonResult } from "./common.js";
 import { resolveInternalSessionKey, resolveMainSessionAlias } from "./sessions-helpers.js";
 
 const AgentsListToolSchema = createStrictEmptyObjectSchema({
@@ -20,6 +21,32 @@ type AgentListEntry = {
   configured: boolean;
 };
 
+const AgentListEntrySchema = Type.Object(
+  {
+    id: Type.String(),
+    name: Type.Optional(Type.String()),
+    configured: Type.Boolean(),
+  },
+  { additionalProperties: false },
+);
+
+const AgentsListToolOutputSchema = Type.Object(
+  {
+    requester: Type.String(),
+    allowAny: Type.Boolean(),
+    agents: Type.Array(AgentListEntrySchema),
+  },
+  { additionalProperties: false },
+);
+
+function buildAgentsListOperatorManual() {
+  return [
+    "Read-only discovery for valid `sessions_spawn` targets.",
+    "Examples:",
+    "- `{}` -> list the requester plus all currently allowed target agents",
+  ].join("\n");
+}
+
 export function createAgentsListTool(opts?: {
   agentSessionKey?: string;
   /** Explicit agent ID override for cron/hook sessions. */
@@ -30,8 +57,21 @@ export function createAgentsListTool(opts?: {
     name: "agents_list",
     description: "List agent ids you can target with sessions_spawn (based on allowlists).",
     parameters: AgentsListToolSchema,
+    inputSchema: AgentsListToolSchema,
+    outputSchema: AgentsListToolOutputSchema,
+    operatorManual: buildAgentsListOperatorManual,
+    userFacingName: () => "Agents",
     isReadOnly: () => true,
     isConcurrencySafe: () => true,
+    maxResultSizeChars: 16_000,
+    mapToolResultToText: async (result) =>
+      formatStructuredResultForModel(
+        result.details as {
+          requester: string;
+          allowAny: boolean;
+          agents: AgentListEntry[];
+        },
+      ),
     execute: async () => {
       const cfg = loadConfig();
       const { mainKey, alias } = resolveMainSessionAlias(cfg);
