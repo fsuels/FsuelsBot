@@ -347,6 +347,61 @@ describe("memory commands", () => {
     expect(sessionStore[sessionKey]?.activeTaskId).toBe("task-a");
   });
 
+  it("blocks completing a task when the task card still has work remaining", async () => {
+    const cfg = {
+      commands: { text: true },
+      channels: { whatsapp: { allowFrom: ["*"] } },
+    } as MoltbotConfig;
+    const sessionKey = "agent:main:main";
+    const sessionEntry: SessionEntry = {
+      sessionId: "s3b",
+      updatedAt: Date.now(),
+      activeTaskId: "task-a",
+      taskStateById: {
+        default: { updatedAt: Date.now(), status: "paused" },
+        "task-a": { updatedAt: Date.now(), status: "active" },
+      },
+    };
+    const sessionStore: Record<string, SessionEntry> = { [sessionKey]: sessionEntry };
+
+    const tasksPath = path.join(workspaceDir, "memory", "tasks.json");
+    await fs.writeFile(
+      tasksPath,
+      JSON.stringify(
+        {
+          version: 1,
+          updated_at: "2026-03-31T00:00:00.000Z",
+          lanes: { bot_current: ["task-a"] },
+          tasks: {
+            "task-a": {
+              title: "Task A",
+              blockers: ["Waiting on verification"],
+              steps: [{ id: "s1", text: "Finish implementation", status: "todo", checked: false }],
+            },
+          },
+        },
+        null,
+        2,
+      ),
+      "utf-8",
+    );
+
+    const result = await handleCommands(
+      buildParams({
+        body: "/task completed",
+        cfg,
+        sessionKey,
+        sessionEntry,
+        sessionStore,
+      }),
+    );
+
+    expect(result.shouldContinue).toBe(false);
+    expect(result.reply?.text).toContain("is not ready to mark completed");
+    expect(sessionStore[sessionKey]?.activeTaskId).toBe("task-a");
+    expect(sessionStore[sessionKey]?.taskStateById?.["task-a"]?.status).toBe("active");
+  });
+
   it("supports autoswitch and memory mode command toggles", async () => {
     const cfg = {
       commands: { text: true },

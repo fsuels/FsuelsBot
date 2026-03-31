@@ -10,7 +10,14 @@
  */
 
 import fs from "node:fs/promises";
-import path from "node:path";
+import {
+  bumpTaskBoardRevision,
+  resolveTaskBoardPath,
+  resolveTaskBoardRevision,
+  withTaskBoardLock,
+  type TaskBoardRevision,
+} from "../infra/task-board.js";
+import { normalizeTaskReadiness, type TaskNextRecommendedAction } from "../infra/task-readiness.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 
 const log = createSubsystemLogger("task-checkpoint");
@@ -35,6 +42,9 @@ export type ActiveTaskSummary = {
   stepsRemaining: string[];
   keyOutputs: string[];
   blockers: string[];
+  resolvedBlockers: string[];
+  canStart: boolean;
+  nextRecommendedAction: TaskNextRecommendedAction;
   nextAction?: string;
   decisions: string[];
   constraints: string[];
@@ -42,6 +52,7 @@ export type ActiveTaskSummary = {
 };
 
 type TaskBoard = {
+  version?: number;
   lanes?: {
     bot_current?: string[];
     bot_queue?: string[];
@@ -80,11 +91,40 @@ type TaskEntry = {
   [key: string]: unknown;
 };
 
-const TASK_BOARD_REL_PATH = path.join("memory", "tasks.json");
+export type TaskCardCompletionGuardReason = {
+  code: "incomplete_steps" | "open_blockers";
+  message: string;
+};
 
-function resolveTaskBoardPath(workspaceDir: string): string {
-  return path.join(workspaceDir, TASK_BOARD_REL_PATH);
-}
+export type TaskCardCompletionGuardResult =
+  | {
+      ok: true;
+      taskId: string;
+      currentRevision?: TaskBoardRevision;
+      skipped?: boolean;
+    }
+  | {
+      ok: false;
+      taskId: string;
+      currentRevision?: TaskBoardRevision;
+      reasons: TaskCardCompletionGuardReason[];
+    };
+
+type PatchTaskCardResult =
+  | {
+      success: true;
+      taskId: string;
+      revision?: TaskBoardRevision;
+      updatedFields: string[];
+      statusChange?: { from?: string; to?: string };
+    }
+  | {
+      success: false;
+      taskId?: string;
+      reason: string;
+      errorCode?: "task_not_found" | "stale_task";
+      currentRevision?: TaskBoardRevision;
+    };
 
 function normalizeTaskId(value: unknown): string | undefined {
   if (typeof value !== "string") {
@@ -133,19 +173,41 @@ async function readTaskBoard(workspaceDir: string): Promise<{
   }
 }
 
-async function writeTaskBoard(boardPath: string, board: TaskBoard): Promise<boolean> {
+function revisionsEqual(
+  expected: string | number | undefined,
+  current: TaskBoardRevision | undefined,
+): boolean {
+  if (expected == null) {
+    return true;
+  }
+  if (current == null) {
+    return false;
+  }
+  return String(expected) === String(current);
+}
+
+function valuesEqual(left: unknown, right: unknown): boolean {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+async function writeTaskBoard(
+  boardPath: string,
+  board: TaskBoard,
+  nowMs: number,
+): Promise<{ success: boolean; revision?: TaskBoardRevision }> {
+  const revision = bumpTaskBoardRevision(board, nowMs);
   const tmpPath = `${boardPath}.${process.pid}.${Date.now()}.tmp`;
   try {
     await fs.writeFile(tmpPath, `${JSON.stringify(board, null, 2)}\n`, "utf-8");
     await fs.rename(tmpPath, boardPath);
-    return true;
+    return { success: true, revision };
   } catch {
     try {
       await fs.rm(tmpPath, { force: true });
     } catch {
       /* best-effort */
     }
-    return false;
+    return { success: false };
   }
 }
 
@@ -240,6 +302,7 @@ export async function resolveActiveTask(workspaceDir: string): Promise<ActiveTas
   const decisions = normalizeStringList(task.context?.decisions);
   const constraints = normalizeStringList(task.context?.constraints);
   const links = normalizeStringList(task.links?.map((link) => link?.url ?? link?.label ?? ""));
+  const readiness = normalizeTaskReadiness(task);
 
   return {
     taskId,
@@ -254,7 +317,10 @@ export async function resolveActiveTask(workspaceDir: string): Promise<ActiveTas
     ),
     stepsRemaining: remainingSteps.map((s) => `[${s.id}] ${s.text}`),
     keyOutputs,
-    blockers: Array.isArray(task.blockers) ? task.blockers : [],
+    blockers: readiness.unresolvedBlockers,
+    resolvedBlockers: readiness.resolvedBlockers,
+    canStart: readiness.canStart,
+    nextRecommendedAction: readiness.nextRecommendedAction,
     nextAction: task.next_action ?? task.handoff?.nextAction,
     decisions,
     constraints,
@@ -296,6 +362,10 @@ export function buildTaskCompactionInstructions(task: ActiveTaskSummary): string
 
   if (task.nextAction) {
     lines.push(`Next action: ${task.nextAction}`);
+  }
+
+  if (!task.canStart) {
+    lines.push(`Startability: blocked (${task.nextRecommendedAction})`);
   }
 
   if (task.stepsRemaining.length > 0) {
@@ -380,6 +450,12 @@ export function buildTaskBootstrapContext(task: ActiveTaskSummary): string {
     lines.push(task.nextAction);
   }
 
+  if (!task.canStart) {
+    lines.push(``);
+    lines.push(`## Startability`);
+    lines.push(`blocked (${task.nextRecommendedAction})`);
+  }
+
   if (task.stepsRemaining.length > 0) {
     lines.push(``);
     lines.push(`## Remaining Steps`);
@@ -442,85 +518,122 @@ export async function checkpointActiveTask(params: {
   nextAction?: string;
   handoffSummary?: string;
 }): Promise<boolean> {
-  const payload = await readTaskBoard(params.workspaceDir);
-  if (!payload) {
-    return false;
-  }
-  const { boardPath, board } = payload;
-
-  const taskId =
-    normalizeTaskId(params.taskId) ??
-    normalizeTaskId(
-      Array.isArray(board.lanes?.bot_current) ? board.lanes?.bot_current[0] : undefined,
-    );
-  if (!taskId) {
-    return false;
-  }
-
-  const task = board.tasks?.[taskId];
-  if (!task) {
-    return false;
-  }
-
-  // Update step statuses
-  if (typeof params.currentStepIndex === "number" && Array.isArray(task.steps)) {
-    for (let i = 0; i < task.steps.length; i++) {
-      if (i < params.currentStepIndex) {
-        task.steps[i].status = "done";
-        task.steps[i].checked = true;
-      } else if (i === params.currentStepIndex) {
-        task.steps[i].status = "in_progress";
+  return withTaskBoardLock({
+    workspaceDir: params.workspaceDir,
+    fn: async () => {
+      const payload = await readTaskBoard(params.workspaceDir);
+      if (!payload) {
+        return false;
       }
-    }
-    task.current_step = params.currentStepIndex;
-  }
+      const { boardPath, board } = payload;
 
-  // Update step outputs
-  if (params.stepOutputs && Array.isArray(task.steps)) {
-    for (const [stepId, output] of Object.entries(params.stepOutputs)) {
-      const step = task.steps.find((s) => s.id === stepId);
-      if (step) {
-        (step as TaskStep & { output?: string }).output = output;
+      const taskId =
+        normalizeTaskId(params.taskId) ??
+        normalizeTaskId(
+          Array.isArray(board.lanes?.bot_current) ? board.lanes?.bot_current[0] : undefined,
+        );
+      if (!taskId) {
+        return false;
       }
-    }
-  }
 
-  // Update next action
-  if (params.nextAction) {
-    task.next_action = params.nextAction;
-  }
+      const task = board.tasks?.[taskId];
+      if (!task) {
+        return false;
+      }
 
-  // Update handoff summary
-  if (params.handoffSummary) {
-    if (!task.handoff) {
-      task.handoff = { whatIsDone: "", nextAction: "", blockers: [] };
-    }
-    task.handoff.whatIsDone = params.handoffSummary;
-  }
+      const nowMs = Date.now();
+      const nowIso = new Date(nowMs).toISOString();
+      let dirty = false;
 
-  // Write updated progress
-  const completedCount = Array.isArray(task.steps)
-    ? task.steps.filter((s) => s.status === "done" || s.checked).length
-    : 0;
-  const totalCount = Array.isArray(task.steps) ? task.steps.length : 0;
-  task.progress = `${completedCount}/${totalCount} steps done`;
-  task.updated_at = new Date().toISOString();
+      // Update step statuses
+      if (typeof params.currentStepIndex === "number" && Array.isArray(task.steps)) {
+        for (let i = 0; i < task.steps.length; i++) {
+          const step = task.steps[i];
+          if (!step) {
+            continue;
+          }
+          if (i < params.currentStepIndex) {
+            if (step.status !== "done") {
+              step.status = "done";
+              dirty = true;
+            }
+            if (step.checked !== true) {
+              step.checked = true;
+              dirty = true;
+            }
+          } else if (i === params.currentStepIndex && step.status !== "in_progress") {
+            step.status = "in_progress";
+            dirty = true;
+          }
+        }
+        if (task.current_step !== params.currentStepIndex) {
+          task.current_step = params.currentStepIndex;
+          dirty = true;
+        }
+      }
 
-  board.updated_at = new Date().toISOString();
+      // Update step outputs
+      if (params.stepOutputs && Array.isArray(task.steps)) {
+        for (const [stepId, output] of Object.entries(params.stepOutputs)) {
+          const step = task.steps.find((entry) => entry.id === stepId);
+          if (step && step.output !== output) {
+            (step as TaskStep & { output?: string }).output = output;
+            dirty = true;
+          }
+        }
+      }
 
-  try {
-    if (!(await writeTaskBoard(boardPath, board))) {
-      throw new Error("atomic task-board write failed");
-    }
-    log.info("task checkpoint saved", {
-      taskId,
-      progress: task.progress,
-    });
-    return true;
-  } catch (err) {
-    log.warn(`task checkpoint failed: ${err}`);
-    return false;
-  }
+      // Update next action
+      if (params.nextAction && task.next_action !== params.nextAction) {
+        task.next_action = params.nextAction;
+        dirty = true;
+      }
+
+      // Update handoff summary
+      if (params.handoffSummary) {
+        if (!task.handoff) {
+          task.handoff = { whatIsDone: "", nextAction: "", blockers: [] };
+        }
+        if (task.handoff.whatIsDone !== params.handoffSummary) {
+          task.handoff.whatIsDone = params.handoffSummary;
+          dirty = true;
+        }
+      }
+
+      // Update progress only when it actually changes.
+      const completedCount = Array.isArray(task.steps)
+        ? task.steps.filter((s) => s.status === "done" || s.checked).length
+        : 0;
+      const totalCount = Array.isArray(task.steps) ? task.steps.length : 0;
+      const nextProgress = `${completedCount}/${totalCount} steps done`;
+      if (task.progress !== nextProgress) {
+        task.progress = nextProgress;
+        dirty = true;
+      }
+
+      if (!dirty) {
+        return true;
+      }
+
+      task.updated_at = nowIso;
+
+      try {
+        const write = await writeTaskBoard(boardPath, board, nowMs);
+        if (!write.success) {
+          throw new Error("atomic task-board write failed");
+        }
+        log.info("task checkpoint saved", {
+          taskId,
+          progress: task.progress,
+          revision: write.revision,
+        });
+        return true;
+      } catch (err) {
+        log.warn(`task checkpoint failed: ${String(err)}`);
+        return false;
+      }
+    },
+  });
 }
 
 /**
@@ -538,89 +651,189 @@ export async function updateBotCurrentTask(params: {
   previousTaskId?: string;
   previousStatus?: "paused" | "completed" | "archived";
 }): Promise<boolean> {
-  const payload = await readTaskBoard(params.workspaceDir);
-  if (!payload) {
-    return false;
-  }
-  const { boardPath, board } = payload;
-  const nextTaskId = normalizeTaskId(params.taskId);
-  const previousTaskId = normalizeTaskId(params.previousTaskId);
-  const nowIso = new Date().toISOString();
-
-  if (!board.lanes) {
-    board.lanes = { bot_current: [] };
-  }
-  if (!Array.isArray(board.lanes.bot_current)) {
-    board.lanes.bot_current = [];
-  }
-  if (!Array.isArray(board.lanes.bot_queue)) {
-    board.lanes.bot_queue = [];
-  }
-  if (!board.tasks) {
-    board.tasks = {};
-  }
-
-  // Move previous task out of bot_current if present
-  if (previousTaskId && previousTaskId !== nextTaskId) {
-    const prevIdx = board.lanes.bot_current?.indexOf(previousTaskId) ?? -1;
-    if (prevIdx >= 0) {
-      board.lanes.bot_current!.splice(prevIdx, 1);
-    }
-    const prevQueueIdx = board.lanes.bot_queue.indexOf(previousTaskId);
-    if (prevQueueIdx >= 0) {
-      board.lanes.bot_queue.splice(prevQueueIdx, 1);
-    }
-    const previousStatus = params.previousStatus ?? "paused";
-    if (previousStatus === "paused" && !board.lanes.bot_queue.includes(previousTaskId)) {
-      board.lanes.bot_queue.push(previousTaskId);
-    }
-    const prevTask = board.tasks[previousTaskId];
-    if (prevTask) {
-      if (previousStatus) {
-        prevTask.status = previousStatus;
+  return withTaskBoardLock({
+    workspaceDir: params.workspaceDir,
+    fn: async () => {
+      const payload = await readTaskBoard(params.workspaceDir);
+      if (!payload) {
+        return false;
       }
-      prevTask.updated_at = nowIso;
-    }
-  }
+      const { boardPath, board } = payload;
+      const nextTaskId = normalizeTaskId(params.taskId);
+      const previousTaskId = normalizeTaskId(params.previousTaskId);
+      const nowMs = Date.now();
+      const nowIso = new Date(nowMs).toISOString();
+      let dirty = false;
 
-  if (nextTaskId) {
-    // Set new task as bot_current
-    board.lanes.bot_current = [nextTaskId];
+      if (!board.lanes) {
+        board.lanes = { bot_current: [] };
+        dirty = true;
+      }
+      if (!Array.isArray(board.lanes.bot_current)) {
+        board.lanes.bot_current = [];
+        dirty = true;
+      }
+      if (!Array.isArray(board.lanes.bot_queue)) {
+        board.lanes.bot_queue = [];
+        dirty = true;
+      }
+      if (!board.tasks) {
+        board.tasks = {};
+        dirty = true;
+      }
 
-    // Remove new task from bot_queue if it was there
-    const qIdx = board.lanes.bot_queue.indexOf(nextTaskId);
-    if (qIdx >= 0) {
-      board.lanes.bot_queue!.splice(qIdx, 1);
-    }
+      // Move previous task out of bot_current if present
+      if (previousTaskId && previousTaskId !== nextTaskId) {
+        const prevIdx = board.lanes.bot_current?.indexOf(previousTaskId) ?? -1;
+        if (prevIdx >= 0) {
+          board.lanes.bot_current.splice(prevIdx, 1);
+          dirty = true;
+        }
+        const prevQueueIdx = board.lanes.bot_queue.indexOf(previousTaskId);
+        if (prevQueueIdx >= 0) {
+          board.lanes.bot_queue.splice(prevQueueIdx, 1);
+          dirty = true;
+        }
+        const previousStatus = params.previousStatus ?? "paused";
+        if (previousStatus === "paused" && !board.lanes.bot_queue.includes(previousTaskId)) {
+          board.lanes.bot_queue.push(previousTaskId);
+          dirty = true;
+        }
+        const prevTask = board.tasks[previousTaskId];
+        if (prevTask) {
+          if (previousStatus && prevTask.status !== previousStatus) {
+            prevTask.status = previousStatus;
+            dirty = true;
+          }
+          if (prevTask.updated_at !== nowIso) {
+            prevTask.updated_at = nowIso;
+            dirty = true;
+          }
+        }
+      }
 
-    // Ensure task card exists, then mark active.
-    const newTask = ensureTaskCardStub(board, {
-      taskId: nextTaskId,
-      title: params.title,
-      nowIso,
-    });
-    newTask.status = "active";
-    newTask.lane = "bot_current";
-    newTask.updated_at = nowIso;
-  } else {
-    board.lanes.bot_current = [];
-  }
+      if (nextTaskId) {
+        // Set new task as bot_current
+        if (!valuesEqual(board.lanes.bot_current, [nextTaskId])) {
+          board.lanes.bot_current = [nextTaskId];
+          dirty = true;
+        }
 
-  board.updated_at = nowIso;
+        // Remove new task from bot_queue if it was there
+        const qIdx = board.lanes.bot_queue.indexOf(nextTaskId);
+        if (qIdx >= 0) {
+          board.lanes.bot_queue.splice(qIdx, 1);
+          dirty = true;
+        }
 
-  try {
-    if (!(await writeTaskBoard(boardPath, board))) {
-      throw new Error("atomic task-board write failed");
-    }
-    log.info("bot_current updated", {
-      taskId: nextTaskId ?? null,
-      previousTaskId,
-    });
-    return true;
-  } catch (err) {
-    log.warn(`bot_current update failed: ${err}`);
-    return false;
-  }
+        // Ensure task card exists, then mark active.
+        const taskExisted = Boolean(board.tasks[nextTaskId]);
+        const newTask = ensureTaskCardStub(board, {
+          taskId: nextTaskId,
+          title: params.title,
+          nowIso,
+        });
+        if (!taskExisted) {
+          dirty = true;
+        }
+        if (newTask.status !== "active") {
+          newTask.status = "active";
+          dirty = true;
+        }
+        if (newTask.lane !== "bot_current") {
+          newTask.lane = "bot_current";
+          dirty = true;
+        }
+        if (newTask.updated_at !== nowIso) {
+          newTask.updated_at = nowIso;
+          dirty = true;
+        }
+      } else if ((board.lanes.bot_current?.length ?? 0) > 0) {
+        board.lanes.bot_current = [];
+        dirty = true;
+      }
+
+      if (!dirty) {
+        return true;
+      }
+
+      try {
+        const write = await writeTaskBoard(boardPath, board, nowMs);
+        if (!write.success) {
+          throw new Error("atomic task-board write failed");
+        }
+        log.info("bot_current updated", {
+          taskId: nextTaskId ?? null,
+          previousTaskId,
+          revision: write.revision,
+        });
+        return true;
+      } catch (err) {
+        log.warn(`bot_current update failed: ${String(err)}`);
+        return false;
+      }
+    },
+  });
+}
+
+/**
+ * Uses the task card as a lightweight completion gate so `/task completed`
+ * can't silently ignore unfinished checklist work or known blockers.
+ */
+export async function evaluateTaskCardCompletionGuards(params: {
+  workspaceDir: string;
+  taskId: string;
+}): Promise<TaskCardCompletionGuardResult> {
+  return withTaskBoardLock({
+    workspaceDir: params.workspaceDir,
+    fn: async () => {
+      const payload = await readTaskBoard(params.workspaceDir);
+      if (!payload) {
+        return { ok: true, taskId: params.taskId, skipped: true };
+      }
+      const { board } = payload;
+      const currentRevision = resolveTaskBoardRevision(board);
+      const taskId = normalizeTaskId(params.taskId);
+      if (!taskId) {
+        return { ok: true, taskId: params.taskId, currentRevision, skipped: true };
+      }
+
+      const task = board.tasks?.[taskId];
+      if (!task) {
+        return { ok: true, taskId, currentRevision, skipped: true };
+      }
+
+      const reasons: TaskCardCompletionGuardReason[] = [];
+      const steps = Array.isArray(task.steps) ? task.steps : [];
+      const incompleteSteps = steps.filter((step) => step.status !== "done" && !step.checked);
+      if (incompleteSteps.length > 0) {
+        reasons.push({
+          code: "incomplete_steps",
+          message:
+            incompleteSteps.length === 1
+              ? `1 step is still incomplete: ${incompleteSteps[0]?.text ?? incompleteSteps[0]?.id ?? "unnamed step"}`
+              : `${incompleteSteps.length} steps are still incomplete.`,
+        });
+      }
+
+      const readiness = normalizeTaskReadiness(task);
+      const openBlockers = readiness.unresolvedBlockers;
+      if (openBlockers.length > 0) {
+        reasons.push({
+          code: "open_blockers",
+          message:
+            openBlockers.length === 1
+              ? `1 blocker is still open: ${openBlockers[0]}`
+              : `${openBlockers.length} blockers are still open.`,
+        });
+      }
+
+      if (reasons.length > 0) {
+        return { ok: false, taskId, currentRevision, reasons };
+      }
+      return { ok: true, taskId, currentRevision };
+    },
+  });
 }
 
 /**
@@ -635,12 +848,14 @@ export async function updateBotCurrentTask(params: {
 export async function patchTaskCard(params: {
   workspaceDir: string;
   taskId?: string; // defaults to bot_current[0]
+  expectedRevision?: string | number;
   patch: {
     title?: string;
     goal?: string;
     summary?: string;
     steps?: TaskStep[];
     next_action?: string;
+    status?: string;
     blockers?: string[];
     context?: {
       decisions?: string[];
@@ -650,155 +865,233 @@ export async function patchTaskCard(params: {
     links?: Array<{ label?: string; url?: string }>;
     [key: string]: unknown;
   };
-}): Promise<{ success: boolean; taskId?: string; reason?: string }> {
-  const boardPath = path.join(params.workspaceDir, "memory", "tasks.json");
+}): Promise<PatchTaskCardResult> {
+  return withTaskBoardLock({
+    workspaceDir: params.workspaceDir,
+    fn: async () => {
+      const boardPath = resolveTaskBoardPath(params.workspaceDir);
 
-  let raw: string;
-  try {
-    raw = await fs.readFile(boardPath, "utf-8");
-  } catch {
-    return { success: false, reason: "tasks.json not found" };
-  }
-
-  let board: TaskBoard;
-  try {
-    board = JSON.parse(raw) as TaskBoard;
-  } catch {
-    return { success: false, reason: "tasks.json invalid JSON" };
-  }
-
-  // Resolve target task
-  const taskId =
-    params.taskId ??
-    (Array.isArray(board.lanes?.bot_current) ? board.lanes.bot_current[0] : undefined);
-  if (!taskId || typeof taskId !== "string") {
-    return { success: false, reason: "no active task" };
-  }
-
-  const task = board.tasks?.[taskId];
-  if (!task) {
-    return { success: false, taskId, reason: `task ${taskId} not found` };
-  }
-
-  const { patch } = params;
-
-  // Apply simple field patches
-  if (patch.title !== undefined) {
-    task.title = patch.title;
-  }
-  if (patch.goal !== undefined) {
-    task.goal = patch.goal;
-  }
-  if (patch.summary !== undefined) {
-    task.summary = patch.summary;
-  }
-  if (patch.next_action !== undefined) {
-    task.next_action = patch.next_action;
-  }
-  if (patch.blockers !== undefined) {
-    task.blockers = patch.blockers;
-  }
-  if (patch.links !== undefined) {
-    task.links = patch.links;
-  }
-
-  // Merge context (don't replace — merge keys)
-  if (patch.context) {
-    if (!task.context) {
-      task.context = {};
-    }
-    for (const [key, value] of Object.entries(patch.context)) {
-      (task.context as Record<string, unknown>)[key] = value;
-    }
-  }
-
-  // Steps replacement with completed-step preservation
-  if (Array.isArray(patch.steps)) {
-    const oldSteps = Array.isArray(task.steps) ? task.steps : [];
-    const completedMap = new Map<string, TaskStep>();
-    for (const step of oldSteps) {
-      if (step.status === "done" || step.checked) {
-        completedMap.set(step.id, step);
+      let raw: string;
+      try {
+        raw = await fs.readFile(boardPath, "utf-8");
+      } catch {
+        return { success: false, reason: "tasks.json not found" };
       }
-    }
 
-    // Merge: for each new step, if a completed version exists, keep the completed state
-    const mergedSteps: TaskStep[] = [];
-    for (const newStep of patch.steps) {
-      const completed = completedMap.get(newStep.id);
-      if (completed) {
-        // Keep completed status + output, but use new text if changed
-        mergedSteps.push({
-          ...completed,
-          text: newStep.text ?? completed.text,
-        });
-        completedMap.delete(newStep.id);
-      } else {
-        mergedSteps.push(newStep);
+      let board: TaskBoard;
+      try {
+        board = JSON.parse(raw) as TaskBoard;
+      } catch {
+        return { success: false, reason: "tasks.json invalid JSON" };
       }
-    }
 
-    // Prepend any completed steps that were removed from the new plan
-    // (so progress is NEVER lost)
-    const orphanedCompleted = [...completedMap.values()];
-    if (orphanedCompleted.length > 0) {
-      // Find insertion point: after last completed step in merged list
-      let insertIdx = 0;
-      for (let i = mergedSteps.length - 1; i >= 0; i--) {
-        if (mergedSteps[i].status === "done" || mergedSteps[i].checked) {
-          insertIdx = i + 1;
-          break;
+      const currentRevision = resolveTaskBoardRevision(board);
+      if (!revisionsEqual(params.expectedRevision, currentRevision)) {
+        return {
+          success: false,
+          errorCode: "stale_task",
+          reason: "tasks.json changed before patch could be applied",
+          currentRevision,
+        };
+      }
+
+      // Resolve target task
+      const taskId =
+        params.taskId ??
+        (Array.isArray(board.lanes?.bot_current) ? board.lanes.bot_current[0] : undefined);
+      if (!taskId || typeof taskId !== "string") {
+        return { success: false, reason: "no active task", currentRevision };
+      }
+
+      const task = board.tasks?.[taskId];
+      if (!task) {
+        return {
+          success: false,
+          taskId,
+          errorCode: "task_not_found",
+          reason: `task ${taskId} not found`,
+          currentRevision,
+        };
+      }
+
+      const { patch } = params;
+      const previousStatus =
+        typeof task.status === "string" && task.status.trim() ? task.status.trim() : undefined;
+      const updatedFields: string[] = [];
+      const markChanged = (field: string) => {
+        if (!updatedFields.includes(field)) {
+          updatedFields.push(field);
+        }
+      };
+
+      const applyField = (field: keyof TaskEntry, value: unknown) => {
+        const currentValue = task[field];
+        if (!valuesEqual(currentValue, value)) {
+          (task as Record<string, unknown>)[field] = value;
+          markChanged(String(field));
+        }
+      };
+
+      // Apply simple field patches
+      if (patch.title !== undefined) {
+        applyField("title", patch.title);
+      }
+      if (patch.goal !== undefined) {
+        applyField("goal", patch.goal);
+      }
+      if (patch.summary !== undefined) {
+        applyField("summary", patch.summary);
+      }
+      if (patch.next_action !== undefined) {
+        applyField("next_action", patch.next_action);
+      }
+      if (patch.status !== undefined) {
+        applyField("status", patch.status);
+      }
+      if (patch.blockers !== undefined) {
+        applyField("blockers", patch.blockers);
+      }
+      if (patch.links !== undefined) {
+        applyField("links", patch.links);
+      }
+
+      // Merge context (don't replace — merge keys).
+      if (patch.context) {
+        const nextContext = { ...task.context } as Record<string, unknown>;
+        let contextChanged = false;
+        for (const [key, value] of Object.entries(patch.context)) {
+          if (!valuesEqual(nextContext[key], value)) {
+            nextContext[key] = value;
+            contextChanged = true;
+          }
+        }
+        if (contextChanged) {
+          task.context = nextContext;
+          markChanged("context");
         }
       }
-      mergedSteps.splice(insertIdx, 0, ...orphanedCompleted);
-    }
 
-    task.steps = mergedSteps;
+      // Steps replacement with completed-step preservation.
+      if (Array.isArray(patch.steps)) {
+        const oldSteps = Array.isArray(task.steps) ? task.steps : [];
+        const completedMap = new Map<string, TaskStep>();
+        for (const step of oldSteps) {
+          if (step.status === "done" || step.checked) {
+            completedMap.set(step.id, step);
+          }
+        }
 
-    // Update current_step to first non-done step
-    const firstPending = mergedSteps.findIndex((s) => s.status !== "done" && !s.checked);
-    task.current_step = firstPending >= 0 ? firstPending : mergedSteps.length;
-  }
+        const mergedSteps: TaskStep[] = [];
+        for (const newStep of patch.steps) {
+          const completed = completedMap.get(newStep.id);
+          if (completed) {
+            mergedSteps.push({
+              ...completed,
+              text: newStep.text ?? completed.text,
+            });
+            completedMap.delete(newStep.id);
+          } else {
+            mergedSteps.push(newStep);
+          }
+        }
 
-  // Apply any extra fields from patch (future-proof)
-  for (const [key, value] of Object.entries(patch)) {
-    if (
-      ![
-        "title",
-        "goal",
-        "summary",
-        "steps",
-        "next_action",
-        "blockers",
-        "context",
-        "links",
-      ].includes(key)
-    ) {
-      (task as Record<string, unknown>)[key] = value;
-    }
-  }
+        const orphanedCompleted = [...completedMap.values()];
+        if (orphanedCompleted.length > 0) {
+          let insertIdx = 0;
+          for (let i = mergedSteps.length - 1; i >= 0; i--) {
+            if (mergedSteps[i]?.status === "done" || mergedSteps[i]?.checked) {
+              insertIdx = i + 1;
+              break;
+            }
+          }
+          mergedSteps.splice(insertIdx, 0, ...orphanedCompleted);
+        }
 
-  // Update progress string
-  const steps = Array.isArray(task.steps) ? task.steps : [];
-  const doneCount = steps.filter((s) => s.status === "done" || s.checked).length;
-  task.progress = `${doneCount}/${steps.length} steps done`;
-  task.updated_at = new Date().toISOString();
-  board.updated_at = new Date().toISOString();
+        if (!valuesEqual(task.steps, mergedSteps)) {
+          task.steps = mergedSteps;
+          markChanged("steps");
+        }
 
-  // Atomic write
-  const tmpPath = `${boardPath}.${process.pid}.${Date.now()}.tmp`;
-  try {
-    await fs.writeFile(tmpPath, `${JSON.stringify(board, null, 2)}\n`, "utf-8");
-    await fs.rename(tmpPath, boardPath);
-    log.info("task card patched", { taskId, patchKeys: Object.keys(patch) });
-    return { success: true, taskId };
-  } catch (err) {
-    try {
-      await fs.rm(tmpPath, { force: true });
-    } catch {
-      /* best-effort */
-    }
-    log.warn(`task card patch failed: ${err}`);
-    return { success: false, taskId, reason: String(err) };
-  }
+        const firstPending = mergedSteps.findIndex(
+          (step) => step.status !== "done" && !step.checked,
+        );
+        const nextCurrentStep = firstPending >= 0 ? firstPending : mergedSteps.length;
+        if (task.current_step !== nextCurrentStep) {
+          task.current_step = nextCurrentStep;
+          markChanged("current_step");
+        }
+      }
+
+      // Apply any extra fields from patch (future-proof).
+      for (const [key, value] of Object.entries(patch)) {
+        if (
+          ![
+            "title",
+            "goal",
+            "summary",
+            "steps",
+            "next_action",
+            "status",
+            "blockers",
+            "context",
+            "links",
+          ].includes(key)
+        ) {
+          const currentValue = (task as Record<string, unknown>)[key];
+          if (!valuesEqual(currentValue, value)) {
+            (task as Record<string, unknown>)[key] = value;
+            markChanged(key);
+          }
+        }
+      }
+
+      if (updatedFields.includes("steps") || updatedFields.includes("current_step")) {
+        const steps = Array.isArray(task.steps) ? task.steps : [];
+        const doneCount = steps.filter((step) => step.status === "done" || step.checked).length;
+        const nextProgress = `${doneCount}/${steps.length} steps done`;
+        if (task.progress !== nextProgress) {
+          task.progress = nextProgress;
+          markChanged("progress");
+        }
+      }
+
+      if (updatedFields.length === 0) {
+        return {
+          success: true,
+          taskId,
+          revision: currentRevision,
+          updatedFields: [],
+        };
+      }
+
+      const nowMs = Date.now();
+      task.updated_at = new Date(nowMs).toISOString();
+
+      try {
+        const write = await writeTaskBoard(boardPath, board, nowMs);
+        if (!write.success) {
+          throw new Error("atomic task-board write failed");
+        }
+        const nextStatus =
+          typeof task.status === "string" && task.status.trim() ? task.status.trim() : undefined;
+        log.info("task card patched", {
+          taskId,
+          patchKeys: Object.keys(patch),
+          updatedFields,
+          revision: write.revision,
+        });
+        return {
+          success: true,
+          taskId,
+          revision: write.revision,
+          updatedFields,
+          statusChange:
+            previousStatus !== nextStatus ? { from: previousStatus, to: nextStatus } : undefined,
+        };
+      } catch (err) {
+        log.warn(`task card patch failed: ${String(err)}`);
+        return { success: false, taskId, reason: String(err), currentRevision };
+      }
+    },
+  });
 }

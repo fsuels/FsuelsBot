@@ -3,6 +3,7 @@ import type { SessionEntry } from "../../config/sessions.js";
 import type { CommandHandler } from "./commands-types.js";
 import {
   checkpointActiveTask,
+  evaluateTaskCardCompletionGuards,
   patchTaskCard,
   updateBotCurrentTask,
 } from "../../agents/task-checkpoint.js";
@@ -1080,6 +1081,21 @@ export const handleTaskCommand: CommandHandler = async (params, allowTextCommand
   }
 
   const targetTaskId = parsed.values[1]?.trim() || active.taskId;
+  if (statusAction === "completed" && targetTaskId !== DEFAULT_SESSION_TASK_ID) {
+    const completionCheck = await evaluateTaskCardCompletionGuards({
+      workspaceDir: params.workspaceDir,
+      taskId: targetTaskId,
+    });
+    if (!completionCheck.ok) {
+      const lines = completionCheck.reasons.map((reason) => `- ${reason.message}`);
+      return {
+        shouldContinue: false,
+        reply: {
+          text: `Task ${targetTaskId} is not ready to mark completed:\n${lines.join("\n")}`,
+        },
+      };
+    }
+  }
   const now = Date.now();
   let next = applySessionTaskUpdate(entry, {
     taskId: targetTaskId,
