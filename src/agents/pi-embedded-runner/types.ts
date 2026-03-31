@@ -62,7 +62,12 @@ export type EmbeddedPiRunResult = {
   /** Tool calls executed during the run, for post-turn coherence logging. */
   toolMetas?: Array<{ toolName: string; meta?: string }>;
   /** Last tool error from the run attempt (for failure tracking, RSC v2.1). */
-  lastToolError?: { toolName: string; meta?: string; error?: string };
+  lastToolError?: {
+    toolName: string;
+    meta?: string;
+    error?: string;
+    classification?: "validation" | "cancelled" | "generic";
+  };
 };
 
 export type EmbeddedPiCompactResult = {

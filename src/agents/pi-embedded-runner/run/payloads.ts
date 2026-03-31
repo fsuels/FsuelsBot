@@ -28,7 +28,12 @@ export function buildEmbeddedRunPayloads(params: {
   assistantTexts: string[];
   toolMetas: ToolMetaEntry[];
   lastAssistant: AssistantMessage | undefined;
-  lastToolError?: { toolName: string; meta?: string; error?: string };
+  lastToolError?: {
+    toolName: string;
+    meta?: string;
+    error?: string;
+    classification?: "validation" | "cancelled" | "generic";
+  };
   webSearchSources?: WebSearchSource[];
   config?: OpenClawConfig;
   sessionKey: string;
@@ -225,6 +230,7 @@ export function buildEmbeddedRunPayloads(params: {
     // when there's already a user-facing reply (the model should have retried).
     const errorLower = (params.lastToolError.error ?? "").toLowerCase();
     const isRecoverableError =
+      params.lastToolError.classification === "validation" ||
       errorLower.includes("required") ||
       errorLower.includes("missing") ||
       errorLower.includes("invalid") ||

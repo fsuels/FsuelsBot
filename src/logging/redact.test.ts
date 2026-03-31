@@ -58,6 +58,15 @@ describe("redactSensitiveText", () => {
     expect(output).toBe("TOKEN=***");
   });
 
+  it("preserves query structure while masking token-like params", () => {
+    const input = "https://example.com/report?token=abcdef1234567890ghij&safe=keep";
+    const output = redactSensitiveText(input, {
+      mode: "tools",
+      patterns: defaults,
+    });
+    expect(output).toBe("https://example.com/report?token=abcdef…ghij&safe=keep");
+  });
+
   it("redacts private key blocks", () => {
     const input = [
       "-----BEGIN PRIVATE KEY-----",
