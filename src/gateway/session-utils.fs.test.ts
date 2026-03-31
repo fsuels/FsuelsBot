@@ -489,6 +489,52 @@ describe("readSessionPreviewItemsFromTranscript", () => {
     expect(result[0]?.text.length).toBe(24);
     expect(result[0]?.text.endsWith("...")).toBe(true);
   });
+
+  test("uses visible attachment metadata for compact preview text", () => {
+    const sessionId = "preview-visible-attachments";
+    const transcriptPath = path.join(tmpDir, `${sessionId}.jsonl`);
+    const lines = [
+      JSON.stringify({ type: "session", version: 1, id: sessionId }),
+      JSON.stringify({
+        message: {
+          role: "assistant",
+          content: [{ type: "text", text: "" }],
+          openclawVisible: {
+            status: "proactive",
+            attachments: [
+              {
+                kind: "image",
+                name: "photo.png",
+                source: "https://example.com/photo.png",
+              },
+              {
+                kind: "file",
+                name: "report.pdf",
+                source: "https://example.com/report.pdf",
+              },
+            ],
+          },
+        },
+      }),
+    ];
+    fs.writeFileSync(transcriptPath, lines.join("\n"), "utf-8");
+
+    const result = readSessionPreviewItemsFromTranscript(
+      sessionId,
+      storePath,
+      undefined,
+      undefined,
+      1,
+      120,
+    );
+
+    expect(result).toEqual([
+      {
+        role: "assistant",
+        text: "[image] photo.png, [file] report.pdf",
+      },
+    ]);
+  });
 });
 
 describe("resolveSessionTranscriptCandidates", () => {

@@ -209,6 +209,27 @@ describe("routeReply", () => {
     expect(mocks.sendMessageSlack).toHaveBeenCalledWith("channel:C123", "hi", expect.any(Object));
   });
 
+  it("marks mirrored routed replies as normal user-visible messages", async () => {
+    const cfg = {} as OpenClawConfig;
+    await routeReply({
+      payload: { text: "hi" },
+      channel: "slack",
+      to: "channel:C123",
+      sessionKey: "agent:main:work",
+      cfg,
+    });
+
+    expect(mocks.deliverOutboundPayloads).toHaveBeenCalledWith(
+      expect.objectContaining({
+        mirror: expect.objectContaining({
+          sessionKey: "agent:main:work",
+          text: "hi",
+          status: "normal",
+        }),
+      }),
+    );
+  });
+
   it("uses threadId for Slack when replyToId is missing", async () => {
     mocks.sendMessageSlack.mockClear();
     await routeReply({

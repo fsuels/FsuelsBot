@@ -1,5 +1,9 @@
 import { formatRawAssistantErrorForUi } from "../agents/pi-embedded-helpers.js";
 import { formatTokenCount } from "../utils/usage-format.js";
+import {
+  extractVisibleMessageMeta,
+  formatVisibleAttachmentLabel,
+} from "../utils/visible-message.js";
 
 export function resolveFinalAssistantText(params: {
   finalText?: string | null;
@@ -106,11 +110,12 @@ export function extractContentFromMessage(message: unknown): string {
     const stopReason = typeof record.stopReason === "string" ? record.stopReason : "";
     if (stopReason === "error") {
       const errorMessage = typeof record.errorMessage === "string" ? record.errorMessage : "";
-      return formatRawAssistantErrorForUi(errorMessage);
+      return appendVisibleAttachments(formatRawAssistantErrorForUi(errorMessage), message);
     }
   }
 
-  return parts.join("\n").trim();
+  const text = parts.join("\n").trim();
+  return appendVisibleAttachments(text, message);
 }
 
 function extractTextBlocks(content: unknown, opts?: { includeThinking?: boolean }): string {
@@ -148,6 +153,25 @@ function extractTextBlocks(content: unknown, opts?: { includeThinking?: boolean 
   });
 }
 
+function extractVisibleAttachmentText(message: unknown): string {
+  const attachments = extractVisibleMessageMeta(message)?.attachments ?? [];
+  if (attachments.length === 0) {
+    return "";
+  }
+  return attachments.map((attachment) => formatVisibleAttachmentLabel(attachment)).join("\n");
+}
+
+function appendVisibleAttachments(text: string, message: unknown): string {
+  const attachmentText = extractVisibleAttachmentText(message);
+  if (!attachmentText) {
+    return text;
+  }
+  if (!text.trim()) {
+    return attachmentText;
+  }
+  return `${text}\n${attachmentText}`.trim();
+}
+
 export function extractTextFromMessage(
   message: unknown,
   opts?: { includeThinking?: boolean },
@@ -158,16 +182,16 @@ export function extractTextFromMessage(
   const record = message as Record<string, unknown>;
   const text = extractTextBlocks(record.content, opts);
   if (text) {
-    return text;
+    return appendVisibleAttachments(text, message);
   }
 
   const stopReason = typeof record.stopReason === "string" ? record.stopReason : "";
   if (stopReason !== "error") {
-    return "";
+    return appendVisibleAttachments("", message);
   }
 
   const errorMessage = typeof record.errorMessage === "string" ? record.errorMessage : "";
-  return formatRawAssistantErrorForUi(errorMessage);
+  return appendVisibleAttachments(formatRawAssistantErrorForUi(errorMessage), message);
 }
 
 export function isCommandMessage(message: unknown): boolean {

@@ -3,6 +3,11 @@ import fs from "node:fs";
 import path from "node:path";
 import type { SessionEntry } from "./types.js";
 import { emitSessionTranscriptUpdate } from "../../sessions/transcript-events.js";
+import {
+  buildVisibleAttachmentsFromMediaUrls,
+  type VisibleMessageMeta,
+  type VisibleMessageStatus,
+} from "../../utils/visible-message.js";
 import { resolveDefaultSessionStorePath, resolveSessionTranscriptPath } from "./paths.js";
 import { loadSessionStore, updateSessionStore } from "./store.js";
 
@@ -41,6 +46,12 @@ export function resolveMirroredTranscriptText(params: {
   text?: string;
   mediaUrls?: string[];
 }): string | null {
+  const text = params.text ?? "";
+  const trimmed = text.trim();
+  if (trimmed) {
+    return trimmed;
+  }
+
   const mediaUrls = params.mediaUrls?.filter((url) => url && url.trim()) ?? [];
   if (mediaUrls.length > 0) {
     const names = mediaUrls
@@ -52,9 +63,7 @@ export function resolveMirroredTranscriptText(params: {
     return "media";
   }
 
-  const text = params.text ?? "";
-  const trimmed = text.trim();
-  return trimmed ? trimmed : null;
+  return null;
 }
 
 async function ensureSessionHeader(params: {
@@ -80,6 +89,9 @@ export async function appendAssistantMessageToSessionTranscript(params: {
   sessionKey: string;
   text?: string;
   mediaUrls?: string[];
+  status?: VisibleMessageStatus;
+  sentAt?: string;
+  attachments?: VisibleMessageMeta["attachments"];
   /** Optional override for store path (mostly for tests). */
   storePath?: string;
 }): Promise<{ ok: true; sessionFile: string } | { ok: false; reason: string }> {
@@ -108,6 +120,17 @@ export async function appendAssistantMessageToSessionTranscript(params: {
 
   await ensureSessionHeader({ sessionFile, sessionId: entry.sessionId });
 
+  const builtAttachments =
+    params.attachments ?? buildVisibleAttachmentsFromMediaUrls(params.mediaUrls);
+  const visibleMeta: VisibleMessageMeta | undefined =
+    params.status || params.sentAt || builtAttachments.length > 0
+      ? {
+          status: params.status,
+          sentAt: params.sentAt,
+          attachments: builtAttachments.length > 0 ? builtAttachments : undefined,
+        }
+      : undefined;
+
   const sessionManager = SessionManager.open(sessionFile);
   sessionManager.appendMessage({
     role: "assistant",
@@ -131,6 +154,7 @@ export async function appendAssistantMessageToSessionTranscript(params: {
     },
     stopReason: "stop",
     timestamp: Date.now(),
+    openclawVisible: visibleMeta,
   });
 
   if (!entry.sessionFile || entry.sessionFile !== sessionFile) {

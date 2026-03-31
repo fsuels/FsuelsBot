@@ -47,7 +47,19 @@ export function normalizeMessage(message: unknown): NormalizedMessage {
     content = [{ type: "text", text: m.text }];
   }
 
-  const timestamp = typeof m.timestamp === "number" ? m.timestamp : Date.now();
+  const visible =
+    m.openclawVisible && typeof m.openclawVisible === "object" && !Array.isArray(m.openclawVisible)
+      ? (m.openclawVisible as Record<string, unknown>)
+      : null;
+  const rawSentAt =
+    typeof visible?.sentAt === "string"
+      ? visible.sentAt
+      : typeof visible?.sent_at === "string"
+        ? visible.sent_at
+        : undefined;
+  const sentAt = typeof rawSentAt === "string" ? Date.parse(rawSentAt) : Number.NaN;
+  const timestamp =
+    typeof m.timestamp === "number" ? m.timestamp : Number.isFinite(sentAt) ? sentAt : Date.now();
   const id = typeof m.id === "string" ? m.id : undefined;
 
   return { role, content, timestamp, id };

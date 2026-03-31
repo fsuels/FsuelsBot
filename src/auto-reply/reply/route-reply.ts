@@ -131,6 +131,7 @@ export async function routeReply(params: RouteReplyParams): Promise<RouteReplyRe
               agentId: resolveSessionAgentId({ sessionKey: params.sessionKey, config: cfg }),
               text,
               mediaUrls,
+              status: "normal",
             }
           : undefined,
     });

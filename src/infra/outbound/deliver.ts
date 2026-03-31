@@ -5,6 +5,7 @@ import type { sendMessageDiscord } from "../../discord/send.js";
 import type { sendMessageIMessage } from "../../imessage/send.js";
 import type { sendMessageSlack } from "../../slack/send.js";
 import type { sendMessageTelegram } from "../../telegram/send.js";
+import type { VisibleMessageStatus } from "../../utils/visible-message.js";
 import type { sendMessageWhatsApp } from "../../web/outbound.js";
 import type { NormalizedOutboundPayload } from "./payloads.js";
 import type { OutboundChannel } from "./targets.js";
@@ -190,6 +191,7 @@ export async function deliverOutboundPayloads(params: {
     agentId?: string;
     text?: string;
     mediaUrls?: string[];
+    status?: VisibleMessageStatus;
   };
 }): Promise<OutboundDeliveryResult[]> {
   const { cfg, channel, to, payloads } = params;
@@ -363,6 +365,8 @@ export async function deliverOutboundPayloads(params: {
         agentId: params.mirror.agentId,
         sessionKey: params.mirror.sessionKey,
         text: mirrorText,
+        mediaUrls: params.mirror.mediaUrls,
+        status: params.mirror.status,
       });
     }
   }

@@ -229,6 +229,65 @@ img.chat-avatar {
   color: var(--ok);
 }
 
+.chat-visible-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.chat-visible-badge {
+  width: fit-content;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.chat-visible-attachments {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chat-visible-attachment {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.chat-visible-attachment:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.chat-visible-attachment__kind,
+.chat-visible-attachment__size {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.chat-visible-attachment__name {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-size: 13px;
+}
+
 .chat-copy-btn:focus-visible {
   opacity: 1;
   pointer-events: auto;
@@ -247,6 +306,21 @@ img.chat-avatar {
 :root[data-theme="light"] .chat-bubble {
   border-color: var(--border);
   box-shadow: inset 0 1px 0 var(--card-highlight);
+}
+
+:root[data-theme="light"] .chat-visible-badge {
+  border-color: rgba(217, 119, 6, 0.25);
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+}
+
+:root[data-theme="light"] .chat-visible-attachment {
+  background: rgba(15, 23, 42, 0.02);
+}
+
+:root[data-theme="light"] .chat-visible-attachment:hover {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(15, 23, 42, 0.12);
 }
 
 .chat-bubble:hover {

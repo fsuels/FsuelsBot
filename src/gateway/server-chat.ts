@@ -244,6 +244,9 @@ export function createAgentEventHandler({
         role: "assistant",
         content: [{ type: "text", text }],
         timestamp: now,
+        openclawVisible: {
+          status: "normal" as const,
+        },
       },
     };
     // Suppress webchat broadcast for heartbeat runs when showOk is false
@@ -274,6 +277,10 @@ export function createAgentEventHandler({
               role: "assistant",
               content: [{ type: "text", text }],
               timestamp: Date.now(),
+              openclawVisible: {
+                status: "normal" as const,
+                sentAt: new Date().toISOString(),
+              },
             }
           : undefined,
       };
