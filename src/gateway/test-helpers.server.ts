@@ -368,6 +368,7 @@ export async function connectReq(
     skipDefaultAuth?: boolean;
     minProtocol?: number;
     maxProtocol?: number;
+    lastEventSeq?: number;
     client?: {
       id: string;
       displayName?: string;
@@ -450,6 +451,7 @@ export async function connectReq(
       params: {
         minProtocol: opts?.minProtocol ?? PROTOCOL_VERSION,
         maxProtocol: opts?.maxProtocol ?? PROTOCOL_VERSION,
+        lastEventSeq: opts?.lastEventSeq,
         client,
         caps: opts?.caps ?? [],
         commands: opts?.commands ?? [],

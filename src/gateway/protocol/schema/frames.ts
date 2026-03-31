@@ -21,6 +21,7 @@ export const ConnectParamsSchema = Type.Object(
   {
     minProtocol: Type.Integer({ minimum: 1 }),
     maxProtocol: Type.Integer({ minimum: 1 }),
+    lastEventSeq: Type.Optional(Type.Integer({ minimum: 0 })),
     client: Type.Object(
       {
         id: GatewayClientIdSchema,
@@ -96,6 +97,20 @@ export const HelloOkSchema = Type.Object(
           role: NonEmptyString,
           scopes: Type.Array(NonEmptyString),
           issuedAtMs: Type.Optional(Type.Integer({ minimum: 0 })),
+        },
+        { additionalProperties: false },
+      ),
+    ),
+    resume: Type.Optional(
+      Type.Object(
+        {
+          requestedSeq: Type.Integer({ minimum: 0 }),
+          replayedCount: Type.Integer({ minimum: 0 }),
+          replayedThroughSeq: Type.Optional(Type.Integer({ minimum: 0 })),
+          bufferedFromSeq: Type.Optional(Type.Integer({ minimum: 0 })),
+          latestSeq: Type.Integer({ minimum: 0 }),
+          gap: Type.Boolean(),
+          reset: Type.Boolean(),
         },
         { additionalProperties: false },
       ),
