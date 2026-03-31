@@ -772,7 +772,7 @@ describe("sessions tools", () => {
     );
     expect(agentCall?.[0]).toMatchObject({
       method: "agent",
-      params: { sessionKey: targetKey },
+      params: { sessionKey: targetKey, cacheSafeFork: true },
     });
   });
 
@@ -820,7 +820,7 @@ describe("sessions tools", () => {
     );
     expect(agentCall?.[0]).toMatchObject({
       method: "agent",
-      params: { sessionKey: targetKey },
+      params: { sessionKey: targetKey, cacheSafeFork: true },
     });
   });
 
@@ -945,6 +945,7 @@ describe("sessions tools", () => {
       expect(call.params).toMatchObject({
         lane: "nested",
         channel: "webchat",
+        cacheSafeFork: true,
       });
     }
 

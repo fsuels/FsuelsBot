@@ -611,6 +611,8 @@ export async function runEmbeddedPiAgent(
             onToolResult: runConfig.onToolResult,
             onAgentEvent: runConfig.onAgentEvent,
             extraSystemPrompt: runConfig.extraSystemPrompt,
+            cacheSafeFork: runConfig.cacheSafeFork,
+            forkRequestContext: runConfig.forkRequestContext,
             streamParams: runConfig.streamParams,
             ownerNumbers: runConfig.ownerNumbers,
             enforceFinalTag: runConfig.enforceFinalTag,

@@ -1,3 +1,4 @@
+import type { SavedRequestContextEntry } from "../../agents/pi-embedded-runner/fork-context.js";
 import type { ClientToolDefinition } from "../../agents/pi-embedded-runner/run/params.js";
 import type { ChannelOutboundTargetMode } from "../../channels/plugins/types.js";
 
@@ -76,6 +77,10 @@ export type AgentCommandOpts = {
   lane?: string;
   runId?: string;
   extraSystemPrompt?: string;
+  /** Internal cache-safe nested fork hint for side-task runs. */
+  cacheSafeFork?: boolean;
+  /** Optional live request-context override for same-session nested forks. */
+  forkRequestContext?: SavedRequestContextEntry;
   /** Per-call stream param overrides (best-effort). */
   streamParams?: AgentStreamParams;
 };

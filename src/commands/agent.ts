@@ -465,6 +465,8 @@ export async function agentCommand(
             lane: opts.lane,
             abortSignal: opts.abortSignal,
             extraSystemPrompt: opts.extraSystemPrompt,
+            cacheSafeFork: opts.cacheSafeFork,
+            forkRequestContext: opts.forkRequestContext,
             streamParams: opts.streamParams,
             agentDir,
             onAgentEvent: (evt) => {

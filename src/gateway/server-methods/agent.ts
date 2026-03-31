@@ -82,6 +82,19 @@ export const agentHandlers: GatewayRequestHandlers = {
       groupSpace?: string;
       lane?: string;
       extraSystemPrompt?: string;
+      cacheSafeFork?: boolean;
+      forkRequestContext?: {
+        recordedAt: number;
+        promptId?: string;
+        requestId?: string;
+        provider?: string;
+        modelId?: string;
+        modelApi?: string | null;
+        wasPostCompaction?: boolean;
+        systemJson?: string;
+        messagesJson: string;
+        prefixHash: string;
+      };
       idempotencyKey: string;
       timeout?: number;
       label?: string;
@@ -384,6 +397,8 @@ export const agentHandlers: GatewayRequestHandlers = {
         runId,
         lane: request.lane,
         extraSystemPrompt: request.extraSystemPrompt,
+        cacheSafeFork: request.cacheSafeFork === true,
+        forkRequestContext: request.forkRequestContext,
       },
       defaultRuntime,
       context.deps,

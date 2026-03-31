@@ -71,6 +71,11 @@ import { isAbortError } from "../abort.js";
 import { appendCacheTtlTimestamp, isCacheTtlEligibleProvider } from "../cache-ttl.js";
 import { buildEmbeddedExtensionPaths } from "../extensions.js";
 import { applyExtraParamsToAgent } from "../extra-params.js";
+import {
+  buildCacheSafeForkContext,
+  persistSavedRequestContext,
+  serializeSavedRequestContext,
+} from "../fork-context.js";
 import { logToolSchemasForGoogle, sanitizeToolsForGoogle } from "../google.js";
 import { log } from "../logger.js";
 import { buildModelAliasLines } from "../model.js";
@@ -644,6 +649,14 @@ export async function runEmbeddedAttempt(
 
       let projectedSystemPromptReport = systemPromptReport;
       try {
+        const forkContext = params.cacheSafeFork
+          ? buildCacheSafeForkContext({
+              sessionManager,
+              taskId: activeTaskId,
+              system: systemPromptText,
+              liveOverride: params.forkRequestContext,
+            })
+          : null;
         const projection = await projectConversationForModel({
           sessionManager,
           sessionId: params.sessionId,
@@ -656,8 +669,26 @@ export async function runEmbeddedAttempt(
           contextWindowTokens: params.model.contextWindow,
           systemPromptReport,
           transcriptPolicy,
+          historyMessagesOverride: forkContext?.messages,
+          historyOverrideScoped: true,
         });
-        cacheTrace?.recordStage("session:scoped", { messages: projection.scopedMessages });
+        if (forkContext) {
+          cacheTrace?.recordStage("session:scoped", {
+            messages: projection.scopedMessages,
+            system: systemPromptText,
+            note:
+              `cache-safe fork prefixHash=${forkContext.prefixHash} ` +
+              `reused_saved_prefix=${forkContext.reusedSavedPrefix} ` +
+              `partial_assistant_stripped=${forkContext.partialAssistantStripped}`,
+          });
+          log.debug(
+            `cache-safe fork prepared: runId=${params.runId} sessionId=${params.sessionId} ` +
+              `prefixHash=${forkContext.prefixHash} reusedSavedPrefix=${forkContext.reusedSavedPrefix} ` +
+              `partialAssistantStripped=${forkContext.partialAssistantStripped}`,
+          );
+        } else {
+          cacheTrace?.recordStage("session:scoped", { messages: projection.scopedMessages });
+        }
         cacheTrace?.recordStage("session:sanitized", { messages: projection.sanitizedMessages });
         cacheTrace?.recordStage("session:limited", { messages: projection.limitedMessages });
         cacheTrace?.recordStage("session:projected", { messages: projection.projectedMessages });
@@ -1066,6 +1097,12 @@ export async function runEmbeddedAttempt(
         messagesSnapshot = activeSession.messages.slice();
         sessionIdUsed = activeSession.sessionId;
         runtimeState?.markApiCompletion();
+        const savedRequestContext = runtimeState
+          ? serializeSavedRequestContext(runtimeState.getLastRequestSnapshot() ?? null)
+          : null;
+        if (savedRequestContext) {
+          persistSavedRequestContext(sessionManager, savedRequestContext);
+        }
         cacheTrace?.recordStage("session:after", {
           messages: messagesSnapshot,
           note: promptError ? "prompt error" : undefined,

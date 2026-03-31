@@ -13,6 +13,7 @@ import type { AuthStorage, ModelRegistry } from "../../pi-model-discovery.js";
 import type { SkillSnapshot } from "../../skills.js";
 import type { WebSearchSource } from "../../tools/web-search-shared.js";
 import type { NormalizedUsage } from "../../usage.js";
+import type { SavedRequestContextEntry } from "../fork-context.js";
 import type { ClientToolDefinition } from "./params.js";
 
 export type EmbeddedRunAttemptParams = {
@@ -96,6 +97,8 @@ export type EmbeddedRunAttemptParams = {
   /** If true, omit the message tool from the tool list. */
   disableMessageTool?: boolean;
   extraSystemPrompt?: string;
+  cacheSafeFork?: boolean;
+  forkRequestContext?: SavedRequestContextEntry;
   streamParams?: AgentStreamParams;
   ownerNumbers?: string[];
   enforceFinalTag?: boolean;

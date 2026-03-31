@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import type { SavedRequestContextEntry } from "../pi-embedded-runner/fork-context.js";
 import { callGateway } from "../../gateway/call.js";
 import { INTERNAL_MESSAGE_CHANNEL } from "../../utils/message-channel.js";
 import { AGENT_LANE_NESTED } from "../lanes.js";
@@ -24,6 +25,7 @@ export async function runAgentStep(params: {
   timeoutMs: number;
   channel?: string;
   lane?: string;
+  forkRequestContext?: SavedRequestContextEntry;
 }): Promise<string | undefined> {
   const stepIdem = crypto.randomUUID();
   const response = await callGateway<{ runId?: string }>({
@@ -36,6 +38,8 @@ export async function runAgentStep(params: {
       channel: params.channel ?? INTERNAL_MESSAGE_CHANNEL,
       lane: params.lane ?? AGENT_LANE_NESTED,
       extraSystemPrompt: params.extraSystemPrompt,
+      cacheSafeFork: true,
+      forkRequestContext: params.forkRequestContext,
     },
     timeoutMs: 10_000,
   });

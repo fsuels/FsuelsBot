@@ -9,6 +9,7 @@ import type { DriftPromptInjection } from "../../drift-detection.js";
 import type { BlockReplyChunking, ToolResultFormat } from "../../pi-embedded-subscribe.js";
 import type { CollaborationMode, PlanModeProfile } from "../../plan-mode.js";
 import type { SkillSnapshot } from "../../skills.js";
+import type { SavedRequestContextEntry } from "../fork-context.js";
 
 // Simplified tool definition for client-provided tools (OpenResponses hosted tools)
 export type ClientToolDefinition = {
@@ -110,6 +111,8 @@ export type RunEmbeddedPiAgentParams = {
   lane?: string;
   enqueue?: typeof enqueueCommand;
   extraSystemPrompt?: string;
+  cacheSafeFork?: boolean;
+  forkRequestContext?: SavedRequestContextEntry;
   streamParams?: AgentStreamParams;
   ownerNumbers?: string[];
   enforceFinalTag?: boolean;

@@ -506,6 +506,7 @@ export function createSessionsSendTool(opts?: {
         channel: INTERNAL_MESSAGE_CHANNEL,
         lane: AGENT_LANE_NESTED,
         extraSystemPrompt: agentMessageContext,
+        cacheSafeFork: true,
       };
       const requesterSessionKey = opts?.agentSessionKey;
       const requesterChannel = opts?.agentChannel;

@@ -86,12 +86,19 @@ export async function projectConversationForModel(params: {
   systemPromptReport?: SessionSystemPromptReport | null;
   transcriptPolicy?: TranscriptPolicy;
   sanitizeOptions?: SanitizeSessionHistoryOptions;
+  historyMessagesOverride?: AgentMessage[];
+  historyOverrideScoped?: boolean;
 }): Promise<ModelVisibleConversationProjection> {
   const branchMessages = params.sessionManager.buildSessionContext().messages;
-  const history = resolveTaskScopedHistoryMessages({
-    sessionManager: params.sessionManager,
-    taskId: params.taskId,
-  });
+  const history = params.historyMessagesOverride
+    ? {
+        messages: params.historyMessagesOverride,
+        scoped: params.historyOverrideScoped ?? true,
+      }
+    : resolveTaskScopedHistoryMessages({
+        sessionManager: params.sessionManager,
+        taskId: params.taskId,
+      });
   const transcriptPolicy =
     params.transcriptPolicy ??
     resolveTranscriptPolicy({
@@ -100,24 +107,32 @@ export async function projectConversationForModel(params: {
       modelId: params.modelId,
     });
 
-  const sanitizedMessages = await sanitizeSessionHistory({
-    messages: history.messages,
-    modelApi: params.modelApi,
-    modelId: params.modelId,
-    provider: params.provider,
-    sessionManager: params.sessionManager,
-    sessionId: params.sessionId,
-    policy: transcriptPolicy,
-    options: params.sanitizeOptions,
-  });
-  const validatedGemini = transcriptPolicy.validateGeminiTurns
-    ? validateGeminiTurns(sanitizedMessages)
-    : sanitizedMessages;
-  const validated = transcriptPolicy.validateAnthropicTurns
-    ? validateAnthropicTurns(validatedGemini)
-    : validatedGemini;
-  const dmHistoryLimit = getDmHistoryLimitFromSessionKey(params.sessionKey, params.config);
-  const limitedMessages = limitHistoryTurns(validated, dmHistoryLimit);
+  const sanitizedMessages = params.historyMessagesOverride
+    ? history.messages
+    : await sanitizeSessionHistory({
+        messages: history.messages,
+        modelApi: params.modelApi,
+        modelId: params.modelId,
+        provider: params.provider,
+        sessionManager: params.sessionManager,
+        sessionId: params.sessionId,
+        policy: transcriptPolicy,
+        options: params.sanitizeOptions,
+      });
+  const validatedGemini =
+    params.historyMessagesOverride || !transcriptPolicy.validateGeminiTurns
+      ? sanitizedMessages
+      : validateGeminiTurns(sanitizedMessages);
+  const validated =
+    params.historyMessagesOverride || !transcriptPolicy.validateAnthropicTurns
+      ? validatedGemini
+      : validateAnthropicTurns(validatedGemini);
+  const dmHistoryLimit = params.historyMessagesOverride
+    ? undefined
+    : getDmHistoryLimitFromSessionKey(params.sessionKey, params.config);
+  const limitedMessages = params.historyMessagesOverride
+    ? validated
+    : limitHistoryTurns(validated, dmHistoryLimit);
   const hasContextWindowTokens =
     typeof params.contextWindowTokens === "number" &&
     Number.isFinite(params.contextWindowTokens) &&
