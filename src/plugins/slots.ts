@@ -17,6 +17,8 @@ const DEFAULT_SLOT_BY_KEY: Record<PluginSlotKey, string> = {
   memory: "memory-core",
 };
 
+export const PLUGIN_SLOT_KEYS = Object.keys(DEFAULT_SLOT_BY_KEY) as PluginSlotKey[];
+
 export function slotKeyForPluginKind(kind?: PluginKind): PluginSlotKey | null {
   if (!kind) {
     return null;

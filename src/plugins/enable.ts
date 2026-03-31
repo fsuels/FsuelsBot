@@ -28,20 +28,27 @@ export function enablePluginInConfig(cfg: OpenClawConfig, pluginId: string): Plu
     return { config: cfg, enabled: false, reason: "blocked by denylist" };
   }
 
-  const entries = {
-    ...cfg.plugins?.entries,
-    [pluginId]: {
-      ...(cfg.plugins?.entries?.[pluginId] as Record<string, unknown> | undefined),
-      enabled: true,
-    },
-  };
-  let next: OpenClawConfig = {
-    ...cfg,
-    plugins: {
-      ...cfg.plugins,
-      entries,
-    },
-  };
+  const existingEntry = cfg.plugins?.entries?.[pluginId] as Record<string, unknown> | undefined;
+  const alreadyEnabled = existingEntry?.enabled === true;
+  let next = cfg;
+
+  if (!alreadyEnabled) {
+    const entries = {
+      ...cfg.plugins?.entries,
+      [pluginId]: {
+        ...existingEntry,
+        enabled: true,
+      },
+    };
+    next = {
+      ...cfg,
+      plugins: {
+        ...cfg.plugins,
+        entries,
+      },
+    };
+  }
+
   next = ensureAllowlisted(next, pluginId);
   return { config: next, enabled: true };
 }
