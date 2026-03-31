@@ -1,78 +1,78 @@
 {
   "version": 1,
-  "updatedAt": "2026-03-31T17:21:29.876Z",
+  "updatedAt": "2026-03-31T18:21:11.407Z",
   "entities": {
     "want": {
       "id": "want",
       "label": "want",
-      "mentions": 793,
-      "weight": 277.55,
+      "mentions": 794,
+      "weight": 277.9,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-03-31T17:21:29.876Z"
+      "lastSeenAt": "2026-03-31T18:21:11.407Z"
     },
     "read": {
       "id": "read",
       "label": "read",
-      "mentions": 788,
-      "weight": 275.8,
+      "mentions": 789,
+      "weight": 276.15,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-03-31T17:21:29.876Z"
+      "lastSeenAt": "2026-03-31T18:21:11.407Z"
     },
     "follow": {
       "id": "follow",
       "label": "follow",
-      "mentions": 788,
-      "weight": 275.8,
+      "mentions": 789,
+      "weight": 276.15,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-03-31T17:21:29.876Z"
+      "lastSeenAt": "2026-03-31T18:21:11.407Z"
     },
     "workspace": {
       "id": "workspace",
       "label": "workspace",
-      "mentions": 788,
-      "weight": 275.8,
+      "mentions": 789,
+      "weight": 276.15,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-03-31T17:21:29.876Z"
+      "lastSeenAt": "2026-03-31T18:21:11.407Z"
     },
     "heartbeat": {
       "id": "heartbeat",
       "label": "heartbeat",
-      "mentions": 787,
-      "weight": 275.45,
+      "mentions": 788,
+      "weight": 275.8,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-03-31T17:21:29.876Z"
+      "lastSeenAt": "2026-03-31T18:21:11.407Z"
     },
     "exists": {
       "id": "exists",
       "label": "exists",
-      "mentions": 787,
-      "weight": 275.45,
+      "mentions": 788,
+      "weight": 275.8,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-03-31T17:21:29.876Z"
+      "lastSeenAt": "2026-03-31T18:21:11.407Z"
     },
     "context": {
       "id": "context",
       "label": "context",
-      "mentions": 787,
-      "weight": 275.45,
+      "mentions": 788,
+      "weight": 275.8,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-03-31T17:21:29.876Z"
+      "lastSeenAt": "2026-03-31T18:21:11.407Z"
     },
     "strictly": {
       "id": "strictly",
       "label": "strictly",
-      "mentions": 787,
-      "weight": 275.45,
+      "mentions": 788,
+      "weight": 275.8,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-03-31T17:21:29.876Z"
+      "lastSeenAt": "2026-03-31T18:21:11.407Z"
     },
     "infer": {
       "id": "infer",
       "label": "infer",
-      "mentions": 787,
-      "weight": 275.45,
+      "mentions": 788,
+      "weight": 275.8,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-03-31T17:21:29.876Z"
+      "lastSeenAt": "2026-03-31T18:21:11.407Z"
     },
     "voice": {
       "id": "voice",
@@ -101,18 +101,18 @@
     "mission": {
       "id": "mission",
       "label": "mission",
-      "mentions": 206,
-      "weight": 72.1,
+      "mentions": 207,
+      "weight": 72.45,
       "firstSeenAt": "2026-03-27T07:44:44.071Z",
-      "lastSeenAt": "2026-03-31T17:21:29.876Z"
+      "lastSeenAt": "2026-03-31T18:21:11.407Z"
     },
     "control": {
       "id": "control",
       "label": "control",
-      "mentions": 205,
-      "weight": 71.75,
+      "mentions": 206,
+      "weight": 72.1,
       "firstSeenAt": "2026-03-27T07:44:44.071Z",
-      "lastSeenAt": "2026-03-31T17:21:29.876Z"
+      "lastSeenAt": "2026-03-31T18:21:11.407Z"
     },
     "able": {
       "id": "able",
@@ -162,6 +162,14 @@
       "firstSeenAt": "2026-03-31T10:33:09.964Z",
       "lastSeenAt": "2026-03-31T10:55:59.253Z"
     },
+    "user": {
+      "id": "user",
+      "label": "user",
+      "mentions": 21,
+      "weight": 7.2,
+      "firstSeenAt": "2026-03-31T10:39:31.298Z",
+      "lastSeenAt": "2026-03-31T18:21:11.407Z"
+    },
     "projects": {
       "id": "projects",
       "label": "projects",
@@ -169,14 +177,6 @@
       "weight": 7,
       "firstSeenAt": "2026-02-22T16:17:30.376Z",
       "lastSeenAt": "2026-03-31T10:15:50.853Z"
-    },
-    "user": {
-      "id": "user",
-      "label": "user",
-      "mentions": 20,
-      "weight": 6.85,
-      "firstSeenAt": "2026-03-31T10:39:31.298Z",
-      "lastSeenAt": "2026-03-31T17:21:29.876Z"
     },
     "tool:read": {
       "id": "tool:read",

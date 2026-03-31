@@ -1,10 +1,10 @@
 {
   "version": 99,
-  "updated_at": "2026-03-31T17:21:59.448239+00:00",
+  "updated_at": "2026-03-31T18:21:46Z",
   "updated_by": "heartbeat",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
-    "bot_current": ["research-review-heartbeat-md-8"],
+    "bot_current": [],
     "bot_queue": [],
     "human": [
       "GB-DIR-live-verified-claim",
@@ -74,7 +74,8 @@
       "research-review-heartbeat-md-4",
       "research-review-heartbeat-md-5",
       "research-review-heartbeat-md-6",
-      "research-review-heartbeat-md-7"
+      "research-review-heartbeat-md-7",
+      "research-review-heartbeat-md-8"
     ],
     "trash": ["fix-that-and-make-sure-that-never-happens-again"],
     "paused": ["pomelli-dresses-refresh"]
@@ -2797,9 +2798,9 @@
     },
     "research-review-heartbeat-md-8": {
       "title": "Research review: heartbeat.md",
-      "status": "in_progress",
-      "lane": "bot_queue",
-      "updated_at": "2026-03-31T17:21:18.517Z",
+      "status": "completed",
+      "lane": "done_today",
+      "updated_at": "2026-03-31T18:21:46Z",
       "created_at": "2026-03-31T17:21:18.517Z",
       "kind": "research_review",
       "requirements": {
@@ -2863,7 +2864,25 @@
         "decision_rule": "Choose exactly one: ADOPT, EXPERIMENT, or IGNORE.",
         "adopt_or_experiment_requirements": ["kpi", "affected_modules", "rollback_strategy"]
       },
-      "started_at": "2026-03-31T17:21:59.448226+00:00"
+      "started_at": "2026-03-31T17:21:59.448226+00:00",
+      "completed_at": "2026-03-31T18:21:46Z",
+      "result": {
+        "decision": "IGNORE",
+        "reason": "heartbeat.md returned HTTP 521 (origin down) at review time; no page content available to extract actionable mechanisms.",
+        "scores": {
+          "revenue_potential": 0,
+          "autonomy_gain": 0,
+          "reliability_gain": 0,
+          "implementation_cost": 0,
+          "risk": 0
+        },
+        "evidence": {
+          "url": "https://heartbeat.md/",
+          "checked_at": "2026-03-31T18:21:46Z",
+          "http_status": 521,
+          "body_head": "error code: 521"
+        }
+      }
     }
   },
   "active_project": "fsuelsbot"
