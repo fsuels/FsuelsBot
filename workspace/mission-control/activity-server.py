@@ -32,6 +32,7 @@ if not DASHBOARD_KEY:
     DASHBOARD_KEY = secrets.token_hex(32)
     _generated_dashboard_key = True
 MISSION_CONTROL_TRUST_LAN = os.environ.get("MISSION_CONTROL_TRUST_LAN", "1").strip().lower() in ("1", "true", "yes", "on")
+MISSION_CONTROL_DISABLE_AUTH = os.environ.get("MISSION_CONTROL_DISABLE_AUTH", "1").strip().lower() in ("1", "true", "yes", "on")
 
 # Session tokens for wifi auth
 _valid_sessions = {}
@@ -1237,6 +1238,9 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
 
     def _check_auth(self):
         """Check ?key= param or session cookie. Returns True, False, or 'redirect'."""
+        if MISSION_CONTROL_DISABLE_AUTH:
+            return True
+
         # Localhost always allowed
         client_ip = self.client_address[0]
         if client_ip in ("127.0.0.1", "::1"):
