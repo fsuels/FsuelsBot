@@ -80,13 +80,19 @@ vi.mock("./common.js", async () => {
 });
 
 import { DEFAULT_AI_SNAPSHOT_MAX_CHARS } from "../../browser/constants.js";
+import { __testing as capabilityGateTesting } from "../capability-gate.js";
 import { applyToolContracts } from "../tool-contracts.js";
 import { createBrowserTool } from "./browser-tool.js";
 
 describe("browser tool snapshot maxChars", () => {
   afterEach(() => {
+    capabilityGateTesting.clearCapabilityGateCache();
     vi.clearAllMocks();
     configMocks.loadConfig.mockReturnValue({ browser: {} });
+    browserConfigMocks.resolveBrowserConfig.mockReturnValue({
+      enabled: true,
+      controlPort: 18791,
+    });
     nodesUtilsMocks.listNodes.mockResolvedValue([]);
   });
 
@@ -192,6 +198,34 @@ describe("browser tool snapshot maxChars", () => {
     );
   });
 
+  it("returns a structured capability block when host control is disabled", async () => {
+    const tool = createBrowserTool({ allowHostControl: false });
+    const result = await tool.execute?.(null, { action: "status" });
+
+    expect(result?.details).toMatchObject({
+      error: "capability_blocked",
+      capability: "browser",
+      reasonCode: "host_control_disabled",
+    });
+    expect(browserClientMocks.browserStatus).not.toHaveBeenCalled();
+  });
+
+  it("returns a structured capability block when browser config is disabled", async () => {
+    browserConfigMocks.resolveBrowserConfig.mockReturnValue({
+      enabled: false,
+      controlPort: 18791,
+    });
+    const tool = createBrowserTool();
+    const result = await tool.execute?.(null, { action: "status" });
+
+    expect(result?.details).toMatchObject({
+      error: "capability_blocked",
+      capability: "browser",
+      reasonCode: "build_flag_off",
+    });
+    expect(browserClientMocks.browserStatus).not.toHaveBeenCalled();
+  });
+
   it("routes to node proxy when target=node", async () => {
     nodesUtilsMocks.listNodes.mockResolvedValue([
       {
@@ -259,8 +293,13 @@ describe("browser tool snapshot maxChars", () => {
 
 describe("browser tool snapshot labels", () => {
   afterEach(() => {
+    capabilityGateTesting.clearCapabilityGateCache();
     vi.clearAllMocks();
     configMocks.loadConfig.mockReturnValue({ browser: {} });
+    browserConfigMocks.resolveBrowserConfig.mockReturnValue({
+      enabled: true,
+      controlPort: 18791,
+    });
   });
 
   it("returns image + text when labels are requested", async () => {
@@ -304,8 +343,13 @@ describe("browser tool snapshot labels", () => {
 
 describe("browser tool validation", () => {
   afterEach(() => {
+    capabilityGateTesting.clearCapabilityGateCache();
     vi.clearAllMocks();
     configMocks.loadConfig.mockReturnValue({ browser: {} });
+    browserConfigMocks.resolveBrowserConfig.mockReturnValue({
+      enabled: true,
+      controlPort: 18791,
+    });
     nodesUtilsMocks.listNodes.mockResolvedValue([]);
   });
 

@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../../config/config.js";
+import { __testing as capabilityGateTesting } from "../capability-gate.js";
 import { __testing, createImageTool, resolveImageModelConfigForTool } from "./image-tool.js";
 
 async function writeAuthProfiles(agentDir: string, profiles: unknown) {
@@ -29,6 +30,7 @@ describe("image tool implicit imageModel config", () => {
   });
 
   afterEach(() => {
+    capabilityGateTesting.clearCapabilityGateCache();
     vi.unstubAllEnvs();
     // @ts-expect-error global fetch cleanup
     global.fetch = priorFetch;
@@ -98,6 +100,43 @@ describe("image tool implicit imageModel config", () => {
     expect(resolveImageModelConfigForTool({ cfg, agentDir })).toEqual({
       primary: "openai/gpt-5-mini",
     });
+  });
+
+  it("hides explicit imageModel when credentials are missing", async () => {
+    const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-image-"));
+    const cfg: OpenClawConfig = {
+      agents: {
+        defaults: {
+          imageModel: { primary: "openai/gpt-5-mini" },
+        },
+      },
+    };
+
+    expect(createImageTool({ config: cfg, agentDir })).toBeNull();
+  });
+
+  it("hides explicit imageModel when only expired token credentials exist", async () => {
+    const agentDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-image-"));
+    await writeAuthProfiles(agentDir, {
+      version: 1,
+      profiles: {
+        "openai:expired": {
+          type: "token",
+          provider: "openai",
+          token: "sk-expired",
+          expires: Date.now() - 60_000,
+        },
+      },
+    });
+    const cfg: OpenClawConfig = {
+      agents: {
+        defaults: {
+          imageModel: { primary: "openai/gpt-5-mini" },
+        },
+      },
+    };
+
+    expect(createImageTool({ config: cfg, agentDir })).toBeNull();
   });
 
   it("keeps image tool available when primary model supports images (for explicit requests)", async () => {

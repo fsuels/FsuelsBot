@@ -133,14 +133,16 @@ public actor GatewayChannelActor {
     private var lastAuthSource: GatewayAuthSource = .none
     private let decoder = JSONDecoder()
     private let encoder = JSONEncoder()
-    private let connectTimeoutSeconds: Double = 6
-    private let connectChallengeTimeoutSeconds: Double = 3.0
+    private let connectTimeoutSeconds: Double
+    private let connectChallengeTimeoutSeconds: Double
     private var watchdogTask: Task<Void, Never>?
     private var tickTask: Task<Void, Never>?
+    private var reconnectTask: (token: UUID, task: Task<Void, Never>)?
     private let defaultRequestTimeoutMs: Double = 15000
     private let pushHandler: (@Sendable (GatewayPush) async -> Void)?
     private let connectOptions: GatewayConnectOptions?
     private let disconnectHandler: (@Sendable (String) async -> Void)?
+    private var connectionToken = UUID()
 
     public init(
         url: URL,
@@ -149,7 +151,9 @@ public actor GatewayChannelActor {
         session: WebSocketSessionBox? = nil,
         pushHandler: (@Sendable (GatewayPush) async -> Void)? = nil,
         connectOptions: GatewayConnectOptions? = nil,
-        disconnectHandler: (@Sendable (String) async -> Void)? = nil)
+        disconnectHandler: (@Sendable (String) async -> Void)? = nil,
+        connectTimeoutSeconds: Double = 6,
+        connectChallengeTimeoutSeconds: Double = 3.0)
     {
         self.url = url
         self.token = token
@@ -158,6 +162,8 @@ public actor GatewayChannelActor {
         self.pushHandler = pushHandler
         self.connectOptions = connectOptions
         self.disconnectHandler = disconnectHandler
+        self.connectTimeoutSeconds = connectTimeoutSeconds
+        self.connectChallengeTimeoutSeconds = connectChallengeTimeoutSeconds
         Task { [weak self] in
             await self?.startWatchdog()
         }
@@ -167,16 +173,12 @@ public actor GatewayChannelActor {
 
     public func shutdown() async {
         self.shouldReconnect = false
-        self.connected = false
+        self.cancelReconnect()
 
         self.watchdogTask?.cancel()
         self.watchdogTask = nil
 
-        self.tickTask?.cancel()
-        self.tickTask = nil
-
-        self.task?.cancel(with: .goingAway, reason: nil)
-        self.task = nil
+        self.resetConnectionState(closeCode: .goingAway)
 
         await self.failPending(NSError(
             domain: "Gateway",
@@ -216,6 +218,44 @@ public actor GatewayChannelActor {
         }
     }
 
+    private func cancelReconnect() {
+        self.reconnectTask?.task.cancel()
+        self.reconnectTask = nil
+    }
+
+    private func resetConnectionState(closeCode: URLSessionWebSocketTask.CloseCode? = nil) {
+        self.connected = false
+        self.tickTask?.cancel()
+        self.tickTask = nil
+        let currentTask = self.task
+        self.task = nil
+        self.connectionToken = UUID()
+        if let closeCode {
+            currentTask?.cancel(with: closeCode, reason: nil)
+        }
+    }
+
+    private func resetConnectionState(
+        ifMatches connectionToken: UUID,
+        closeCode: URLSessionWebSocketTask.CloseCode? = nil) -> Bool
+    {
+        guard connectionToken == self.connectionToken else { return false }
+        self.resetConnectionState(closeCode: closeCode)
+        return true
+    }
+
+    private func disconnectCurrentConnection(
+        ifMatches connectionToken: UUID,
+        wrappedError: Error,
+        reason: String) async -> Bool
+    {
+        guard self.resetConnectionState(ifMatches: connectionToken, closeCode: .goingAway) else { return false }
+        await self.disconnectHandler?(reason)
+        await self.failPending(wrappedError)
+        await self.scheduleReconnect()
+        return true
+    }
+
     public func connect() async throws {
         if self.connected, self.task?.state == .running { return }
         if self.isConnecting {
@@ -227,9 +267,12 @@ public actor GatewayChannelActor {
         self.isConnecting = true
         defer { self.isConnecting = false }
 
-        self.task?.cancel(with: .goingAway, reason: nil)
-        self.task = self.session.makeWebSocketTask(url: self.url)
-        self.task?.resume()
+        self.reconnectTask = nil
+        self.resetConnectionState(closeCode: .goingAway)
+        let connectionToken = self.connectionToken
+        let task = self.session.makeWebSocketTask(url: self.url)
+        self.task = task
+        task.resume()
         do {
             try await AsyncTimeout.withTimeout(
                 seconds: self.connectTimeoutSeconds,
@@ -242,9 +285,10 @@ public actor GatewayChannelActor {
                 operation: { try await self.sendConnect() })
         } catch {
             let wrapped = self.wrap(error, context: "connect to gateway @ \(self.url.absoluteString)")
-            self.connected = false
-            self.task?.cancel(with: .goingAway, reason: nil)
-            await self.disconnectHandler?("connect failed: \(wrapped.localizedDescription)")
+            _ = await self.disconnectCurrentConnection(
+                ifMatches: connectionToken,
+                wrappedError: wrapped,
+                reason: "connect failed: \(wrapped.localizedDescription)")
             let waiters = self.connectWaiters
             self.connectWaiters.removeAll()
             for waiter in waiters {
@@ -253,8 +297,15 @@ public actor GatewayChannelActor {
             self.logger.error("gateway ws connect failed \(wrapped.localizedDescription, privacy: .public)")
             throw wrapped
         }
-        self.listen()
+        guard connectionToken == self.connectionToken else {
+            throw NSError(
+                domain: "Gateway",
+                code: 0,
+                userInfo: [NSLocalizedDescriptionKey: "gateway connection replaced during handshake"])
+        }
+        self.listen(connectionToken: connectionToken)
         self.connected = true
+        self.reconnectTask = nil
         self.backoffMs = 500
         self.lastSeq = nil
 
@@ -430,40 +481,44 @@ public actor GatewayChannelActor {
         }
         self.lastTick = Date()
         self.tickTask?.cancel()
+        let connectionToken = self.connectionToken
         self.tickTask = Task { [weak self] in
             guard let self else { return }
-            await self.watchTicks()
+            await self.watchTicks(connectionToken: connectionToken)
         }
         if let pushHandler = self.pushHandler {
             Task { await pushHandler(.snapshot(ok)) }
         }
     }
 
-    private func listen() {
+    private func listen(connectionToken: UUID) {
+        guard connectionToken == self.connectionToken else { return }
         self.task?.receive { [weak self] result in
             guard let self else { return }
             switch result {
             case let .failure(err):
-                Task { await self.handleReceiveFailure(err) }
+                Task { await self.handleReceiveFailure(err, connectionToken: connectionToken) }
             case let .success(msg):
                 Task {
-                    await self.handle(msg)
-                    await self.listen()
+                    await self.handle(msg, connectionToken: connectionToken)
+                    await self.listen(connectionToken: connectionToken)
                 }
             }
         }
     }
 
-    private func handleReceiveFailure(_ err: Error) async {
+    private func handleReceiveFailure(_ err: Error, connectionToken: UUID) async {
+        guard connectionToken == self.connectionToken else { return }
         let wrapped = self.wrap(err, context: "gateway receive")
         self.logger.error("gateway ws receive failed \(wrapped.localizedDescription, privacy: .public)")
-        self.connected = false
-        await self.disconnectHandler?("receive failed: \(wrapped.localizedDescription)")
-        await self.failPending(wrapped)
-        await self.scheduleReconnect()
+        _ = await self.disconnectCurrentConnection(
+            ifMatches: connectionToken,
+            wrappedError: wrapped,
+            reason: "receive failed: \(wrapped.localizedDescription)")
     }
 
-    private func handle(_ msg: URLSessionWebSocketTask.Message) async {
+    private func handle(_ msg: URLSessionWebSocketTask.Message, connectionToken: UUID) async {
+        guard connectionToken == self.connectionToken else { return }
         let data: Data? = switch msg {
         case let .data(d): d
         case let .string(s): s.data(using: .utf8)
@@ -555,22 +610,23 @@ public actor GatewayChannelActor {
         return data
     }
 
-    private func watchTicks() async {
+    private func watchTicks(connectionToken: UUID) async {
         let tolerance = self.tickIntervalMs * 2
-        while self.connected {
+        while self.connected, connectionToken == self.connectionToken {
             try? await Task.sleep(nanoseconds: UInt64(tolerance * 1_000_000))
-            guard self.connected else { return }
+            guard self.connected, connectionToken == self.connectionToken else { return }
             if let last = self.lastTick {
                 let delta = Date().timeIntervalSince(last) * 1000
                 if delta > tolerance {
+                    let wrapped = NSError(
+                        domain: "Gateway",
+                        code: 4,
+                        userInfo: [NSLocalizedDescriptionKey: "gateway tick missed; reconnecting"])
                     self.logger.error("gateway tick missed; reconnecting")
-                    self.connected = false
-                    await self.failPending(
-                        NSError(
-                            domain: "Gateway",
-                            code: 4,
-                            userInfo: [NSLocalizedDescriptionKey: "gateway tick missed; reconnecting"]))
-                    await self.scheduleReconnect()
+                    _ = await self.disconnectCurrentConnection(
+                        ifMatches: connectionToken,
+                        wrappedError: wrapped,
+                        reason: wrapped.localizedDescription)
                     return
                 }
             }
@@ -579,9 +635,25 @@ public actor GatewayChannelActor {
 
     private func scheduleReconnect() async {
         guard self.shouldReconnect else { return }
+        guard self.reconnectTask == nil else { return }
         let delay = self.backoffMs / 1000
         self.backoffMs = min(self.backoffMs * 2, 30000)
-        try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+        let token = UUID()
+        let task = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            guard !Task.isCancelled else { return }
+            await self?.runReconnectTask(token: token)
+        }
+        self.reconnectTask = (token: token, task: task)
+    }
+
+    private func runReconnectTask(token: UUID) async {
+        defer {
+            if self.reconnectTask?.token == token {
+                self.reconnectTask = nil
+            }
+        }
+        guard self.reconnectTask?.token == token else { return }
         guard self.shouldReconnect else { return }
         do {
             try await self.connect()
@@ -600,6 +672,7 @@ public actor GatewayChannelActor {
         try await self.connectOrThrow(context: "gateway connect")
         let effectiveTimeout = timeoutMs ?? self.defaultRequestTimeoutMs
         let payload = try self.encodeRequest(method: method, params: params, kind: "request")
+        let connectionToken = self.connectionToken
         let response = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<GatewayFrame, Error>) in
             self.pending[payload.id] = cont
             Task { [weak self] in
@@ -613,13 +686,10 @@ public actor GatewayChannelActor {
                 } catch {
                     let wrapped = self.wrap(error, context: "gateway send \(method)")
                     let waiter = self.pending.removeValue(forKey: payload.id)
-                    // Treat send failures as a broken socket: mark disconnected and trigger reconnect.
-                    self.connected = false
-                    self.task?.cancel(with: .goingAway, reason: nil)
-                    Task { [weak self] in
-                        guard let self else { return }
-                        await self.scheduleReconnect()
-                    }
+                    _ = await self.disconnectCurrentConnection(
+                        ifMatches: connectionToken,
+                        wrappedError: wrapped,
+                        reason: "send failed: \(wrapped.localizedDescription)")
                     if let waiter { waiter.resume(throwing: wrapped) }
                 }
             }
@@ -645,6 +715,7 @@ public actor GatewayChannelActor {
     public func send(method: String, params: [String: AnyCodable]?) async throws {
         try await self.connectOrThrow(context: "gateway connect")
         let payload = try self.encodeRequest(method: method, params: params, kind: "send")
+        let connectionToken = self.connectionToken
         guard let task = self.task else {
             throw NSError(
                 domain: "Gateway",
@@ -655,12 +726,10 @@ public actor GatewayChannelActor {
             try await task.send(.data(payload.data))
         } catch {
             let wrapped = self.wrap(error, context: "gateway send \(method)")
-            self.connected = false
-            self.task?.cancel(with: .goingAway, reason: nil)
-            Task { [weak self] in
-                guard let self else { return }
-                await self.scheduleReconnect()
-            }
+            _ = await self.disconnectCurrentConnection(
+                ifMatches: connectionToken,
+                wrappedError: wrapped,
+                reason: "send failed: \(wrapped.localizedDescription)")
             throw wrapped
         }
     }

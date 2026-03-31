@@ -532,4 +532,59 @@ describe("getApiKeyForModel", () => {
       }
     }
   });
+
+  it("reports expired token profiles as unusable credentials", async () => {
+    vi.resetModules();
+    const { getProviderCredentialStatus } = await import("./model-auth.js");
+
+    const status = getProviderCredentialStatus({
+      provider: "openai",
+      store: {
+        version: 1,
+        profiles: {
+          "openai:expired": {
+            type: "token",
+            provider: "openai",
+            token: "sk-expired",
+            expires: Date.now() - 60_000,
+          },
+        },
+      },
+    });
+
+    expect(status).toMatchObject({
+      ok: false,
+      reason: "expired_credentials",
+      profileId: "openai:expired",
+      mode: "token",
+    });
+  });
+
+  it("treats refreshable oauth profiles as usable credentials", async () => {
+    vi.resetModules();
+    const { getProviderCredentialStatus } = await import("./model-auth.js");
+
+    const status = getProviderCredentialStatus({
+      provider: "anthropic",
+      store: {
+        version: 1,
+        profiles: {
+          "anthropic:oauth": {
+            type: "oauth",
+            provider: "anthropic",
+            access: "",
+            refresh: "refresh-token",
+            expires: Date.now() - 60_000,
+          },
+        },
+      },
+    });
+
+    expect(status).toMatchObject({
+      ok: true,
+      profileId: "anthropic:oauth",
+      source: "profile:anthropic:oauth",
+      mode: "oauth",
+    });
+  });
 });

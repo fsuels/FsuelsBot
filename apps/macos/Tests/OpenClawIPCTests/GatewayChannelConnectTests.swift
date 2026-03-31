@@ -8,6 +8,7 @@ import Testing
     private enum FakeResponse {
         case helloOk(delayMs: Int)
         case invalid(delayMs: Int)
+        case hang
     }
 
     private final class FakeWebSocketTask: WebSocketTasking, @unchecked Sendable {
@@ -64,6 +65,9 @@ import Testing
             case let .invalid(ms):
                 delayMs = ms
                 msg = .string("not json")
+            case .hang:
+                try await Task.sleep(nanoseconds: 10 * 1_000_000_000)
+                return .string("")
             }
             try await Task.sleep(nanoseconds: UInt64(delayMs) * 1_000_000)
             return msg
@@ -156,5 +160,24 @@ import Testing
             if case .failure = r2 { true } else { false }
         }())
         #expect(session.snapshotMakeCount() == 1)
+    }
+
+    @Test func connectTimesOutWhenHandshakeStalls() async {
+        let session = FakeWebSocketSession(response: .hang)
+        let channel = GatewayChannelActor(
+            url: URL(string: "ws://example.invalid")!,
+            token: nil,
+            session: WebSocketSessionBox(session: session),
+            connectTimeoutSeconds: 0.05,
+            connectChallengeTimeoutSeconds: 0.02)
+
+        let result = await Task { try await channel.connect() }.result
+
+        #expect({
+            guard case let .failure(error) = result else { return false }
+            return error.localizedDescription.contains("connect timed out")
+        }())
+        #expect(session.snapshotMakeCount() == 1)
+        await channel.shutdown()
     }
 }

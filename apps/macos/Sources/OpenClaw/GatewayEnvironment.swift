@@ -268,7 +268,11 @@ enum GatewayEnvironment {
             return normalized.count > 200 ? String(normalized.prefix(199)) + "…" : normalized
         }
 
-        let response = await ShellExecutor.runDetailed(command: cmd, cwd: nil, env: ["PATH": preferred], timeout: 300)
+        let response = await ShellExecutor.runDetailed(
+            command: cmd,
+            cwd: nil,
+            env: SubprocessEnvironment.build(preferredPath: preferred),
+            timeout: 300)
         if response.success {
             statusHandler("Installed openclaw@\(target)")
         } else {
@@ -294,7 +298,8 @@ enum GatewayEnvironment {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: binary)
         process.arguments = ["--version"]
-        process.environment = ["PATH": CommandResolver.preferredPaths().joined(separator: ":")]
+        process.environment = SubprocessEnvironment.build(
+            preferredPath: CommandResolver.preferredPaths().joined(separator: ":"))
 
         let pipe = Pipe()
         process.standardOutput = pipe

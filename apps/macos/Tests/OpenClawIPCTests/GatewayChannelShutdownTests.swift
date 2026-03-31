@@ -24,10 +24,7 @@ import Testing
             _ = (closeCode, reason)
             self.state = .canceling
             self.cancelCount.withLock { $0 += 1 }
-            let handler = self.pendingReceiveHandler.withLock { handler in
-                defer { handler = nil }
-                return handler
-            }
+            let handler = self.pendingReceiveHandler.withLock { $0 }
             handler?(Result<URLSessionWebSocketTask.Message, Error>.failure(URLError(.cancelled)))
         }
 
@@ -125,5 +122,32 @@ import Testing
         try? await Task.sleep(nanoseconds: 750 * 1_000_000)
 
         #expect(session.snapshotMakeCount() == 1)
+    }
+
+    @Test func staleReceiveFailuresFromReplacedSocketAreIgnored() async throws {
+        let session = FakeWebSocketSession()
+        let disconnectReasons = OSAllocatedUnfairLock(initialState: [String]())
+        let channel = GatewayChannelActor(
+            url: URL(string: "ws://example.invalid")!,
+            token: nil,
+            session: WebSocketSessionBox(session: session),
+            disconnectHandler: { reason in
+                disconnectReasons.withLock { $0.append(reason) }
+            })
+
+        try await channel.connect()
+        let firstTask = session.latestTask()
+
+        firstTask?.triggerReceiveFailure()
+        try? await Task.sleep(nanoseconds: 750 * 1_000_000)
+
+        #expect(session.snapshotMakeCount() == 2)
+        #expect(disconnectReasons.withLock { $0.count } == 1)
+
+        firstTask?.triggerReceiveFailure()
+        try? await Task.sleep(nanoseconds: 100 * 1_000_000)
+
+        #expect(disconnectReasons.withLock { $0.count } == 1)
+        await channel.shutdown()
     }
 }

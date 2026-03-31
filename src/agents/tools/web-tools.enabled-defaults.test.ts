@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { WebSearchResultPayload } from "./web-search-shared.js";
+import { __testing as capabilityGateTesting } from "../capability-gate.js";
 import { createWebFetchTool, createWebSearchTool } from "./web-tools.js";
 
 function extractToolText(
@@ -14,6 +15,11 @@ function extractToolText(
 }
 
 describe("web tools defaults", () => {
+  afterEach(() => {
+    capabilityGateTesting.clearCapabilityGateCache();
+    vi.unstubAllEnvs();
+  });
+
   it("enables web_fetch by default (non-sandbox)", () => {
     const tool = createWebFetchTool({ config: {}, sandboxed: false });
     expect(tool?.name).toBe("web_fetch");
@@ -27,9 +33,29 @@ describe("web tools defaults", () => {
     expect(tool).toBeNull();
   });
 
-  it("enables web_search by default", () => {
+  it("hides web_search without usable credentials", () => {
+    const tool = createWebSearchTool({ config: {}, sandboxed: false });
+    expect(tool).toBeNull();
+  });
+
+  it("enables web_search when a search credential exists", () => {
+    vi.stubEnv("BRAVE_API_KEY", "test-key");
     const tool = createWebSearchTool({ config: {}, sandboxed: false });
     expect(tool?.name).toBe("web_search");
+  });
+
+  it("re-checks credentials at execution time", async () => {
+    vi.stubEnv("BRAVE_API_KEY", "test-key");
+    const tool = createWebSearchTool({ config: {}, sandboxed: false });
+    expect(tool?.name).toBe("web_search");
+
+    vi.stubEnv("BRAVE_API_KEY", "");
+    const result = await tool?.execute?.("call-web-search-runtime", { query: "latest release" });
+    expect(result?.details).toMatchObject({
+      error: "capability_blocked",
+      capability: "web_search",
+      reasonCode: "missing_credentials",
+    });
   });
 });
 
@@ -41,6 +67,7 @@ describe("web_search country and language parameters", () => {
   });
 
   afterEach(() => {
+    capabilityGateTesting.clearCapabilityGateCache();
     vi.unstubAllEnvs();
     // @ts-expect-error global fetch cleanup
     global.fetch = priorFetch;
@@ -140,6 +167,7 @@ describe("web_search perplexity baseUrl defaults", () => {
   const priorFetch = global.fetch;
 
   afterEach(() => {
+    capabilityGateTesting.clearCapabilityGateCache();
     vi.unstubAllEnvs();
     // @ts-expect-error global fetch cleanup
     global.fetch = priorFetch;
@@ -339,6 +367,7 @@ describe("web_search external content wrapping", () => {
   const priorFetch = global.fetch;
 
   afterEach(() => {
+    capabilityGateTesting.clearCapabilityGateCache();
     vi.unstubAllEnvs();
     // @ts-expect-error global fetch cleanup
     global.fetch = priorFetch;
@@ -490,6 +519,7 @@ describe("web_search source enforcement and progress", () => {
   });
 
   afterEach(() => {
+    capabilityGateTesting.clearCapabilityGateCache();
     vi.unstubAllEnvs();
     // @ts-expect-error global fetch cleanup
     global.fetch = priorFetch;

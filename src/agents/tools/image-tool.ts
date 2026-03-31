@@ -6,10 +6,16 @@ import type { OpenClawConfig } from "../../config/config.js";
 import type { AnyAgentTool } from "./common.js";
 import { resolveUserPath } from "../../utils.js";
 import { loadWebMedia } from "../../web/media.js";
-import { ensureAuthProfileStore, listProfilesForProvider } from "../auth-profiles.js";
+import {
+  buildCapabilityBlockedPayload,
+  getCapabilityAuthStatus,
+  getCapabilityStatus,
+  isCapabilityEnabled,
+  logCapabilityBlocked,
+} from "../capability-gate.js";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../defaults.js";
 import { minimaxUnderstandImage } from "../minimax-vlm.js";
-import { getApiKeyForModel, requireApiKey, resolveEnvApiKey } from "../model-auth.js";
+import { getApiKeyForModel, getProviderCredentialStatus, requireApiKey } from "../model-auth.js";
 import { runWithImageModelFallback } from "../model-fallback.js";
 import { resolveConfiguredModelRef } from "../model-selection.js";
 import { ensureOpenClawModelsJson } from "../models-config.js";
@@ -47,14 +53,16 @@ function resolveDefaultModelRef(cfg?: OpenClawConfig): {
   return { provider: DEFAULT_PROVIDER, model: DEFAULT_MODEL };
 }
 
-function hasAuthForProvider(params: { provider: string; agentDir: string }): boolean {
-  if (resolveEnvApiKey(params.provider)?.apiKey) {
-    return true;
-  }
-  const store = ensureAuthProfileStore(params.agentDir, {
-    allowKeychainPrompt: false,
-  });
-  return listProfilesForProvider(store, params.provider).length > 0;
+function hasAuthForProvider(params: {
+  provider: string;
+  agentDir: string;
+  cfg?: OpenClawConfig;
+}): boolean {
+  return getProviderCredentialStatus({
+    provider: params.provider,
+    agentDir: params.agentDir,
+    cfg: params.cfg,
+  }).ok;
 }
 
 /**
@@ -82,10 +90,12 @@ export function resolveImageModelConfigForTool(params: {
   const openaiOk = hasAuthForProvider({
     provider: "openai",
     agentDir: params.agentDir,
+    cfg: params.cfg,
   });
   const anthropicOk = hasAuthForProvider({
     provider: "anthropic",
     agentDir: params.agentDir,
+    cfg: params.cfg,
   });
 
   const fallbacks: string[] = [];
@@ -107,6 +117,7 @@ export function resolveImageModelConfigForTool(params: {
   const providerOk = hasAuthForProvider({
     provider: primary.provider,
     agentDir: params.agentDir,
+    cfg: params.cfg,
   });
 
   let preferred: string | null = null;
@@ -155,6 +166,65 @@ export function resolveImageModelConfigForTool(params: {
   }
 
   return null;
+}
+
+function listImageModelProviders(imageModelConfig: ImageModelConfig): string[] {
+  const refs = [imageModelConfig.primary, ...(imageModelConfig.fallbacks ?? [])];
+  return Array.from(
+    new Set(
+      refs
+        .map((ref) => ref?.trim())
+        .filter((ref): ref is string => Boolean(ref))
+        .map((ref) => ref.split("/", 1)[0]?.trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  );
+}
+
+function getImageCapabilityStatus(params: {
+  config?: OpenClawConfig;
+  agentDir?: string;
+  imageModelConfig: ImageModelConfig | null;
+  mode?: "render" | "runtime";
+}) {
+  return getCapabilityStatus({
+    capability: "image",
+    mode: params.mode,
+    cacheKey: JSON.stringify({
+      agentDir: params.agentDir ?? "",
+      primary: params.imageModelConfig?.primary ?? "",
+      fallbacks: params.imageModelConfig?.fallbacks ?? [],
+    }),
+    evaluate: () => {
+      if (!params.imageModelConfig) {
+        return {
+          visible: false,
+          auth: getCapabilityAuthStatus(),
+          reasons: ["missing_configuration"],
+        };
+      }
+
+      const providers = listImageModelProviders(params.imageModelConfig);
+      const statuses = providers.map((provider) =>
+        getProviderCredentialStatus({
+          provider,
+          cfg: params.config,
+          agentDir: params.agentDir,
+        }),
+      );
+      const anyUsable = statuses.some((status) => status.ok);
+      const expiredOnly =
+        !anyUsable && statuses.some((status) => status.reason === "expired_credentials");
+
+      return {
+        visible: true,
+        auth: getCapabilityAuthStatus({
+          ok: anyUsable,
+          reason: expiredOnly ? "expired_credentials" : "missing_credentials",
+        }),
+      };
+    },
+  });
 }
 
 function pickMaxBytes(cfg?: OpenClawConfig, maxBytesMb?: number): number | undefined {
@@ -320,7 +390,13 @@ export function createImageTool(options?: {
     cfg: options?.config,
     agentDir,
   });
-  if (!imageModelConfig) {
+  const capabilityStatus = getImageCapabilityStatus({
+    config: options?.config,
+    agentDir,
+    imageModelConfig,
+    mode: "render",
+  });
+  if (!isCapabilityEnabled(capabilityStatus)) {
     return null;
   }
 
@@ -341,6 +417,36 @@ export function createImageTool(options?: {
       maxBytesMb: Type.Optional(Type.Number()),
     }),
     execute: async (_toolCallId, args) => {
+      const runtimeStatus = getImageCapabilityStatus({
+        config: options?.config,
+        agentDir,
+        imageModelConfig,
+        mode: "runtime",
+      });
+      if (!isCapabilityEnabled(runtimeStatus)) {
+        const blockedPayload = buildCapabilityBlockedPayload(runtimeStatus, {
+          message:
+            "image requires a configured image-capable model plus usable provider credentials.",
+          extra: {
+            primaryModel: imageModelConfig?.primary,
+            fallbacks: imageModelConfig?.fallbacks ?? [],
+          },
+        });
+        logCapabilityBlocked(runtimeStatus, {
+          tool: "image",
+          primaryModel: imageModelConfig?.primary,
+        });
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify(blockedPayload, null, 2),
+            },
+          ],
+          details: blockedPayload,
+        };
+      }
+
       const record = args && typeof args === "object" ? (args as Record<string, unknown>) : {};
       const imageRawInput = typeof record.image === "string" ? record.image.trim() : "";
       const imageRaw = imageRawInput.startsWith("@")

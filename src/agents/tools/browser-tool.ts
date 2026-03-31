@@ -24,6 +24,13 @@ import { DEFAULT_AI_SNAPSHOT_MAX_CHARS } from "../../browser/constants.js";
 import { parseClickButton, parseClickModifiers } from "../../browser/routes/agent.act.shared.js";
 import { loadConfig } from "../../config/config.js";
 import { saveMediaBuffer } from "../../media/store.js";
+import {
+  buildCapabilityBlockedPayload,
+  getCapabilityAuthStatus,
+  getCapabilityStatus,
+  isCapabilityEnabled,
+  logCapabilityBlocked,
+} from "../capability-gate.js";
 import { validateFlatActionInput, type ActionValidationRule } from "./action-validation.js";
 import { BrowserToolSchema } from "./browser-tool.schema.js";
 import { type AnyAgentTool, imageResultFromFile, jsonResult, readStringParam } from "./common.js";
@@ -357,6 +364,59 @@ function applyProxyPaths(result: unknown, mapping: Map<string, string>) {
   }
 }
 
+function getBrowserCapabilityStatus(params: {
+  target?: "sandbox" | "host" | "node";
+  sandboxBridgeUrl?: string;
+  allowHostControl?: boolean;
+  mode?: "render" | "runtime";
+}) {
+  return getCapabilityStatus({
+    capability: "browser",
+    mode: params.mode,
+    cacheKey: JSON.stringify({
+      target: params.target ?? "",
+      sandboxBridgeUrl: params.sandboxBridgeUrl ?? "",
+      allowHostControl: params.allowHostControl !== false,
+    }),
+    evaluate: () => {
+      if (params.target === "node") {
+        return {
+          visible: true,
+          auth: getCapabilityAuthStatus(),
+        };
+      }
+
+      const cfg = loadConfig();
+      const resolved = resolveBrowserConfig(cfg.browser, cfg);
+      const normalizedSandbox = params.sandboxBridgeUrl?.trim() ?? "";
+      const target = params.target ?? (normalizedSandbox ? "sandbox" : "host");
+
+      if (target === "sandbox") {
+        const visible = normalizedSandbox.length > 0;
+        return {
+          visible,
+          auth: getCapabilityAuthStatus(),
+          reasons: visible ? [] : ["sandbox_bridge_missing", "runtime_unavailable"],
+        };
+      }
+
+      const visible = params.allowHostControl !== false && resolved.enabled;
+      const reasons = [];
+      if (params.allowHostControl === false) {
+        reasons.push("host_control_disabled" as const);
+      }
+      if (params.allowHostControl !== false && !resolved.enabled) {
+        reasons.push("build_flag_off" as const);
+      }
+      return {
+        visible,
+        auth: getCapabilityAuthStatus(),
+        reasons,
+      };
+    },
+  });
+}
+
 function resolveBrowserBaseUrl(params: {
   target?: "sandbox" | "host";
   sandboxBridgeUrl?: string;
@@ -468,6 +528,32 @@ export function createBrowserTool(opts?: {
       });
 
       const resolvedTarget = target === "node" ? undefined : target;
+      const runtimeStatus = getBrowserCapabilityStatus({
+        target: nodeTarget ? "node" : resolvedTarget,
+        sandboxBridgeUrl: opts?.sandboxBridgeUrl,
+        allowHostControl: opts?.allowHostControl,
+        mode: "runtime",
+      });
+      if (!isCapabilityEnabled(runtimeStatus)) {
+        logCapabilityBlocked(runtimeStatus, {
+          tool: "browser",
+          action,
+          target: nodeTarget
+            ? "node"
+            : (resolvedTarget ?? (opts?.sandboxBridgeUrl ? "sandbox" : "host")),
+        });
+        return jsonResult(
+          buildCapabilityBlockedPayload(runtimeStatus, {
+            message:
+              runtimeStatus.reasons[0] === "sandbox_bridge_missing"
+                ? 'Sandbox browser is unavailable. Enable agents.defaults.sandbox.browser.enabled or use target="host" if allowed.'
+                : runtimeStatus.reasons[0] === "host_control_disabled"
+                  ? "Host browser control is disabled by sandbox policy."
+                  : "Browser control is disabled. Set browser.enabled=true in ~/.openclaw/openclaw.json.",
+          }),
+        );
+      }
+
       const baseUrl = nodeTarget
         ? undefined
         : resolveBrowserBaseUrl({

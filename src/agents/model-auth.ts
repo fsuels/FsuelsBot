@@ -234,6 +234,14 @@ export async function resolveApiKeyForProvider(params: {
 
 export type EnvApiKeyResult = { apiKey: string; source: string };
 export type ModelAuthMode = "api-key" | "oauth" | "token" | "mixed" | "aws-sdk" | "unknown";
+export type ProviderCredentialReason = "missing_credentials" | "expired_credentials";
+export type ProviderCredentialStatus = {
+  ok: boolean;
+  reason?: ProviderCredentialReason;
+  source?: string;
+  mode?: ModelAuthMode;
+  profileId?: string;
+};
 
 export function resolveEnvApiKey(provider: string): EnvApiKeyResult | null {
   const normalized = normalizeProviderId(provider);
@@ -369,6 +377,118 @@ export function resolveModelAuthMode(
   }
 
   return "unknown";
+}
+
+function resolveProfileMode(type: AuthProfileStore["profiles"][string]["type"]): ModelAuthMode {
+  if (type === "api_key") {
+    return "api-key";
+  }
+  if (type === "oauth") {
+    return "oauth";
+  }
+  return "token";
+}
+
+export function getProviderCredentialStatus(params: {
+  provider: string;
+  cfg?: OpenClawConfig;
+  store?: AuthProfileStore;
+  agentDir?: string;
+}): ProviderCredentialStatus {
+  const provider = params.provider.trim();
+  if (!provider) {
+    return { ok: false, reason: "missing_credentials", mode: "unknown" };
+  }
+
+  const authOverride = resolveProviderAuthOverride(params.cfg, provider);
+  if (authOverride === "aws-sdk") {
+    const resolved = resolveAwsSdkAuthInfo();
+    return { ok: true, source: resolved.source, mode: resolved.mode };
+  }
+
+  const store =
+    params.store ??
+    ensureAuthProfileStore(params.agentDir, {
+      allowKeychainPrompt: false,
+    });
+  const usableProfiles = resolveAuthProfileOrder({
+    cfg: params.cfg,
+    store,
+    provider,
+  });
+  if (usableProfiles.length > 0) {
+    const profileId = usableProfiles[0]!;
+    const type = store.profiles[profileId]?.type;
+    return {
+      ok: true,
+      profileId,
+      source: `profile:${profileId}`,
+      mode: type ? resolveProfileMode(type) : resolveModelAuthMode(provider, params.cfg, store),
+    };
+  }
+
+  const envResolved = resolveEnvApiKey(provider);
+  if (envResolved?.apiKey) {
+    return {
+      ok: true,
+      source: envResolved.source,
+      mode: envResolved.source.includes("OAUTH_TOKEN") ? "oauth" : "api-key",
+    };
+  }
+
+  const customKey = getCustomProviderApiKey(params.cfg, provider);
+  if (customKey) {
+    return { ok: true, source: "models.json", mode: "api-key" };
+  }
+
+  const normalizedProvider = normalizeProviderId(provider);
+  if (authOverride === undefined && normalizedProvider === "amazon-bedrock") {
+    const resolved = resolveAwsSdkAuthInfo();
+    return { ok: true, source: resolved.source, mode: resolved.mode };
+  }
+
+  const providerProfiles = listProfilesForProvider(store, provider)
+    .map((profileId) => ({
+      profileId,
+      credential: store.profiles[profileId],
+    }))
+    .filter(
+      (
+        entry,
+      ): entry is {
+        profileId: string;
+        credential: NonNullable<AuthProfileStore["profiles"][string]>;
+      } => Boolean(entry.credential),
+    );
+  const now = Date.now();
+  const expiredToken = providerProfiles.find(({ credential }) => {
+    if (credential.type !== "token") {
+      return false;
+    }
+    if (!credential.token?.trim()) {
+      return false;
+    }
+    return (
+      typeof credential.expires === "number" &&
+      Number.isFinite(credential.expires) &&
+      credential.expires > 0 &&
+      now >= credential.expires
+    );
+  });
+  if (expiredToken) {
+    return {
+      ok: false,
+      reason: "expired_credentials",
+      profileId: expiredToken.profileId,
+      mode: "token",
+    };
+  }
+
+  return {
+    ok: false,
+    reason: "missing_credentials",
+    mode: resolveModelAuthMode(provider, params.cfg, store) ?? "unknown",
+  };
 }
 
 export async function getApiKeyForModel(params: {
