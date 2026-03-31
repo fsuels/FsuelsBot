@@ -1,5 +1,3 @@
-type JsonPrimitive = string | number | boolean | null;
-
 export type ToolPresentationOptions = {
   verbose?: boolean;
   maxArgValueChars?: number;
