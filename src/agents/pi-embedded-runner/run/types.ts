@@ -11,6 +11,7 @@ import type { MessagingToolSend } from "../../pi-embedded-messaging.js";
 import type { BlockReplyChunking, ToolResultFormat } from "../../pi-embedded-subscribe.js";
 import type { AuthStorage, ModelRegistry } from "../../pi-model-discovery.js";
 import type { SkillSnapshot } from "../../skills.js";
+import type { WebSearchSource } from "../../tools/web-search-shared.js";
 import type { NormalizedUsage } from "../../usage.js";
 import type { ClientToolDefinition } from "./params.js";
 
@@ -119,6 +120,7 @@ export type EmbeddedRunAttemptResult = {
   toolMetas: Array<{ toolName: string; meta?: string }>;
   lastAssistant: AssistantMessage | undefined;
   lastToolError?: { toolName: string; meta?: string; error?: string };
+  webSearchSources: WebSearchSource[];
   didSendViaMessagingTool: boolean;
   messagingToolSentTexts: string[];
   messagingToolSentTargets: MessagingToolSend[];

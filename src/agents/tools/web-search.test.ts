@@ -1,4 +1,9 @@
 import { describe, expect, it } from "vitest";
+import {
+  canonicalizeWebSearchUrl,
+  formatWebSearchSourcesSection,
+  mergeWebSearchSources,
+} from "./web-search-shared.js";
 import { __testing } from "./web-search.js";
 
 const {
@@ -10,6 +15,9 @@ const {
   resolveGrokApiKey,
   resolveGrokModel,
   resolveGrokInlineCitations,
+  normalizeDomainFilters,
+  applyDomainFiltersToQuery,
+  buildWebSearchFailurePayload,
 } = __testing;
 
 describe("web_search perplexity baseUrl defaults", () => {
@@ -140,5 +148,67 @@ describe("web_search grok config resolution", () => {
   it("respects inlineCitations config", () => {
     expect(resolveGrokInlineCitations({ inlineCitations: true })).toBe(true);
     expect(resolveGrokInlineCitations({ inlineCitations: false })).toBe(false);
+  });
+});
+
+describe("web_search wrapper helpers", () => {
+  it("normalizes domain filters and applies them to the executed query", () => {
+    const allowed = normalizeDomainFilters(["EXAMPLE.com", "https://Docs.Example.com/path"]);
+    const blocked = normalizeDomainFilters(["bad.example.com"]);
+
+    expect(allowed).toEqual(["example.com", "docs.example.com"]);
+    expect(blocked).toEqual(["bad.example.com"]);
+    expect(
+      applyDomainFiltersToQuery({
+        query: "latest release notes",
+        allowedDomains: allowed,
+      }),
+    ).toBe("latest release notes (site:example.com OR site:docs.example.com)");
+  });
+
+  it("canonicalizes and dedupes source URLs across searches", () => {
+    expect(canonicalizeWebSearchUrl("https://EXAMPLE.com/docs#top")).toBe(
+      "https://example.com/docs",
+    );
+
+    expect(
+      mergeWebSearchSources([
+        [
+          { title: "Docs", url: "https://EXAMPLE.com/docs#top" },
+          { title: "Docs mirror", url: "https://example.com/docs" },
+        ],
+        [{ title: "Blog", url: "https://example.com/blog" }],
+      ]),
+    ).toEqual([
+      { title: "Docs", url: "https://example.com/docs" },
+      { title: "Blog", url: "https://example.com/blog" },
+    ]);
+  });
+
+  it("builds an empty failure payload without phantom sources", () => {
+    expect(
+      buildWebSearchFailurePayload({
+        originalQuery: "missing",
+        errors: ["bad input"],
+      }),
+    ).toEqual({
+      originalQuery: "missing",
+      rawSearches: [],
+      commentary: [
+        "Use only dedupedSources from this tool when producing the final Sources section.",
+      ],
+      errors: ["bad input"],
+      durationMs: 0,
+      dedupedSources: [],
+    });
+  });
+
+  it("formats a deterministic Sources section", () => {
+    expect(
+      formatWebSearchSourcesSection([
+        { title: "Example", url: "https://example.com" },
+        { title: "Duplicate", url: "https://EXAMPLE.com/#top" },
+      ]),
+    ).toBe("Sources:\n- Example: https://example.com/");
   });
 });

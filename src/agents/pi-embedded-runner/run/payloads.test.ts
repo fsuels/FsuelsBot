@@ -244,4 +244,27 @@ describe("buildEmbeddedRunPayloads", () => {
     expect(payloads[0]?.isError).toBe(true);
     expect(payloads[0]?.text).toContain("connection timeout");
   });
+
+  it("appends a deterministic Sources section when web search sources are available", () => {
+    const payloads = buildEmbeddedRunPayloads({
+      assistantTexts: ["Answer body"],
+      toolMetas: [],
+      lastAssistant: { stopReason: "end_turn" } as AssistantMessage,
+      webSearchSources: [
+        { title: "Example", url: "https://example.com" },
+        { title: "Duplicate", url: "https://EXAMPLE.com/#top" },
+      ],
+      sessionKey: "session:telegram",
+      inlineToolResultsAllowed: false,
+      verboseLevel: "off",
+      reasoningLevel: "off",
+      toolResultFormat: "plain",
+    });
+
+    expect(payloads).toHaveLength(1);
+    expect(payloads[0]?.text).toContain("Answer body");
+    expect(payloads[0]?.text).toContain("Sources:");
+    expect(payloads[0]?.text).toContain("- Example: https://example.com/");
+    expect(payloads[0]?.text).not.toContain("Duplicate");
+  });
 });

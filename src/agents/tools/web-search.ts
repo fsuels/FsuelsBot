@@ -1,10 +1,18 @@
+import type { AgentToolResult } from "@mariozechner/pi-agent-core";
 import { Type } from "@sinclair/typebox";
 import type { OpenClawConfig } from "../../config/config.js";
 import type { AnyAgentTool } from "./common.js";
 import { formatCliCommand } from "../../cli/command-format.js";
 import { wrapWebContent } from "../../security/external-content.js";
 import { normalizeSecretInput } from "../../utils/normalize-secret-input.js";
-import { jsonResult, readNumberParam, readStringParam } from "./common.js";
+import { jsonResult, readNumberParam, readStringArrayParam, readStringParam } from "./common.js";
+import {
+  dedupeWebSearchSources,
+  type WebSearchRawSearch,
+  type WebSearchResultPayload,
+  type WebSearchSource,
+  WEB_SEARCH_SOURCE_REMINDER,
+} from "./web-search-shared.js";
 import {
   CacheEntry,
   DEFAULT_CACHE_TTL_MINUTES,
@@ -36,38 +44,58 @@ const SEARCH_CACHE = new Map<string, CacheEntry<Record<string, unknown>>>();
 const BRAVE_FRESHNESS_SHORTCUTS = new Set(["pd", "pw", "pm", "py"]);
 const BRAVE_FRESHNESS_RANGE = /^(\d{4}-\d{2}-\d{2})to(\d{4}-\d{2}-\d{2})$/;
 
-const WebSearchSchema = Type.Object({
-  query: Type.String({ description: "Search query string." }),
-  count: Type.Optional(
-    Type.Number({
-      description: "Number of results to return (1-10).",
-      minimum: 1,
-      maximum: MAX_SEARCH_COUNT,
-    }),
-  ),
-  country: Type.Optional(
-    Type.String({
-      description:
-        "2-letter country code for region-specific results (e.g., 'DE', 'US', 'ALL'). Default: 'US'.",
-    }),
-  ),
-  search_lang: Type.Optional(
-    Type.String({
-      description: "ISO language code for search results (e.g., 'de', 'en', 'fr').",
-    }),
-  ),
-  ui_lang: Type.Optional(
-    Type.String({
-      description: "ISO language code for UI elements.",
-    }),
-  ),
-  freshness: Type.Optional(
-    Type.String({
-      description:
-        "Filter results by discovery time (Brave only). Values: 'pd' (past 24h), 'pw' (past week), 'pm' (past month), 'py' (past year), or date range 'YYYY-MM-DDtoYYYY-MM-DD'.",
-    }),
-  ),
+const DomainFilterSchema = Type.Array(Type.String({ minLength: 1 }), {
+  minItems: 1,
+  uniqueItems: true,
 });
+
+const WebSearchSchema = Type.Object(
+  {
+    query: Type.String({
+      description: "Search query string.",
+      minLength: 2,
+    }),
+    allowedDomains: Type.Optional(DomainFilterSchema),
+    blockedDomains: Type.Optional(DomainFilterSchema),
+    maxUses: Type.Optional(
+      Type.Number({
+        description: "Compatibility alias that caps returned results when count is omitted.",
+        minimum: 1,
+        maximum: MAX_SEARCH_COUNT,
+      }),
+    ),
+    count: Type.Optional(
+      Type.Number({
+        description: "Number of results to return (1-10).",
+        minimum: 1,
+        maximum: MAX_SEARCH_COUNT,
+      }),
+    ),
+    country: Type.Optional(
+      Type.String({
+        description:
+          "2-letter country code for region-specific results (e.g., 'DE', 'US', 'ALL'). Default: 'US'.",
+      }),
+    ),
+    search_lang: Type.Optional(
+      Type.String({
+        description: "ISO language code for search results (e.g., 'de', 'en', 'fr').",
+      }),
+    ),
+    ui_lang: Type.Optional(
+      Type.String({
+        description: "ISO language code for UI elements.",
+      }),
+    ),
+    freshness: Type.Optional(
+      Type.String({
+        description:
+          "Filter results by discovery time (Brave only). Values: 'pd' (past 24h), 'pw' (past week), 'pm' (past month), 'py' (past year), or date range 'YYYY-MM-DDtoYYYY-MM-DD'.",
+      }),
+    ),
+  },
+  { additionalProperties: false },
+);
 
 type WebSearchConfig = NonNullable<OpenClawConfig["tools"]>["web"] extends infer Web
   ? Web extends { search?: infer Search }
@@ -122,6 +150,56 @@ type PerplexitySearchResponse = {
 };
 
 type PerplexityBaseUrlHint = "direct" | "openrouter";
+
+type BraveMappedResult = {
+  title: string;
+  url: string;
+  description: string;
+  published?: string;
+  siteName?: string;
+};
+
+type WebSearchProviderResult =
+  | {
+      query: string;
+      provider: "brave";
+      count: number;
+      tookMs: number;
+      cached?: boolean;
+      results: BraveMappedResult[];
+    }
+  | {
+      query: string;
+      provider: "perplexity";
+      model: string;
+      tookMs: number;
+      cached?: boolean;
+      content: string;
+      citations: string[];
+    }
+  | {
+      query: string;
+      provider: "grok";
+      model: string;
+      tookMs: number;
+      cached?: boolean;
+      content: string;
+      citations: string[];
+      inlineCitations?: GrokSearchResponse["inline_citations"];
+    };
+
+type WebSearchProgressDetails =
+  | {
+      type: "query_update";
+      toolUseId: string;
+      query: string;
+    }
+  | {
+      type: "search_results_received";
+      toolUseId: string;
+      query: string;
+      resultCount: number;
+    };
 
 function resolveSearchConfig(cfg?: OpenClawConfig): WebSearchConfig {
   const search = cfg?.tools?.web?.search;
@@ -391,6 +469,230 @@ function resolveSiteName(url: string | undefined): string | undefined {
   }
 }
 
+function normalizeDomainFilter(raw: string): string | undefined {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  try {
+    const url = trimmed.includes("://") ? new URL(trimmed) : new URL(`https://${trimmed}`);
+    return url.hostname.toLowerCase();
+  } catch {
+    return (
+      trimmed
+        .replace(/^https?:\/\//i, "")
+        .replace(/\/.*$/, "")
+        .toLowerCase() || undefined
+    );
+  }
+}
+
+function normalizeDomainFilters(values: string[] | undefined): string[] | undefined {
+  if (!values || values.length === 0) {
+    return undefined;
+  }
+  const unique = new Set<string>();
+  for (const value of values) {
+    const normalized = normalizeDomainFilter(value);
+    if (normalized) {
+      unique.add(normalized);
+    }
+  }
+  return unique.size > 0 ? Array.from(unique) : undefined;
+}
+
+function applyDomainFiltersToQuery(params: {
+  query: string;
+  allowedDomains?: string[];
+  blockedDomains?: string[];
+}): string {
+  const parts = [params.query.trim()].filter(Boolean);
+  if (params.allowedDomains?.length === 1) {
+    parts.push(`site:${params.allowedDomains[0]}`);
+  } else if ((params.allowedDomains?.length ?? 0) > 1) {
+    parts.push(`(${params.allowedDomains.map((domain) => `site:${domain}`).join(" OR ")})`);
+  }
+  if (params.blockedDomains?.length) {
+    parts.push(...params.blockedDomains.map((domain) => `-site:${domain}`));
+  }
+  return parts.join(" ").trim();
+}
+
+function formatQueryForResultLine(query: string): string {
+  return JSON.stringify(query);
+}
+
+function buildWebSearchFailurePayload(params: {
+  originalQuery: string;
+  errors: string[];
+  durationMs?: number;
+}): WebSearchResultPayload {
+  return {
+    originalQuery: params.originalQuery,
+    rawSearches: [],
+    commentary: [WEB_SEARCH_SOURCE_REMINDER],
+    errors: params.errors,
+    durationMs: params.durationMs ?? 0,
+    dedupedSources: [],
+  };
+}
+
+function buildErrorToolResult(params: {
+  originalQuery: string;
+  message: string;
+  durationMs?: number;
+}): AgentToolResult<WebSearchResultPayload> {
+  const payload = buildWebSearchFailurePayload({
+    originalQuery: params.originalQuery,
+    errors: [params.message],
+    durationMs: params.durationMs,
+  });
+  return {
+    content: [{ type: "text", text: `Web search error: ${params.message}` }],
+    details: payload,
+  };
+}
+
+function buildSearchHitsFromCitations(citations: string[]): WebSearchSource[] {
+  return citations
+    .map((url) => url.trim())
+    .filter(Boolean)
+    .map((url) => ({
+      title: resolveSiteName(url) ?? url,
+      url,
+    }));
+}
+
+function emitWebSearchProgress(
+  onUpdate: ((partialResult: AgentToolResult<WebSearchProgressDetails>) => void) | undefined,
+  details: WebSearchProgressDetails,
+) {
+  if (!onUpdate) {
+    return;
+  }
+  const text =
+    details.type === "query_update"
+      ? `Searching: ${details.query}`
+      : `Found ${details.resultCount} results for ${formatQueryForResultLine(details.query)}`;
+  onUpdate({
+    content: [{ type: "text", text }],
+    details,
+  });
+}
+
+function renderBraveResultText(params: {
+  executedQuery: string;
+  result: Extract<WebSearchProviderResult, { provider: "brave" }>;
+  dedupedSources: WebSearchSource[];
+}): string {
+  const lines = [
+    `Found ${params.result.results.length} results for ${formatQueryForResultLine(params.executedQuery)} in ${params.result.tookMs}ms.`,
+  ];
+  if (params.result.cached) {
+    lines.push("Served from cache.");
+  }
+  if (params.result.results.length === 0) {
+    lines.push("No results found.");
+  }
+  for (const [index, entry] of params.result.results.entries()) {
+    const wrappedTitle = entry.title ? wrapWebContent(entry.title, "web_search") : entry.url;
+    lines.push(`${index + 1}. ${wrappedTitle || entry.url}`);
+    lines.push(`URL: ${entry.url}`);
+    if (entry.description) {
+      lines.push(`Snippet: ${wrapWebContent(entry.description, "web_search")}`);
+    }
+    if (entry.published) {
+      lines.push(`Published: ${entry.published}`);
+    }
+  }
+  if (params.dedupedSources.length > 0) {
+    lines.push("");
+    lines.push("Sources:");
+    for (const source of params.dedupedSources) {
+      lines.push(`- ${source.title}: ${source.url}`);
+    }
+  }
+  lines.push("");
+  lines.push(WEB_SEARCH_SOURCE_REMINDER);
+  return lines.join("\n");
+}
+
+function renderAiSearchResultText(params: {
+  executedQuery: string;
+  result: Extract<WebSearchProviderResult, { provider: "perplexity" | "grok" }>;
+  dedupedSources: WebSearchSource[];
+}): string {
+  const lines = [
+    `Search answer for ${formatQueryForResultLine(params.executedQuery)} (${params.result.provider}) in ${params.result.tookMs}ms.`,
+  ];
+  if (params.result.cached) {
+    lines.push("Served from cache.");
+  }
+  lines.push("");
+  lines.push(params.result.content);
+  if (params.dedupedSources.length > 0) {
+    lines.push("");
+    lines.push("Sources:");
+    for (const source of params.dedupedSources) {
+      lines.push(`- ${source.title}: ${source.url}`);
+    }
+  } else {
+    lines.push("");
+    lines.push("No source URLs were returned.");
+  }
+  lines.push("");
+  lines.push(WEB_SEARCH_SOURCE_REMINDER);
+  return lines.join("\n");
+}
+
+function buildWebSearchSuccessResult(params: {
+  toolUseId: string;
+  originalQuery: string;
+  executedQuery: string;
+  result: WebSearchProviderResult;
+}): AgentToolResult<WebSearchResultPayload> {
+  const rawHits: WebSearchSource[] =
+    params.result.provider === "brave"
+      ? params.result.results.map((entry) => ({
+          title: entry.title || resolveSiteName(entry.url) || entry.url,
+          url: entry.url,
+        }))
+      : buildSearchHitsFromCitations(params.result.citations);
+  const dedupedSources = dedupeWebSearchSources(rawHits);
+  const rawSearch: WebSearchRawSearch = {
+    toolUseId: params.toolUseId,
+    executedQuery: params.executedQuery,
+    hits: rawHits,
+  };
+  const payload: WebSearchResultPayload = {
+    originalQuery: params.originalQuery,
+    rawSearches: [rawSearch],
+    commentary: [
+      params.result.cached ? "Served from cache." : "Search executed.",
+      WEB_SEARCH_SOURCE_REMINDER,
+    ],
+    errors: [],
+    durationMs: params.result.tookMs,
+    dedupedSources,
+  };
+  const text =
+    params.result.provider === "brave"
+      ? renderBraveResultText({
+          executedQuery: params.executedQuery,
+          result: params.result,
+          dedupedSources,
+        })
+      : renderAiSearchResultText({
+          executedQuery: params.executedQuery,
+          result: params.result,
+          dedupedSources,
+        });
+  return {
+    content: [{ type: "text", text }],
+    details: payload,
+  };
+}
+
 async function runPerplexitySearch(params: {
   query: string;
   apiKey: string;
@@ -498,7 +800,7 @@ async function runWebSearch(params: {
   perplexityModel?: string;
   grokModel?: string;
   grokInlineCitations?: boolean;
-}): Promise<Record<string, unknown>> {
+}): Promise<WebSearchProviderResult> {
   const cacheKey = normalizeCacheKey(
     params.provider === "brave"
       ? `${params.provider}:${params.query}:${params.count}:${params.country || "default"}:${params.search_lang || "default"}:${params.ui_lang || "default"}:${params.freshness || "default"}`
@@ -508,7 +810,7 @@ async function runWebSearch(params: {
   );
   const cached = readCache(SEARCH_CACHE, cacheKey);
   if (cached) {
-    return { ...cached.value, cached: true };
+    return { ...(cached.value as WebSearchProviderResult), cached: true };
   }
 
   const start = Date.now();
@@ -548,7 +850,7 @@ async function runWebSearch(params: {
       provider: params.provider,
       model: params.grokModel ?? DEFAULT_GROK_MODEL,
       tookMs: Date.now() - start,
-      content,
+      content: wrapWebContent(content),
       citations,
       inlineCitations,
     };
@@ -598,9 +900,9 @@ async function runWebSearch(params: {
     const url = entry.url ?? "";
     const rawSiteName = resolveSiteName(url);
     return {
-      title: title ? wrapWebContent(title, "web_search") : "",
+      title,
       url, // Keep raw for tool chaining
-      description: description ? wrapWebContent(description, "web_search") : "",
+      description,
       published: entry.age || undefined,
       siteName: rawSiteName || undefined,
     };
@@ -632,17 +934,17 @@ export function createWebSearchTool(options?: {
 
   const description =
     provider === "perplexity"
-      ? "Search the web using Perplexity Sonar (direct or via OpenRouter). Returns AI-synthesized answers with citations from real-time web search."
+      ? "Search the web using Perplexity Sonar (direct or via OpenRouter). Returns AI-synthesized answers with structured source lists from real-time web search. When citing results later, use only the URLs returned by this tool."
       : provider === "grok"
-        ? "Search the web using xAI Grok. Returns AI-synthesized answers with citations from real-time web search."
-        : "Search the web using Brave Search API. Supports region-specific and localized search via country and language parameters. Returns titles, URLs, and snippets for fast research.";
+        ? "Search the web using xAI Grok. Returns AI-synthesized answers with structured source lists from real-time web search. When citing results later, use only the URLs returned by this tool."
+        : "Search the web using Brave Search API. Supports region-specific and localized search via country and language parameters, plus allow/block domain filters. Returns structured source lists for fast research. When citing results later, use only the URLs returned by this tool.";
 
   return {
     label: "Web Search",
     name: "web_search",
     description,
     parameters: WebSearchSchema,
-    execute: async (_toolCallId, args) => {
+    execute: async (toolCallId, args, _signal, onUpdate) => {
       const perplexityAuth =
         provider === "perplexity" ? resolvePerplexityApiKey(perplexityConfig) : undefined;
       const apiKey =
@@ -657,30 +959,55 @@ export function createWebSearchTool(options?: {
       }
       const params = args as Record<string, unknown>;
       const query = readStringParam(params, "query", { required: true });
+      if (query.trim().length < 2) {
+        return buildErrorToolResult({
+          originalQuery: query,
+          message: "query must be at least 2 characters long.",
+        });
+      }
+      const allowedDomains = normalizeDomainFilters(readStringArrayParam(params, "allowedDomains"));
+      const blockedDomains = normalizeDomainFilters(readStringArrayParam(params, "blockedDomains"));
+      if (allowedDomains && blockedDomains) {
+        return buildErrorToolResult({
+          originalQuery: query,
+          message: "allowedDomains and blockedDomains cannot both be set.",
+        });
+      }
       const count =
-        readNumberParam(params, "count", { integer: true }) ?? search?.maxResults ?? undefined;
+        readNumberParam(params, "count", { integer: true }) ??
+        readNumberParam(params, "maxUses", { integer: true }) ??
+        search?.maxResults ??
+        undefined;
       const country = readStringParam(params, "country");
       const search_lang = readStringParam(params, "search_lang");
       const ui_lang = readStringParam(params, "ui_lang");
       const rawFreshness = readStringParam(params, "freshness");
       if (rawFreshness && provider !== "brave") {
-        return jsonResult({
-          error: "unsupported_freshness",
+        return buildErrorToolResult({
+          originalQuery: query,
           message: "freshness is only supported by the Brave web_search provider.",
-          docs: "https://docs.openclaw.ai/tools/web",
         });
       }
       const freshness = rawFreshness ? normalizeFreshness(rawFreshness) : undefined;
       if (rawFreshness && !freshness) {
-        return jsonResult({
-          error: "invalid_freshness",
+        return buildErrorToolResult({
+          originalQuery: query,
           message:
             "freshness must be one of pd, pw, pm, py, or a range like YYYY-MM-DDtoYYYY-MM-DD.",
-          docs: "https://docs.openclaw.ai/tools/web",
         });
       }
-      const result = await runWebSearch({
+      const executedQuery = applyDomainFiltersToQuery({
         query,
+        allowedDomains,
+        blockedDomains,
+      });
+      emitWebSearchProgress(onUpdate, {
+        type: "query_update",
+        toolUseId: toolCallId,
+        query: executedQuery,
+      });
+      const result = await runWebSearch({
+        query: executedQuery,
         count: resolveSearchCount(count, DEFAULT_SEARCH_COUNT),
         apiKey,
         timeoutSeconds: resolveTimeoutSeconds(search?.timeoutSeconds, DEFAULT_TIMEOUT_SECONDS),
@@ -699,7 +1026,19 @@ export function createWebSearchTool(options?: {
         grokModel: resolveGrokModel(grokConfig),
         grokInlineCitations: resolveGrokInlineCitations(grokConfig),
       });
-      return jsonResult(result);
+      const built = buildWebSearchSuccessResult({
+        toolUseId: toolCallId,
+        originalQuery: query,
+        executedQuery,
+        result,
+      });
+      emitWebSearchProgress(onUpdate, {
+        type: "search_results_received",
+        toolUseId: toolCallId,
+        query: executedQuery,
+        resultCount: built.details.rawSearches[0]?.hits.length ?? 0,
+      });
+      return built;
     },
   };
 }
@@ -713,4 +1052,7 @@ export const __testing = {
   resolveGrokApiKey,
   resolveGrokModel,
   resolveGrokInlineCitations,
+  normalizeDomainFilters,
+  applyDomainFiltersToQuery,
+  buildWebSearchFailurePayload,
 } as const;

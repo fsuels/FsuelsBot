@@ -951,6 +951,7 @@ export async function runEmbeddedPiAgent(
             toolMetas: attempt.toolMetas,
             lastAssistant: attempt.lastAssistant,
             lastToolError: attempt.lastToolError,
+            webSearchSources: attempt.webSearchSources,
             config: params.config,
             sessionKey: params.sessionKey ?? params.sessionId,
             verboseLevel: params.verboseLevel,

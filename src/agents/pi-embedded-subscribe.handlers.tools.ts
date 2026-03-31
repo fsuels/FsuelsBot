@@ -12,6 +12,7 @@ import {
 } from "./pi-embedded-subscribe.tools.js";
 import { inferToolMetaFromArgs } from "./pi-embedded-utils.js";
 import { normalizeToolName } from "./tool-policy.js";
+import { isWebSearchResultPayload, mergeWebSearchSources } from "./tools/web-search-shared.js";
 
 function extendExecMeta(toolName: string, args: unknown, meta?: string): string | undefined {
   const normalized = toolName.trim().toLowerCase();
@@ -64,6 +65,13 @@ export async function handleToolExecutionStart(
 
   const meta = extendExecMeta(toolName, args, inferToolMetaFromArgs(toolName, args));
   ctx.state.toolMetaById.set(toolCallId, meta);
+  if (toolName === "web_search") {
+    const argsRecord = args && typeof args === "object" ? (args as Record<string, unknown>) : {};
+    const query = typeof argsRecord.query === "string" ? argsRecord.query.trim() : "";
+    if (query) {
+      ctx.state.webSearchQueryById.set(toolCallId, query);
+    }
+  }
   ctx.log.debug(
     `embedded run tool start: runId=${ctx.params.runId} tool=${toolName} toolCallId=${toolCallId}`,
   );
@@ -125,6 +133,17 @@ export function handleToolExecutionUpdate(
   const toolCallId = String(evt.toolCallId);
   const partial = evt.partialResult;
   const sanitized = sanitizeToolResult(partial);
+  if (toolName === "web_search" && partial && typeof partial === "object" && "details" in partial) {
+    const details = (partial as { details?: unknown }).details;
+    if (
+      details &&
+      typeof details === "object" &&
+      (details as { type?: unknown }).type === "query_update" &&
+      typeof (details as { query?: unknown }).query === "string"
+    ) {
+      ctx.state.webSearchQueryById.set(toolCallId, (details as { query: string }).query);
+    }
+  }
   emitAgentEvent({
     runId: ctx.params.runId,
     stream: "tool",
@@ -160,9 +179,15 @@ export function handleToolExecutionEnd(
   const result = evt.result;
   const isToolError = isError || isToolResultError(result);
   const sanitizedResult = sanitizeToolResult(result);
+  const rawResultDetails =
+    result && typeof result === "object" && "details" in result
+      ? (result as { details?: unknown }).details
+      : undefined;
   const meta = ctx.state.toolMetaById.get(toolCallId);
   ctx.state.toolMetas.push({ toolName, meta });
   ctx.state.toolMetaById.delete(toolCallId);
+  const trackedWebSearchQuery = ctx.state.webSearchQueryById.get(toolCallId);
+  ctx.state.webSearchQueryById.delete(toolCallId);
   ctx.state.toolSummaryById.delete(toolCallId);
   if (isToolError) {
     const errorMessage = extractToolErrorMessage(sanitizedResult);
@@ -171,6 +196,17 @@ export function handleToolExecutionEnd(
       meta,
       error: errorMessage,
     };
+  }
+  if (toolName === "web_search" && !isToolError && isWebSearchResultPayload(rawResultDetails)) {
+    ctx.state.webSearchSources = mergeWebSearchSources([
+      ctx.state.webSearchSources,
+      rawResultDetails.dedupedSources,
+    ]);
+    if (trackedWebSearchQuery) {
+      ctx.log.debug(
+        `embedded run web search result: runId=${ctx.params.runId} toolCallId=${toolCallId} query=${trackedWebSearchQuery} sources=${rawResultDetails.dedupedSources.length}`,
+      );
+    }
   }
 
   // Commit messaging tool text on success, discard on error.

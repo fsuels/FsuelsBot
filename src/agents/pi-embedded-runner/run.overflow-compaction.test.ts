@@ -186,6 +186,7 @@ function makeAttemptResult(
     toolMetas: [],
     lastAssistant: undefined,
     messagesSnapshot: [],
+    webSearchSources: [],
     didSendViaMessagingTool: false,
     messagingToolSentTexts: [],
     messagingToolSentTargets: [],
