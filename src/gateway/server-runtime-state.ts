@@ -14,7 +14,7 @@ import type { GatewayWsClient } from "./server/ws-types.js";
 import { CANVAS_HOST_PATH } from "../canvas-host/a2ui.js";
 import { type CanvasHostHandler, createCanvasHostHandler } from "../canvas-host/server.js";
 import { resolveGatewayListenHosts } from "./net.js";
-import { createGatewayBroadcaster } from "./server-broadcast.js";
+import { type GatewayReplayStatus, createGatewayBroadcaster } from "./server-broadcast.js";
 import {
   type ChatRunEntry,
   createChatRunState,
@@ -72,6 +72,10 @@ export async function createGatewayRuntimeState(params: {
       stateVersion?: { presence?: number; health?: number };
     },
   ) => void;
+  prepareReplayForClient: (
+    client: GatewayWsClient,
+    requestedSeq: number,
+  ) => { status: GatewayReplayStatus; flush: () => { queuedCount: number } };
   agentRunSeq: Map<string, number>;
   dedupe: Map<string, DedupeEntry>;
   chatRunState: ReturnType<typeof createChatRunState>;
@@ -108,7 +112,9 @@ export async function createGatewayRuntimeState(params: {
   }
 
   const clients = new Set<GatewayWsClient>();
-  const { broadcast, broadcastToConnIds } = createGatewayBroadcaster({ clients });
+  const { broadcast, broadcastToConnIds, prepareReplayForClient } = createGatewayBroadcaster({
+    clients,
+  });
 
   const handleHooksRequest = createGatewayHooksRequestHandler({
     deps: params.deps,
@@ -197,6 +203,7 @@ export async function createGatewayRuntimeState(params: {
     clients,
     broadcast,
     broadcastToConnIds,
+    prepareReplayForClient,
     agentRunSeq,
     dedupe,
     chatRunState,

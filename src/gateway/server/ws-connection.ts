@@ -2,6 +2,7 @@ import type { WebSocket, WebSocketServer } from "ws";
 import { randomUUID } from "node:crypto";
 import type { createSubsystemLogger } from "../../logging/subsystem.js";
 import type { ResolvedGatewayAuth } from "../auth.js";
+import type { GatewayReplayStatus } from "../server-broadcast.js";
 import type { GatewayRequestContext, GatewayRequestHandlers } from "../server-methods/types.js";
 import type { GatewayWsClient } from "./ws-types.js";
 import { resolveCanvasHostUrl } from "../../infra/canvas-host-url.js";
@@ -38,6 +39,10 @@ export function attachGatewayWsConnectionHandler(params: {
       stateVersion?: { presence?: number; health?: number };
     },
   ) => void;
+  prepareReplayForClient: (
+    client: GatewayWsClient,
+    requestedSeq: number,
+  ) => { status: GatewayReplayStatus; flush: () => { queuedCount: number } };
   buildRequestContext: () => GatewayRequestContext;
 }) {
   const {
@@ -55,6 +60,7 @@ export function attachGatewayWsConnectionHandler(params: {
     logWsControl,
     extraHandlers,
     broadcast,
+    prepareReplayForClient,
     buildRequestContext,
   } = params;
 
@@ -261,6 +267,7 @@ export function attachGatewayWsConnectionHandler(params: {
       logGateway,
       logHealth,
       logWsControl,
+      prepareReplayForClient,
     });
   });
 }

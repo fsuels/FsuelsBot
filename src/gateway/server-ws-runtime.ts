@@ -1,6 +1,7 @@
 import type { WebSocketServer } from "ws";
 import type { createSubsystemLogger } from "../logging/subsystem.js";
 import type { ResolvedGatewayAuth } from "./auth.js";
+import type { GatewayReplayStatus } from "./server-broadcast.js";
 import type { GatewayRequestContext, GatewayRequestHandlers } from "./server-methods/types.js";
 import type { GatewayWsClient } from "./server/ws-types.js";
 import { attachGatewayWsConnectionHandler } from "./server/ws-connection.js";
@@ -27,6 +28,10 @@ export function attachGatewayWsHandlers(params: {
       stateVersion?: { presence?: number; health?: number };
     },
   ) => void;
+  prepareReplayForClient: (
+    client: GatewayWsClient,
+    requestedSeq: number,
+  ) => { status: GatewayReplayStatus; flush: () => { queuedCount: number } };
   context: GatewayRequestContext;
 }) {
   attachGatewayWsConnectionHandler({
@@ -44,6 +49,7 @@ export function attachGatewayWsHandlers(params: {
     logWsControl: params.logWsControl,
     extraHandlers: params.extraHandlers,
     broadcast: params.broadcast,
+    prepareReplayForClient: params.prepareReplayForClient,
     buildRequestContext: () => params.context,
   });
 }

@@ -3,6 +3,7 @@ import type { WebSocket } from "ws";
 import os from "node:os";
 import type { createSubsystemLogger } from "../../../logging/subsystem.js";
 import type { ResolvedGatewayAuth } from "../../auth.js";
+import type { GatewayReplayStatus } from "../../server-broadcast.js";
 import type { GatewayRequestContext, GatewayRequestHandlers } from "../../server-methods/types.js";
 import type { GatewayWsClient } from "../ws-types.js";
 import { loadConfig } from "../../../config/config.js";
@@ -147,6 +148,10 @@ export function attachGatewayWsMessageHandler(params: {
   events: string[];
   extraHandlers: GatewayRequestHandlers;
   buildRequestContext: () => GatewayRequestContext;
+  prepareReplayForClient: (
+    client: GatewayWsClient,
+    requestedSeq: number,
+  ) => { status: GatewayReplayStatus; flush: () => { queuedCount: number } };
   send: (obj: unknown) => void;
   close: (code?: number, reason?: string) => void;
   isClosed: () => boolean;
@@ -177,6 +182,7 @@ export function attachGatewayWsMessageHandler(params: {
     events,
     extraHandlers,
     buildRequestContext,
+    prepareReplayForClient,
     send,
     close,
     isClosed,
@@ -307,6 +313,8 @@ export function attachGatewayWsMessageHandler(params: {
         const frame = parsed;
         const connectParams = frame.params as ConnectParams;
         const clientLabel = connectParams.client.displayName ?? connectParams.client.id;
+        const requestedLastEventSeq =
+          typeof connectParams.lastEventSeq === "number" ? connectParams.lastEventSeq : undefined;
 
         // protocol negotiation
         const { minProtocol, maxProtocol } = connectParams;
@@ -849,6 +857,7 @@ export function attachGatewayWsMessageHandler(params: {
           snapshot.health = cachedHealth;
           snapshot.stateVersion.health = getHealthVersion();
         }
+        clearHandshakeTimer();
         const helloOk = {
           type: "hello-ok",
           protocol: PROTOCOL_VERSION,
@@ -861,6 +870,7 @@ export function attachGatewayWsMessageHandler(params: {
           features: { methods: gatewayMethods, events },
           snapshot,
           canvasHostUrl,
+          resume: undefined as GatewayReplayStatus | undefined,
           auth: deviceToken
             ? {
                 deviceToken: deviceToken.token,
@@ -875,8 +885,6 @@ export function attachGatewayWsMessageHandler(params: {
             tickIntervalMs: TICK_INTERVAL_MS,
           },
         };
-
-        clearHandshakeTimer();
         const nextClient: GatewayWsClient = {
           socket,
           connect: connectParams,
@@ -884,6 +892,13 @@ export function attachGatewayWsMessageHandler(params: {
           presenceKey,
           clientIp: reportedClientIp,
         };
+        const replay =
+          requestedLastEventSeq !== undefined
+            ? prepareReplayForClient(nextClient, requestedLastEventSeq)
+            : null;
+        if (replay) {
+          helloOk.resume = replay.status;
+        }
         setClient(nextClient);
         setHandshakeState("connected");
         if (role === "node") {
@@ -942,9 +957,16 @@ export function attachGatewayWsMessageHandler(params: {
           events: events.length,
           presence: snapshot.presence.length,
           stateVersion: snapshot.stateVersion.presence,
+          resumeRequestedSeq: replay?.status.requestedSeq,
+          replayedCount: replay?.status.replayedCount,
+          replayGap: replay?.status.gap,
+          replayReset: replay?.status.reset,
         });
 
         send({ type: "res", id: frame.id, ok: true, payload: helloOk });
+        if (replay) {
+          replay.flush();
+        }
         void refreshGatewayHealthSnapshot({ probe: true }).catch((err) =>
           logHealth.error(`post-connect health refresh failed: ${formatError(err)}`),
         );

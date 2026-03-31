@@ -174,7 +174,27 @@ export async function startGatewayServer(
         "Legacy config entries detected while running in Nix mode. Update your Nix config to the latest schema and restart.",
       );
     }
-    const { config: migrated, changes } = migrateLegacyConfig(configSnapshot.parsed);
+    const { config: migrated, changes, events, error } = migrateLegacyConfig(configSnapshot.parsed);
+    for (const event of events) {
+      const logMethod = event.status === "error" ? log.warn.bind(log) : log.info.bind(log);
+      logMethod("gateway: config migration", {
+        migration_id: event.migrationId,
+        status: event.status,
+        reason: event.reason,
+        source_scope: event.sourceScope,
+        destination_scope: event.destinationScope,
+        source_path: event.sourcePaths.length === 1 ? event.sourcePaths[0] : undefined,
+        destination_path:
+          event.destinationPaths.length === 1 ? event.destinationPaths[0] : undefined,
+        source_paths: event.sourcePaths,
+        destination_paths: event.destinationPaths,
+      });
+    }
+    if (error) {
+      throw new Error(
+        `Legacy config entries detected but auto-migration failed (${error}). Run "${formatCliCommand("openclaw doctor")}" to migrate.`,
+      );
+    }
     if (!migrated) {
       throw new Error(
         `Legacy config entries detected but auto-migration failed. Run "${formatCliCommand("openclaw doctor")}" to migrate.`,
@@ -319,6 +339,7 @@ export async function startGatewayServer(
     clients,
     broadcast,
     broadcastToConnIds,
+    prepareReplayForClient,
     agentRunSeq,
     dedupe,
     chatRunState,
@@ -487,6 +508,7 @@ export async function startGatewayServer(
       ...execApprovalHandlers,
     },
     broadcast,
+    prepareReplayForClient,
     context: {
       deps,
       cron,
