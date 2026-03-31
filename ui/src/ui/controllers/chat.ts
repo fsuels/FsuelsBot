@@ -1,5 +1,6 @@
 import type { GatewayBrowserClient } from "../gateway.ts";
 import type { ChatAttachment } from "../ui-types.ts";
+import type { ChatLifecycleGuard, ChatLifecycleSnapshot } from "./chat-lifecycle-guard.ts";
 import { extractText } from "../chat/message-extract.ts";
 import { generateUUID } from "../uuid.ts";
 
@@ -17,6 +18,7 @@ export type ChatState = {
   chatStream: string | null;
   chatStreamStartedAt: number | null;
   lastError: string | null;
+  chatLifecycleGuard?: ChatLifecycleGuard;
 };
 
 export type ChatEventPayload = {
@@ -26,6 +28,45 @@ export type ChatEventPayload = {
   message?: unknown;
   errorMessage?: string;
 };
+
+function getLifecycleSnapshot(
+  state: Pick<ChatState, "chatSending" | "chatRunId" | "chatLifecycleGuard">,
+): ChatLifecycleSnapshot {
+  if (state.chatLifecycleGuard) {
+    return state.chatLifecycleGuard.getSnapshot();
+  }
+  const active = typeof state.chatRunId === "string" && state.chatRunId.trim().length > 0;
+  const reserved = Boolean(state.chatSending) && !active;
+  return {
+    phase: active ? "active" : reserved ? "reserved" : "idle",
+    runId: active ? state.chatRunId : null,
+    generation: null,
+    reserved,
+    active,
+    busy: reserved || active,
+  };
+}
+
+function getActiveRunId(
+  state: Pick<ChatState, "chatSending" | "chatRunId" | "chatLifecycleGuard">,
+): string | null {
+  return getLifecycleSnapshot(state).runId;
+}
+
+function endLifecycleRun(
+  state: Pick<ChatState, "chatRunId" | "chatLifecycleGuard">,
+  runId: string,
+): boolean {
+  if (!state.chatLifecycleGuard) {
+    state.chatRunId = null;
+    return true;
+  }
+  const snapshot = state.chatLifecycleGuard.getSnapshot();
+  if (snapshot.runId !== runId || snapshot.generation == null) {
+    return false;
+  }
+  return state.chatLifecycleGuard.end(snapshot.generation);
+}
 
 export async function loadChatHistory(state: ChatState) {
   if (!state.client || !state.connected) {
@@ -72,6 +113,22 @@ export async function sendChatMessage(
     return null;
   }
 
+  const lifecycle = state.chatLifecycleGuard;
+  if (lifecycle && !lifecycle.reserve()) {
+    return null;
+  }
+
+  let reservedLifecycle = Boolean(lifecycle);
+  const runId = generateUUID();
+  const generation = lifecycle?.tryStart(runId) ?? null;
+  if (lifecycle) {
+    reservedLifecycle = false;
+    if (generation == null) {
+      lifecycle.cancelReservation();
+      return null;
+    }
+  }
+
   const now = Date.now();
 
   // Build user message content blocks
@@ -98,10 +155,11 @@ export async function sendChatMessage(
     },
   ];
 
-  state.chatSending = true;
   state.lastError = null;
-  const runId = generateUUID();
-  state.chatRunId = runId;
+  if (!lifecycle) {
+    state.chatSending = true;
+    state.chatRunId = runId;
+  }
   state.chatStream = "";
   state.chatStreamStartedAt = now;
 
@@ -133,21 +191,32 @@ export async function sendChatMessage(
     return runId;
   } catch (err) {
     const error = String(err);
-    state.chatRunId = null;
-    state.chatStream = null;
-    state.chatStreamStartedAt = null;
-    state.lastError = error;
-    state.chatMessages = [
-      ...state.chatMessages,
-      {
-        role: "assistant",
-        content: [{ type: "text", text: "Error: " + error }],
-        timestamp: Date.now(),
-      },
-    ];
+    const endedCurrentRun = lifecycle ? generation != null && lifecycle.end(generation) : true;
+    if (endedCurrentRun) {
+      if (!lifecycle) {
+        state.chatRunId = null;
+      }
+      state.chatStream = null;
+      state.chatStreamStartedAt = null;
+      state.lastError = error;
+      state.chatMessages = [
+        ...state.chatMessages,
+        {
+          role: "assistant",
+          content: [{ type: "text", text: "Error: " + error }],
+          timestamp: Date.now(),
+        },
+      ];
+    }
     return null;
   } finally {
-    state.chatSending = false;
+    if (lifecycle) {
+      if (reservedLifecycle) {
+        lifecycle.cancelReservation();
+      }
+    } else {
+      state.chatSending = false;
+    }
   }
 }
 
@@ -155,7 +224,7 @@ export async function abortChatRun(state: ChatState): Promise<boolean> {
   if (!state.client || !state.connected) {
     return false;
   }
-  const runId = state.chatRunId;
+  const runId = getActiveRunId(state);
   try {
     await state.client.request(
       "chat.abort",
@@ -178,7 +247,8 @@ export function handleChatEvent(state: ChatState, payload?: ChatEventPayload) {
 
   // Final from another run (e.g. sub-agent announce): refresh history to show new message.
   // See https://github.com/openclaw/openclaw/issues/1909
-  if (payload.runId && state.chatRunId && payload.runId !== state.chatRunId) {
+  const activeRunId = getActiveRunId(state);
+  if (payload.runId && activeRunId && payload.runId !== activeRunId) {
     if (payload.state === "final") {
       return "final";
     }
@@ -194,18 +264,24 @@ export function handleChatEvent(state: ChatState, payload?: ChatEventPayload) {
       }
     }
   } else if (payload.state === "final") {
-    state.chatStream = null;
-    state.chatRunId = null;
-    state.chatStreamStartedAt = null;
+    const endedCurrentRun = endLifecycleRun(state, payload.runId);
+    if (endedCurrentRun) {
+      state.chatStream = null;
+      state.chatStreamStartedAt = null;
+    }
   } else if (payload.state === "aborted") {
-    state.chatStream = null;
-    state.chatRunId = null;
-    state.chatStreamStartedAt = null;
+    const endedCurrentRun = endLifecycleRun(state, payload.runId);
+    if (endedCurrentRun) {
+      state.chatStream = null;
+      state.chatStreamStartedAt = null;
+    }
   } else if (payload.state === "error") {
-    state.chatStream = null;
-    state.chatRunId = null;
-    state.chatStreamStartedAt = null;
-    state.lastError = payload.errorMessage ?? "chat error";
+    const endedCurrentRun = endLifecycleRun(state, payload.runId);
+    if (endedCurrentRun) {
+      state.chatStream = null;
+      state.chatStreamStartedAt = null;
+      state.lastError = payload.errorMessage ?? "chat error";
+    }
   }
   return payload.state;
 }

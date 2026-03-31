@@ -1,10 +1,12 @@
 import type { EventLogEntry } from "./app-events.ts";
 import type { OpenClawApp } from "./app.ts";
+import type { ChatLifecycleGuard } from "./controllers/chat-lifecycle-guard.ts";
 import type { ExecApprovalRequest } from "./controllers/exec-approval.ts";
 import type { GatewayEventFrame, GatewayHelloOk } from "./gateway.ts";
 import type { Tab } from "./navigation.ts";
 import type { UiSettings } from "./storage.ts";
 import type { AgentsListResult, PresenceEntry, HealthSnapshot, StatusSummary } from "./types.ts";
+import type { UiTelemetry } from "./types/internal.ts";
 import { CHAT_SESSIONS_ACTIVE_MINUTES, flushChatQueueForEvent } from "./app-chat.ts";
 import {
   applySettings,
@@ -51,9 +53,12 @@ type GatewayHost = {
   assistantAgentId: string | null;
   sessionKey: string;
   chatRunId: string | null;
+  chatLifecycleGuard: ChatLifecycleGuard;
   refreshSessionsAfterChat: Set<string>;
   execApprovalQueue: ExecApprovalRequest[];
   execApprovalError: string | null;
+  telemetry: Pick<UiTelemetry, "increment">;
+  syncOverlays: () => void;
 };
 
 type SessionDefaultsSnapshot = {
@@ -121,6 +126,7 @@ export function connectGateway(host: GatewayHost) {
   host.connected = false;
   host.execApprovalQueue = [];
   host.execApprovalError = null;
+  host.syncOverlays();
 
   host.client?.stop();
   host.client = new GatewayBrowserClient({
@@ -136,7 +142,7 @@ export function connectGateway(host: GatewayHost) {
       applySnapshot(host, hello);
       // Reset orphaned chat run state from before disconnect.
       // Any in-flight run's final event was lost during the disconnect window.
-      host.chatRunId = null;
+      host.chatLifecycleGuard.forceEnd();
       (host as unknown as { chatStream: string | null }).chatStream = null;
       (host as unknown as { chatStreamStartedAt: number | null }).chatStreamStartedAt = null;
       resetToolStream(host as unknown as Parameters<typeof resetToolStream>[0]);
@@ -149,6 +155,10 @@ export function connectGateway(host: GatewayHost) {
     onConnectError: (err) => {
       host.connected = false;
       host.lastError = err.message;
+      host.telemetry.increment("error_count");
+    },
+    onProtocolIssue: () => {
+      host.telemetry.increment("error_count");
     },
     onClose: ({ code, reason }) => {
       host.connected = false;
@@ -158,11 +168,13 @@ export function connectGateway(host: GatewayHost) {
       // Code 1012 = Service Restart (expected during config saves, don't show as error)
       if (code !== 1012 && !keepSpecificConnectError) {
         host.lastError = `disconnected (${code}): ${reason || "no reason"}`;
+        host.telemetry.increment("error_count");
       }
     },
     onEvent: (evt) => handleGatewayEvent(host, evt),
     onGap: ({ expected, received }) => {
       host.lastError = `event gap detected (expected seq ${expected}, got ${received}); refresh recommended`;
+      host.telemetry.increment("error_count");
     },
   });
   host.client.start();
@@ -247,9 +259,11 @@ function handleGatewayEventUnsafe(host: GatewayHost, evt: GatewayEventFrame) {
     if (entry) {
       host.execApprovalQueue = addExecApproval(host.execApprovalQueue, entry);
       host.execApprovalError = null;
+      host.syncOverlays();
       const delay = Math.max(0, entry.expiresAtMs - Date.now() + 500);
       window.setTimeout(() => {
         host.execApprovalQueue = removeExecApproval(host.execApprovalQueue, entry.id);
+        host.syncOverlays();
       }, delay);
     }
     return;
@@ -259,6 +273,7 @@ function handleGatewayEventUnsafe(host: GatewayHost, evt: GatewayEventFrame) {
     const resolved = parseExecApprovalResolved(evt.payload);
     if (resolved) {
       host.execApprovalQueue = removeExecApproval(host.execApprovalQueue, resolved.id);
+      host.syncOverlays();
     }
   }
 }

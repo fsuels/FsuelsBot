@@ -1,4 +1,5 @@
 import type { OpenClawApp } from "./app.ts";
+import type { ChatLifecycleGuard } from "./controllers/chat-lifecycle-guard.ts";
 import type { GatewayHelloOk } from "./gateway.ts";
 import type { ChatAttachment, ChatQueueItem } from "./ui-types.ts";
 import { parseAgentSessionKey } from "../../../src/sessions/session-key-utils.js";
@@ -17,6 +18,7 @@ export type ChatHost = {
   chatQueue: ChatQueueItem[];
   chatRunId: string | null;
   chatSending: boolean;
+  chatLifecycleGuard?: ChatLifecycleGuard;
   sessionKey: string;
   basePath: string;
   hello: GatewayHelloOk | null;
@@ -27,6 +29,10 @@ export type ChatHost = {
 export const CHAT_SESSIONS_ACTIVE_MINUTES = 120;
 
 export function isChatBusy(host: ChatHost) {
+  const lifecycle = host.chatLifecycleGuard?.getSnapshot();
+  if (lifecycle) {
+    return lifecycle.busy;
+  }
   return host.chatSending || Boolean(host.chatRunId);
 }
 
@@ -125,7 +131,7 @@ async function sendChatMessageNow(
     host.chatAttachments = opts.previousAttachments;
   }
   scheduleChatScroll(host as unknown as Parameters<typeof scheduleChatScroll>[0]);
-  if (ok && !host.chatRunId) {
+  if (ok && !isChatBusy(host)) {
     void flushChatQueue(host);
   }
   if (ok && opts?.refreshSessions && runId) {

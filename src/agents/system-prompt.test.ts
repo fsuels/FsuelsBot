@@ -1,7 +1,19 @@
-import { describe, expect, it } from "vitest";
-import { buildAgentSystemPrompt, buildRuntimeLine } from "./system-prompt.js";
+import { beforeEach, describe, expect, it } from "vitest";
+import {
+  resetPromptSectionAssemblyCacheForTests,
+  SYSTEM_PROMPT_DYNAMIC_BOUNDARY,
+} from "./system-prompt-sections.js";
+import {
+  buildAgentSystemPrompt,
+  buildAgentSystemPromptArtifacts,
+  buildRuntimeLine,
+} from "./system-prompt.js";
 
 describe("buildAgentSystemPrompt", () => {
+  beforeEach(() => {
+    resetPromptSectionAssemblyCacheForTests();
+  });
+
   it("includes owner numbers when provided", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/openclaw",
@@ -100,6 +112,10 @@ describe("buildAgentSystemPrompt", () => {
 
     expect(prompt).toContain("## Memory Recall");
     expect(prompt).toContain("memory_search");
+    expect(prompt).toContain('If the user says "ignore memory"');
+    expect(prompt).toContain("Treat memory as historical context");
+    expect(prompt).toContain("Before recommending from memory:");
+    expect(prompt).toContain("check that the file exists now");
   });
 
   it("includes task tracker rules when the tool is available", () => {
@@ -166,6 +182,7 @@ describe("buildAgentSystemPrompt", () => {
     );
     expect(prompt).toContain("Periodic sleep wakeups are check-ins");
     expect(prompt).toContain("`get_task_output`");
+    expect(prompt).toContain("`awaiting_input`");
   });
 
   it("adds reasoning tag hint when enabled", () => {
@@ -259,10 +276,15 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain("Communication contract");
     expect(prompt).toContain("Capability profiles");
     expect(prompt).toContain("requiredTools");
+    expect(prompt).toContain("planner/synthesis worker distills it into a self-contained spec");
+    expect(prompt).toContain("Fresh-verifier rule");
+    expect(prompt).toContain("independent verifier");
     expect(prompt).toContain("sessions_send");
     expect(prompt).toContain('sessions_send({ label: "schema-audit"');
     expect(prompt).toContain('sessions_spawn({ label: "schema-audit"');
     expect(prompt).toContain("Use `sessions_history` only when you need raw output");
+    expect(prompt).toContain("Fresh-verifier rule");
+    expect(prompt).toContain("self-contained");
   });
 
   it("preserves tool casing in the prompt", () => {
@@ -402,6 +424,92 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).not.toContain("Monday, January 5th, 2026");
     expect(prompt).not.toContain("3:26 PM");
     expect(prompt).not.toContain("15:26");
+  });
+
+  it("includes the operating contract guidance", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/openclaw",
+      toolNames: ["read"],
+    });
+
+    expect(prompt).toContain("## Operating Contract");
+    expect(prompt).toContain("Read a file with `read` before proposing a concrete edit");
+    expect(prompt).toContain("Do not blindly retry the same failing tool call or command.");
+    expect(prompt).toContain(
+      "Never say tests, lint, builds, or checks passed unless the output actually showed that.",
+    );
+  });
+
+  it("adds verification-gate guidance when the tool is available", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/openclaw",
+      toolNames: ["verification_gate"],
+    });
+
+    expect(prompt).toContain("## Verification Gate");
+    expect(prompt).toContain("Use `verification_gate` for non-trivial changes");
+    expect(prompt).toContain("returns PASS, or it returns PARTIAL");
+  });
+
+  it("splits prompt assembly at the dynamic runtime boundary", () => {
+    const artifacts = buildAgentSystemPromptArtifacts({
+      workspaceDir: "/tmp/openclaw",
+      toolNames: ["read", "message"],
+      runtimeInfo: {
+        host: "host-a",
+        os: "macOS",
+        arch: "arm64",
+        node: "v20",
+        model: "anthropic/claude",
+        channel: "telegram",
+        capabilities: ["inlineButtons"],
+      },
+      contextFiles: [{ path: "AGENTS.md", content: "Alpha" }],
+    });
+
+    expect(artifacts.prompt).toContain(SYSTEM_PROMPT_DYNAMIC_BOUNDARY);
+    expect(artifacts.staticSectionNames).toContain("operating-contract");
+    expect(artifacts.dynamicSectionNames).toContain("runtime");
+    expect(artifacts.dynamicSectionNames).toContain("project-context");
+  });
+
+  it("keeps the static prefix stable when only dynamic prompt values change", () => {
+    const first = buildAgentSystemPromptArtifacts({
+      workspaceDir: "/tmp/openclaw-a",
+      toolNames: ["read", "message"],
+      runtimeInfo: {
+        host: "host-a",
+        os: "macOS",
+        arch: "arm64",
+        node: "v20",
+        model: "anthropic/claude",
+        channel: "telegram",
+        capabilities: ["inlineButtons"],
+      },
+      contextFiles: [{ path: "AGENTS.md", content: "Alpha" }],
+    });
+
+    const second = buildAgentSystemPromptArtifacts({
+      workspaceDir: "/tmp/openclaw-b",
+      toolNames: ["read", "message"],
+      runtimeInfo: {
+        host: "host-b",
+        os: "macOS",
+        arch: "arm64",
+        node: "v20",
+        model: "anthropic/claude-opus",
+        channel: "slack",
+        capabilities: ["threads"],
+      },
+      contextFiles: [{ path: "AGENTS.md", content: "Bravo" }],
+    });
+
+    expect(first.staticPrefix).toBe(second.staticPrefix);
+    expect(first.staticPrefixHash).toBe(second.staticPrefixHash);
+    expect(first.dynamicTail).not.toBe(second.dynamicTail);
+    expect(first.staticPrefixCacheStatus).toBe("miss");
+    expect(second.staticPrefixCacheStatus).toBe("hit");
+    expect(second.recomputedSectionCount).toBe(second.dynamicSectionNames.length);
   });
 
   it("includes model alias guidance when aliases are provided", () => {

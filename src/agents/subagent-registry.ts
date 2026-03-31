@@ -1,6 +1,7 @@
 import path from "node:path";
 import type { SandboxToolPolicy } from "./sandbox.js";
 import type { SubagentCapabilityProfileId } from "./subagent-policy.js";
+import type { SubagentTaskType } from "./subagent-task-spec.js";
 import type { TaskOutput, TaskOutputStatus } from "./task-output-contract.js";
 import { loadConfig } from "../config/config.js";
 import { loadSessionStore, resolveStorePath } from "../config/sessions.js";
@@ -9,6 +10,11 @@ import { onAgentEvent } from "../infra/agent-events.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { resolveAgentIdFromSessionKey } from "../routing/session-key.js";
 import { type DeliveryContext, normalizeDeliveryContext } from "../utils/delivery-context.js";
+import {
+  clearOwnedResourcesForTests,
+  registerOwnedResource,
+  removeOwnedResource,
+} from "./owned-resource-registry.js";
 import { isEmbeddedPiRunActive } from "./pi-embedded.js";
 import {
   runSubagentAnnounceFlowDetailed,
@@ -19,11 +25,6 @@ import {
   loadSubagentRegistryFromDisk,
   saveSubagentRegistryToDisk,
 } from "./subagent-registry.store.js";
-import {
-  clearOwnedResourcesForTests,
-  registerOwnedResource,
-  removeOwnedResource,
-} from "./owned-resource-registry.js";
 import { resolveTaskOutputPath, writeTaskOutputArtifact } from "./task-output-artifacts.js";
 import { resolveAgentTimeoutMs } from "./timeout.js";
 import { readLatestAssistantReply } from "./tools/agent-step.js";
@@ -35,11 +36,17 @@ export type SubagentRunRecord = {
   requesterOrigin?: DeliveryContext;
   requesterDisplayKey: string;
   task: string;
+  taskSummary?: string;
+  taskType?: SubagentTaskType;
+  filePaths?: string[];
+  sourceTaskId?: string;
+  allowFileChanges?: boolean;
   cleanup: "delete" | "keep";
   label?: string;
   profile?: SubagentCapabilityProfileId;
   requiredTools?: string[];
   sessionToolPolicy?: SandboxToolPolicy;
+  resolvedTools?: string[];
   createdAt: number;
   startedAt?: number;
   endedAt?: number;
@@ -160,6 +167,75 @@ function resolveChildTranscriptPath(childSessionKey: string): string | undefined
   return path.join(path.dirname(storePath), `${sessionId}.jsonl`);
 }
 
+function resolveSubagentUsage(entry: SubagentRunRecord): TaskOutput["usage"] | undefined {
+  const cfg = loadConfig();
+  const agentId = resolveAgentIdFromSessionKey(entry.childSessionKey);
+  const storePath = resolveStorePath(cfg.session?.store, { agentId });
+  const sessionEntry = loadSessionStore(storePath)[entry.childSessionKey];
+  const inputTokens =
+    typeof sessionEntry?.inputTokens === "number" ? sessionEntry.inputTokens : undefined;
+  const outputTokens =
+    typeof sessionEntry?.outputTokens === "number" ? sessionEntry.outputTokens : undefined;
+  const totalTokens =
+    typeof sessionEntry?.totalTokens === "number"
+      ? sessionEntry.totalTokens
+      : inputTokens !== undefined || outputTokens !== undefined
+        ? (inputTokens ?? 0) + (outputTokens ?? 0)
+        : undefined;
+  const durationMs =
+    typeof entry.startedAt === "number" && typeof entry.endedAt === "number"
+      ? Math.max(0, entry.endedAt - entry.startedAt)
+      : undefined;
+
+  if (
+    inputTokens === undefined &&
+    outputTokens === undefined &&
+    totalTokens === undefined &&
+    durationMs === undefined
+  ) {
+    return undefined;
+  }
+
+  return {
+    input_tokens: inputTokens ?? null,
+    output_tokens: outputTokens ?? null,
+    total_tokens: totalTokens ?? null,
+    duration_ms: durationMs ?? null,
+  };
+}
+
+function buildSubagentTaskMetadata(entry: SubagentRunRecord): TaskOutput["metadata"] | undefined {
+  const metadata: Record<string, unknown> = {};
+  if (entry.taskType) {
+    metadata.task_type = entry.taskType;
+  }
+  if (entry.profile) {
+    metadata.profile = entry.profile;
+  }
+  if (Array.isArray(entry.filePaths) && entry.filePaths.length > 0) {
+    metadata.file_paths = entry.filePaths;
+  }
+  if (entry.sourceTaskId) {
+    metadata.source_task_id = entry.sourceTaskId;
+  }
+  if (typeof entry.allowFileChanges === "boolean") {
+    metadata.allow_file_changes = entry.allowFileChanges;
+  }
+  if (Array.isArray(entry.requiredTools) && entry.requiredTools.length > 0) {
+    metadata.required_tools = entry.requiredTools;
+  }
+  if (Array.isArray(entry.resolvedTools) && entry.resolvedTools.length > 0) {
+    metadata.resolved_tools = entry.resolvedTools;
+  }
+  if (entry.cleanupState) {
+    metadata.cleanup_state = entry.cleanupState;
+  }
+  if (entry.cleanupReason) {
+    metadata.cleanup_reason = entry.cleanupReason;
+  }
+  return Object.keys(metadata).length > 0 ? metadata : undefined;
+}
+
 function resolveSubagentTaskStatus(entry: SubagentRunRecord): TaskOutputStatus {
   switch (entry.outcome?.status) {
     case "ok":
@@ -178,13 +254,15 @@ export function buildTaskOutputFromSubagentRun(entry: SubagentRunRecord): TaskOu
     task_id: entry.runId,
     task_type: "agent",
     status: resolveSubagentTaskStatus(entry),
-    description: entry.label?.trim() || entry.task,
+    description: entry.label?.trim() || entry.taskSummary || entry.task,
     output_path: entry.outputPath,
     transcript_path: entry.transcriptPath,
     final_text: entry.finalText,
     error: entry.outcome?.error,
     prompt: entry.task,
     notified: entry.notified ?? false,
+    usage: resolveSubagentUsage(entry),
+    metadata: buildSubagentTaskMetadata(entry),
   };
 }
 
@@ -259,6 +337,13 @@ function scheduleSubagentCleanup(runId: string, source: "resume" | "lifecycle" |
     });
     finalizeSubagentCleanup(runId, current.cleanup, result);
   });
+}
+
+function deferSubagentCleanup(runId: string, source: "resume" | "lifecycle" | "wait") {
+  const timer = setTimeout(() => {
+    scheduleSubagentCleanup(runId, source);
+  }, 0);
+  timer.unref?.();
 }
 
 function resumeSubagentRun(runId: string) {
@@ -526,11 +611,17 @@ export function registerSubagentRun(params: {
   requesterOrigin?: DeliveryContext;
   requesterDisplayKey: string;
   task: string;
+  taskSummary?: string;
+  taskType?: SubagentTaskType;
+  filePaths?: string[];
+  sourceTaskId?: string;
+  allowFileChanges?: boolean;
   cleanup: "delete" | "keep";
   label?: string;
   profile?: SubagentCapabilityProfileId;
   requiredTools?: string[];
   sessionToolPolicy?: SandboxToolPolicy;
+  resolvedTools?: string[];
   runTimeoutSeconds?: number;
 }) {
   const now = Date.now();
@@ -546,11 +637,17 @@ export function registerSubagentRun(params: {
     requesterOrigin,
     requesterDisplayKey: params.requesterDisplayKey,
     task: params.task,
+    taskSummary: params.taskSummary,
+    taskType: params.taskType,
+    filePaths: params.filePaths,
+    sourceTaskId: params.sourceTaskId,
+    allowFileChanges: params.allowFileChanges,
     cleanup: params.cleanup,
     label: params.label,
     profile: params.profile,
     requiredTools: params.requiredTools,
     sessionToolPolicy: params.sessionToolPolicy,
+    resolvedTools: params.resolvedTools,
     createdAt: now,
     startedAt: now,
     archiveAtMs,
@@ -571,13 +668,20 @@ export function registerSubagentRun(params: {
       taskId: params.runId,
     },
     cleanupStrategy:
-      params.cleanup === "delete" ? "sessions.delete child session after cleanup" : "keep child session",
+      params.cleanup === "delete"
+        ? "sessions.delete child session after cleanup"
+        : "keep child session",
     linkedSidecars: [params.runId],
     createdAt: now,
     metadata: {
       cleanup: params.cleanup,
       label: params.label,
       profile: params.profile,
+      taskType: params.taskType,
+      filePaths: params.filePaths,
+      sourceTaskId: params.sourceTaskId,
+      allowFileChanges: params.allowFileChanges,
+      resolvedTools: params.resolvedTools,
     },
   });
   ensureListener();
@@ -649,7 +753,7 @@ async function waitForSubagentCompletion(runId: string, waitTimeoutMs: number) {
     if (mutated) {
       persistAndSyncSubagentRun(runId);
     }
-    scheduleSubagentCleanup(runId, "wait");
+    deferSubagentCleanup(runId, "wait");
   } catch (err) {
     const entry = subagentRuns.get(runId);
     if (entry) {
@@ -688,13 +792,16 @@ export function addSubagentRunForTests(entry: SubagentRunRecord) {
       taskId: entry.runId,
     },
     cleanupStrategy:
-      entry.cleanup === "delete" ? "sessions.delete child session after cleanup" : "keep child session",
+      entry.cleanup === "delete"
+        ? "sessions.delete child session after cleanup"
+        : "keep child session",
     linkedSidecars: [entry.runId],
     createdAt: entry.createdAt,
     metadata: {
       cleanup: entry.cleanup,
       label: entry.label,
       profile: entry.profile,
+      taskType: entry.taskType,
     },
   });
   persistAndSyncSubagentRun(entry.runId);
@@ -704,13 +811,17 @@ export function releaseSubagentRun(runId: string) {
   forgetSubagentRun(runId);
 }
 
-export function listSubagentRunsForRequester(requesterSessionKey: string): SubagentRunRecord[] {
+export function listSubagentRuns(): SubagentRunRecord[] {
   restoreSubagentRunsOnce();
+  return [...subagentRuns.values()];
+}
+
+export function listSubagentRunsForRequester(requesterSessionKey: string): SubagentRunRecord[] {
   const key = requesterSessionKey.trim();
   if (!key) {
     return [];
   }
-  return [...subagentRuns.values()].filter((entry) => entry.requesterSessionKey === key);
+  return listSubagentRuns().filter((entry) => entry.requesterSessionKey === key);
 }
 
 export function getSubagentRunBySessionKey(childSessionKey: string): SubagentRunRecord | undefined {

@@ -20,6 +20,9 @@ import {
   queueEmbeddedPiMessage,
   waitForEmbeddedPiRunEnd,
 } from "../pi-embedded.js";
+import { getSubagentRun, getSubagentRunBySessionKey } from "../subagent-registry.js";
+import { decideWorkerReuse } from "../subagent-reuse-policy.js";
+import { buildSubagentTaskSpec, normalizeSubagentTaskType } from "../subagent-task-spec.js";
 import {
   type ToolInvocationContract,
   toolValidationError,
@@ -73,6 +76,37 @@ const SessionsSendToolSchema = Type.Object(
     message: Type.String({
       description: "Message to inject into the target session.",
     }),
+    taskType: Type.Optional(
+      Type.String({
+        description:
+          'Optional structured task type: "research", "synthesis", "implementation", "correction", or "verification".',
+      }),
+    ),
+    purpose: Type.Optional(
+      Type.String({
+        description:
+          "Optional short purpose statement. When combined with facts/doneCriteria, OpenClaw generates a self-contained follow-up prompt.",
+      }),
+    ),
+    facts: Type.Optional(Type.Array(Type.String())),
+    doneCriteria: Type.Optional(Type.Array(Type.String())),
+    constraints: Type.Optional(Type.Array(Type.String())),
+    commands: Type.Optional(Type.Array(Type.String())),
+    filePaths: Type.Optional(Type.Array(Type.String())),
+    symbols: Type.Optional(Type.Array(Type.String())),
+    errors: Type.Optional(Type.Array(Type.String())),
+    sourceTaskId: Type.Optional(
+      Type.String({
+        description: "Optional source task/run id being continued, corrected, or verified.",
+      }),
+    ),
+    allowFileChanges: Type.Optional(Type.Boolean()),
+    changeApproach: Type.Optional(
+      Type.Boolean({
+        description:
+          "When true, this follow-up intentionally changes approach and should use a fresh worker.",
+      }),
+    ),
     timeoutSeconds: Type.Optional(
       Type.Number({
         minimum: 0,
@@ -98,13 +132,15 @@ const SESSIONS_SEND_INVOCATION_CONTRACT: ToolInvocationContract = {
   preconditions: [
     "Provide either sessionKey or label, not both.",
     "If resolving by label across agents, cross-agent messaging must be allowed.",
+    "Use self-contained follow-up prompts for implementation, correction, or verification work.",
   ],
   behaviorSummary:
-    "Injects a message into another session, optionally waits for a reply, and may route through the active in-process run when that session is already streaming.",
+    "Injects a message into another session, optionally waits for a reply, may route through the active in-process run when that session is already streaming, and can reject follow-ups that should use a fresh worker instead.",
   parametersSummary: [
     "sessionKey or label: target session identifier.",
     "agentId: optional label-resolution scope for cross-agent targets.",
     "message: required text to deliver.",
+    "taskType/purpose/facts/doneCriteria/...: optional structured follow-up fields for a self-contained worker prompt.",
     "timeoutSeconds: 0 for fire-and-forget, positive to wait for a reply.",
   ],
 };
@@ -156,12 +192,61 @@ export function createSessionsSendTool(opts?: {
       const params = args as Record<string, unknown>;
       assertKnownParams(
         params,
-        ["sessionKey", "sessionId", "label", "agentId", "message", "timeoutSeconds"],
+        [
+          "sessionKey",
+          "sessionId",
+          "label",
+          "agentId",
+          "message",
+          "taskType",
+          "purpose",
+          "facts",
+          "doneCriteria",
+          "constraints",
+          "commands",
+          "filePaths",
+          "symbols",
+          "errors",
+          "sourceTaskId",
+          "allowFileChanges",
+          "changeApproach",
+          "timeoutSeconds",
+        ],
         {
           label: "sessions_send",
         },
       );
       const message = readStringParam(params, "message", { required: true });
+      const taskTypeRaw = readStringParam(params, "taskType");
+      if (taskTypeRaw && !normalizeSubagentTaskType(taskTypeRaw)) {
+        return jsonResult({
+          runId: crypto.randomUUID(),
+          status: "error",
+          error:
+            'Invalid taskType. Use one of: "research", "synthesis", "implementation", "correction", or "verification".',
+        });
+      }
+      const taskSpec = buildSubagentTaskSpec({
+        task: message,
+        taskType: taskTypeRaw,
+        purpose: params.purpose,
+        facts: params.facts,
+        doneCriteria: params.doneCriteria,
+        constraints: params.constraints,
+        commands: params.commands,
+        filePaths: params.filePaths,
+        symbols: params.symbols,
+        errors: params.errors,
+        sourceTaskId: params.sourceTaskId,
+        allowFileChanges: params.allowFileChanges,
+      });
+      if (!taskSpec.ok) {
+        return jsonResult({
+          runId: crypto.randomUUID(),
+          status: "error",
+          error: taskSpec.error,
+        });
+      }
       const cfg = loadConfig();
       const { mainKey, alias } = resolveMainSessionAlias(cfg);
       const visibility = cfg.agents?.defaults?.sandbox?.sessionToolsVisibility ?? "spawned";
@@ -346,6 +431,44 @@ export function createSessionsSendTool(opts?: {
       const runtimeTarget = resolveRuntimeTargetSession(resolvedKey);
       const targetSessionKey = runtimeTarget.sessionKey;
       const targetSessionId = runtimeTarget.sessionId;
+      const targetRun = getSubagentRunBySessionKey(targetSessionKey);
+      if (
+        targetRun &&
+        (taskSpec.value.taskType ||
+          taskSpec.value.sourceTaskId ||
+          taskSpec.value.filePaths.length > 0 ||
+          params.changeApproach === true)
+      ) {
+        const sourceRun = taskSpec.value.sourceTaskId
+          ? getSubagentRun(taskSpec.value.sourceTaskId)
+          : undefined;
+        const relation =
+          sourceRun && sourceRun.runId === targetRun.runId
+            ? "same_slice"
+            : taskSpec.value.filePaths.length > 0 && (targetRun.filePaths?.length ?? 0) > 0
+              ? taskSpec.value.filePaths.some((entry) => targetRun.filePaths?.includes(entry))
+                ? "same_slice"
+                : "unrelated"
+              : undefined;
+        const reuseDecision = decideWorkerReuse({
+          currentWorkerRunId: targetRun.runId,
+          targetAuthorRunId: sourceRun?.runId,
+          nextTaskType: taskSpec.value.taskType,
+          currentFilePaths: targetRun.filePaths,
+          nextFilePaths: taskSpec.value.filePaths,
+          relation,
+          changeApproach: params.changeApproach === true,
+        });
+        if (reuseDecision.action === "spawn_fresh") {
+          return jsonResult({
+            runId: crypto.randomUUID(),
+            status: "error",
+            error: `This follow-up should use sessions_spawn instead of sessions_send. ${reuseDecision.reason}`,
+            sessionKey: displayKey,
+            reuseDecision,
+          });
+        }
+      }
       const targetAgentId = resolveAgentIdFromSessionKey(targetSessionKey);
       const isCrossAgent = requesterAgentId !== targetAgentId;
       if (isCrossAgent) {
@@ -373,8 +496,10 @@ export function createSessionsSendTool(opts?: {
         requesterChannel: opts?.agentChannel,
         targetSessionKey: displayKey,
       });
+      const outboundMessage = taskSpec.value.taskText;
+      const handoffSummary = taskSpec.value.taskSummary;
       const sendParams = {
-        message,
+        message: outboundMessage,
         sessionKey: targetSessionKey,
         idempotencyKey,
         deliver: false,
@@ -390,7 +515,7 @@ export function createSessionsSendTool(opts?: {
         void runSessionsSendA2AFlow({
           targetSessionKey,
           displayKey,
-          message,
+          message: handoffSummary,
           announceTimeoutMs,
           maxPingPongTurns,
           requesterSessionKey,
@@ -413,7 +538,7 @@ export function createSessionsSendTool(opts?: {
         const previousReply = await readLatestAssistantReply({
           sessionKey: targetSessionKey,
         }).catch(() => undefined);
-        if (queueEmbeddedPiMessage(targetSessionId, message)) {
+        if (queueEmbeddedPiMessage(targetSessionId, outboundMessage)) {
           const queuedDelivery = { status: "queued", mode: "active-run" as const };
           const awaitQueuedReply = async (waitMs: number) => {
             const settled = await waitForEmbeddedPiRunEnd(targetSessionId, waitMs);

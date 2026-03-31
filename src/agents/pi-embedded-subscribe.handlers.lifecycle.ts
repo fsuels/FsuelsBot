@@ -57,6 +57,7 @@ export function handleAutoCompactionEnd(
     stream: "compaction",
     data: { phase: "end", willRetry },
   });
+  void ctx.params.onAutoCompactionEnd?.({ willRetry });
 }
 
 export function handleAgentEnd(ctx: EmbeddedPiSubscribeContext) {

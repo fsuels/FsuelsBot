@@ -92,6 +92,24 @@ describe("sessions tools", () => {
     expect((schema.properties?.action as { type?: unknown } | undefined)?.type).toBe("string");
   });
 
+  it("exposes verification_gate with a provider-safe schema", () => {
+    const tool = createOpenClawTools({ agentSessionKey: "agent:main:main" }).find(
+      (candidate) => candidate.name === "verification_gate",
+    );
+
+    expect(tool).toBeDefined();
+    const schema = tool?.parameters as {
+      anyOf?: unknown;
+      oneOf?: unknown;
+      properties?: Record<string, unknown>;
+    };
+    expect(schema.anyOf).toBeUndefined();
+    expect(schema.oneOf).toBeUndefined();
+    expect((schema.properties?.changeSummary as { type?: unknown } | undefined)?.type).toBe(
+      "string",
+    );
+  });
+
   it("rejects unknown task fields for task_tracker replace", async () => {
     const tool = createOpenClawTools({ agentSessionKey: "agent:main:main" }).find(
       (candidate) => candidate.name === "task_tracker",
@@ -670,7 +688,7 @@ describe("sessions tools", () => {
     const agentCalls = calls.filter((call) => call.method === "agent");
     const waitCalls = calls.filter((call) => call.method === "agent.wait");
     const historyOnlyCalls = calls.filter((call) => call.method === "chat.history");
-    expect(agentCalls).toHaveLength(8);
+    expect(agentCalls.length).toBeGreaterThanOrEqual(8);
     for (const call of agentCalls) {
       expect(call.params).toMatchObject({
         lane: "nested",

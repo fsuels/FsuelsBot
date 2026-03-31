@@ -1,35 +1,34 @@
+import {
+  ensureEmbeddedRuntimeState,
+  getEmbeddedRuntimeState,
+} from "../pi-embedded-runner/runtime-state.js";
+
 export type CompactionSafeguardRuntimeValue = {
   maxHistoryShare?: number;
   contextWindowTokens?: number;
 };
 
-// Session-scoped runtime registry keyed by object identity.
-// Follows the same WeakMap pattern as context-pruning/runtime.ts.
-const REGISTRY = new WeakMap<object, CompactionSafeguardRuntimeValue>();
-
 export function setCompactionSafeguardRuntime(
   sessionManager: unknown,
   value: CompactionSafeguardRuntimeValue | null,
 ): void {
-  if (!sessionManager || typeof sessionManager !== "object") {
+  const runtimeState = ensureEmbeddedRuntimeState(sessionManager);
+  if (!runtimeState) {
     return;
   }
-
-  const key = sessionManager;
   if (value === null) {
-    REGISTRY.delete(key);
+    runtimeState.setExtensionRuntime("compactionSafeguard", null);
     return;
   }
-
-  REGISTRY.set(key, value);
+  runtimeState.setExtensionRuntime("compactionSafeguard", value);
 }
 
 export function getCompactionSafeguardRuntime(
   sessionManager: unknown,
 ): CompactionSafeguardRuntimeValue | null {
-  if (!sessionManager || typeof sessionManager !== "object") {
-    return null;
-  }
-
-  return REGISTRY.get(sessionManager) ?? null;
+  return (
+    getEmbeddedRuntimeState(sessionManager)?.getExtensionRuntime<CompactionSafeguardRuntimeValue>(
+      "compactionSafeguard",
+    ) ?? null
+  );
 }

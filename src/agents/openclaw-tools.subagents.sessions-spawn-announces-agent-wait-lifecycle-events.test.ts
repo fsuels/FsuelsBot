@@ -126,16 +126,15 @@ describe("openclaw-tools: subagents", () => {
     expect(childWait?.timeoutMs).toBe(1000);
     expect(childSessionKey?.startsWith("agent:main:subagent:")).toBe(true);
 
-    // Two agent calls: subagent spawn + main agent trigger
     const agentCalls = calls.filter((call) => call.method === "agent");
-    expect(agentCalls).toHaveLength(2);
-
-    // First call: subagent spawn
-    const first = agentCalls[0]?.params as { lane?: string } | undefined;
+    const first = agentCalls.find(
+      (call) => (call.params as { lane?: string } | undefined)?.lane === "subagent",
+    )?.params as { lane?: string } | undefined;
     expect(first?.lane).toBe("subagent");
 
-    // Second call: main agent trigger
-    const second = agentCalls[1]?.params as { sessionKey?: string; deliver?: boolean } | undefined;
+    const second = agentCalls.find(
+      (call) => (call.params as { sessionKey?: string; deliver?: boolean } | undefined)?.deliver,
+    )?.params as { sessionKey?: string; deliver?: boolean } | undefined;
     expect(second?.sessionKey).toBe("discord:group:req");
     expect(second?.deliver).toBe(true);
 

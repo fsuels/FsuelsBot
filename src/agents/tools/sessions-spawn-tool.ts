@@ -12,7 +12,6 @@ import { SESSION_LABEL_MAX_LENGTH, parseSessionLabel } from "../../sessions/sess
 import { normalizeDeliveryContext } from "../../utils/delivery-context.js";
 import { resolveAgentConfig } from "../agent-scope.js";
 import { AGENT_LANE_SUBAGENT } from "../lanes.js";
-import { isToolAllowedByPolicies, resolveSubagentToolPolicy } from "../pi-tools.policy.js";
 import { optionalStringEnum } from "../schema/typebox.js";
 import { buildSubagentSystemPrompt } from "../subagent-announce.js";
 import {
@@ -25,6 +24,14 @@ import {
   normalizeSubagentRequiredTools,
 } from "../subagent-policy.js";
 import { getSubagentRun, registerSubagentRun } from "../subagent-registry.js";
+import {
+  buildSubagentTaskSpec,
+  inferProfileFromTaskType,
+  inferTaskTypeFromProfile,
+  normalizeSubagentTaskType,
+  validateTaskTypeProfileCompatibility,
+} from "../subagent-task-spec.js";
+import { resolveSubagentToolSurface } from "../subagent-tool-resolution.js";
 import {
   type ToolInvocationContract,
   toolValidationError,
@@ -90,6 +97,78 @@ const SessionsSpawnToolSchema = Type.Object(
       "planner",
       "custom",
     ] as const),
+    taskType: Type.Optional(
+      Type.String({
+        description:
+          'Optional structured task type: "research", "synthesis", "implementation", "correction", or "verification".',
+      }),
+    ),
+    purpose: Type.Optional(
+      Type.String({
+        description:
+          "Optional short purpose statement. When combined with facts/doneCriteria, OpenClaw generates a self-contained worker prompt.",
+      }),
+    ),
+    facts: Type.Optional(
+      Type.Array(
+        Type.String({
+          description: "Concrete fact the worker needs inline.",
+        }),
+      ),
+    ),
+    doneCriteria: Type.Optional(
+      Type.Array(
+        Type.String({
+          description: "Explicit completion criteria for the worker handoff.",
+        }),
+      ),
+    ),
+    constraints: Type.Optional(
+      Type.Array(
+        Type.String({
+          description: "Constraint the worker must honor.",
+        }),
+      ),
+    ),
+    commands: Type.Optional(
+      Type.Array(
+        Type.String({
+          description: "Suggested command or verification step.",
+        }),
+      ),
+    ),
+    filePaths: Type.Optional(
+      Type.Array(
+        Type.String({
+          description: "Relevant file path for the task.",
+        }),
+      ),
+    ),
+    symbols: Type.Optional(
+      Type.Array(
+        Type.String({
+          description: "Relevant symbol, function, or class name.",
+        }),
+      ),
+    ),
+    errors: Type.Optional(
+      Type.Array(
+        Type.String({
+          description: "Known failing behavior, error text, or stack excerpt.",
+        }),
+      ),
+    ),
+    sourceTaskId: Type.Optional(
+      Type.String({
+        description: "Optional source task/run id being continued, corrected, or verified.",
+      }),
+    ),
+    allowFileChanges: Type.Optional(
+      Type.Boolean({
+        description:
+          "Optional explicit file-modification flag. Research and verification default to false.",
+      }),
+    ),
     requiredTools: Type.Optional(
       Type.Array(
         Type.String({
@@ -131,13 +210,15 @@ const SESSIONS_SPAWN_INVOCATION_CONTRACT: ToolInvocationContract = {
     "A concrete child task is ready.",
     "If targeting another agent, that agent must be allowlisted for the requester.",
     "Pick a capability profile or requiredTools when the worker's scope is obvious.",
+    "For synthesis, implementation, correction, or verification work, prefer taskType + facts + doneCriteria so the worker prompt is self-contained.",
   ],
   behaviorSummary:
-    "Starts a background child agent run in a separate session, records task-output metadata, and can clean up the child session after completion.",
+    "Starts a background child agent run in a separate session, records task-output metadata, can render a self-contained worker prompt from structured fields, and can clean up the child session after completion.",
   parametersSummary: [
     "task: required worker instruction.",
     "label: optional stable name for follow-up sends.",
     "agentId: optional cross-agent target when allowlisted.",
+    "taskType/purpose/facts/doneCriteria/...: optional structured handoff fields for self-contained worker prompts.",
     "profile, requiredTools, toolAllow, toolDeny: worker capability controls.",
     "runTimeoutSeconds: optional wait timeout for the child run.",
     "cleanup: keep or delete the child session after it finishes.",
@@ -190,6 +271,17 @@ export function createSessionsSpawnTool(opts?: {
           "timeoutSeconds",
           "cleanup",
           "profile",
+          "taskType",
+          "purpose",
+          "facts",
+          "doneCriteria",
+          "constraints",
+          "commands",
+          "filePaths",
+          "symbols",
+          "errors",
+          "sourceTaskId",
+          "allowFileChanges",
           "requiredTools",
           "toolAllow",
           "toolDeny",
@@ -204,12 +296,52 @@ export function createSessionsSpawnTool(opts?: {
       const profileRaw = readStringParam(params, "profile");
       const cleanup =
         params.cleanup === "keep" || params.cleanup === "delete" ? params.cleanup : "keep";
-      const profile = normalizeSubagentCapabilityProfile(profileRaw);
-      if (profileRaw && !profile) {
+      const requestedProfile = normalizeSubagentCapabilityProfile(profileRaw);
+      if (profileRaw && !requestedProfile) {
         return jsonResult({
           status: "error",
           error:
             'Invalid profile. Use one of: "research", "implementation", "test-runner", "planner", "custom".',
+        });
+      }
+      const taskTypeRaw = readStringParam(params, "taskType");
+      if (taskTypeRaw && !normalizeSubagentTaskType(taskTypeRaw)) {
+        return jsonResult({
+          status: "error",
+          error:
+            'Invalid taskType. Use one of: "research", "synthesis", "implementation", "correction", or "verification".',
+        });
+      }
+      const taskSpec = buildSubagentTaskSpec({
+        task,
+        taskType: taskTypeRaw,
+        purpose: params.purpose,
+        facts: params.facts,
+        doneCriteria: params.doneCriteria,
+        constraints: params.constraints,
+        commands: params.commands,
+        filePaths: params.filePaths,
+        symbols: params.symbols,
+        errors: params.errors,
+        sourceTaskId: params.sourceTaskId,
+        allowFileChanges: params.allowFileChanges,
+        defaultTaskType: inferTaskTypeFromProfile(requestedProfile),
+      });
+      if (!taskSpec.ok) {
+        return jsonResult({
+          status: "error",
+          error: taskSpec.error,
+        });
+      }
+      const profile = requestedProfile ?? inferProfileFromTaskType(taskSpec.value.taskType);
+      const profileCompatibilityError = validateTaskTypeProfileCompatibility({
+        taskType: taskSpec.value.taskType,
+        profile,
+      });
+      if (profileCompatibilityError) {
+        return jsonResult({
+          status: "error",
+          error: profileCompatibilityError,
         });
       }
       const requiredTools = normalizeSubagentRequiredTools(params.requiredTools);
@@ -293,26 +425,13 @@ export function createSessionsSpawnTool(opts?: {
         }
       }
       const spawnedByKey = requesterInternalKey;
-      const blockedRequiredTools = (requiredTools ?? []).filter(
-        (toolName) =>
-          !isToolAllowedByPolicies(toolName, [resolveSubagentToolPolicy(cfg), sessionToolPolicy]),
-      );
-      if (blockedRequiredTools.length > 0) {
-        const profileLabel = profile ?? "default";
-        return jsonResult({
-          status: "error",
-          error:
-            `Subagent profile "${profileLabel}" cannot satisfy requiredTools: ` +
-            blockedRequiredTools.join(", "),
-        });
-      }
 
       const launch = resolveSubagentLaunchConfig({
         cfg,
         requesterSessionKey: requesterInternalKey,
         requesterAgentId,
         targetAgentId,
-        task,
+        task: taskSpec.value.taskText,
         label: label || undefined,
         toolCallId: _toolCallId,
         requestedModel: modelOverride,
@@ -327,6 +446,44 @@ export function createSessionsSpawnTool(opts?: {
 
       const { childSessionKey, childIdempotencyKey, resolvedModel, resolvedThinking } =
         launch.value;
+      const toolResolution = resolveSubagentToolSurface({
+        config: cfg,
+        targetAgentId,
+        sessionKey: childSessionKey,
+        sessionToolPolicy,
+        requiredTools,
+        toolAllow,
+        toolDeny,
+      });
+      if (toolResolution.invalidTools.length > 0) {
+        const invalidSections = [
+          toolResolution.invalidByField.requiredTools.length > 0
+            ? `requiredTools=${toolResolution.invalidByField.requiredTools.join(", ")}`
+            : undefined,
+          toolResolution.invalidByField.toolAllow.length > 0
+            ? `toolAllow=${toolResolution.invalidByField.toolAllow.join(", ")}`
+            : undefined,
+          toolResolution.invalidByField.toolDeny.length > 0
+            ? `toolDeny=${toolResolution.invalidByField.toolDeny.join(", ")}`
+            : undefined,
+        ].filter(Boolean);
+        return jsonResult({
+          status: "error",
+          error: `Invalid subagent tool specs: ${invalidSections.join("; ")}`,
+        });
+      }
+      const blockedRequiredTools = (requiredTools ?? []).filter(
+        (toolName) => !toolResolution.resolvedTools.includes(toolName),
+      );
+      if (blockedRequiredTools.length > 0) {
+        const profileLabel = profile ?? "default";
+        return jsonResult({
+          status: "error",
+          error:
+            `Subagent profile "${profileLabel}" cannot satisfy requiredTools: ` +
+            blockedRequiredTools.join(", "),
+        });
+      }
 
       let appliedLabel = label || undefined;
       try {
@@ -354,10 +511,12 @@ export function createSessionsSpawnTool(opts?: {
         requesterOrigin,
         childSessionKey,
         label: appliedLabel,
-        task,
+        task: taskSpec.value.taskText,
+        taskSummary: taskSpec.value.taskSummary,
         profile,
         requiredTools,
         sessionToolPolicy,
+        resolvedTools: toolResolution.resolvedTools,
       });
 
       let childRunId: string = childIdempotencyKey;
@@ -365,7 +524,7 @@ export function createSessionsSpawnTool(opts?: {
         const response = await callGateway<{ runId: string }>({
           method: "agent",
           params: {
-            message: task,
+            message: taskSpec.value.taskText,
             sessionKey: childSessionKey,
             channel: requesterOrigin?.channel,
             to: requesterOrigin?.to ?? undefined,
@@ -405,12 +564,18 @@ export function createSessionsSpawnTool(opts?: {
         requesterSessionKey: requesterInternalKey,
         requesterOrigin,
         requesterDisplayKey,
-        task,
+        task: taskSpec.value.taskText,
+        taskSummary: taskSpec.value.taskSummary,
+        taskType: taskSpec.value.taskType,
+        filePaths: taskSpec.value.filePaths,
+        sourceTaskId: taskSpec.value.sourceTaskId,
+        allowFileChanges: taskSpec.value.allowFileChanges,
         cleanup,
         label: appliedLabel,
         profile,
         requiredTools,
         sessionToolPolicy,
+        resolvedTools: toolResolution.resolvedTools,
         runTimeoutSeconds,
       });
       const taskEntry = getSubagentRun(childRunId);
@@ -424,7 +589,11 @@ export function createSessionsSpawnTool(opts?: {
         output_path: taskEntry?.outputPath,
         transcript_path: taskEntry?.transcriptPath,
         notified: taskEntry?.notified ?? false,
+        taskType: taskSpec.value.taskType,
+        taskStructured: taskSpec.value.isStructured,
         profile,
+        resolvedTools: toolResolution.resolvedTools,
+        validTools: toolResolution.validTools,
         labelApplied: appliedLabel,
         modelApplied: resolvedModel ? modelApplied : undefined,
         modelResolved: resolvedModel,

@@ -87,12 +87,13 @@ import {
   type EmbeddedPiQueueHandle,
   setActiveEmbeddedRun,
 } from "../runs.js";
+import { ensureEmbeddedRuntimeState, wrapStreamFnWithRuntimeState } from "../runtime-state.js";
 import { buildEmbeddedSandboxInfo } from "../sandbox-info.js";
 import { prewarmSessionFile, trackSessionManagerAccess } from "../session-manager-cache.js";
 import { prepareSessionManagerForRun } from "../session-manager-init.js";
 import {
   applySystemPromptOverrideToSession,
-  buildEmbeddedSystemPrompt,
+  buildEmbeddedSystemPromptArtifacts,
   createSystemPromptOverride,
 } from "../system-prompt.js";
 import { truncateOversizedToolResultsInMessages } from "../tool-result-truncation.js";
@@ -383,7 +384,7 @@ export async function runEmbeddedAttempt(
       return { text: `${base.text}\n\n${hint}` };
     })();
 
-    const appendPrompt = buildEmbeddedSystemPrompt({
+    const promptArtifacts = buildEmbeddedSystemPromptArtifacts({
       workspaceDir: effectiveWorkspace,
       defaultThinkLevel: params.thinkLevel,
       reasoningLevel: params.reasoningLevel ?? "off",
@@ -415,6 +416,7 @@ export async function runEmbeddedAttempt(
       driftInjection: params.driftInjection,
       coherenceIntervention: effectiveCoherenceIntervention,
     });
+    const appendPrompt = promptArtifacts.prompt;
     const systemPromptReport = buildSystemPromptReport({
       source: "run",
       generatedAt: Date.now(),
@@ -432,6 +434,7 @@ export async function runEmbeddedAttempt(
         return { mode: runtime.mode, sandboxed: runtime.sandboxed };
       })(),
       systemPrompt: appendPrompt,
+      promptAssembly: promptArtifacts,
       bootstrapFiles: hookAdjustedBootstrapFiles,
       injectedFiles: contextFiles,
       skillsPrompt,
@@ -478,6 +481,17 @@ export async function runEmbeddedAttempt(
         hadSessionFile,
         sessionId: params.sessionId,
         cwd: effectiveWorkspace,
+      });
+      const runtimeState = ensureEmbeddedRuntimeState(sessionManager, {
+        sessionId: params.sessionId,
+        sessionKey: params.sessionKey,
+        parentSessionKey: params.spawnedBy ?? undefined,
+        sessionFile: params.sessionFile,
+        originalWorkspaceRoot: resolvedWorkspace,
+        stableProjectRoot: resolvedWorkspace,
+        activeWorkingDir: effectiveWorkspace,
+        allowSyntheticToolResults: transcriptPolicy.allowSyntheticToolResults,
+        strictToolResultPairing: false,
       });
       appendTaskContextMarker({
         sessionManager,
@@ -625,6 +639,17 @@ export async function runEmbeddedAttempt(
           activeSession.agent.streamFn,
         );
       }
+      if (runtimeState) {
+        runtimeState.switchSession({
+          sessionId: activeSession.sessionId,
+          sessionFile: params.sessionFile,
+        });
+        activeSession.agent.streamFn = wrapStreamFnWithRuntimeState({
+          streamFn: activeSession.agent.streamFn,
+          runtimeState,
+          requestId: params.runId,
+        });
+      }
 
       try {
         const history = resolveTaskScopedHistoryMessages({
@@ -702,6 +727,14 @@ export async function runEmbeddedAttempt(
           }
         }
       } catch (err) {
+        runtimeState?.recordError({
+          phase: "prepare-session-history",
+          message: describeUnknownError(err),
+          details: {
+            runId: params.runId,
+            sessionId: params.sessionId,
+          },
+        });
         sessionManager.flushPendingToolResults?.();
         activeSession.dispose();
         throw err;
@@ -775,6 +808,11 @@ export async function runEmbeddedAttempt(
         onPartialReply: params.onPartialReply,
         onAssistantMessageStart: params.onAssistantMessageStart,
         onAgentEvent: params.onAgentEvent,
+        onAutoCompactionEnd: ({ willRetry }) => {
+          if (willRetry) {
+            runtimeState?.markPostCompaction();
+          }
+        },
         enforceFinalTag: params.enforceFinalTag,
       });
 
@@ -871,29 +909,27 @@ export async function runEmbeddedAttempt(
         }
 
         // Run before_agent_start hooks to allow plugins to inject context
-        if (hookRunner?.hasHooks("before_agent_start")) {
-          try {
-            const hookResult = await hookRunner.runBeforeAgentStart(
-              {
-                prompt: params.prompt,
-                messages: activeSession.messages,
-              },
-              {
-                agentId: hookAgentId,
-                sessionKey: params.sessionKey,
-                workspaceDir: params.workspaceDir,
-                messageProvider: params.messageProvider ?? undefined,
-              },
+        try {
+          const hookResult = await hookRunner.runBeforeAgentStart(
+            {
+              prompt: params.prompt,
+              messages: activeSession.messages,
+            },
+            {
+              agentId: hookAgentId,
+              sessionKey: params.sessionKey,
+              workspaceDir: params.workspaceDir,
+              messageProvider: params.messageProvider ?? undefined,
+            },
+          );
+          if (hookResult?.prependContext) {
+            effectivePrompt = `${hookResult.prependContext}\n\n${params.prompt}`;
+            log.debug(
+              `hooks: prepended context to prompt (${hookResult.prependContext.length} chars)`,
             );
-            if (hookResult?.prependContext) {
-              effectivePrompt = `${hookResult.prependContext}\n\n${params.prompt}`;
-              log.debug(
-                `hooks: prepended context to prompt (${hookResult.prependContext.length} chars)`,
-              );
-            }
-          } catch (hookErr) {
-            log.warn(`before_agent_start hook failed: ${String(hookErr)}`);
           }
+        } catch (hookErr) {
+          log.warn(`before_agent_start hook failed: ${String(hookErr)}`);
         }
 
         log.debug(`embedded run prompt start: runId=${params.runId} sessionId=${params.sessionId}`);
@@ -1003,7 +1039,30 @@ export async function runEmbeddedAttempt(
             }
           } catch (err) {
             promptError = err;
+            runtimeState?.recordError({
+              phase: "prompt",
+              message: describeUnknownError(err),
+              details: {
+                runId: params.runId,
+                sessionId: params.sessionId,
+                provider: params.provider,
+                modelId: params.modelId,
+              },
+            });
           } finally {
+            const promptDurationMs = Date.now() - promptStartedAt;
+            if (promptDurationMs >= 5_000) {
+              runtimeState?.recordSlowOperation({
+                label: "embedded_prompt",
+                durationMs: promptDurationMs,
+                details: {
+                  runId: params.runId,
+                  sessionId: params.sessionId,
+                  provider: params.provider,
+                  modelId: params.modelId,
+                },
+              });
+            }
             log.debug(
               `embedded run prompt end: runId=${params.runId} sessionId=${params.sessionId} durationMs=${Date.now() - promptStartedAt}`,
             );
@@ -1024,6 +1083,7 @@ export async function runEmbeddedAttempt(
 
         messagesSnapshot = activeSession.messages.slice();
         sessionIdUsed = activeSession.sessionId;
+        runtimeState?.markApiCompletion();
         cacheTrace?.recordStage("session:after", {
           messages: messagesSnapshot,
           note: promptError ? "prompt error" : undefined,
@@ -1032,26 +1092,24 @@ export async function runEmbeddedAttempt(
 
         // Run agent_end hooks to allow plugins to analyze the conversation
         // This is fire-and-forget, so we don't await
-        if (hookRunner?.hasHooks("agent_end")) {
-          hookRunner
-            .runAgentEnd(
-              {
-                messages: messagesSnapshot,
-                success: !aborted && !promptError,
-                error: promptError ? describeUnknownError(promptError) : undefined,
-                durationMs: Date.now() - promptStartedAt,
-              },
-              {
-                agentId: hookAgentId,
-                sessionKey: params.sessionKey,
-                workspaceDir: params.workspaceDir,
-                messageProvider: params.messageProvider ?? undefined,
-              },
-            )
-            .catch((err) => {
-              log.warn(`agent_end hook failed: ${err}`);
-            });
-        }
+        hookRunner
+          .runAgentEnd(
+            {
+              messages: messagesSnapshot,
+              success: !aborted && !promptError,
+              error: promptError ? describeUnknownError(promptError) : undefined,
+              durationMs: Date.now() - promptStartedAt,
+            },
+            {
+              agentId: hookAgentId,
+              sessionKey: params.sessionKey,
+              workspaceDir: params.workspaceDir,
+              messageProvider: params.messageProvider ?? undefined,
+            },
+          )
+          .catch((err) => {
+            log.warn(`agent_end hook failed: ${err}`);
+          });
       } finally {
         clearTimeout(abortTimer);
         if (abortWarnTimer) {

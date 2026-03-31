@@ -316,14 +316,18 @@ export function buildSubagentSystemPrompt(params: {
   childSessionKey: string;
   label?: string;
   task?: string;
+  taskSummary?: string;
   profile?: SubagentCapabilityProfileId;
   requiredTools?: string[];
   sessionToolPolicy?: SandboxToolPolicy;
+  resolvedTools?: string[];
 }) {
   const taskText =
-    typeof params.task === "string" && params.task.trim()
-      ? params.task.replace(/\s+/g, " ").trim()
-      : "{{TASK_DESCRIPTION}}";
+    typeof params.taskSummary === "string" && params.taskSummary.trim()
+      ? params.taskSummary.replace(/\s+/g, " ").trim()
+      : typeof params.task === "string" && params.task.trim()
+        ? params.task.replace(/\s+/g, " ").trim()
+        : "{{TASK_DESCRIPTION}}";
   const lines = [
     "# Subagent Context",
     "",
@@ -344,6 +348,7 @@ export function buildSubagentSystemPrompt(params: {
       profile: params.profile,
       requiredTools: params.requiredTools,
       sessionToolPolicy: params.sessionToolPolicy,
+      resolvedTools: params.resolvedTools,
     }),
     "## Output Format",
     "When complete, your final response should include:",
