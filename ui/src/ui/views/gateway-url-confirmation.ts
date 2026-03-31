@@ -8,7 +8,13 @@ export function renderGatewayUrlConfirmation(state: AppViewState) {
   }
 
   return html`
-    <div class="exec-approval-overlay" role="dialog" aria-modal="true" aria-live="polite">
+    <div
+      class="exec-approval-overlay"
+      data-overlay-id="gateway-url-confirmation"
+      role="dialog"
+      aria-modal="true"
+      aria-live="polite"
+    >
       <div class="exec-approval-card">
         <div class="exec-approval-header">
           <div>
