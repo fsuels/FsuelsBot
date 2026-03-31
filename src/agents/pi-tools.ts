@@ -1,13 +1,8 @@
-import {
-  codingTools,
-  createEditTool,
-  createReadTool,
-  createWriteTool,
-  readTool,
-} from "@mariozechner/pi-coding-agent";
+import { codingTools, readTool } from "@mariozechner/pi-coding-agent";
 import type { OpenClawConfig } from "../config/config.js";
 import type { ModelAuthMode } from "./model-auth.js";
 import type { AnyAgentTool } from "./pi-tools.types.js";
+import type { CollaborationMode, PlanModeProfile } from "./plan-mode.js";
 import type { SandboxContext } from "./sandbox.js";
 import { logWarn } from "../logger.js";
 import { getPluginToolMeta } from "../plugins/tools.js";
@@ -21,6 +16,7 @@ import {
   type ProcessToolDefaults,
 } from "./bash-tools.js";
 import { listChannelAgentTools } from "./channel-tools.js";
+import { createFileEditStateTracker } from "./file-edit-safety.js";
 import { createOpenClawTools } from "./openclaw-tools.js";
 import { wrapToolWithAbortSignal } from "./pi-tools.abort.js";
 import { wrapToolWithBeforeToolCallHook } from "./pi-tools.before-tool-call.js";
@@ -35,8 +31,9 @@ import {
 } from "./pi-tools.policy.js";
 import {
   assertRequiredParams,
-  CLAUDE_PARAM_GROUPS,
-  createOpenClawReadTool,
+  createWorkspaceEditTool,
+  createWorkspaceReadTool,
+  createWorkspaceWriteTool,
   createSandboxedEditTool,
   createSandboxedReadTool,
   createSandboxedWriteTool,
@@ -45,6 +42,7 @@ import {
   wrapToolParamNormalization,
 } from "./pi-tools.read.js";
 import { cleanToolSchemaForGemini, normalizeToolParameters } from "./pi-tools.schema.js";
+import { filterToolsForPlanMode } from "./plan-mode.js";
 import { applyToolContracts } from "./tool-contracts.js";
 import {
   assertUniqueToolNames,
@@ -117,6 +115,18 @@ export const __testing = {
   assertRequiredParams,
 } as const;
 
+const READ_ONLY_BASE_TOOL_NAMES = new Set(["ls"]);
+
+function markToolReadOnly<T extends AnyAgentTool>(tool: T): T {
+  if (tool.isReadOnly?.() === true) {
+    return tool;
+  }
+  return {
+    ...tool,
+    isReadOnly: () => true,
+  };
+}
+
 export function createOpenClawCodingTools(options?: {
   exec?: ExecToolDefaults & ProcessToolDefaults;
   messageProvider?: string;
@@ -170,6 +180,8 @@ export function createOpenClawCodingTools(options?: {
   disableMessageTool?: boolean;
   /** Whether the sender is an owner (required for owner-only tools). */
   senderIsOwner?: boolean;
+  collaborationMode?: CollaborationMode;
+  planProfile?: PlanModeProfile;
 }): AnyAgentTool[] {
   const execToolName = "exec";
   const sandbox = options?.sandbox?.enabled ? options.sandbox : undefined;
@@ -242,6 +254,7 @@ export function createOpenClawCodingTools(options?: {
   const allowWorkspaceWrites = sandbox?.workspaceAccess !== "ro";
   const workspaceRoot = options?.workspaceDir ?? process.cwd();
   const fileToolRoot = sandboxRoot ?? workspaceRoot;
+  const fileEditState = createFileEditStateTracker();
   const applyPatchConfig = options?.config?.tools?.exec?.applyPatch;
   const applyPatchEnabled =
     !!applyPatchConfig?.enabled &&
@@ -255,10 +268,20 @@ export function createOpenClawCodingTools(options?: {
   const base = (codingTools as unknown as AnyAgentTool[]).flatMap((tool) => {
     if (tool.name === readTool.name) {
       if (sandboxRoot) {
-        return [createSandboxedReadTool(sandboxRoot)];
+        return [
+          createSandboxedReadTool(sandboxRoot, {
+            stateTracker: fileEditState,
+            cwd: sandboxRoot,
+            sandboxRoot,
+          }),
+        ];
       }
-      const freshReadTool = createReadTool(workspaceRoot);
-      return [createOpenClawReadTool(freshReadTool)];
+      return [
+        createWorkspaceReadTool(workspaceRoot, {
+          stateTracker: fileEditState,
+          cwd: workspaceRoot,
+        }),
+      ];
     }
     if (tool.name === "bash" || tool.name === execToolName) {
       return [];
@@ -267,19 +290,25 @@ export function createOpenClawCodingTools(options?: {
       if (sandboxRoot) {
         return [];
       }
-      // Wrap with param normalization for Claude Code compatibility
       return [
-        wrapToolParamNormalization(createWriteTool(workspaceRoot), CLAUDE_PARAM_GROUPS.write),
+        createWorkspaceWriteTool(workspaceRoot, {
+          stateTracker: fileEditState,
+          cwd: workspaceRoot,
+        }),
       ];
     }
     if (tool.name === "edit") {
       if (sandboxRoot) {
         return [];
       }
-      // Wrap with param normalization for Claude Code compatibility
-      return [wrapToolParamNormalization(createEditTool(workspaceRoot), CLAUDE_PARAM_GROUPS.edit)];
+      return [
+        createWorkspaceEditTool(workspaceRoot, {
+          stateTracker: fileEditState,
+          cwd: workspaceRoot,
+        }),
+      ];
     }
-    return [tool];
+    return [READ_ONLY_BASE_TOOL_NAMES.has(tool.name) ? markToolReadOnly(tool) : tool];
   });
   const { cleanupMs: cleanupMsOverride, ...execDefaults } = options?.exec ?? {};
   const execTool = createExecTool({
@@ -313,6 +342,7 @@ export function createOpenClawCodingTools(options?: {
   const processTool = createProcessTool({
     cleanupMs: cleanupMsOverride ?? execConfig.cleanupMs,
     scopeKey,
+    sessionKey: options?.sessionKey,
   });
   const applyPatchTool =
     !applyPatchEnabled || (sandboxRoot && !allowWorkspaceWrites)
@@ -323,17 +353,32 @@ export function createOpenClawCodingTools(options?: {
         });
   const tools: AnyAgentTool[] = [
     ...base,
-    createGrepTool({
-      cwd: fileToolRoot,
-      ...(sandboxRoot ? { sandboxRoot: fileToolRoot } : {}),
-    }),
-    createOpenClawFindTool({
-      workspaceRoot: fileToolRoot,
-      ...(sandboxRoot ? { sandboxRoot: fileToolRoot } : {}),
-    }),
+    markToolReadOnly(
+      createGrepTool({
+        cwd: fileToolRoot,
+        ...(sandboxRoot ? { sandboxRoot: fileToolRoot } : {}),
+      }),
+    ),
+    markToolReadOnly(
+      createOpenClawFindTool({
+        workspaceRoot: fileToolRoot,
+        ...(sandboxRoot ? { sandboxRoot: fileToolRoot } : {}),
+      }),
+    ),
     ...(sandboxRoot
       ? allowWorkspaceWrites
-        ? [createSandboxedEditTool(sandboxRoot), createSandboxedWriteTool(sandboxRoot)]
+        ? [
+            createSandboxedEditTool(sandboxRoot, {
+              stateTracker: fileEditState,
+              cwd: sandboxRoot,
+              sandboxRoot,
+            }),
+            createSandboxedWriteTool(sandboxRoot, {
+              stateTracker: fileEditState,
+              cwd: sandboxRoot,
+              sandboxRoot,
+            }),
+          ]
         : []
       : []),
     ...(applyPatchTool ? [applyPatchTool as unknown as AnyAgentTool] : []),
@@ -463,9 +508,13 @@ export function createOpenClawCodingTools(options?: {
   const subagentFiltered = subagentSessionPolicyExpanded
     ? filterToolsByPolicy(subagentBaseFiltered, subagentSessionPolicyExpanded)
     : subagentBaseFiltered;
+  const planModeFiltered =
+    options?.collaborationMode === "plan"
+      ? filterToolsForPlanMode(subagentFiltered)
+      : subagentFiltered;
   // Always normalize tool JSON Schemas before handing them to pi-agent/pi-ai.
   // Without this, some providers (notably OpenAI) will reject root-level union schemas.
-  const normalized = subagentFiltered.map(normalizeToolParameters);
+  const normalized = planModeFiltered.map(normalizeToolParameters);
   const withContracts = normalized.map(applyToolContracts);
   const withHooks = withContracts.map((tool) =>
     wrapToolWithBeforeToolCallHook(tool, {

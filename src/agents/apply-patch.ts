@@ -3,7 +3,15 @@ import { Type } from "@sinclair/typebox";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { applyUpdateHunk } from "./apply-patch-update.js";
+import { applyUpdateChunks } from "./apply-patch-update.js";
+import {
+  assertSafeToolPathInput,
+  createFileEditStateTracker,
+  decodeTextBuffer,
+  encodeTextWithMetadata,
+  fileToolErrorToResult,
+  FileToolError,
+} from "./file-edit-safety.js";
 import { assertSandboxPath } from "./sandbox-paths.js";
 
 const BEGIN_PATCH_MARKER = "*** Begin Patch";
@@ -63,6 +71,7 @@ type ApplyPatchOptions = {
   cwd: string;
   sandboxRoot?: string;
   signal?: AbortSignal;
+  stateTracker?: ReturnType<typeof createFileEditStateTracker>;
 };
 
 const applyPatchSchema = Type.Object({
@@ -72,17 +81,22 @@ const applyPatchSchema = Type.Object({
 });
 
 export function createApplyPatchTool(
-  options: { cwd?: string; sandboxRoot?: string } = {},
+  options: {
+    cwd?: string;
+    sandboxRoot?: string;
+    stateTracker?: ReturnType<typeof createFileEditStateTracker>;
+  } = {},
   // oxlint-disable-next-line typescript/no-explicit-any
 ): AgentTool<any, ApplyPatchToolDetails> {
   const cwd = options.cwd ?? process.cwd();
   const sandboxRoot = options.sandboxRoot;
+  const stateTracker = options.stateTracker;
 
   return {
     name: "apply_patch",
     label: "apply_patch",
     description:
-      "Apply a patch to one or more files using the apply_patch format. The input should include *** Begin Patch and *** End Patch markers.",
+      "Apply a patch to one or more files using the apply_patch format. Existing files must be read first in the current run, and the patch is rejected if the file changed since that read.",
     parameters: applyPatchSchema,
     execute: async (_toolCallId, args, signal) => {
       const params = args as { input?: string };
@@ -96,11 +110,20 @@ export function createApplyPatchTool(
         throw err;
       }
 
-      const result = await applyPatch(input, {
-        cwd,
-        sandboxRoot,
-        signal,
-      });
+      let result: ApplyPatchResult;
+      try {
+        result = await applyPatch(input, {
+          cwd,
+          sandboxRoot,
+          signal,
+          stateTracker,
+        });
+      } catch (err) {
+        if (err instanceof FileToolError) {
+          return fileToolErrorToResult("apply_patch", err);
+        }
+        throw err;
+      }
 
       return {
         content: [{ type: "text", text: result.text }],
@@ -140,29 +163,70 @@ export async function applyPatch(
     if (hunk.kind === "add") {
       const target = await resolvePatchPath(hunk.path, options);
       await ensureDir(target.resolved);
-      await fs.writeFile(target.resolved, hunk.contents, "utf8");
+      if (options.stateTracker) {
+        await options.stateTracker.writeText("apply_patch", target.resolved, hunk.contents, {
+          allowCreate: true,
+        });
+      } else {
+        await fs.writeFile(target.resolved, encodeTextWithMetadata(hunk.contents));
+      }
       recordSummary(summary, seen, "added", target.display);
       continue;
     }
 
     if (hunk.kind === "delete") {
       const target = await resolvePatchPath(hunk.path, options);
+      if (options.stateTracker) {
+        await options.stateTracker.ensureExistingFileIsFresh("apply_patch", target.resolved);
+      }
       await fs.rm(target.resolved);
+      if (options.stateTracker) {
+        await options.stateTracker.forgetPath(target.resolved);
+      }
       recordSummary(summary, seen, "deleted", target.display);
       continue;
     }
 
     const target = await resolvePatchPath(hunk.path, options);
-    const applied = await applyUpdateHunk(target.resolved, hunk.chunks);
+    let appliedText: string;
+    let encodedApplied: Buffer | undefined;
+
+    if (options.stateTracker) {
+      const sourceBuffer = await options.stateTracker.readBufferForEdit(
+        "apply_patch",
+        target.resolved,
+      );
+      appliedText = applyUpdateChunks(target.resolved, sourceBuffer.toString("utf8"), hunk.chunks);
+    } else {
+      const originalBuffer = await fs.readFile(target.resolved);
+      const decoded = decodeTextBuffer(originalBuffer);
+      appliedText = applyUpdateChunks(target.resolved, decoded.text, hunk.chunks);
+      encodedApplied = encodeTextWithMetadata(appliedText, decoded.metadata);
+    }
 
     if (hunk.movePath) {
       const moveTarget = await resolvePatchPath(hunk.movePath, options);
       await ensureDir(moveTarget.resolved);
-      await fs.writeFile(moveTarget.resolved, applied, "utf8");
+      if (options.stateTracker) {
+        await options.stateTracker.writeText("apply_patch", moveTarget.resolved, appliedText, {
+          allowCreate: true,
+        });
+      } else {
+        await fs.writeFile(moveTarget.resolved, encodedApplied ?? Buffer.from(appliedText, "utf8"));
+      }
       await fs.rm(target.resolved);
+      if (options.stateTracker) {
+        await options.stateTracker.forgetPath(target.resolved);
+      }
       recordSummary(summary, seen, "modified", moveTarget.display);
     } else {
-      await fs.writeFile(target.resolved, applied, "utf8");
+      if (options.stateTracker) {
+        await options.stateTracker.writeText("apply_patch", target.resolved, appliedText, {
+          allowCreate: false,
+        });
+      } else {
+        await fs.writeFile(target.resolved, encodedApplied ?? Buffer.from(appliedText, "utf8"));
+      }
       recordSummary(summary, seen, "modified", target.display);
     }
   }
@@ -216,6 +280,7 @@ async function resolvePatchPath(
   filePath: string,
   options: ApplyPatchOptions,
 ): Promise<{ resolved: string; display: string }> {
+  assertSafeToolPathInput("apply_patch", filePath);
   if (options.sandboxRoot) {
     const resolved = await assertSandboxPath({
       filePath,

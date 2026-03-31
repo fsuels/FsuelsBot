@@ -1,5 +1,3 @@
-import fs from "node:fs/promises";
-
 type UpdateFileChunk = {
   changeContext?: string;
   oldLines: string[];
@@ -7,15 +5,16 @@ type UpdateFileChunk = {
   isEndOfFile: boolean;
 };
 
-export async function applyUpdateHunk(
-  filePath: string,
-  chunks: UpdateFileChunk[],
-): Promise<string> {
-  const originalContents = await fs.readFile(filePath, "utf8").catch((err) => {
-    throw new Error(`Failed to read file to update ${filePath}: ${err}`);
-  });
+function normalizeToLF(text: string): string {
+  return text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+}
 
-  const originalLines = originalContents.split("\n");
+export function applyUpdateChunks(
+  filePath: string,
+  originalContents: string,
+  chunks: UpdateFileChunk[],
+): string {
+  const originalLines = normalizeToLF(originalContents).split("\n");
   if (originalLines.length > 0 && originalLines[originalLines.length - 1] === "") {
     originalLines.pop();
   }

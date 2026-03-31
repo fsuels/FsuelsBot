@@ -2,7 +2,8 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { applyPatch } from "./apply-patch.js";
+import { applyPatch, createApplyPatchTool } from "./apply-patch.js";
+import { createFileEditStateTracker } from "./file-edit-safety.js";
 
 async function withTempDir<T>(fn: (dir: string) => Promise<T>) {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-patch-"));
@@ -68,6 +69,61 @@ describe("applyPatch", () => {
       await applyPatch(patch, { cwd: dir });
       const contents = await fs.readFile(target, "utf8");
       expect(contents).toBe("line1\nline2\n");
+    });
+  });
+
+  it("preserves BOM and CRLF when updating a file", async () => {
+    await withTempDir(async (dir) => {
+      const target = path.join(dir, "bom-crlf.txt");
+      await fs.writeFile(target, Buffer.from([0xef, 0xbb, 0xbf]));
+      await fs.appendFile(target, "alpha\r\nbeta\r\n", "utf8");
+
+      const patch = `*** Begin Patch
+*** Update File: bom-crlf.txt
+@@
+ alpha
+-beta
++gamma
+*** End Patch`;
+
+      await applyPatch(patch, { cwd: dir });
+      const contents = await fs.readFile(target);
+
+      expect(contents.subarray(0, 3)).toEqual(Buffer.from([0xef, 0xbb, 0xbf]));
+      expect(contents.subarray(3).toString("utf8")).toBe("alpha\r\ngamma\r\n");
+    });
+  });
+
+  it("rejects updating an existing file that was not read first", async () => {
+    await withTempDir(async (dir) => {
+      const target = path.join(dir, "guarded.txt");
+      await fs.writeFile(target, "before\n", "utf8");
+
+      const stateTracker = createFileEditStateTracker();
+      const tool = createApplyPatchTool({ cwd: dir, stateTracker });
+
+      const patch = `*** Begin Patch
+*** Update File: guarded.txt
+@@
+-before
++after
+*** End Patch`;
+
+      const result = await tool.execute("patch-guard", { input: patch });
+      expect(
+        result?.details && typeof result.details === "object" && "error_code" in result.details
+          ? (result.details as { error_code?: unknown }).error_code
+          : undefined,
+      ).toBe("file_not_read");
+
+      await stateTracker.recordRead({ filePath: "guarded.txt", cwd: dir });
+      const success = await tool.execute("patch-ok", { input: patch });
+      const contents = await fs.readFile(target, "utf8");
+
+      expect(
+        success?.details && typeof success.details === "object" && "summary" in success.details,
+      ).toBe(true);
+      expect(contents).toBe("after\n");
     });
   });
 });

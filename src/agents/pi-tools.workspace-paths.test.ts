@@ -27,6 +27,20 @@ function getTextContent(result?: { content?: Array<{ type: string; text?: string
   return textBlock?.text ?? "";
 }
 
+function getErrorCode(result?: { details?: unknown }) {
+  const details = result?.details;
+  if (!details || typeof details !== "object" || !("error_code" in details)) {
+    return undefined;
+  }
+  const errorCode = (details as { error_code?: unknown }).error_code;
+  return typeof errorCode === "string" ? errorCode : undefined;
+}
+
+function getDetails<T extends object>(result?: { details?: unknown }) {
+  const details = result?.details;
+  return details && typeof details === "object" ? (details as T) : undefined;
+}
+
 describe("workspace path resolution", () => {
   it("reads relative paths against workspaceDir even after cwd changes", async () => {
     await withTempDir("openclaw-ws-", async (workspaceDir) => {
@@ -85,9 +99,12 @@ describe("workspace path resolution", () => {
         const cwdSpy = vi.spyOn(process, "cwd").mockReturnValue(otherDir);
         try {
           const tools = createOpenClawCodingTools({ workspaceDir });
+          const readTool = tools.find((tool) => tool.name === "read");
           const editTool = tools.find((tool) => tool.name === "edit");
+          expect(readTool).toBeDefined();
           expect(editTool).toBeDefined();
 
+          await readTool?.execute("ws-edit-read", { path: testFile });
           await editTool?.execute("ws-edit", {
             path: testFile,
             oldText: "world",
@@ -100,6 +117,263 @@ describe("workspace path resolution", () => {
           cwdSpy.mockRestore();
         }
       });
+    });
+  });
+
+  it("rejects overwriting existing files before a read", async () => {
+    await withTempDir("openclaw-ws-", async (workspaceDir) => {
+      const testFile = "existing-write.txt";
+      await fs.writeFile(path.join(workspaceDir, testFile), "before", "utf8");
+
+      const tools = createOpenClawCodingTools({ workspaceDir });
+      const writeTool = tools.find((tool) => tool.name === "write");
+      expect(writeTool).toBeDefined();
+
+      const result = await writeTool?.execute("write-existing", {
+        path: testFile,
+        content: "after",
+      });
+
+      expect(getErrorCode(result)).toBe("file_not_read");
+      const contents = await fs.readFile(path.join(workspaceDir, testFile), "utf8");
+      expect(contents).toBe("before");
+    });
+  });
+
+  it("rejects editing existing files before a read", async () => {
+    await withTempDir("openclaw-ws-", async (workspaceDir) => {
+      const testFile = "existing-edit.txt";
+      await fs.writeFile(path.join(workspaceDir, testFile), "hello world", "utf8");
+
+      const tools = createOpenClawCodingTools({ workspaceDir });
+      const editTool = tools.find((tool) => tool.name === "edit");
+      expect(editTool).toBeDefined();
+
+      const result = await editTool?.execute("edit-existing", {
+        path: testFile,
+        oldText: "world",
+        newText: "openclaw",
+      });
+
+      expect(getErrorCode(result)).toBe("file_not_read");
+      const contents = await fs.readFile(path.join(workspaceDir, testFile), "utf8");
+      expect(contents).toBe("hello world");
+    });
+  });
+
+  it("rejects edits after the file changed since read", async () => {
+    await withTempDir("openclaw-ws-", async (workspaceDir) => {
+      const testFile = "stale-edit.txt";
+      const fullPath = path.join(workspaceDir, testFile);
+      await fs.writeFile(fullPath, "hello world", "utf8");
+
+      const tools = createOpenClawCodingTools({ workspaceDir });
+      const readTool = tools.find((tool) => tool.name === "read");
+      const editTool = tools.find((tool) => tool.name === "edit");
+      expect(readTool).toBeDefined();
+      expect(editTool).toBeDefined();
+
+      await readTool?.execute("stale-read", { path: testFile });
+      await fs.writeFile(fullPath, "hello universe", "utf8");
+
+      const result = await editTool?.execute("stale-edit", {
+        path: testFile,
+        oldText: "world",
+        newText: "openclaw",
+      });
+
+      expect(getErrorCode(result)).toBe("file_changed_since_read");
+      const contents = await fs.readFile(fullPath, "utf8");
+      expect(contents).toBe("hello universe");
+    });
+  });
+
+  it("rejects edits after a partial read", async () => {
+    await withTempDir("openclaw-ws-", async (workspaceDir) => {
+      const testFile = "partial-edit.txt";
+      const fullPath = path.join(workspaceDir, testFile);
+      await fs.writeFile(fullPath, "one\ntwo\nthree\n", "utf8");
+
+      const tools = createOpenClawCodingTools({ workspaceDir });
+      const readTool = tools.find((tool) => tool.name === "read");
+      const editTool = tools.find((tool) => tool.name === "edit");
+      expect(readTool).toBeDefined();
+      expect(editTool).toBeDefined();
+
+      await readTool?.execute("partial-read", { path: testFile, limit: 1 });
+      const result = await editTool?.execute("partial-edit", {
+        path: testFile,
+        oldText: "two",
+        newText: "TWO",
+      });
+
+      expect(getErrorCode(result)).toBe("partial_read_only");
+      const details = getDetails<{ read_limit?: number; read_offset?: number }>(result);
+      expect(details?.read_limit).toBe(1);
+      expect(details?.read_offset).toBe(1);
+      expect(await fs.readFile(fullPath, "utf8")).toBe("one\ntwo\nthree\n");
+    });
+  });
+
+  it("rejects duplicate matches without replaceAll and reports the count", async () => {
+    await withTempDir("openclaw-ws-", async (workspaceDir) => {
+      const testFile = "duplicate-edit.txt";
+      const fullPath = path.join(workspaceDir, testFile);
+      await fs.writeFile(fullPath, "foo\nfoo\n", "utf8");
+
+      const tools = createOpenClawCodingTools({ workspaceDir });
+      const readTool = tools.find((tool) => tool.name === "read");
+      const editTool = tools.find((tool) => tool.name === "edit");
+      expect(readTool).toBeDefined();
+      expect(editTool).toBeDefined();
+
+      await readTool?.execute("duplicate-read", { path: testFile });
+      const result = await editTool?.execute("duplicate-edit", {
+        path: testFile,
+        oldText: "foo",
+        newText: "bar",
+      });
+
+      expect(getErrorCode(result)).toBe("multiple_matches");
+      const details = getDetails<{ match_count?: number }>(result);
+      expect(details?.match_count).toBe(2);
+      expect(await fs.readFile(fullPath, "utf8")).toBe("foo\nfoo\n");
+    });
+  });
+
+  it("replaces duplicate matches when replaceAll is set", async () => {
+    await withTempDir("openclaw-ws-", async (workspaceDir) => {
+      const testFile = "replace-all.txt";
+      const fullPath = path.join(workspaceDir, testFile);
+      await fs.writeFile(fullPath, "foo\nfoo\n", "utf8");
+
+      const tools = createOpenClawCodingTools({ workspaceDir });
+      const readTool = tools.find((tool) => tool.name === "read");
+      const editTool = tools.find((tool) => tool.name === "edit");
+      expect(readTool).toBeDefined();
+      expect(editTool).toBeDefined();
+
+      await readTool?.execute("replace-all-read", { path: testFile });
+      const result = await editTool?.execute("replace-all-edit", {
+        path: testFile,
+        oldText: "foo",
+        newText: "bar",
+        replaceAll: true,
+      });
+
+      const details = getDetails<{ replacements?: number }>(result);
+      expect(details?.replacements).toBe(2);
+      expect(await fs.readFile(fullPath, "utf8")).toBe("bar\nbar\n");
+    });
+  });
+
+  it("allows edits when only the file mtime changed but the content stayed identical", async () => {
+    await withTempDir("openclaw-ws-", async (workspaceDir) => {
+      const testFile = "mtime-only.txt";
+      const fullPath = path.join(workspaceDir, testFile);
+      await fs.writeFile(fullPath, "hello world", "utf8");
+
+      const tools = createOpenClawCodingTools({ workspaceDir });
+      const readTool = tools.find((tool) => tool.name === "read");
+      const editTool = tools.find((tool) => tool.name === "edit");
+      expect(readTool).toBeDefined();
+      expect(editTool).toBeDefined();
+
+      await readTool?.execute("mtime-read", { path: testFile });
+      const now = new Date();
+      await fs.utimes(fullPath, now, new Date(now.getTime() + 5_000));
+
+      await editTool?.execute("mtime-edit", {
+        path: testFile,
+        oldText: "world",
+        newText: "openclaw",
+      });
+
+      expect(await fs.readFile(fullPath, "utf8")).toBe("hello openclaw");
+    });
+  });
+
+  it("writes replacement text containing $1 and $& literally", async () => {
+    await withTempDir("openclaw-ws-", async (workspaceDir) => {
+      const testFile = "literal-dollar.txt";
+      const fullPath = path.join(workspaceDir, testFile);
+      await fs.writeFile(fullPath, "hello world", "utf8");
+
+      const tools = createOpenClawCodingTools({ workspaceDir });
+      const readTool = tools.find((tool) => tool.name === "read");
+      const editTool = tools.find((tool) => tool.name === "edit");
+      expect(readTool).toBeDefined();
+      expect(editTool).toBeDefined();
+
+      await readTool?.execute("literal-dollar-read", { path: testFile });
+      await editTool?.execute("literal-dollar-edit", {
+        path: testFile,
+        oldText: "world",
+        newText: "$1 and $& literally",
+      });
+
+      expect(await fs.readFile(fullPath, "utf8")).toBe("hello $1 and $& literally");
+    });
+  });
+
+  it("returns updated contents on an immediate reread after write", async () => {
+    await withTempDir("openclaw-ws-", async (workspaceDir) => {
+      const testFile = "rewrite.txt";
+      const fullPath = path.join(workspaceDir, testFile);
+      await fs.writeFile(fullPath, "before", "utf8");
+
+      const tools = createOpenClawCodingTools({ workspaceDir });
+      const readTool = tools.find((tool) => tool.name === "read");
+      const writeTool = tools.find((tool) => tool.name === "write");
+      expect(readTool).toBeDefined();
+      expect(writeTool).toBeDefined();
+
+      await readTool?.execute("rewrite-read", { path: testFile });
+      await writeTool?.execute("rewrite-write", {
+        path: testFile,
+        content: "after",
+      });
+
+      const reread = await readTool?.execute("rewrite-reread", { path: testFile });
+      expect(getTextContent(reread)).toContain("after");
+    });
+  });
+
+  it("preserves CRLF when overwriting an existing file", async () => {
+    await withTempDir("openclaw-ws-", async (workspaceDir) => {
+      const testFile = "crlf.txt";
+      const fullPath = path.join(workspaceDir, testFile);
+      await fs.writeFile(fullPath, "first\r\nsecond\r\n", "utf8");
+
+      const tools = createOpenClawCodingTools({ workspaceDir });
+      const readTool = tools.find((tool) => tool.name === "read");
+      const writeTool = tools.find((tool) => tool.name === "write");
+      expect(readTool).toBeDefined();
+      expect(writeTool).toBeDefined();
+
+      await readTool?.execute("crlf-read", { path: testFile });
+      await writeTool?.execute("crlf-write", {
+        path: testFile,
+        content: "alpha\nbeta\n",
+      });
+
+      const contents = await fs.readFile(fullPath, "utf8");
+      expect(contents).toBe("alpha\r\nbeta\r\n");
+    });
+  });
+
+  it("blocks UNC paths before filesystem access", async () => {
+    await withTempDir("openclaw-ws-", async (workspaceDir) => {
+      const tools = createOpenClawCodingTools({ workspaceDir });
+      const writeTool = tools.find((tool) => tool.name === "write");
+      expect(writeTool).toBeDefined();
+
+      const result = await writeTool?.execute("unc-write", {
+        path: "\\\\server\\share\\blocked.txt",
+        content: "x",
+      });
+
+      expect(getErrorCode(result)).toBe("network_path_blocked");
     });
   });
 
