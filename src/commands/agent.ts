@@ -39,6 +39,7 @@ import { formatCliCommand } from "../cli/command-format.js";
 import { type CliDeps, createDefaultDeps } from "../cli/deps.js";
 import { loadConfig } from "../config/config.js";
 import {
+  captureSessionWorkspaceFingerprint,
   resolveAgentIdFromSessionKey,
   resolveSessionFilePath,
   type SessionEntry,
@@ -103,6 +104,11 @@ export async function agentCommand(
     ensureBootstrapFiles: !agentCfg?.skipBootstrap,
   });
   const workspaceDir = workspace.dir;
+  const workspaceFingerprint = await captureSessionWorkspaceFingerprint({
+    workspaceDir,
+    cwd: process.cwd(),
+    agentId: sessionAgentId,
+  });
   const configuredModel = resolveConfiguredModelRef({
     cfg,
     defaultProvider: DEFAULT_PROVIDER,
@@ -143,6 +149,7 @@ export async function agentCommand(
     sessionId: opts.sessionId,
     sessionKey: opts.sessionKey,
     agentId: agentIdOverride,
+    workspaceFingerprint,
   });
 
   const {
@@ -522,6 +529,7 @@ export async function agentCommand(
         sessionKey,
         storePath,
         sessionStore,
+        workspaceFingerprint,
         defaultProvider: provider,
         defaultModel: model,
         fallbackProvider,

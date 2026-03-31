@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { SessionWorkspaceFingerprint } from "../config/sessions/workspace.js";
 import { loadConfig, resolveGatewayPort } from "../config/config.js";
 import { ensureExplicitGatewayAuth, resolveExplicitGatewayAuth } from "../gateway/call.js";
 import { GatewayClient } from "../gateway/client.js";
@@ -58,6 +59,7 @@ export type GatewaySessionList = {
     totalTokens?: number | null;
     responseUsage?: "on" | "off" | "tokens" | "full";
     modelProvider?: string;
+    workspaceFingerprint?: SessionWorkspaceFingerprint;
     label?: string;
     displayName?: string;
     provider?: string;
@@ -71,6 +73,20 @@ export type GatewaySessionList = {
     derivedTitle?: string;
     lastMessagePreview?: string;
   }>;
+};
+
+export type GatewaySessionPreviewEntry = {
+  key: string;
+  status: "ok" | "empty" | "missing" | "error";
+  items: Array<{
+    role: "user" | "assistant" | "tool" | "system" | "other";
+    text: string;
+  }>;
+};
+
+export type GatewaySessionsPreviewResult = {
+  ts: number;
+  previews: GatewaySessionPreviewEntry[];
 };
 
 export type GatewayAgentsList = {
@@ -193,6 +209,14 @@ export class GatewayChatClient {
       includeDerivedTitles: opts?.includeDerivedTitles,
       includeLastMessage: opts?.includeLastMessage,
       agentId: opts?.agentId,
+    });
+  }
+
+  async previewSessions(opts: { keys: string[]; limit?: number; maxChars?: number }) {
+    return await this.client.request<GatewaySessionsPreviewResult>("sessions.preview", {
+      keys: opts.keys,
+      limit: opts.limit,
+      maxChars: opts.maxChars,
     });
   }
 

@@ -684,6 +684,7 @@ export function listSessionsFromStore(params: {
         model,
         contextTokens: entry?.contextTokens,
         deliveryContext: deliveryFields.deliveryContext,
+        workspaceFingerprint: entry?.workspaceFingerprint,
         lastChannel: deliveryFields.lastChannel ?? entry?.lastChannel,
         lastTo: deliveryFields.lastTo ?? entry?.lastTo,
         lastAccountId: deliveryFields.lastAccountId ?? entry?.lastAccountId,

@@ -1,5 +1,6 @@
 import type { ChatType } from "../channels/chat-type.js";
 import type { SessionEntry } from "../config/sessions.js";
+import type { SessionWorkspaceFingerprint } from "../config/sessions/workspace.js";
 import type { DeliveryContext } from "../utils/delivery-context.js";
 
 export type GatewaySessionsDefaults = {
@@ -41,6 +42,7 @@ export type GatewaySessionRow = {
   model?: string;
   contextTokens?: number;
   deliveryContext?: DeliveryContext;
+  workspaceFingerprint?: SessionWorkspaceFingerprint;
   lastChannel?: SessionEntry["lastChannel"];
   lastTo?: string;
   lastAccountId?: string;

@@ -7,6 +7,7 @@ import type {
 import chalk from "chalk";
 import { highlight, supportsLanguage } from "cli-highlight";
 import type { SearchableSelectListTheme } from "../components/searchable-select-list.js";
+import type { SessionPreviewSelectListTheme } from "../components/session-preview-select-list.js";
 import { createSyntaxTheme } from "./syntax-theme.js";
 
 const palette = {
@@ -134,4 +135,16 @@ export const searchableSelectListTheme: SearchableSelectListTheme = {
   searchPrompt: (text) => fg(palette.accentSoft)(text),
   searchInput: (text) => fg(palette.text)(text),
   matchHighlight: (text) => chalk.bold(fg(palette.accent)(text)),
+};
+
+export const sessionPreviewSelectListTheme: SessionPreviewSelectListTheme = {
+  ...selectListTheme,
+  filterLabel: (text) => fg(palette.dim)(text),
+  previewLabel: (text) => chalk.bold(fg(palette.accent)(text)),
+  previewMeta: (text) => fg(palette.systemText)(text),
+  previewRole: (text) => fg(palette.accentSoft)(text),
+  previewText: (text) => fg(palette.text)(text),
+  hint: (text) => fg(palette.dim)(text),
+  loading: (text) => fg(palette.link)(text),
+  error: (text) => fg(palette.error)(text),
 };

@@ -4,7 +4,11 @@ import { resolveUserTimezone } from "../../agents/date-time.js";
 import { buildWorkspaceSkillSnapshot } from "../../agents/skills.js";
 import { ensureSkillsWatcher, getSkillsSnapshotVersion } from "../../agents/skills/refresh.js";
 import { checkpointActiveTask } from "../../agents/task-checkpoint.js";
-import { type SessionEntry, updateSessionStore } from "../../config/sessions.js";
+import {
+  captureSessionWorkspaceFingerprint,
+  type SessionEntry,
+  updateSessionStore,
+} from "../../config/sessions.js";
 import { buildChannelSummary } from "../../infra/channel-summary.js";
 import {
   resolveTimezone,
@@ -148,9 +152,16 @@ export async function ensureSkillSnapshot(params: {
   let systemSent = sessionEntry?.systemSent ?? false;
   const remoteEligibility = getRemoteSkillEligibility();
   const snapshotVersion = getSkillsSnapshotVersion(workspaceDir);
+  const workspaceFingerprint =
+    isFirstTurnInSession || !nextEntry?.workspaceFingerprint
+      ? await captureSessionWorkspaceFingerprint({ workspaceDir })
+      : nextEntry.workspaceFingerprint;
   ensureSkillsWatcher({ workspaceDir, config: cfg });
   const shouldRefreshSnapshot =
     snapshotVersion > 0 && (nextEntry?.skillsSnapshot?.version ?? 0) < snapshotVersion;
+  const shouldPersistWorkspaceFingerprint = Boolean(
+    workspaceFingerprint && !nextEntry?.workspaceFingerprint,
+  );
 
   if (isFirstTurnInSession && sessionStore && sessionKey) {
     const current = nextEntry ??
@@ -173,6 +184,7 @@ export async function ensureSkillSnapshot(params: {
       updatedAt: Date.now(),
       systemSent: true,
       skillsSnapshot: skillSnapshot,
+      ...(workspaceFingerprint ? { workspaceFingerprint } : {}),
     };
     sessionStore[sessionKey] = { ...sessionStore[sessionKey], ...nextEntry };
     if (storePath) {
@@ -204,7 +216,7 @@ export async function ensureSkillSnapshot(params: {
     sessionStore &&
     sessionKey &&
     !isFirstTurnInSession &&
-    (!nextEntry?.skillsSnapshot || shouldRefreshSnapshot)
+    (!nextEntry?.skillsSnapshot || shouldRefreshSnapshot || shouldPersistWorkspaceFingerprint)
   ) {
     const current = nextEntry ?? {
       sessionId: sessionId ?? crypto.randomUUID(),
@@ -215,6 +227,7 @@ export async function ensureSkillSnapshot(params: {
       sessionId: sessionId ?? current.sessionId ?? crypto.randomUUID(),
       updatedAt: Date.now(),
       skillsSnapshot,
+      ...(workspaceFingerprint ? { workspaceFingerprint } : {}),
     };
     sessionStore[sessionKey] = { ...sessionStore[sessionKey], ...nextEntry };
     if (storePath) {

@@ -15,11 +15,16 @@ import {
   normalizeUsageDisplay,
   resolveResponseUsageMode,
 } from "../auto-reply/thinking.js";
+import {
+  captureSessionWorkspaceFingerprint,
+  classifySessionWorkspaceMatch,
+  type SessionWorkspaceFingerprint,
+} from "../config/sessions.js";
 import { formatRelativeTimestamp } from "../infra/format-time/format-relative.ts";
 import { normalizeAgentId } from "../routing/session-key.js";
 import { helpText, parseCommand } from "./commands.js";
 import {
-  createFilterableSelectList,
+  createSessionPreviewSelectList,
   createSearchableSelectList,
   createSettingsList,
 } from "./components/selectors.js";
@@ -73,6 +78,27 @@ export function createCommandHandlers(context: CommandHandlerContext) {
   const setAgent = async (id: string) => {
     state.currentAgentId = normalizeAgentId(id);
     await setSession("");
+  };
+
+  const resolveSessionPickerRows = () => {
+    const terminalRows =
+      typeof process.stdout.rows === "number" && Number.isFinite(process.stdout.rows)
+        ? process.stdout.rows
+        : 24;
+    return Math.max(6, Math.min(12, terminalRows - 14));
+  };
+
+  const resolveCurrentWorkspaceFingerprint = async (): Promise<
+    SessionWorkspaceFingerprint | undefined
+  > => {
+    try {
+      return await captureSessionWorkspaceFingerprint({
+        cwd: process.cwd(),
+        agentId: state.currentAgentId,
+      });
+    } catch {
+      return undefined;
+    }
   };
 
   const openModelSelector = async () => {
@@ -155,7 +181,18 @@ export function createCommandHandlers(context: CommandHandlerContext) {
         includeLastMessage: true,
         agentId: state.currentAgentId,
       });
-      const items = result.sessions.map((session) => {
+      const currentWorkspace = await resolveCurrentWorkspaceFingerprint();
+      const matchedSessions = currentWorkspace
+        ? result.sessions.filter((session) => {
+            const relation = classifySessionWorkspaceMatch({
+              current: currentWorkspace,
+              stored: session.workspaceFingerprint,
+            }).relation;
+            return relation === "exact" || relation === "same_repo";
+          })
+        : [];
+      const pickerSessions = matchedSessions.length > 0 ? matchedSessions : result.sessions;
+      const items = pickerSessions.map((session) => {
         const title = session.derivedTitle ?? session.displayName;
         const formattedKey = formatSessionKey(session.key);
         // Avoid redundant "title (key)" when title matches key
@@ -183,7 +220,25 @@ export function createCommandHandlers(context: CommandHandlerContext) {
             .join(" "),
         };
       });
-      const selector = createFilterableSelectList(items, 9);
+      const selector = createSessionPreviewSelectList({
+        items,
+        maxVisible: resolveSessionPickerRows(),
+        requestRender: () => tui.requestRender(),
+        loadPreview: async (key) => {
+          const previewResult = await client.previewSessions({
+            keys: [key],
+            limit: 6,
+            maxChars: 180,
+          });
+          return (
+            previewResult.previews.find((entry) => entry.key === key) ?? {
+              key,
+              status: "missing",
+              items: [],
+            }
+          );
+        },
+      });
       selector.onSelect = (item) => {
         void (async () => {
           closeOverlay();
