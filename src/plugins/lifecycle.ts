@@ -6,7 +6,7 @@ import { enablePluginInConfig } from "./enable.js";
 import { recordPluginInstall } from "./installs.js";
 import { loadOpenClawPlugins } from "./loader.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
-import { applyExclusiveSlotSelection, defaultSlotIdForKey, PLUGIN_SLOT_KEYS } from "./slots.js";
+import { applyExclusiveSlotSelection, defaultSlotIdForKey, type PluginSlotKey } from "./slots.js";
 
 export type PluginLifecycleFailureCode =
   | "PLUGIN_NOT_FOUND"
@@ -41,6 +41,8 @@ export type PluginLifecycleResult =
       warnings: string[];
       remediation: string;
     };
+
+const SLOT_KEYS: PluginSlotKey[] = ["memory"];
 
 function resolvePluginManifest(params: {
   config: OpenClawConfig;
@@ -207,7 +209,7 @@ function disablePluginSlots(params: { config: OpenClawConfig; pluginId: string }
   let slots = params.config.plugins?.slots;
   const warnings: string[] = [];
 
-  for (const slotKey of PLUGIN_SLOT_KEYS) {
+  for (const slotKey of SLOT_KEYS) {
     const explicit = slots?.[slotKey];
     const currentValue =
       typeof explicit === "string" && explicit.trim() ? explicit : defaultSlotIdForKey(slotKey);
