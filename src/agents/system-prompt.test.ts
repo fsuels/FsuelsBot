@@ -398,6 +398,7 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain("This mode is read-only");
     expect(prompt).toContain("compare at least 2 viable approaches");
     expect(prompt).toContain("problem summary");
+    expect(prompt).toContain("session plan artifact surfaced by `/plan`");
     expect(prompt).toContain("/plan off");
   });
 

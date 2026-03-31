@@ -230,6 +230,7 @@ function buildPlanModeSection(params: {
     "When ambiguity remains after exploration, compare at least 2 viable approaches and recommend one.",
     "Ask targeted user questions only after exploration if ambiguity still blocks a safe recommendation.",
     "Do not write code until the user explicitly exits plan mode.",
+    "The host persists your latest planning reply as the session plan artifact surfaced by `/plan`, so keep the plan self-contained and readable as standalone markdown.",
     "Your planning reply must include: problem summary, discovered constraints, candidate approaches, recommended approach, impacted files/modules, test strategy, risks/rollback concerns, and open questions.",
     "The user exits planning mode with `/plan off`; producing a plan does not by itself authorize implementation.",
     "",

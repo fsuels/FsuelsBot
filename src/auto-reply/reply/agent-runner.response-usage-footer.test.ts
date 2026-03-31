@@ -1,3 +1,6 @@
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SessionEntry } from "../../config/sessions.js";
 import type { TemplateContext } from "../templating.js";
@@ -31,7 +34,12 @@ vi.mock("./queue.js", async () => {
 
 import { runReplyAgent } from "./agent-runner.js";
 
-function createRun(params: { responseUsage: "tokens" | "full"; sessionKey: string }) {
+function createRun(params: {
+  responseUsage: "tokens" | "full";
+  sessionKey: string;
+  sessionEntry?: SessionEntry;
+  sessionFile?: string;
+}) {
   const typing = createMockTypingController();
   const sessionCtx = {
     Provider: "whatsapp",
@@ -41,7 +49,7 @@ function createRun(params: { responseUsage: "tokens" | "full"; sessionKey: strin
   } as unknown as TemplateContext;
   const resolvedQueue = { mode: "interrupt" } as unknown as QueueSettings;
 
-  const sessionEntry: SessionEntry = {
+  const sessionEntry: SessionEntry = params.sessionEntry ?? {
     sessionId: "session",
     updatedAt: Date.now(),
     responseUsage: params.responseUsage,
@@ -57,7 +65,7 @@ function createRun(params: { responseUsage: "tokens" | "full"; sessionKey: strin
       sessionId: "session",
       sessionKey: params.sessionKey,
       messageProvider: "whatsapp",
-      sessionFile: "/tmp/session.jsonl",
+      sessionFile: params.sessionFile ?? "/tmp/session.jsonl",
       workspaceDir: "/tmp",
       config: {},
       skillsSnapshot: {},
@@ -155,5 +163,50 @@ describe("runReplyAgent response usage footer", () => {
     const payload = Array.isArray(res) ? res[0] : res;
     expect(String(payload?.text ?? "")).toContain("Usage:");
     expect(String(payload?.text ?? "")).not.toContain("· session ");
+  });
+
+  it("persists the latest plan reply as a session artifact in plan mode", async () => {
+    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-plan-runner-"));
+    try {
+      const sessionFile = path.join(workspaceDir, "session.jsonl");
+      runEmbeddedPiAgentMock.mockResolvedValueOnce({
+        payloads: [{ text: "# Plan\n- inspect runtime\n- run tests" }],
+        meta: {
+          agentMeta: {
+            provider: "anthropic",
+            model: "claude",
+            usage: { input: 12, output: 3 },
+          },
+        },
+      });
+      runWithModelFallbackMock.mockImplementationOnce(
+        async ({ run }: { run: (provider: string, model: string) => Promise<unknown> }) => ({
+          result: await run("anthropic", "claude"),
+          provider: "anthropic",
+          model: "claude",
+        }),
+      );
+
+      await createRun({
+        responseUsage: "tokens",
+        sessionKey: "agent:main:main",
+        sessionFile,
+        sessionEntry: {
+          sessionId: "session",
+          sessionFile,
+          updatedAt: Date.now(),
+          responseUsage: "tokens",
+          collaborationMode: "plan",
+          planProfile: "conservative",
+        },
+      });
+
+      const persisted = await fs.readFile(path.join(workspaceDir, "session.plan.md"), "utf-8");
+      expect(persisted).toContain("openclaw-session-plan");
+      expect(persisted).toContain("# Plan");
+      expect(persisted).toContain("inspect runtime");
+    } finally {
+      await fs.rm(workspaceDir, { recursive: true, force: true });
+    }
   });
 });

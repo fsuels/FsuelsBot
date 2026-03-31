@@ -56,6 +56,7 @@ export type HandleCommandsParams = {
 export type CommandHandlerResult = {
   reply?: ReplyPayload;
   shouldContinue: boolean;
+  continueWithBody?: string;
 };
 
 export type CommandHandler = (

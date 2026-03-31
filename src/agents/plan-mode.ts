@@ -4,6 +4,18 @@ import { normalizeToolName } from "./tool-policy.js";
 
 export type CollaborationMode = "default" | "plan";
 export type PlanModeProfile = "proactive" | "conservative";
+export type CollaborationModeTransition =
+  | { mode: "default" }
+  | { mode: "plan"; planProfile?: PlanModeProfile };
+
+export type CollaborationModeTransitionResult = {
+  entry: SessionEntry;
+  changed: boolean;
+  previousMode: CollaborationMode;
+  previousPlanProfile?: PlanModeProfile;
+  nextMode: CollaborationMode;
+  nextPlanProfile?: PlanModeProfile;
+};
 
 export const DEFAULT_PLAN_MODE_PROFILE: PlanModeProfile = "conservative";
 
@@ -87,4 +99,39 @@ export function formatPlanModeStatusLine(
   }
   const profile = resolveSessionPlanModeProfile(entry) ?? DEFAULT_PLAN_MODE_PROFILE;
   return `🗺️ Mode: planning (${profile}, read-only)`;
+}
+
+export function applyCollaborationModeTransition(
+  entry: SessionEntry,
+  transition: CollaborationModeTransition,
+): CollaborationModeTransitionResult {
+  const previousMode = resolveSessionCollaborationMode(entry);
+  const previousPlanProfile = resolveSessionPlanModeProfile(entry);
+  const nextEntry: SessionEntry = { ...entry };
+
+  if (transition.mode === "default") {
+    delete nextEntry.collaborationMode;
+    delete nextEntry.planProfile;
+    return {
+      entry: nextEntry,
+      changed: previousMode !== "default" || previousPlanProfile !== undefined,
+      previousMode,
+      previousPlanProfile,
+      nextMode: "default",
+      nextPlanProfile: undefined,
+    };
+  }
+
+  const nextPlanProfile =
+    transition.planProfile ?? previousPlanProfile ?? DEFAULT_PLAN_MODE_PROFILE;
+  nextEntry.collaborationMode = "plan";
+  nextEntry.planProfile = nextPlanProfile;
+  return {
+    entry: nextEntry,
+    changed: previousMode !== "plan" || previousPlanProfile !== nextPlanProfile,
+    previousMode,
+    previousPlanProfile,
+    nextMode: "plan",
+    nextPlanProfile,
+  };
 }

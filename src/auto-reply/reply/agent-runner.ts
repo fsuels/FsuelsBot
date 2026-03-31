@@ -10,6 +10,7 @@ import { DEFAULT_CONTEXT_TOKENS } from "../../agents/defaults.js";
 import { resolveModelAuthMode } from "../../agents/model-auth.js";
 import { isCliProvider } from "../../agents/model-selection.js";
 import { queueEmbeddedPiMessage } from "../../agents/pi-embedded.js";
+import { resolveSessionCollaborationMode } from "../../agents/plan-mode.js";
 import { hasNonzeroUsage } from "../../agents/usage.js";
 import {
   loadSessionStore,
@@ -21,6 +22,7 @@ import {
   updateSessionStoreEntry,
 } from "../../config/sessions.js";
 import { emitDiagnosticEvent, isDiagnosticsEnabled } from "../../infra/diagnostic-events.js";
+import { saveSessionPlanArtifact } from "../../infra/session-plan.js";
 import { defaultRuntime } from "../../runtime.js";
 import { estimateUsageCost, resolveModelCostConfig } from "../../utils/usage-format.js";
 import { resolveResponseUsageMode, type VerboseLevel } from "../thinking.js";
@@ -47,6 +49,16 @@ import { persistSessionUsageUpdate } from "./session-usage.js";
 import { createTypingSignaler } from "./typing-mode.js";
 
 const BLOCK_REPLY_SEND_TIMEOUT_MS = 15_000;
+
+function buildPersistedPlanText(payloads: ReplyPayload[]): string | undefined {
+  const text = payloads
+    .filter((payload) => payload.isError !== true)
+    .map((payload) => payload.text?.trim())
+    .filter((value): value is string => Boolean(value))
+    .join("\n\n")
+    .trim();
+  return text || undefined;
+}
 
 export async function runReplyAgent(params: {
   commandBody: string;
@@ -482,6 +494,29 @@ export async function runReplyAgent(params: {
 
     if (replyPayloads.length === 0) {
       return finalizeWithFollowup(undefined, queueKey, runFollowupTurn);
+    }
+
+    if (
+      resolveSessionCollaborationMode(activeSessionEntry) === "plan" &&
+      followupRun.run.sessionId
+    ) {
+      const persistedPlan = buildPersistedPlanText(replyPayloads);
+      if (persistedPlan) {
+        try {
+          await saveSessionPlanArtifact({
+            sessionId: followupRun.run.sessionId,
+            sessionEntry: activeSessionEntry ?? { sessionFile: followupRun.run.sessionFile },
+            sessionKey,
+            agentId: sessionKey ? resolveAgentIdFromSessionKey(sessionKey) : undefined,
+            plan: persistedPlan,
+            updatedAt: Date.now(),
+          });
+        } catch (error) {
+          defaultRuntime.error(
+            `Failed to persist session plan artifact for ${sessionKey ?? followupRun.run.sessionId}: ${String(error)}`,
+          );
+        }
+      }
     }
 
     await signalTypingIfNeeded(replyPayloads, typingSignals);

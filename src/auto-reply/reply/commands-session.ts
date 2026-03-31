@@ -1,18 +1,22 @@
+import { randomUUID } from "node:crypto";
 import type { SessionEntry } from "../../config/sessions.js";
 import type { CommandHandler } from "./commands-types.js";
 import { isCliProvider } from "../../agents/model-selection.js";
 import { abortEmbeddedPiRun } from "../../agents/pi-embedded.js";
 import {
   DEFAULT_PLAN_MODE_PROFILE,
+  applyCollaborationModeTransition,
   formatPlanModeStatusLine,
   normalizePlanModeProfile,
+  resolveSessionCollaborationMode,
 } from "../../agents/plan-mode.js";
 import { updateSessionStore } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
 import { createInternalHookEvent, triggerInternalHook } from "../../hooks/internal-hooks.js";
 import { scheduleGatewaySigusr1Restart, triggerOpenClawRestart } from "../../infra/restart.js";
 import { loadCostUsageSummary, loadSessionCostSummary } from "../../infra/session-cost-usage.js";
-import { isSubagentSessionKey } from "../../routing/session-key.js";
+import { loadSessionPlanArtifact } from "../../infra/session-plan.js";
+import { resolveAgentIdFromSessionKey, isSubagentSessionKey } from "../../routing/session-key.js";
 import { formatTokenCount, formatUsd } from "../../utils/usage-format.js";
 import { parseActivationCommand } from "../group-activation.js";
 import { parseSendPolicyCommand } from "../send-policy.js";
@@ -61,43 +65,123 @@ function resolveAbortTarget(params: {
 }
 
 type PlanCommandState =
-  | { kind: "enter"; profile: "proactive" | "conservative" }
+  | { kind: "enter"; profile: "proactive" | "conservative"; description?: string }
   | { kind: "exit" }
+  | { kind: "open" }
   | { kind: "status" }
+  | { kind: "show" }
   | { kind: "invalid" };
 
-function parsePlanCommandState(normalized: string): PlanCommandState | null {
+function parsePlanCommandState(
+  normalized: string,
+  planModeActive: boolean,
+): PlanCommandState | null {
   if (normalized !== "/plan" && !normalized.startsWith("/plan ")) {
     return null;
   }
   const rawArgs = normalized === "/plan" ? "" : normalized.slice("/plan".length).trim();
   if (!rawArgs) {
-    return { kind: "enter", profile: DEFAULT_PLAN_MODE_PROFILE };
+    return planModeActive
+      ? { kind: "show" }
+      : { kind: "enter", profile: DEFAULT_PLAN_MODE_PROFILE };
   }
   const parts = rawArgs.split(/\s+/).filter(Boolean);
   if (parts.length === 0) {
-    return { kind: "enter", profile: DEFAULT_PLAN_MODE_PROFILE };
+    return planModeActive
+      ? { kind: "show" }
+      : { kind: "enter", profile: DEFAULT_PLAN_MODE_PROFILE };
   }
 
   const first = parts[0]?.trim().toLowerCase();
-  const second = parts[1]?.trim().toLowerCase();
   if (first === "status") {
-    return { kind: "status" };
+    return parts.length === 1 ? { kind: "status" } : { kind: "invalid" };
+  }
+  if (first === "open") {
+    return parts.length === 1 ? { kind: "open" } : { kind: "invalid" };
   }
   if (first === "off" || first === "exit" || first === "stop") {
-    return { kind: "exit" };
+    return parts.length === 1 ? { kind: "exit" } : { kind: "invalid" };
   }
   if (first === "on" || first === "enter" || first === "start") {
-    const profile = normalizePlanModeProfile(second) ?? DEFAULT_PLAN_MODE_PROFILE;
-    return second && !normalizePlanModeProfile(second)
-      ? { kind: "invalid" }
-      : { kind: "enter", profile };
+    const maybeProfile = normalizePlanModeProfile(parts[1]);
+    const description =
+      parts
+        .slice(maybeProfile ? 2 : 1)
+        .join(" ")
+        .trim() || undefined;
+    return {
+      kind: "enter",
+      profile: maybeProfile ?? DEFAULT_PLAN_MODE_PROFILE,
+      description,
+    };
   }
   const directProfile = normalizePlanModeProfile(first);
   if (directProfile) {
-    return { kind: "enter", profile: directProfile };
+    return {
+      kind: "enter",
+      profile: directProfile,
+      description: parts.slice(1).join(" ").trim() || undefined,
+    };
   }
-  return { kind: "invalid" };
+  return {
+    kind: "enter",
+    profile: DEFAULT_PLAN_MODE_PROFILE,
+    description: rawArgs,
+  };
+}
+
+async function ensureSessionEntry(params: {
+  sessionEntry?: SessionEntry;
+  sessionStore?: Record<string, SessionEntry>;
+  sessionKey?: string;
+  storePath?: string;
+}): Promise<SessionEntry | undefined> {
+  if (params.sessionEntry || !params.sessionStore || !params.sessionKey) {
+    return params.sessionEntry;
+  }
+  const created: SessionEntry = {
+    sessionId: randomUUID(),
+    updatedAt: Date.now(),
+  };
+  params.sessionStore[params.sessionKey] = created;
+  if (params.storePath) {
+    await updateSessionStore(params.storePath, (store) => {
+      store[params.sessionKey as string] = created;
+    });
+  }
+  return created;
+}
+
+function buildPlanContinuationBody(params: { description: string; currentPlan?: string }): string {
+  const currentPlan = params.currentPlan?.trim();
+  return [
+    currentPlan
+      ? "Refine the current session plan using the request below."
+      : "Draft a concrete implementation plan for the request below.",
+    currentPlan ? `Current saved plan:\n${currentPlan}` : null,
+    `Planning request:\n${params.description.trim()}`,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+function formatCurrentPlanReply(params: {
+  modeLine: string;
+  filePath: string;
+  updatedAt?: string;
+  plan: string;
+  exists: boolean;
+}): string {
+  const lines = [params.modeLine, `Artifact: ${params.filePath}`];
+  if (params.updatedAt) {
+    lines.push(`Updated: ${params.updatedAt}`);
+  }
+  const plan = params.plan.trim();
+  if (!params.exists || !plan) {
+    lines.push("No saved plan yet. Use `/plan <description>` to draft or refine one.");
+    return lines.join("\n");
+  }
+  return [...lines, "", plan].join("\n");
 }
 
 export const handleActivationCommand: CommandHandler = async (params, allowTextCommands) => {
@@ -195,7 +279,11 @@ export const handlePlanCommand: CommandHandler = async (params, allowTextCommand
   if (!allowTextCommands) {
     return null;
   }
-  const requested = parsePlanCommandState(params.command.commandBodyNormalized);
+  const currentMode = resolveSessionCollaborationMode(params.sessionEntry);
+  const requested = parsePlanCommandState(
+    params.command.commandBodyNormalized,
+    currentMode === "plan",
+  );
   if (!requested) {
     return null;
   }
@@ -209,7 +297,9 @@ export const handlePlanCommand: CommandHandler = async (params, allowTextCommand
   if (requested.kind === "invalid") {
     return {
       shouldContinue: false,
-      reply: { text: "⚙️ Usage: /plan [on|off|status|proactive|conservative]" },
+      reply: {
+        text: "⚙️ Usage: /plan [status|open|off|on|proactive|conservative|<description>]",
+      },
     };
   }
 
@@ -229,6 +319,44 @@ export const handlePlanCommand: CommandHandler = async (params, allowTextCommand
     };
   }
 
+  const agentId = resolveAgentIdFromSessionKey(params.sessionKey);
+  const existingSessionEntry = params.sessionEntry;
+  const planArtifact = existingSessionEntry?.sessionId
+    ? await loadSessionPlanArtifact({
+        sessionId: existingSessionEntry.sessionId,
+        sessionEntry: existingSessionEntry,
+        sessionKey: params.sessionKey,
+        agentId,
+      })
+    : undefined;
+
+  if (requested.kind === "show") {
+    return {
+      shouldContinue: false,
+      reply: {
+        text: formatCurrentPlanReply({
+          modeLine: formatPlanModeStatusLine(existingSessionEntry),
+          filePath: planArtifact?.filePath ?? "(plan artifact unavailable)",
+          updatedAt: planArtifact?.updatedAt,
+          plan: planArtifact?.plan ?? "",
+          exists: planArtifact?.exists === true,
+        }),
+      },
+    };
+  }
+
+  if (requested.kind === "open") {
+    const filePath = planArtifact?.filePath ?? "(plan artifact unavailable)";
+    return {
+      shouldContinue: false,
+      reply: {
+        text:
+          "🗺️ External editor integration is not configured for session plans in this runtime.\n" +
+          `Artifact: ${filePath}`,
+      },
+    };
+  }
+
   if (requested.kind === "enter" && isCliProvider(params.provider, params.cfg)) {
     return {
       shouldContinue: false,
@@ -238,21 +366,40 @@ export const handlePlanCommand: CommandHandler = async (params, allowTextCommand
     };
   }
 
-  if (params.sessionEntry && params.sessionStore && params.sessionKey) {
-    if (requested.kind === "exit") {
-      delete params.sessionEntry.collaborationMode;
-      delete params.sessionEntry.planProfile;
-    } else {
-      params.sessionEntry.collaborationMode = "plan";
-      params.sessionEntry.planProfile = requested.profile;
-    }
-    params.sessionEntry.updatedAt = Date.now();
-    params.sessionStore[params.sessionKey] = params.sessionEntry;
+  const sessionEntry = await ensureSessionEntry({
+    sessionEntry: existingSessionEntry,
+    sessionStore: params.sessionStore,
+    sessionKey: params.sessionKey,
+    storePath: params.storePath,
+  });
+  if (sessionEntry && !params.sessionEntry) {
+    params.sessionEntry = sessionEntry;
+  }
+
+  if (sessionEntry && params.sessionStore && params.sessionKey) {
+    const transitioned = applyCollaborationModeTransition(
+      sessionEntry,
+      requested.kind === "exit"
+        ? { mode: "default" as const }
+        : { mode: "plan" as const, planProfile: requested.profile },
+    ).entry;
+    Object.assign(sessionEntry, transitioned, { updatedAt: Date.now() });
+    params.sessionStore[params.sessionKey] = sessionEntry;
     if (params.storePath) {
       await updateSessionStore(params.storePath, (store) => {
-        store[params.sessionKey] = params.sessionEntry as SessionEntry;
+        store[params.sessionKey] = sessionEntry;
       });
     }
+  }
+
+  if (requested.kind === "enter" && requested.description?.trim()) {
+    return {
+      shouldContinue: true,
+      continueWithBody: buildPlanContinuationBody({
+        description: requested.description,
+        currentPlan: planArtifact?.plan,
+      }),
+    };
   }
 
   return requested.kind === "exit"
@@ -265,7 +412,10 @@ export const handlePlanCommand: CommandHandler = async (params, allowTextCommand
     : {
         shouldContinue: false,
         reply: {
-          text: `🗺️ Plan mode enabled (${requested.profile}). I will stay read-only, inspect the codebase, and return a concrete implementation plan. Exit with /plan off.`,
+          text:
+            `🗺️ Plan mode enabled (${requested.profile}). ` +
+            "I will stay read-only, inspect the codebase, and return a concrete implementation plan. " +
+            "Exit with /plan off.",
         },
       };
 };

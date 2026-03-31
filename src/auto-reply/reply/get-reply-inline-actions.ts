@@ -500,6 +500,16 @@ export async function handleInlineActions(params: {
     typing.cleanup();
     return { kind: "reply", reply: commandResult.reply };
   }
+  if (commandResult.reply) {
+    await sendInlineReply(commandResult.reply);
+  }
+  if (commandResult.continueWithBody) {
+    ctx.Body = commandResult.continueWithBody;
+    ctx.BodyForAgent = commandResult.continueWithBody;
+    sessionCtx.Body = commandResult.continueWithBody;
+    sessionCtx.BodyForAgent = commandResult.continueWithBody;
+    sessionCtx.BodyStripped = commandResult.continueWithBody;
+  }
 
   return {
     kind: "continue",

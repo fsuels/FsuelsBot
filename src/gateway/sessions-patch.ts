@@ -6,8 +6,11 @@ import { resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { resolveAllowedModelRef, resolveDefaultModelForAgent } from "../agents/model-selection.js";
 import {
   DEFAULT_PLAN_MODE_PROFILE,
+  applyCollaborationModeTransition,
   normalizeCollaborationMode,
   normalizePlanModeProfile,
+  resolveSessionCollaborationMode,
+  resolveSessionPlanModeProfile,
 } from "../agents/plan-mode.js";
 import { normalizeGroupActivation } from "../auto-reply/group-activation.js";
 import {
@@ -379,44 +382,51 @@ export async function applySessionsPatchToStore(params: {
     }
   }
 
-  if ("collaborationMode" in patch) {
-    const raw = patch.collaborationMode;
-    if (raw === null) {
-      delete next.collaborationMode;
-      delete next.planProfile;
-    } else if (raw !== undefined) {
-      const normalized = normalizeCollaborationMode(String(raw));
-      if (!normalized) {
-        return invalid('invalid collaborationMode (use "default"|"plan")');
-      }
-      if (normalized === "default") {
-        delete next.collaborationMode;
-        delete next.planProfile;
-      } else {
-        next.collaborationMode = "plan";
-        next.planProfile = next.planProfile ?? DEFAULT_PLAN_MODE_PROFILE;
+  if ("collaborationMode" in patch || "planProfile" in patch) {
+    let requestedMode = resolveSessionCollaborationMode(next);
+    let requestedPlanProfile = resolveSessionPlanModeProfile(next);
+
+    if ("collaborationMode" in patch) {
+      const raw = patch.collaborationMode;
+      if (raw === null) {
+        requestedMode = "default";
+        requestedPlanProfile = undefined;
+      } else if (raw !== undefined) {
+        const normalized = normalizeCollaborationMode(String(raw));
+        if (!normalized) {
+          return invalid('invalid collaborationMode (use "default"|"plan")');
+        }
+        requestedMode = normalized;
+        if (normalized === "default") {
+          requestedPlanProfile = undefined;
+        } else {
+          requestedPlanProfile = requestedPlanProfile ?? DEFAULT_PLAN_MODE_PROFILE;
+        }
       }
     }
-  }
 
-  if ("planProfile" in patch) {
-    const raw = patch.planProfile;
-    if (raw === null) {
-      delete next.planProfile;
-    } else if (raw !== undefined) {
-      const normalized = normalizePlanModeProfile(String(raw));
-      if (!normalized) {
-        return invalid('invalid planProfile (use "proactive"|"conservative")');
+    if ("planProfile" in patch) {
+      const raw = patch.planProfile;
+      if (raw === null) {
+        requestedPlanProfile = DEFAULT_PLAN_MODE_PROFILE;
+      } else if (raw !== undefined) {
+        const normalized = normalizePlanModeProfile(String(raw));
+        if (!normalized) {
+          return invalid('invalid planProfile (use "proactive"|"conservative")');
+        }
+        requestedPlanProfile = normalized;
       }
-      if (next.collaborationMode !== "plan") {
+      if (requestedMode !== "plan") {
         return invalid('planProfile requires collaborationMode "plan"');
       }
-      next.planProfile = normalized;
     }
-  }
 
-  if (next.collaborationMode === "plan" && !next.planProfile) {
-    next.planProfile = DEFAULT_PLAN_MODE_PROFILE;
+    next = applyCollaborationModeTransition(next, {
+      mode: requestedMode,
+      ...(requestedMode === "plan"
+        ? { planProfile: requestedPlanProfile ?? DEFAULT_PLAN_MODE_PROFILE }
+        : {}),
+    }).entry;
   }
 
   if ("groupActivation" in patch) {
