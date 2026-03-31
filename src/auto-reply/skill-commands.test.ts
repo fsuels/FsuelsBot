@@ -2,7 +2,11 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { listSkillCommandsForAgents, resolveSkillCommandInvocation } from "./skill-commands.js";
+import {
+  listSkillCommandsForAgents,
+  parseExplicitSkillCommandReference,
+  resolveSkillCommandInvocation,
+} from "./skill-commands.js";
 
 async function writeSkill(params: {
   workspaceDir: string;
@@ -54,6 +58,14 @@ describe("resolveSkillCommandInvocation", () => {
       skillCommands: [{ name: "demo_skill", skillName: "demo-skill", description: "Demo" }],
     });
     expect(invocation).toBeNull();
+  });
+
+  it("parses explicit /skill requests even before command resolution", () => {
+    expect(parseExplicitSkillCommandReference("/skill demo_skill do the thing")).toEqual({
+      requestedName: "demo_skill",
+      args: "do the thing",
+    });
+    expect(parseExplicitSkillCommandReference("/skill")).toBeNull();
   });
 });
 

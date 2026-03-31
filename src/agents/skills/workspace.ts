@@ -1,8 +1,4 @@
-import {
-  formatSkillsForPrompt,
-  loadSkillsFromDir,
-  type Skill,
-} from "@mariozechner/pi-coding-agent";
+import { loadSkillsFromDir, type Skill } from "@mariozechner/pi-coding-agent";
 import fs from "node:fs";
 import path from "node:path";
 import type { OpenClawConfig } from "../../config/config.js";
@@ -23,6 +19,7 @@ import {
   resolveSkillInvocationPolicy,
 } from "./frontmatter.js";
 import { resolvePluginSkillDirs } from "./plugin-skills.js";
+import { buildBudgetedSkillsPrompt, buildDiscoverableSkills } from "./registry.js";
 import { serializeByKey } from "./serialize.js";
 
 const fsp = fs.promises;
@@ -131,7 +128,7 @@ function loadSkillEntries(
     workspaceDir,
     config: opts?.config,
   });
-  const mergedExtraDirs = [...extraDirs, ...pluginSkillDirs];
+  const mergedExtraDirs = [...extraDirs];
 
   const bundledSkills = bundledSkillsDir
     ? loadSkills({
@@ -146,6 +143,13 @@ function loadSkillEntries(
       source: "openclaw-extra",
     });
   });
+  const pluginSkills = pluginSkillDirs.flatMap((dir) => {
+    const resolved = resolveUserPath(dir);
+    return loadSkills({
+      dir: resolved,
+      source: "openclaw-plugin",
+    });
+  });
   const managedSkills = loadSkills({
     dir: managedSkillsDir,
     source: "openclaw-managed",
@@ -156,8 +160,11 @@ function loadSkillEntries(
   });
 
   const merged = new Map<string, Skill>();
-  // Precedence: extra < bundled < managed < workspace
+  // Precedence: extra < plugin < bundled < managed < workspace
   for (const skill of extraSkills) {
+    merged.set(skill.name, skill);
+  }
+  for (const skill of pluginSkills) {
     merged.set(skill.name, skill);
   }
   for (const skill of bundledSkills) {
@@ -213,7 +220,12 @@ export function buildWorkspaceSkillSnapshot(
   );
   const resolvedSkills = promptEntries.map((entry) => entry.skill);
   const remoteNote = opts?.eligibility?.remote?.note?.trim();
-  const prompt = [remoteNote, formatSkillsForPrompt(resolvedSkills)].filter(Boolean).join("\n");
+  const discoverableSkills = buildDiscoverableSkills(eligible);
+  const promptBody = buildBudgetedSkillsPrompt({
+    skills: discoverableSkills,
+    config: opts?.config,
+  }).prompt;
+  const prompt = [remoteNote, promptBody].filter(Boolean).join("\n");
   return {
     prompt,
     skills: eligible.map((entry) => ({
@@ -244,13 +256,12 @@ export function buildWorkspaceSkillsPrompt(
     opts?.skillFilter,
     opts?.eligibility,
   );
-  const promptEntries = eligible.filter(
-    (entry) => entry.invocation?.disableModelInvocation !== true,
-  );
   const remoteNote = opts?.eligibility?.remote?.note?.trim();
-  return [remoteNote, formatSkillsForPrompt(promptEntries.map((entry) => entry.skill))]
-    .filter(Boolean)
-    .join("\n");
+  const promptBody = buildBudgetedSkillsPrompt({
+    skills: buildDiscoverableSkills(eligible),
+    config: opts?.config,
+  }).prompt;
+  return [remoteNote, promptBody].filter(Boolean).join("\n");
 }
 
 export function resolveSkillsPromptForRun(params: {

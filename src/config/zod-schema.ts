@@ -520,6 +520,8 @@ export const OpenClawSchema = z
             extraDirs: z.array(z.string()).optional(),
             watch: z.boolean().optional(),
             watchDebounceMs: z.number().int().min(0).optional(),
+            promptBudgetChars: z.number().int().positive().optional(),
+            descriptionMaxChars: z.number().int().positive().optional(),
           })
           .strict()
           .optional(),
@@ -529,6 +531,14 @@ export const OpenClawSchema = z
             nodeManager: z
               .union([z.literal("npm"), z.literal("pnpm"), z.literal("yarn"), z.literal("bun")])
               .optional(),
+          })
+          .strict()
+          .optional(),
+        invoke: z
+          .object({
+            allow: z.array(z.string()).optional(),
+            deny: z.array(z.string()).optional(),
+            trusted: z.array(z.string()).optional(),
           })
           .strict()
           .optional(),

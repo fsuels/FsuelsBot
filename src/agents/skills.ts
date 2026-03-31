@@ -15,14 +15,41 @@ export {
   applySkillEnvOverridesFromSnapshot,
 } from "./skills/env-overrides.js";
 export type {
+  DiscoverableSkill,
   OpenClawSkillMetadata,
+  SkillPromptMetrics,
   SkillEligibilityContext,
   SkillCommandSpec,
   SkillEntry,
   SkillInstallSpec,
   SkillSnapshot,
+  SkillsPromptTruncationMode,
   SkillsInstallPreferences,
+  SkillSourceCategory,
 } from "./skills/types.js";
+export {
+  buildBudgetedSkillsPrompt,
+  buildDiscoverableSkills,
+  resolveSkillDescriptionMaxChars,
+  resolveSkillPathBaseDir,
+  resolveSkillPromptBudgetChars,
+  resolveSkillSourceCategory,
+} from "./skills/registry.js";
+export {
+  buildLoadedSkillSystemPrompt,
+  createSkillRuntimeState,
+  evaluateSkillPermission,
+  getOrCreateSkillRuntimeState,
+  markSkillInvocationLifecycle,
+  routeExplicitSkillInvocation,
+} from "./skills/router.js";
+export type {
+  SkillInvocationLifecycle,
+  SkillInvocationRecord,
+  SkillPermissionDecision,
+  SkillRouteResult,
+  SkillRuntimeState,
+} from "./skills/router.js";
 export {
   buildWorkspaceSkillSnapshot,
   buildWorkspaceSkillsPrompt,

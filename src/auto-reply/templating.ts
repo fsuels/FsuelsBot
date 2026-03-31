@@ -143,6 +143,8 @@ export type TemplateContext = MsgContext & {
   BodyStripped?: string;
   SessionId?: string;
   IsNewSession?: string;
+  InjectedSystemPrompt?: string;
+  SkillRuntimeState?: unknown;
 };
 
 function formatTemplateValue(value: unknown): string {

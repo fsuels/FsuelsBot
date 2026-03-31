@@ -225,7 +225,12 @@ describe("directive behavior", () => {
 
       expect(runEmbeddedPiAgent).toHaveBeenCalled();
       const prompt = vi.mocked(runEmbeddedPiAgent).mock.calls[0]?.[0]?.prompt ?? "";
-      expect(prompt).toContain('Use the "demo-skill" skill');
+      const extraSystemPrompt =
+        vi.mocked(runEmbeddedPiAgent).mock.calls[0]?.[0]?.extraSystemPrompt ?? "";
+      expect(prompt).not.toContain('Use the "demo-skill" skill');
+      expect(extraSystemPrompt).toContain("## Loaded Skill (runtime-routed)");
+      expect(extraSystemPrompt).toContain('name="demo-skill"');
+      expect(extraSystemPrompt).toContain(path.join(workspace, "skills", "demo-skill", "SKILL.md"));
     });
   });
   it("errors on invalid queue options", async () => {

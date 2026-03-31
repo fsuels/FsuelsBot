@@ -139,3 +139,26 @@ export function resolveSkillCommandInvocation(params: {
   const args = match[2]?.trim();
   return { command, args: args || undefined };
 }
+
+export function parseExplicitSkillCommandReference(commandBodyNormalized: string): {
+  requestedName: string;
+  args?: string;
+} | null {
+  const trimmed = commandBodyNormalized.trim();
+  if (!trimmed.toLowerCase().startsWith("/skill")) {
+    return null;
+  }
+  const match = trimmed.match(/^\/skill(?:\s+([^\s]+)(?:\s+([\s\S]+))?)?$/i);
+  if (!match) {
+    return null;
+  }
+  const requestedName = match[1]?.trim();
+  if (!requestedName) {
+    return null;
+  }
+  const args = match[2]?.trim();
+  return {
+    requestedName,
+    ...(args ? { args } : {}),
+  };
+}

@@ -85,3 +85,30 @@ export type SkillSnapshot = {
   resolvedSkills?: Skill[];
   version?: number;
 };
+
+export type SkillSourceCategory =
+  | "bundled"
+  | "workspace"
+  | "managed"
+  | "plugin"
+  | "extra"
+  | "unknown";
+
+export type SkillsPromptTruncationMode = "full" | "truncated" | "names_only" | "omitted";
+
+export type SkillPromptMetrics = {
+  totalSkills: number;
+  includedSkills: number;
+  budgetChars: number;
+  truncationMode: SkillsPromptTruncationMode;
+  truncatedCount: number;
+};
+
+export type DiscoverableSkill = {
+  entry: SkillEntry;
+  name: string;
+  description: string;
+  whenToUse?: string;
+  sourceCategory: SkillSourceCategory;
+  promptPriority: number;
+};

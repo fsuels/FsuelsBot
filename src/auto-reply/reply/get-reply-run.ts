@@ -14,6 +14,7 @@ import {
   isEmbeddedPiRunStreaming,
   resolveEmbeddedSessionLane,
 } from "../../agents/pi-embedded.js";
+import { getOrCreateSkillRuntimeState, markSkillInvocationLifecycle } from "../../agents/skills.js";
 import { resolveBoardActiveTaskId, updateBotCurrentTask } from "../../agents/task-checkpoint.js";
 import {
   resolveGroupSessionKey,
@@ -203,7 +204,10 @@ export async function runPreparedReply(
       })
     : "";
   const groupSystemPrompt = sessionCtx.GroupSystemPrompt?.trim() ?? "";
-  const extraSystemPrompt = [groupIntro, groupSystemPrompt].filter(Boolean).join("\n\n");
+  const injectedSystemPrompt = sessionCtx.InjectedSystemPrompt?.trim() ?? "";
+  const extraSystemPrompt = [groupIntro, groupSystemPrompt, injectedSystemPrompt]
+    .filter(Boolean)
+    .join("\n\n");
   const baseBody = sessionCtx.BodyStripped ?? sessionCtx.Body ?? "";
   // Use CommandBody/RawBody for bare reset detection (clean message without structural context).
   const rawBodyTrimmed = (ctx.CommandBody ?? ctx.RawBody ?? ctx.Body ?? "").trim();
@@ -819,31 +823,71 @@ export async function runPreparedReply(
       ...(isReasoningTagProvider(provider) ? { enforceFinalTag: true } : {}),
     },
   };
+  const skillRuntimeState =
+    sessionCtx.SkillRuntimeState !== undefined
+      ? getOrCreateSkillRuntimeState(sessionCtx.SkillRuntimeState)
+      : undefined;
+  if (skillRuntimeState) {
+    sessionCtx.SkillRuntimeState = skillRuntimeState;
+  }
+  const routedSkillNames = skillRuntimeState
+    ? [...skillRuntimeState.invocations.values()]
+        .filter((record) => record.lifecycle === "loaded")
+        .map((record) => record.skillName)
+    : [];
+  for (const skillName of routedSkillNames) {
+    markSkillInvocationLifecycle({
+      state: skillRuntimeState,
+      skillName,
+      lifecycle: "running",
+    });
+  }
 
-  return runReplyAgent({
-    commandBody: prefixedCommandBody,
-    followupRun,
-    queueKey,
-    resolvedQueue,
-    shouldSteer,
-    shouldFollowup,
-    isActive,
-    isStreaming,
-    opts,
-    typing,
-    sessionEntry,
-    sessionStore,
-    sessionKey,
-    storePath,
-    defaultModel,
-    agentCfgContextTokens: agentCfg?.contextTokens,
-    resolvedVerboseLevel: resolvedVerboseLevel ?? "off",
-    isNewSession,
-    blockStreamingEnabled,
-    blockReplyChunking,
-    resolvedBlockStreamingBreak,
-    sessionCtx,
-    shouldInjectGroupIntro,
-    typingMode,
-  });
+  try {
+    const result = await runReplyAgent({
+      commandBody: prefixedCommandBody,
+      followupRun,
+      queueKey,
+      resolvedQueue,
+      shouldSteer,
+      shouldFollowup,
+      isActive,
+      isStreaming,
+      opts,
+      typing,
+      sessionEntry,
+      sessionStore,
+      sessionKey,
+      storePath,
+      defaultModel,
+      agentCfgContextTokens: agentCfg?.contextTokens,
+      resolvedVerboseLevel: resolvedVerboseLevel ?? "off",
+      isNewSession,
+      blockStreamingEnabled,
+      blockReplyChunking,
+      resolvedBlockStreamingBreak,
+      sessionCtx,
+      shouldInjectGroupIntro,
+      typingMode,
+    });
+    for (const skillName of routedSkillNames) {
+      markSkillInvocationLifecycle({
+        state: skillRuntimeState,
+        skillName,
+        lifecycle: "completed",
+      });
+    }
+    return result;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    for (const skillName of routedSkillNames) {
+      markSkillInvocationLifecycle({
+        state: skillRuntimeState,
+        skillName,
+        lifecycle: "error",
+        error: message,
+      });
+    }
+    throw error;
+  }
 }
