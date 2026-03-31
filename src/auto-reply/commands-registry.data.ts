@@ -12,6 +12,7 @@ type DefineChatCommandInput = {
   key: string;
   nativeName?: string;
   description: string;
+  argumentHint?: string;
   args?: ChatCommandDefinition["args"];
   argsParsing?: ChatCommandDefinition["argsParsing"];
   formatArgs?: ChatCommandDefinition["formatArgs"];
@@ -35,6 +36,7 @@ function defineChatCommand(command: DefineChatCommandInput): ChatCommandDefiniti
     key: command.key,
     nativeName: command.nativeName,
     description: command.description,
+    argumentHint: command.argumentHint,
     acceptsArgs,
     args: command.args,
     argsParsing,
@@ -148,6 +150,7 @@ function buildChatCommands(): ChatCommandDefinition[] {
       key: "skill",
       nativeName: "skill",
       description: "Run a skill by name.",
+      argumentHint: "<name> [input]",
       textAlias: "/skill",
       category: "tools",
       args: [
@@ -199,7 +202,24 @@ function buildChatCommands(): ChatCommandDefinition[] {
       key: "context",
       nativeName: "context",
       description: "Explain how I remember things and continue work.",
+      argumentHint: "[list|detail|json]",
       textAlias: "/context",
+      acceptsArgs: true,
+      category: "status",
+    }),
+    defineChatCommand({
+      key: "files-in-context",
+      description: "List the workspace files currently injected into context.",
+      textAlias: "/files-in-context",
+      scope: "text",
+      category: "status",
+    }),
+    defineChatCommand({
+      key: "hooks",
+      nativeName: "hooks",
+      description: "Show workspace hook status and missing requirements.",
+      argumentHint: "[detail|json]",
+      textAlias: "/hooks",
       acceptsArgs: true,
       category: "status",
     }),
@@ -284,6 +304,7 @@ function buildChatCommands(): ChatCommandDefinition[] {
       key: "config",
       nativeName: "config",
       description: "Show or set config values.",
+      argumentHint: "[show|get|set|unset ...]",
       textAlias: "/config",
       category: "management",
       args: [
@@ -312,6 +333,7 @@ function buildChatCommands(): ChatCommandDefinition[] {
       key: "debug",
       nativeName: "debug",
       description: "Set runtime debug overrides.",
+      argumentHint: "[show|reset|set|unset ...]",
       textAlias: "/debug",
       category: "management",
       args: [
@@ -340,6 +362,7 @@ function buildChatCommands(): ChatCommandDefinition[] {
       key: "usage",
       nativeName: "usage",
       description: "Show usage and activity information.",
+      argumentHint: "[off|tokens|full|cost]",
       textAlias: "/usage",
       category: "options",
       args: [
@@ -394,6 +417,23 @@ function buildChatCommands(): ChatCommandDefinition[] {
           description: "on, off, or inherit",
           type: "string",
           choices: ["on", "off", "inherit"],
+        },
+      ],
+      argsMenu: "auto",
+    }),
+    defineChatCommand({
+      key: "plan",
+      nativeName: "plan",
+      description: "Enter planning mode, show the saved plan, or refine it from a prompt.",
+      argumentHint: "[status|open|off|on|proactive|conservative|<description>]",
+      textAlias: "/plan",
+      category: "session",
+      args: [
+        {
+          name: "mode",
+          description: "status, open, off, on, proactive, conservative, or a planning prompt",
+          type: "string",
+          choices: ["status", "open", "off", "on", "proactive", "conservative"],
         },
       ],
       argsMenu: "auto",
@@ -507,6 +547,7 @@ function buildChatCommands(): ChatCommandDefinition[] {
       key: "reset",
       nativeName: "reset",
       description: "Start fresh for a different topic.",
+      argumentHint: "[topic]",
       textAlias: "/reset",
       acceptsArgs: true,
       category: "session",
@@ -515,6 +556,7 @@ function buildChatCommands(): ChatCommandDefinition[] {
       key: "new",
       nativeName: "new",
       description: "Start a new topic (saved work stays safe).",
+      argumentHint: "[topic]",
       textAlias: "/new",
       acceptsArgs: true,
       category: "session",
@@ -522,6 +564,7 @@ function buildChatCommands(): ChatCommandDefinition[] {
     defineChatCommand({
       key: "compact",
       description: "Save and shorten the current conversation.",
+      argumentHint: "[instructions]",
       textAlias: "/compact",
       scope: "text",
       category: "session",
@@ -538,6 +581,7 @@ function buildChatCommands(): ChatCommandDefinition[] {
       key: "think",
       nativeName: "think",
       description: "Set thinking level.",
+      argumentHint: "<level>",
       textAlias: "/think",
       category: "options",
       args: [
@@ -554,6 +598,7 @@ function buildChatCommands(): ChatCommandDefinition[] {
       key: "verbose",
       nativeName: "verbose",
       description: "Toggle verbose mode.",
+      argumentHint: "[on|off]",
       textAlias: "/verbose",
       category: "options",
       args: [
@@ -570,6 +615,7 @@ function buildChatCommands(): ChatCommandDefinition[] {
       key: "reasoning",
       nativeName: "reasoning",
       description: "Toggle reasoning visibility.",
+      argumentHint: "[on|off|stream]",
       textAlias: "/reasoning",
       category: "options",
       args: [
@@ -586,6 +632,7 @@ function buildChatCommands(): ChatCommandDefinition[] {
       key: "elevated",
       nativeName: "elevated",
       description: "Toggle elevated mode.",
+      argumentHint: "[on|off|ask|full]",
       textAlias: "/elevated",
       category: "options",
       args: [
@@ -602,6 +649,7 @@ function buildChatCommands(): ChatCommandDefinition[] {
       key: "exec",
       nativeName: "exec",
       description: "Set exec defaults for this session.",
+      argumentHint: "[host=... security=... ask=... node=...]",
       textAlias: "/exec",
       category: "options",
       args: [
@@ -617,6 +665,7 @@ function buildChatCommands(): ChatCommandDefinition[] {
       key: "model",
       nativeName: "model",
       description: "Show or set the model.",
+      argumentHint: "[provider/model]",
       textAlias: "/model",
       category: "options",
       args: [
@@ -631,6 +680,7 @@ function buildChatCommands(): ChatCommandDefinition[] {
       key: "models",
       nativeName: "models",
       description: "List model providers or provider models.",
+      argumentHint: "[provider] [page|all]",
       textAlias: "/models",
       argsParsing: "none",
       acceptsArgs: true,
@@ -663,6 +713,7 @@ function buildChatCommands(): ChatCommandDefinition[] {
       key: "queue",
       nativeName: "queue",
       description: "Adjust queue settings.",
+      argumentHint: "[mode] [debounce] [cap] [drop]",
       textAlias: "/queue",
       category: "options",
       args: [
@@ -695,6 +746,7 @@ function buildChatCommands(): ChatCommandDefinition[] {
     defineChatCommand({
       key: "bash",
       description: "Run host shell commands (host-only).",
+      argumentHint: "<command>",
       textAlias: "/bash",
       scope: "text",
       category: "tools",
@@ -718,6 +770,7 @@ function buildChatCommands(): ChatCommandDefinition[] {
       key: "export",
       nativeName: "export",
       description: "Export the current session to a local markdown file.",
+      argumentHint: "[filename]",
       textAlias: "/export",
       category: "tools",
       args: [

@@ -506,38 +506,54 @@ function groupCommandsByCategory(
   return grouped;
 }
 
+function resolvePrimaryCommandPath(command: ChatCommandDefinition): string {
+  return command.nativeName
+    ? `/${command.nativeName}`
+    : command.textAliases[0]?.trim() || `/${command.key}`;
+}
+
+function formatPrimaryCommandLabel(command: ChatCommandDefinition): string {
+  const primary = resolvePrimaryCommandPath(command);
+  return command.argumentHint ? `${primary} ${command.argumentHint}` : primary;
+}
+
+function resolveHelpSectionCommands(
+  commands: ChatCommandDefinition[],
+  keys: string[],
+): ChatCommandDefinition[] {
+  const byKey = new Map(commands.map((command) => [command.key, command]));
+  return keys
+    .map((key) => byKey.get(key))
+    .filter((command): command is ChatCommandDefinition => Boolean(command));
+}
+
 export function buildHelpMessage(cfg?: OpenClawConfig): string {
+  const commands = cfg ? listChatCommandsForConfig(cfg) : listChatCommands();
   const lines = ["ℹ️ Help", ""];
+  const sections = [
+    { title: "Session", keys: ["new", "reset", "plan", "compact", "stop"] },
+    {
+      title: "Options",
+      keys: ["think", "model", "verbose", "elevated", "exec", "config", "debug"],
+    },
+    {
+      title: "Status",
+      keys: ["status", "doctor", "whoami", "context", "files-in-context", "hooks"],
+    },
+    { title: "Tools", keys: ["diff", "export"] },
+    { title: "Skills", keys: ["skill"] },
+  ];
 
-  lines.push("Session");
-  lines.push(
-    "  /new  |  /reset  |  /plan [on|off|status|proactive|conservative]  |  /compact [instructions]  |  /stop",
-  );
-  lines.push("");
-
-  const optionParts = ["/think <level>", "/model <id>", "/verbose on|off"];
-  if (cfg?.commands?.config === true) {
-    optionParts.push("/config");
+  for (const section of sections) {
+    const sectionCommands = resolveHelpSectionCommands(commands, section.keys);
+    if (sectionCommands.length === 0) {
+      continue;
+    }
+    lines.push(section.title);
+    lines.push(`  ${sectionCommands.map(formatPrimaryCommandLabel).join("  |  ")}`);
+    lines.push("");
   }
-  if (cfg?.commands?.debug === true) {
-    optionParts.push("/debug");
-  }
-  lines.push("Options");
-  lines.push(`  ${optionParts.join("  |  ")}`);
-  lines.push("");
 
-  lines.push("Status");
-  lines.push("  /status  |  /doctor  |  /whoami  |  /context");
-  lines.push("");
-
-  lines.push("Tools");
-  lines.push("  /diff  |  /export [filename]");
-  lines.push("");
-
-  lines.push("Skills");
-  lines.push("  /skill <name> [input]");
-
-  lines.push("");
   lines.push("More: /commands for full list");
   lines.push("");
   lines.push(
@@ -563,14 +579,13 @@ export type CommandsMessageResult = {
 };
 
 function formatCommandEntry(command: ChatCommandDefinition): string {
-  const primary = command.nativeName
-    ? `/${command.nativeName}`
-    : command.textAliases[0]?.trim() || `/${command.key}`;
+  const primaryPath = resolvePrimaryCommandPath(command);
+  const primary = formatPrimaryCommandLabel(command);
   const seen = new Set<string>();
   const aliases = command.textAliases
     .map((alias) => alias.trim())
     .filter(Boolean)
-    .filter((alias) => alias.toLowerCase() !== primary.toLowerCase())
+    .filter((alias) => alias.toLowerCase() !== primaryPath.toLowerCase())
     .filter((alias) => {
       const key = alias.toLowerCase();
       if (seen.has(key)) {

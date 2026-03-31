@@ -27,6 +27,7 @@ import {
   setAbortMemory,
   stopSubagentsForRequester,
 } from "./abort.js";
+import { applySessionEntryMutation } from "./commands-session-state.js";
 import { clearSessionQueues } from "./queue.js";
 
 function resolveSessionEntryForKey(
@@ -210,17 +211,16 @@ export const handleActivationCommand: CommandHandler = async (params, allowTextC
       reply: { text: "⚙️ Usage: /activation mention|always" },
     };
   }
-  if (params.sessionEntry && params.sessionStore && params.sessionKey) {
-    params.sessionEntry.groupActivation = activationCommand.mode;
-    params.sessionEntry.groupActivationNeedsSystemIntro = true;
-    params.sessionEntry.updatedAt = Date.now();
-    params.sessionStore[params.sessionKey] = params.sessionEntry;
-    if (params.storePath) {
-      await updateSessionStore(params.storePath, (store) => {
-        store[params.sessionKey] = params.sessionEntry as SessionEntry;
-      });
-    }
-  }
+  await applySessionEntryMutation({
+    entry: params.sessionEntry,
+    sessionStore: params.sessionStore,
+    sessionKey: params.sessionKey,
+    storePath: params.storePath,
+    mutate: (entry) => {
+      entry.groupActivation = activationCommand.mode;
+      entry.groupActivationNeedsSystemIntro = true;
+    },
+  });
   return {
     shouldContinue: false,
     reply: {
@@ -249,20 +249,19 @@ export const handleSendPolicyCommand: CommandHandler = async (params, allowTextC
       reply: { text: "⚙️ Usage: /send on|off|inherit" },
     };
   }
-  if (params.sessionEntry && params.sessionStore && params.sessionKey) {
-    if (sendPolicyCommand.mode === "inherit") {
-      delete params.sessionEntry.sendPolicy;
-    } else {
-      params.sessionEntry.sendPolicy = sendPolicyCommand.mode;
-    }
-    params.sessionEntry.updatedAt = Date.now();
-    params.sessionStore[params.sessionKey] = params.sessionEntry;
-    if (params.storePath) {
-      await updateSessionStore(params.storePath, (store) => {
-        store[params.sessionKey] = params.sessionEntry as SessionEntry;
-      });
-    }
-  }
+  await applySessionEntryMutation({
+    entry: params.sessionEntry,
+    sessionStore: params.sessionStore,
+    sessionKey: params.sessionKey,
+    storePath: params.storePath,
+    mutate: (entry) => {
+      if (sendPolicyCommand.mode === "inherit") {
+        delete entry.sendPolicy;
+      } else {
+        entry.sendPolicy = sendPolicyCommand.mode;
+      }
+    },
+  });
   const label =
     sendPolicyCommand.mode === "inherit"
       ? "inherit"
@@ -376,21 +375,26 @@ export const handlePlanCommand: CommandHandler = async (params, allowTextCommand
     params.sessionEntry = sessionEntry;
   }
 
-  if (sessionEntry && params.sessionStore && params.sessionKey) {
-    const transitioned = applyCollaborationModeTransition(
-      sessionEntry,
-      requested.kind === "exit"
-        ? { mode: "default" as const }
-        : { mode: "plan" as const, planProfile: requested.profile },
-    ).entry;
-    Object.assign(sessionEntry, transitioned, { updatedAt: Date.now() });
-    params.sessionStore[params.sessionKey] = sessionEntry;
-    if (params.storePath) {
-      await updateSessionStore(params.storePath, (store) => {
-        store[params.sessionKey] = sessionEntry;
-      });
-    }
-  }
+  const nextTransition =
+    requested.kind === "exit"
+      ? { mode: "default" as const }
+      : { mode: "plan" as const, planProfile: requested.profile };
+  await applySessionEntryMutation({
+    entry: sessionEntry,
+    sessionStore: params.sessionStore,
+    sessionKey: params.sessionKey,
+    storePath: params.storePath,
+    mutate: (entry) => {
+      const transitioned = applyCollaborationModeTransition(entry, nextTransition).entry;
+      if (transitioned.collaborationMode === "plan") {
+        entry.collaborationMode = "plan";
+        entry.planProfile = transitioned.planProfile;
+      } else {
+        delete entry.collaborationMode;
+        delete entry.planProfile;
+      }
+    },
+  });
 
   if (requested.kind === "enter" && requested.description?.trim()) {
     return {
@@ -488,20 +492,19 @@ export const handleUsageCommand: CommandHandler = async (params, allowTextComman
   const current = resolveResponseUsageMode(currentRaw);
   const next = requested ?? (current === "off" ? "tokens" : current === "tokens" ? "full" : "off");
 
-  if (params.sessionEntry && params.sessionStore && params.sessionKey) {
-    if (next === "off") {
-      delete params.sessionEntry.responseUsage;
-    } else {
-      params.sessionEntry.responseUsage = next;
-    }
-    params.sessionEntry.updatedAt = Date.now();
-    params.sessionStore[params.sessionKey] = params.sessionEntry;
-    if (params.storePath) {
-      await updateSessionStore(params.storePath, (store) => {
-        store[params.sessionKey] = params.sessionEntry as SessionEntry;
-      });
-    }
-  }
+  await applySessionEntryMutation({
+    entry: params.sessionEntry,
+    sessionStore: params.sessionStore,
+    sessionKey: params.sessionKey,
+    storePath: params.storePath,
+    mutate: (entry) => {
+      if (next === "off") {
+        delete entry.responseUsage;
+      } else {
+        entry.responseUsage = next;
+      }
+    },
+  });
 
   return {
     shouldContinue: false,
@@ -589,14 +592,15 @@ export const handleStopCommand: CommandHandler = async (params, allowTextCommand
     );
   }
   if (abortTarget.entry && params.sessionStore && abortTarget.key) {
-    abortTarget.entry.abortedLastRun = true;
-    abortTarget.entry.updatedAt = Date.now();
-    params.sessionStore[abortTarget.key] = abortTarget.entry;
-    if (params.storePath) {
-      await updateSessionStore(params.storePath, (store) => {
-        store[abortTarget.key] = abortTarget.entry;
-      });
-    }
+    await applySessionEntryMutation({
+      entry: abortTarget.entry,
+      sessionStore: params.sessionStore,
+      sessionKey: abortTarget.key,
+      storePath: params.storePath,
+      mutate: (entry) => {
+        entry.abortedLastRun = true;
+      },
+    });
   } else if (params.command.abortKey) {
     setAbortMemory(params.command.abortKey, true);
   }
@@ -640,14 +644,15 @@ export const handleAbortTrigger: CommandHandler = async (params, allowTextComman
     abortEmbeddedPiRun(abortTarget.sessionId);
   }
   if (abortTarget.entry && params.sessionStore && abortTarget.key) {
-    abortTarget.entry.abortedLastRun = true;
-    abortTarget.entry.updatedAt = Date.now();
-    params.sessionStore[abortTarget.key] = abortTarget.entry;
-    if (params.storePath) {
-      await updateSessionStore(params.storePath, (store) => {
-        store[abortTarget.key] = abortTarget.entry;
-      });
-    }
+    await applySessionEntryMutation({
+      entry: abortTarget.entry,
+      sessionStore: params.sessionStore,
+      sessionKey: abortTarget.key,
+      storePath: params.storePath,
+      mutate: (entry) => {
+        entry.abortedLastRun = true;
+      },
+    });
   } else if (params.command.abortKey) {
     setAbortMemory(params.command.abortKey, true);
   }
