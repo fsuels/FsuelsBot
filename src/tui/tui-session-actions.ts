@@ -2,6 +2,7 @@ import type { TUI } from "@mariozechner/pi-tui";
 import type { SessionsPatchResult } from "../gateway/protocol/index.js";
 import type { ChatLog } from "./components/chat-log.js";
 import type { GatewayAgentsList, GatewayChatClient } from "./gateway-chat.js";
+import type { TuiTurnLifecycleStore } from "./tui-turn-lifecycle.js";
 import type { TuiOptions, TuiStateAccess } from "./tui-types.js";
 import {
   normalizeAgentId,
@@ -25,6 +26,7 @@ type SessionActionContext = {
   updateFooter: () => void;
   updateAutocompleteProvider: () => void;
   setActivityStatus: (text: string) => void;
+  turnLifecycle: TuiTurnLifecycleStore;
   clearLocalRunIds?: () => void;
 };
 
@@ -66,6 +68,7 @@ export function createSessionActions(context: SessionActionContext) {
     updateFooter,
     updateAutocompleteProvider,
     setActivityStatus,
+    turnLifecycle,
     clearLocalRunIds,
   } = context;
   let refreshSessionInfoPromise: Promise<void> = Promise.resolve();
@@ -377,9 +380,9 @@ export function createSessionActions(context: SessionActionContext) {
     const nextKey = resolveSessionKey(rawKey);
     updateAgentFromSessionKey(nextKey);
     state.currentSessionKey = nextKey;
-    state.activeChatRunId = null;
     state.currentSessionId = null;
     state.historyLoaded = false;
+    turnLifecycle.reset();
     clearLocalRunIds?.();
     updateHeader();
     updateFooter();
@@ -387,7 +390,8 @@ export function createSessionActions(context: SessionActionContext) {
   };
 
   const abortActive = async () => {
-    if (!state.activeChatRunId) {
+    const runId = turnLifecycle.getSnapshot().activeRunId;
+    if (!runId) {
       chatLog.addSystem("no active run");
       tui.requestRender();
       return;
@@ -395,8 +399,9 @@ export function createSessionActions(context: SessionActionContext) {
     try {
       await client.abortChat({
         sessionKey: state.currentSessionKey,
-        runId: state.activeChatRunId,
+        runId,
       });
+      turnLifecycle.cancel(runId);
       setActivityStatus("aborted");
     } catch (err) {
       chatLog.addSystem(`abort failed: ${String(err)}`);

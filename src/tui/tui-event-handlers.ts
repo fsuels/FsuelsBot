@@ -1,5 +1,6 @@
 import type { TUI } from "@mariozechner/pi-tui";
 import type { ChatLog } from "./components/chat-log.js";
+import type { TuiTurnLifecycleStore } from "./tui-turn-lifecycle.js";
 import type { AgentEvent, ChatEvent, TuiStateAccess } from "./tui-types.js";
 import { asString, extractTextFromMessage, isCommandMessage } from "./tui-formatters.js";
 import { TuiStreamAssembler } from "./tui-stream-assembler.js";
@@ -9,6 +10,7 @@ type EventHandlerContext = {
   tui: TUI;
   state: TuiStateAccess;
   setActivityStatus: (text: string) => void;
+  turnLifecycle: TuiTurnLifecycleStore;
   refreshSessionInfo?: () => Promise<void>;
   loadHistory?: () => Promise<void>;
   isLocalRunId?: (runId: string) => boolean;
@@ -22,6 +24,7 @@ export function createEventHandlers(context: EventHandlerContext) {
     tui,
     state,
     setActivityStatus,
+    turnLifecycle,
     refreshSessionInfo,
     loadHistory,
     isLocalRunId,
@@ -64,6 +67,7 @@ export function createEventHandlers(context: EventHandlerContext) {
     finalizedRuns.clear();
     sessionRuns.clear();
     streamAssembler = new TuiStreamAssembler();
+    turnLifecycle.reset();
     clearLocalRunIds?.();
   };
 
@@ -103,16 +107,15 @@ export function createEventHandlers(context: EventHandlerContext) {
       }
     }
     noteSessionRun(evt.runId);
-    if (!state.activeChatRunId) {
-      state.activeChatRunId = evt.runId;
-    }
     if (evt.state === "delta") {
+      if (!turnLifecycle.markStreaming(evt.runId)) {
+        turnLifecycle.adoptObservedRun(evt.runId, "streaming");
+      }
       const displayText = streamAssembler.ingestDelta(evt.runId, evt.message, state.showThinking);
       if (!displayText) {
         return;
       }
       chatLog.updateAssistant(displayText, evt.runId);
-      setActivityStatus("streaming");
     }
     if (evt.state === "final") {
       if (isCommandMessage(evt.message)) {
@@ -127,8 +130,9 @@ export function createEventHandlers(context: EventHandlerContext) {
         }
         streamAssembler.drop(evt.runId);
         noteFinalizedRun(evt.runId);
-        state.activeChatRunId = null;
-        setActivityStatus("idle");
+        if (turnLifecycle.complete(evt.runId)) {
+          setActivityStatus("idle");
+        }
         void refreshSessionInfo?.();
         tui.requestRender();
         return;
@@ -148,8 +152,13 @@ export function createEventHandlers(context: EventHandlerContext) {
       const finalText = streamAssembler.finalize(evt.runId, evt.message, state.showThinking);
       chatLog.finalizeAssistant(finalText, evt.runId);
       noteFinalizedRun(evt.runId);
-      state.activeChatRunId = null;
-      setActivityStatus(stopReason === "error" ? "error" : "idle");
+      if (stopReason === "error") {
+        if (turnLifecycle.fail(evt.runId)) {
+          setActivityStatus("error");
+        }
+      } else if (turnLifecycle.complete(evt.runId)) {
+        setActivityStatus("idle");
+      }
       // Refresh session info to update token counts in footer
       void refreshSessionInfo?.();
     }
@@ -157,8 +166,9 @@ export function createEventHandlers(context: EventHandlerContext) {
       chatLog.addSystem("run aborted");
       streamAssembler.drop(evt.runId);
       sessionRuns.delete(evt.runId);
-      state.activeChatRunId = null;
-      setActivityStatus("aborted");
+      if (turnLifecycle.cancel(evt.runId)) {
+        setActivityStatus("aborted");
+      }
       void refreshSessionInfo?.();
       if (isLocalRunId?.(evt.runId)) {
         forgetLocalRunId?.(evt.runId);
@@ -170,8 +180,9 @@ export function createEventHandlers(context: EventHandlerContext) {
       chatLog.addSystem(`run error: ${evt.errorMessage ?? "unknown"}`);
       streamAssembler.drop(evt.runId);
       sessionRuns.delete(evt.runId);
-      state.activeChatRunId = null;
-      setActivityStatus("error");
+      if (turnLifecycle.fail(evt.runId)) {
+        setActivityStatus("error");
+      }
       void refreshSessionInfo?.();
       if (isLocalRunId?.(evt.runId)) {
         forgetLocalRunId?.(evt.runId);
@@ -262,13 +273,17 @@ export function createEventHandlers(context: EventHandlerContext) {
       }
       const phase = typeof evt.data?.phase === "string" ? evt.data.phase : "";
       if (phase === "start") {
-        setActivityStatus("running");
+        turnLifecycle.markRunning(evt.runId);
       }
       if (phase === "end") {
-        setActivityStatus("idle");
+        if (turnLifecycle.complete(evt.runId)) {
+          setActivityStatus("idle");
+        }
       }
       if (phase === "error") {
-        setActivityStatus("error");
+        if (turnLifecycle.fail(evt.runId)) {
+          setActivityStatus("error");
+        }
       }
       tui.requestRender();
     }

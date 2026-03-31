@@ -34,6 +34,7 @@ import { createEditorKeybindingsManager, TuiShortcutManager } from "./tui-keybin
 import { createLocalShellRunner } from "./tui-local-shell.js";
 import { createOverlayHandlers, handleOverlayEscape } from "./tui-overlays.js";
 import { createSessionActions } from "./tui-session-actions.js";
+import { createTuiTurnLifecycleStore } from "./tui-turn-lifecycle.js";
 import { buildWaitingStatusMessage, defaultWaitingPhrases } from "./tui-waiting.js";
 
 export { resolveFinalAssistantText } from "./tui-formatters.js";
@@ -93,7 +94,6 @@ export async function runTui(opts: TuiOptions) {
   let currentSessionKey = "";
   let initialSessionApplied = false;
   let currentSessionId: string | null = null;
-  let activeChatRunId: string | null = null;
   let historyLoaded = false;
   let isConnected = false;
   let wasDisconnected = false;
@@ -110,8 +110,7 @@ export async function runTui(opts: TuiOptions) {
   let connectionStatus = "connecting";
   let statusTimeout: NodeJS.Timeout | null = null;
   let statusTimer: NodeJS.Timeout | null = null;
-  let statusStartedAt: number | null = null;
-  let lastActivityStatus = activityStatus;
+  const turnLifecycle = createTuiTurnLifecycleStore();
 
   const state: TuiStateAccess = {
     get agentDefaultId() {
@@ -157,10 +156,10 @@ export async function runTui(opts: TuiOptions) {
       currentSessionId = value;
     },
     get activeChatRunId() {
-      return activeChatRunId;
+      return turnLifecycle.getSnapshot().activeRunId;
     },
-    set activeChatRunId(value) {
-      activeChatRunId = value;
+    set activeChatRunId(_value) {
+      // The turn lifecycle store owns this value; writes are ignored here.
     },
     get historyLoaded() {
       return historyLoaded;
@@ -334,7 +333,6 @@ export async function runTui(opts: TuiOptions) {
     );
   };
 
-  const busyStates = new Set(["sending", "waiting", "streaming", "running"]);
   let statusText: Text | null = null;
   let statusLoader: Loader | null = null;
 
@@ -379,12 +377,13 @@ export async function runTui(opts: TuiOptions) {
   let waitingPhrase: string | null = null;
 
   const updateBusyStatusMessage = () => {
-    if (!statusLoader || !statusStartedAt) {
+    const snapshot = turnLifecycle.getSnapshot();
+    if (!statusLoader || !snapshot.isLoading || snapshot.activeSinceMs === null) {
       return;
     }
-    const elapsed = formatElapsed(statusStartedAt);
+    const elapsed = formatElapsed(snapshot.activeSinceMs);
 
-    if (activityStatus === "waiting") {
+    if (snapshot.activityLabel === "waiting") {
       waitingTick++;
       statusLoader.setMessage(
         buildWaitingStatusMessage({
@@ -398,7 +397,7 @@ export async function runTui(opts: TuiOptions) {
       return;
     }
 
-    statusLoader.setMessage(`${activityStatus} • ${elapsed} | ${connectionStatus}`);
+    statusLoader.setMessage(`${snapshot.activityLabel} • ${elapsed} | ${connectionStatus}`);
   };
 
   const startStatusTimer = () => {
@@ -406,7 +405,7 @@ export async function runTui(opts: TuiOptions) {
       return;
     }
     statusTimer = setInterval(() => {
-      if (!busyStates.has(activityStatus)) {
+      if (!turnLifecycle.getSnapshot().isLoading) {
         return;
       }
       updateBusyStatusMessage();
@@ -435,7 +434,7 @@ export async function runTui(opts: TuiOptions) {
     waitingTick = 0;
 
     waitingTimer = setInterval(() => {
-      if (activityStatus !== "waiting") {
+      if (turnLifecycle.getSnapshot().activityLabel !== "waiting") {
         return;
       }
       updateBusyStatusMessage();
@@ -452,13 +451,10 @@ export async function runTui(opts: TuiOptions) {
   };
 
   const renderStatus = () => {
-    const isBusy = busyStates.has(activityStatus);
-    if (isBusy) {
-      if (!statusStartedAt || lastActivityStatus !== activityStatus) {
-        statusStartedAt = Date.now();
-      }
+    const snapshot = turnLifecycle.getSnapshot();
+    if (snapshot.isLoading) {
       ensureStatusLoader();
-      if (activityStatus === "waiting") {
+      if (snapshot.activityLabel === "waiting") {
         stopStatusTimer();
         startWaitingTimer();
       } else {
@@ -467,7 +463,6 @@ export async function runTui(opts: TuiOptions) {
       }
       updateBusyStatusMessage();
     } else {
-      statusStartedAt = null;
       stopStatusTimer();
       stopWaitingTimer();
       statusLoader?.stop();
@@ -476,7 +471,6 @@ export async function runTui(opts: TuiOptions) {
       const text = activityStatus ? `${connectionStatus} | ${activityStatus}` : connectionStatus;
       statusText?.setText(theme.dim(text));
     }
-    lastActivityStatus = activityStatus;
   };
 
   const setConnectionStatus = (text: string, ttlMs?: number) => {
@@ -497,6 +491,10 @@ export async function runTui(opts: TuiOptions) {
     activityStatus = text;
     renderStatus();
   };
+
+  turnLifecycle.subscribe(() => {
+    renderStatus();
+  });
 
   const updateFooter = () => {
     const sessionKeyLabel = formatSessionKey(currentSessionKey);
@@ -551,6 +549,7 @@ export async function runTui(opts: TuiOptions) {
     updateFooter,
     updateAutocompleteProvider,
     setActivityStatus,
+    turnLifecycle,
     clearLocalRunIds,
   });
   const {
@@ -567,6 +566,7 @@ export async function runTui(opts: TuiOptions) {
     tui,
     state,
     setActivityStatus,
+    turnLifecycle,
     refreshSessionInfo,
     loadHistory,
     isLocalRunId,
@@ -591,6 +591,7 @@ export async function runTui(opts: TuiOptions) {
       refreshAgents,
       abortActive,
       setActivityStatus,
+      turnLifecycle,
       formatSessionKey,
       noteLocalRunId,
       forgetLocalRunId,
@@ -693,6 +694,7 @@ export async function runTui(opts: TuiOptions) {
     isConnected = false;
     wasDisconnected = true;
     historyLoaded = false;
+    turnLifecycle.reset();
     const reasonLabel = reason?.trim() ? reason.trim() : "closed";
     setConnectionStatus(`gateway disconnected: ${reasonLabel}`, 5000);
     setActivityStatus("idle");

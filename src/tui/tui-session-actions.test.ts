@@ -1,8 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import type { TuiStateAccess } from "./tui-types.js";
 import { createSessionActions } from "./tui-session-actions.js";
+import { createTuiTurnLifecycleStore } from "./tui-turn-lifecycle.js";
 
 describe("tui session actions", () => {
+  const turnLifecycle = () => createTuiTurnLifecycleStore();
+
   const makeState = (): TuiStateAccess => ({
     agentDefaultId: "main",
     sessionMainKey: "agent:main:main",
@@ -64,6 +67,7 @@ describe("tui session actions", () => {
       updateFooter,
       updateAutocompleteProvider,
       setActivityStatus: vi.fn(),
+      turnLifecycle: turnLifecycle(),
     });
 
     const first = refreshSessionInfo();
@@ -161,6 +165,7 @@ describe("tui session actions", () => {
       updateFooter: vi.fn(),
       updateAutocompleteProvider: vi.fn(),
       setActivityStatus: vi.fn(),
+      turnLifecycle: turnLifecycle(),
     });
 
     await loadHistory();
@@ -217,6 +222,7 @@ describe("tui session actions", () => {
       updateFooter: vi.fn(),
       updateAutocompleteProvider: vi.fn(),
       setActivityStatus: vi.fn(),
+      turnLifecycle: turnLifecycle(),
     });
 
     await loadHistory();

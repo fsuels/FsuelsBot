@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { SessionsPatchResult } from "../gateway/protocol/index.js";
 import type { ChatLog } from "./components/chat-log.js";
 import type { GatewayChatClient } from "./gateway-chat.js";
+import type { TuiTurnLifecycleStore } from "./tui-turn-lifecycle.js";
 import type {
   AgentSummary,
   GatewayStatusSummary,
@@ -39,6 +40,7 @@ type CommandHandlerContext = {
   refreshAgents: () => Promise<void>;
   abortActive: () => Promise<void>;
   setActivityStatus: (text: string) => void;
+  turnLifecycle: TuiTurnLifecycleStore;
   formatSessionKey: (key: string) => string;
   applySessionInfoFromPatch: (result: SessionsPatchResult) => void;
   noteLocalRunId: (runId: string) => void;
@@ -61,6 +63,7 @@ export function createCommandHandlers(context: CommandHandlerContext) {
     refreshAgents,
     abortActive,
     setActivityStatus,
+    turnLifecycle,
     formatSessionKey,
     applySessionInfoFromPatch,
     noteLocalRunId,
@@ -463,13 +466,16 @@ export function createCommandHandlers(context: CommandHandlerContext) {
   };
 
   const sendMessage = async (text: string) => {
+    const runId = randomUUID();
+    if (!turnLifecycle.reserve(runId)) {
+      chatLog.addSystem("run already in progress");
+      tui.requestRender();
+      return;
+    }
     try {
       chatLog.addUser(text);
       tui.requestRender();
-      const runId = randomUUID();
       noteLocalRunId(runId);
-      state.activeChatRunId = runId;
-      setActivityStatus("sending");
       await client.sendChat({
         sessionKey: state.currentSessionKey,
         message: text,
@@ -478,14 +484,13 @@ export function createCommandHandlers(context: CommandHandlerContext) {
         timeoutMs: opts.timeoutMs,
         runId,
       });
-      setActivityStatus("waiting");
+      turnLifecycle.markWaiting(runId);
     } catch (err) {
-      if (state.activeChatRunId) {
-        forgetLocalRunId?.(state.activeChatRunId);
+      forgetLocalRunId?.(runId);
+      if (turnLifecycle.fail(runId)) {
+        chatLog.addSystem(`send failed: ${String(err)}`);
+        setActivityStatus("error");
       }
-      state.activeChatRunId = null;
-      chatLog.addSystem(`send failed: ${String(err)}`);
-      setActivityStatus("error");
     }
     tui.requestRender();
   };
