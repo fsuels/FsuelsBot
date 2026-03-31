@@ -104,6 +104,9 @@ export function isCommandEnabled(cfg: OpenClawConfig, commandKey: string): boole
   if (commandKey === "bash") {
     return cfg.commands?.bash === true;
   }
+  if (commandKey === "restart") {
+    return cfg.commands?.restart === true;
+  }
   return true;
 }
 

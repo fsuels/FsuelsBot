@@ -36,7 +36,12 @@ describe("commands registry", () => {
   it("exposes native specs", () => {
     const specs = listNativeCommandSpecs();
     expect(specs.find((spec) => spec.name === "help")).toBeTruthy();
+    expect(specs.find((spec) => spec.name === "hooks")).toBeTruthy();
+    expect(specs.find((spec) => spec.name === "plan")).toBeTruthy();
     expect(specs.find((spec) => spec.name === "stop")).toBeTruthy();
+    expect(specs.find((spec) => spec.name === "doctor")).toBeTruthy();
+    expect(specs.find((spec) => spec.name === "diff")).toBeTruthy();
+    expect(specs.find((spec) => spec.name === "export")).toBeTruthy();
     expect(specs.find((spec) => spec.name === "skill")).toBeTruthy();
     expect(specs.find((spec) => spec.name === "whoami")).toBeTruthy();
     expect(specs.find((spec) => spec.name === "compact")).toBeFalsy();
@@ -44,22 +49,25 @@ describe("commands registry", () => {
 
   it("filters commands based on config flags", () => {
     const disabled = listChatCommandsForConfig({
-      commands: { config: false, debug: false },
+      commands: { config: false, debug: false, restart: false },
     });
     expect(disabled.find((spec) => spec.key === "config")).toBeFalsy();
     expect(disabled.find((spec) => spec.key === "debug")).toBeFalsy();
+    expect(disabled.find((spec) => spec.key === "restart")).toBeFalsy();
 
     const enabled = listChatCommandsForConfig({
-      commands: { config: true, debug: true },
+      commands: { config: true, debug: true, restart: true },
     });
     expect(enabled.find((spec) => spec.key === "config")).toBeTruthy();
     expect(enabled.find((spec) => spec.key === "debug")).toBeTruthy();
+    expect(enabled.find((spec) => spec.key === "restart")).toBeTruthy();
 
     const nativeDisabled = listNativeCommandSpecsForConfig({
-      commands: { config: false, debug: false, native: true },
+      commands: { config: false, debug: false, restart: false, native: true },
     });
     expect(nativeDisabled.find((spec) => spec.name === "config")).toBeFalsy();
     expect(nativeDisabled.find((spec) => spec.name === "debug")).toBeFalsy();
+    expect(nativeDisabled.find((spec) => spec.name === "restart")).toBeFalsy();
   });
 
   it("appends skill commands when provided", () => {
@@ -107,8 +115,13 @@ describe("commands registry", () => {
   it("detects known text commands", () => {
     const detection = getCommandDetection();
     expect(detection.exact.has("/commands")).toBe(true);
+    expect(detection.exact.has("/files-in-context")).toBe(true);
+    expect(detection.exact.has("/plan")).toBe(true);
     expect(detection.exact.has("/skill")).toBe(true);
     expect(detection.exact.has("/compact")).toBe(true);
+    expect(detection.exact.has("/doctor")).toBe(true);
+    expect(detection.exact.has("/diff")).toBe(true);
+    expect(detection.exact.has("/export")).toBe(true);
     expect(detection.exact.has("/whoami")).toBe(true);
     expect(detection.exact.has("/id")).toBe(true);
     for (const command of listChatCommands()) {

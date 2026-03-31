@@ -23,6 +23,7 @@ import { randomUUID } from "node:crypto";
 import type { GatewayClient } from "../gateway/client.js";
 import type { EventFrame } from "../gateway/protocol/index.js";
 import type { SessionsListResult } from "../gateway/session-utils.js";
+import { loadConfig } from "../config/config.js";
 import { getAvailableCommands } from "./commands.js";
 import {
   extractAttachmentsFromPrompt,
@@ -447,7 +448,7 @@ export class AcpGatewayAgent implements Agent {
       sessionId,
       update: {
         sessionUpdate: "available_commands_update",
-        availableCommands: getAvailableCommands(),
+        availableCommands: getAvailableCommands({ cfg: loadConfig() }),
       },
     });
   }
