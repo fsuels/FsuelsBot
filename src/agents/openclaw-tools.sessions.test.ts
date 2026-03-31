@@ -75,6 +75,22 @@ describe("sessions tools", () => {
     expect(schemaProp("sessions_spawn", "timeoutSeconds").type).toBe("number");
   });
 
+  it("exposes task_tracker with a provider-safe schema", () => {
+    const tool = createOpenClawTools({ agentSessionKey: "agent:main:main" }).find(
+      (candidate) => candidate.name === "task_tracker",
+    );
+
+    expect(tool).toBeDefined();
+    const schema = tool?.parameters as {
+      anyOf?: unknown;
+      oneOf?: unknown;
+      properties?: Record<string, unknown>;
+    };
+    expect(schema.anyOf).toBeUndefined();
+    expect(schema.oneOf).toBeUndefined();
+    expect((schema.properties?.action as { type?: unknown } | undefined)?.type).toBe("string");
+  });
+
   it("sessions_list filters kinds and includes messages", async () => {
     callGatewayMock.mockReset();
     callGatewayMock.mockImplementation(async (opts: unknown) => {

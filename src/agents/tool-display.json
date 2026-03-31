@@ -276,6 +276,11 @@
       "title": "Session Status",
       "detailKeys": ["sessionKey", "model"]
     },
+    "task_tracker": {
+      "emoji": "🗃️",
+      "title": "Task Tracker",
+      "detailKeys": ["action"]
+    },
     "memory_search": {
       "emoji": "🧠",
       "title": "Memory Search",

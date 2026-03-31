@@ -3,6 +3,7 @@ import type { EmbeddedContextFile } from "./pi-embedded-helpers.js";
 import { applyBootstrapHookOverrides } from "./bootstrap-hooks.js";
 import { buildBootstrapContextFiles, resolveBootstrapMaxChars } from "./pi-embedded-helpers.js";
 import { buildTaskBootstrapContext, resolveActiveTask } from "./task-checkpoint.js";
+import { formatTaskTrackerStateForPrompt, loadTaskTrackerState } from "./task-tracker.js";
 import {
   filterBootstrapFilesForSession,
   loadWorkspaceBootstrapFiles,
@@ -95,6 +96,27 @@ export async function resolveBootstrapContextForRun(params: {
     }
   } catch {
     /* task loading is best-effort — don't break bootstrap */
+  }
+
+  try {
+    if (params.sessionId && params.agentId) {
+      const trackerState = await loadTaskTrackerState({
+        agentId: params.agentId,
+        sessionId: params.sessionId,
+      });
+      if (
+        trackerState.activeTasks.length > 0 ||
+        trackerState.archivedTasks.length > 0 ||
+        trackerState.submittedTasks.length > 0
+      ) {
+        contextFiles.push({
+          path: "TASK_TRACKER",
+          content: formatTaskTrackerStateForPrompt(trackerState),
+        });
+      }
+    }
+  } catch {
+    /* task tracker loading is best-effort — don't break bootstrap */
   }
 
   return { bootstrapFiles, contextFiles };

@@ -23,6 +23,7 @@ export const DEFAULT_TOOL_ALLOW = [
   "sessions_send",
   "sessions_spawn",
   "session_status",
+  "task_tracker",
 ] as const;
 
 // Provider docking: keep sandbox policy aligned with provider tool names.
