@@ -3,12 +3,15 @@ import type { GatewayMessageChannel } from "../utils/message-channel.js";
 import type { AnyAgentTool } from "./tools/common.js";
 import { resolvePluginTools } from "../plugins/tools.js";
 import { resolveSessionAgentId } from "./agent-scope.js";
+import { applyToolContracts } from "./tool-contracts.js";
+import { assertUniqueToolNames } from "./tool-policy.js";
 import { createAgentsListTool } from "./tools/agents-list-tool.js";
 import { createBrowserTool } from "./tools/browser-tool.js";
 import { createCanvasTool } from "./tools/canvas-tool.js";
 import { createCronTool } from "./tools/cron-tool.js";
 import { createDelegateTool } from "./tools/delegate-tool.js";
 import { createGatewayTool } from "./tools/gateway-tool.js";
+import { createTaskOutputTools } from "./tools/get-task-output-tool.js";
 import { createImageTool } from "./tools/image-tool.js";
 import { createMessageTool } from "./tools/message-tool.js";
 import { createNodesTool } from "./tools/nodes-tool.js";
@@ -154,6 +157,7 @@ export function createOpenClawTools(options?: {
       sandboxed: options?.sandboxed,
       requesterAgentIdOverride: options?.requesterAgentIdOverride,
     }),
+    ...createTaskOutputTools(),
     createSessionStatusTool({
       agentSessionKey: options?.agentSessionKey,
       config: options?.config,
@@ -169,6 +173,7 @@ export function createOpenClawTools(options?: {
     ...(webFetchTool ? [webFetchTool] : []),
     ...(imageTool ? [imageTool] : []),
   ];
+  assertUniqueToolNames(tools, "createOpenClawTools");
 
   const pluginTools = resolvePluginTools({
     context: {
@@ -189,5 +194,5 @@ export function createOpenClawTools(options?: {
     toolAllowlist: options?.pluginToolAllowlist,
   });
 
-  return [...tools, ...pluginTools];
+  return [...tools, ...pluginTools].map(applyToolContracts);
 }

@@ -29,6 +29,7 @@ import {
   isToolAllowedByPolicies,
   resolveEffectiveToolPolicy,
   resolveGroupToolPolicy,
+  resolveSubagentSessionToolPolicy,
   resolveSubagentToolPolicy,
 } from "./pi-tools.policy.js";
 import {
@@ -43,7 +44,9 @@ import {
   wrapToolParamNormalization,
 } from "./pi-tools.read.js";
 import { cleanToolSchemaForGemini, normalizeToolParameters } from "./pi-tools.schema.js";
+import { applyToolContracts } from "./tool-contracts.js";
 import {
+  assertUniqueToolNames,
   applyOwnerOnlyToolPolicy,
   buildPluginToolGroups,
   collectExplicitAllowlist,
@@ -214,10 +217,13 @@ export function createOpenClawCodingTools(options?: {
     providerProfileAlsoAllow,
   );
   const scopeKey = options?.exec?.scopeKey ?? (agentId ? `agent:${agentId}` : undefined);
-  const subagentPolicy =
+  const subagentPolicies =
     isSubagentSessionKey(options?.sessionKey) && options?.sessionKey
-      ? resolveSubagentToolPolicy(options.config)
-      : undefined;
+      ? [
+          resolveSubagentToolPolicy(options.config),
+          resolveSubagentSessionToolPolicy(options.sessionKey),
+        ]
+      : [];
   const allowBackground = isToolAllowedByPolicies("process", [
     profilePolicyWithAlsoAllow,
     providerProfilePolicyWithAlsoAllow,
@@ -227,7 +233,7 @@ export function createOpenClawCodingTools(options?: {
     agentProviderPolicy,
     groupPolicy,
     sandbox?.tools,
-    subagentPolicy,
+    ...subagentPolicies,
   ]);
   const execConfig = resolveExecConfig(options?.config);
   const sandboxRoot = sandbox?.workspaceDir;
@@ -350,7 +356,7 @@ export function createOpenClawCodingTools(options?: {
         agentProviderPolicy,
         groupPolicy,
         sandbox?.tools,
-        subagentPolicy,
+        ...subagentPolicies,
       ]),
       currentChannelId: options?.currentChannelId,
       currentThreadTs: options?.currentThreadTs,
@@ -362,6 +368,9 @@ export function createOpenClawCodingTools(options?: {
       requesterAgentIdOverride: agentId,
     }),
   ];
+  // Hard execution-policy guarantee: tool visibility/policy logic assumes canonical tool ids.
+  // Fail fast on duplicate names instead of silently dispatching an ambiguous tool surface.
+  assertUniqueToolNames(tools, "createOpenClawCodingTools");
   // Security: treat unknown/undefined as unauthorized (opt-in, not opt-out)
   const senderIsOwner = options?.senderIsOwner === true;
   const toolsByAuthorization = applyOwnerOnlyToolPolicy(tools, senderIsOwner);
@@ -406,7 +415,12 @@ export function createOpenClawCodingTools(options?: {
   );
   const groupPolicyExpanded = resolvePolicy(groupPolicy, "group tools.allow");
   const sandboxPolicyExpanded = expandPolicyWithPluginGroups(sandbox?.tools, pluginGroups);
+  const [subagentPolicy, subagentSessionPolicy] = subagentPolicies;
   const subagentPolicyExpanded = expandPolicyWithPluginGroups(subagentPolicy, pluginGroups);
+  const subagentSessionPolicyExpanded = expandPolicyWithPluginGroups(
+    subagentSessionPolicy,
+    pluginGroups,
+  );
 
   const toolsFiltered = profilePolicyExpanded
     ? filterToolsByPolicy(toolsByAuthorization, profilePolicyExpanded)
@@ -432,13 +446,17 @@ export function createOpenClawCodingTools(options?: {
   const sandboxed = sandboxPolicyExpanded
     ? filterToolsByPolicy(groupFiltered, sandboxPolicyExpanded)
     : groupFiltered;
-  const subagentFiltered = subagentPolicyExpanded
+  const subagentBaseFiltered = subagentPolicyExpanded
     ? filterToolsByPolicy(sandboxed, subagentPolicyExpanded)
     : sandboxed;
+  const subagentFiltered = subagentSessionPolicyExpanded
+    ? filterToolsByPolicy(subagentBaseFiltered, subagentSessionPolicyExpanded)
+    : subagentBaseFiltered;
   // Always normalize tool JSON Schemas before handing them to pi-agent/pi-ai.
   // Without this, some providers (notably OpenAI) will reject root-level union schemas.
   const normalized = subagentFiltered.map(normalizeToolParameters);
-  const withHooks = normalized.map((tool) =>
+  const withContracts = normalized.map(applyToolContracts);
+  const withHooks = withContracts.map((tool) =>
     wrapToolWithBeforeToolCallHook(tool, {
       agentId,
       sessionKey: options?.sessionKey,
