@@ -1,6 +1,11 @@
 import type { GatewayBrowserClient } from "../gateway.ts";
 import type { ChatAttachment } from "../ui-types.ts";
 import type { ChatLifecycleGuard, ChatLifecycleSnapshot } from "./chat-lifecycle-guard.ts";
+import {
+  beginAsyncGeneration,
+  isCurrentAsyncGeneration,
+  logDroppedAsyncGeneration,
+} from "../async-generation.ts";
 import { extractText } from "../chat/message-extract.ts";
 import { generateUUID } from "../uuid.ts";
 
@@ -72,22 +77,34 @@ export async function loadChatHistory(state: ChatState) {
   if (!state.client || !state.connected) {
     return;
   }
+  const sessionKey = state.sessionKey;
+  const generation = beginAsyncGeneration(state, "chat.history");
   state.chatLoading = true;
   state.lastError = null;
   try {
     const res = await state.client.request<{ messages?: Array<unknown>; thinkingLevel?: string }>(
       "chat.history",
       {
-        sessionKey: state.sessionKey,
+        sessionKey,
         limit: 200,
       },
     );
+    if (!isCurrentAsyncGeneration(state, "chat.history", generation)) {
+      logDroppedAsyncGeneration("chat.history", { sessionKey });
+      return;
+    }
     state.chatMessages = Array.isArray(res.messages) ? res.messages : [];
     state.chatThinkingLevel = res.thinkingLevel ?? null;
   } catch (err) {
+    if (!isCurrentAsyncGeneration(state, "chat.history", generation)) {
+      logDroppedAsyncGeneration("chat.history", { sessionKey, phase: "error" });
+      return;
+    }
     state.lastError = String(err);
   } finally {
-    state.chatLoading = false;
+    if (isCurrentAsyncGeneration(state, "chat.history", generation)) {
+      state.chatLoading = false;
+    }
   }
 }
 

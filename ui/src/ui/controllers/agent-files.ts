@@ -5,6 +5,11 @@ import type {
   AgentsFilesListResult,
   AgentsFilesSetResult,
 } from "../types.ts";
+import {
+  beginAsyncGeneration,
+  isCurrentAsyncGeneration,
+  logDroppedAsyncGeneration,
+} from "../async-generation.ts";
 
 export type AgentFilesState = {
   client: GatewayBrowserClient | null;
@@ -17,6 +22,10 @@ export type AgentFilesState = {
   agentFileActive: string | null;
   agentFileSaving: boolean;
 };
+
+export function agentFileCacheKey(agentId: string, name: string): string {
+  return `${agentId}\u0000${name}`;
+}
 
 function mergeFileEntry(
   list: AgentsFilesListResult | null,
@@ -33,15 +42,20 @@ function mergeFileEntry(
 }
 
 export async function loadAgentFiles(state: AgentFilesState, agentId: string) {
-  if (!state.client || !state.connected || state.agentFilesLoading) {
+  if (!state.client || !state.connected) {
     return;
   }
+  const generation = beginAsyncGeneration(state, "agents.files.list");
   state.agentFilesLoading = true;
   state.agentFilesError = null;
   try {
     const res = await state.client.request<AgentsFilesListResult | null>("agents.files.list", {
       agentId,
     });
+    if (!isCurrentAsyncGeneration(state, "agents.files.list", generation)) {
+      logDroppedAsyncGeneration("agents.files.list", { agentId });
+      return;
+    }
     if (res) {
       state.agentFilesList = res;
       if (state.agentFileActive && !res.files.some((file) => file.name === state.agentFileActive)) {
@@ -49,9 +63,15 @@ export async function loadAgentFiles(state: AgentFilesState, agentId: string) {
       }
     }
   } catch (err) {
+    if (!isCurrentAsyncGeneration(state, "agents.files.list", generation)) {
+      logDroppedAsyncGeneration("agents.files.list", { agentId, phase: "error" });
+      return;
+    }
     state.agentFilesError = String(err);
   } finally {
-    state.agentFilesLoading = false;
+    if (isCurrentAsyncGeneration(state, "agents.files.list", generation)) {
+      state.agentFilesLoading = false;
+    }
   }
 }
 
@@ -61,12 +81,14 @@ export async function loadAgentFileContent(
   name: string,
   opts?: { force?: boolean; preserveDraft?: boolean },
 ) {
-  if (!state.client || !state.connected || state.agentFilesLoading) {
+  if (!state.client || !state.connected) {
     return;
   }
-  if (!opts?.force && Object.hasOwn(state.agentFileContents, name)) {
+  const cacheKey = agentFileCacheKey(agentId, name);
+  if (!opts?.force && Object.hasOwn(state.agentFileContents, cacheKey)) {
     return;
   }
+  const generation = beginAsyncGeneration(state, "agents.files.get");
   state.agentFilesLoading = true;
   state.agentFilesError = null;
   try {
@@ -74,25 +96,35 @@ export async function loadAgentFileContent(
       agentId,
       name,
     });
+    if (!isCurrentAsyncGeneration(state, "agents.files.get", generation)) {
+      logDroppedAsyncGeneration("agents.files.get", { agentId, name });
+      return;
+    }
     if (res?.file) {
       const content = res.file.content ?? "";
-      const previousBase = state.agentFileContents[name] ?? "";
-      const currentDraft = state.agentFileDrafts[name];
+      const previousBase = state.agentFileContents[cacheKey] ?? "";
+      const currentDraft = state.agentFileDrafts[cacheKey];
       const preserveDraft = opts?.preserveDraft ?? true;
       state.agentFilesList = mergeFileEntry(state.agentFilesList, res.file);
-      state.agentFileContents = { ...state.agentFileContents, [name]: content };
+      state.agentFileContents = { ...state.agentFileContents, [cacheKey]: content };
       if (
         !preserveDraft ||
-        !Object.hasOwn(state.agentFileDrafts, name) ||
+        !Object.hasOwn(state.agentFileDrafts, cacheKey) ||
         currentDraft === previousBase
       ) {
-        state.agentFileDrafts = { ...state.agentFileDrafts, [name]: content };
+        state.agentFileDrafts = { ...state.agentFileDrafts, [cacheKey]: content };
       }
     }
   } catch (err) {
+    if (!isCurrentAsyncGeneration(state, "agents.files.get", generation)) {
+      logDroppedAsyncGeneration("agents.files.get", { agentId, name, phase: "error" });
+      return;
+    }
     state.agentFilesError = String(err);
   } finally {
-    state.agentFilesLoading = false;
+    if (isCurrentAsyncGeneration(state, "agents.files.get", generation)) {
+      state.agentFilesLoading = false;
+    }
   }
 }
 
@@ -105,6 +137,8 @@ export async function saveAgentFile(
   if (!state.client || !state.connected || state.agentFileSaving) {
     return;
   }
+  const cacheKey = agentFileCacheKey(agentId, name);
+  const generation = beginAsyncGeneration(state, "agents.files.save");
   state.agentFileSaving = true;
   state.agentFilesError = null;
   try {
@@ -113,14 +147,24 @@ export async function saveAgentFile(
       name,
       content,
     });
+    if (!isCurrentAsyncGeneration(state, "agents.files.save", generation)) {
+      logDroppedAsyncGeneration("agents.files.save", { agentId, name });
+      return;
+    }
     if (res?.file) {
       state.agentFilesList = mergeFileEntry(state.agentFilesList, res.file);
-      state.agentFileContents = { ...state.agentFileContents, [name]: content };
-      state.agentFileDrafts = { ...state.agentFileDrafts, [name]: content };
+      state.agentFileContents = { ...state.agentFileContents, [cacheKey]: content };
+      state.agentFileDrafts = { ...state.agentFileDrafts, [cacheKey]: content };
     }
   } catch (err) {
+    if (!isCurrentAsyncGeneration(state, "agents.files.save", generation)) {
+      logDroppedAsyncGeneration("agents.files.save", { agentId, name, phase: "error" });
+      return;
+    }
     state.agentFilesError = String(err);
   } finally {
-    state.agentFileSaving = false;
+    if (isCurrentAsyncGeneration(state, "agents.files.save", generation)) {
+      state.agentFileSaving = false;
+    }
   }
 }

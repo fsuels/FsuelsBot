@@ -1,6 +1,11 @@
 import type { GatewayBrowserClient } from "../gateway.ts";
 import type { SessionsUsageResult, CostUsageSummary, SessionUsageTimeSeries } from "../types.ts";
 import type { SessionLogEntry } from "../views/usage.ts";
+import {
+  beginAsyncGeneration,
+  isCurrentAsyncGeneration,
+  logDroppedAsyncGeneration,
+} from "../async-generation.ts";
 
 export type UsageState = {
   client: GatewayBrowserClient | null;
@@ -29,15 +34,12 @@ export async function loadUsage(
   if (!state.client || !state.connected) {
     return;
   }
-  if (state.usageLoading) {
-    return;
-  }
+  const startDate = overrides?.startDate ?? state.usageStartDate;
+  const endDate = overrides?.endDate ?? state.usageEndDate;
+  const generation = beginAsyncGeneration(state, "usage.load");
   state.usageLoading = true;
   state.usageError = null;
   try {
-    const startDate = overrides?.startDate ?? state.usageStartDate;
-    const endDate = overrides?.endDate ?? state.usageEndDate;
-
     // Load both endpoints in parallel
     const [sessionsRes, costRes] = await Promise.all([
       state.client.request("sessions.usage", {
@@ -49,6 +51,10 @@ export async function loadUsage(
       state.client.request("usage.cost", { startDate, endDate }),
     ]);
 
+    if (!isCurrentAsyncGeneration(state, "usage.load", generation)) {
+      logDroppedAsyncGeneration("usage.load", { startDate, endDate });
+      return;
+    }
     if (sessionsRes) {
       state.usageResult = sessionsRes as SessionsUsageResult;
     }
@@ -56,9 +62,15 @@ export async function loadUsage(
       state.usageCostSummary = costRes as CostUsageSummary;
     }
   } catch (err) {
+    if (!isCurrentAsyncGeneration(state, "usage.load", generation)) {
+      logDroppedAsyncGeneration("usage.load", { startDate, endDate, phase: "error" });
+      return;
+    }
     state.usageError = String(err);
   } finally {
-    state.usageLoading = false;
+    if (isCurrentAsyncGeneration(state, "usage.load", generation)) {
+      state.usageLoading = false;
+    }
   }
 }
 
@@ -66,21 +78,29 @@ export async function loadSessionTimeSeries(state: UsageState, sessionKey: strin
   if (!state.client || !state.connected) {
     return;
   }
-  if (state.usageTimeSeriesLoading) {
-    return;
-  }
+  const generation = beginAsyncGeneration(state, "usage.timeseries");
   state.usageTimeSeriesLoading = true;
   state.usageTimeSeries = null;
   try {
     const res = await state.client.request("sessions.usage.timeseries", { key: sessionKey });
+    if (!isCurrentAsyncGeneration(state, "usage.timeseries", generation)) {
+      logDroppedAsyncGeneration("usage.timeseries", { sessionKey });
+      return;
+    }
     if (res) {
       state.usageTimeSeries = res as SessionUsageTimeSeries;
     }
   } catch {
+    if (!isCurrentAsyncGeneration(state, "usage.timeseries", generation)) {
+      logDroppedAsyncGeneration("usage.timeseries", { sessionKey, phase: "error" });
+      return;
+    }
     // Silently fail - time series is optional
     state.usageTimeSeries = null;
   } finally {
-    state.usageTimeSeriesLoading = false;
+    if (isCurrentAsyncGeneration(state, "usage.timeseries", generation)) {
+      state.usageTimeSeriesLoading = false;
+    }
   }
 }
 
@@ -88,20 +108,28 @@ export async function loadSessionLogs(state: UsageState, sessionKey: string) {
   if (!state.client || !state.connected) {
     return;
   }
-  if (state.usageSessionLogsLoading) {
-    return;
-  }
+  const generation = beginAsyncGeneration(state, "usage.logs");
   state.usageSessionLogsLoading = true;
   state.usageSessionLogs = null;
   try {
     const res = await state.client.request("sessions.usage.logs", { key: sessionKey, limit: 500 });
+    if (!isCurrentAsyncGeneration(state, "usage.logs", generation)) {
+      logDroppedAsyncGeneration("usage.logs", { sessionKey });
+      return;
+    }
     if (res && Array.isArray((res as { logs: SessionLogEntry[] }).logs)) {
       state.usageSessionLogs = (res as { logs: SessionLogEntry[] }).logs;
     }
   } catch {
+    if (!isCurrentAsyncGeneration(state, "usage.logs", generation)) {
+      logDroppedAsyncGeneration("usage.logs", { sessionKey, phase: "error" });
+      return;
+    }
     // Silently fail - logs are optional
     state.usageSessionLogs = null;
   } finally {
-    state.usageSessionLogsLoading = false;
+    if (isCurrentAsyncGeneration(state, "usage.logs", generation)) {
+      state.usageSessionLogsLoading = false;
+    }
   }
 }

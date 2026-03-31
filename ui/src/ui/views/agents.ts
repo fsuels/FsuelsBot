@@ -17,6 +17,7 @@ import {
   normalizeToolName,
   resolveToolProfilePolicy,
 } from "../../../../src/agents/tool-policy.js";
+import { agentFileCacheKey } from "../controllers/agent-files.ts";
 import { formatRelativeTimestamp } from "../format.ts";
 import {
   formatCronPayload,
@@ -1247,8 +1248,9 @@ function renderAgentFiles(params: {
   const files = list?.files ?? [];
   const active = params.agentFileActive ?? null;
   const activeEntry = active ? (files.find((file) => file.name === active) ?? null) : null;
-  const baseContent = active ? (params.agentFileContents[active] ?? "") : "";
-  const draft = active ? (params.agentFileDrafts[active] ?? baseContent) : "";
+  const activeKey = active ? agentFileCacheKey(params.agentId, active) : null;
+  const baseContent = activeKey ? (params.agentFileContents[activeKey] ?? "") : "";
+  const draft = activeKey ? (params.agentFileDrafts[activeKey] ?? baseContent) : "";
   const isDirty = active ? draft !== baseContent : false;
 
   return html`

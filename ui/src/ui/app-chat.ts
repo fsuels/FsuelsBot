@@ -6,6 +6,11 @@ import { parseAgentSessionKey } from "../../../src/sessions/session-key-utils.js
 import { scheduleChatScroll } from "./app-scroll.ts";
 import { setLastActiveSessionKey } from "./app-settings.ts";
 import { resetToolStream } from "./app-tool-stream.ts";
+import {
+  beginAsyncGeneration,
+  isCurrentAsyncGeneration,
+  logDroppedAsyncGeneration,
+} from "./async-generation.ts";
 import { abortChatRun, loadChatHistory, sendChatMessage } from "./controllers/chat.ts";
 import { loadSessions } from "./controllers/sessions.ts";
 import { normalizeBasePath } from "./navigation.ts";
@@ -255,18 +260,31 @@ export async function refreshChatAvatar(host: ChatHost) {
     host.chatAvatarUrl = null;
     return;
   }
+  const generation = beginAsyncGeneration(host, "chat.avatar");
   host.chatAvatarUrl = null;
   const url = buildAvatarMetaUrl(host.basePath, agentId);
   try {
     const res = await fetch(url, { method: "GET" });
+    if (!isCurrentAsyncGeneration(host, "chat.avatar", generation)) {
+      logDroppedAsyncGeneration("chat.avatar", { agentId });
+      return;
+    }
     if (!res.ok) {
       host.chatAvatarUrl = null;
       return;
     }
     const data = (await res.json()) as { avatarUrl?: unknown };
+    if (!isCurrentAsyncGeneration(host, "chat.avatar", generation)) {
+      logDroppedAsyncGeneration("chat.avatar", { agentId, phase: "json" });
+      return;
+    }
     const avatarUrl = typeof data.avatarUrl === "string" ? data.avatarUrl.trim() : "";
     host.chatAvatarUrl = avatarUrl || null;
   } catch {
+    if (!isCurrentAsyncGeneration(host, "chat.avatar", generation)) {
+      logDroppedAsyncGeneration("chat.avatar", { agentId, phase: "error" });
+      return;
+    }
     host.chatAvatarUrl = null;
   }
 }

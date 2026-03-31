@@ -5,7 +5,12 @@ import type { UsageState } from "./controllers/usage.ts";
 import { parseAgentSessionKey } from "../../../src/routing/session-key.js";
 import { refreshChatAvatar } from "./app-chat.ts";
 import { renderChatControls, renderTab, renderThemeToggle } from "./app-render.helpers.ts";
-import { loadAgentFileContent, loadAgentFiles, saveAgentFile } from "./controllers/agent-files.ts";
+import {
+  agentFileCacheKey,
+  loadAgentFileContent,
+  loadAgentFiles,
+  saveAgentFile,
+} from "./controllers/agent-files.ts";
 import { loadAgentIdentities, loadAgentIdentity } from "./controllers/agent-identity.ts";
 import { loadAgentSkills } from "./controllers/agent-skills.ts";
 import { loadAgentToolsCatalog } from "./controllers/agent-tools.ts";
@@ -734,18 +739,27 @@ export function renderApp(state: AppViewState) {
                   void loadAgentFileContent(state, resolvedAgentId, name);
                 },
                 onFileDraftChange: (name, content) => {
-                  state.agentFileDrafts = { ...state.agentFileDrafts, [name]: content };
+                  if (!resolvedAgentId) {
+                    return;
+                  }
+                  const cacheKey = agentFileCacheKey(resolvedAgentId, name);
+                  state.agentFileDrafts = { ...state.agentFileDrafts, [cacheKey]: content };
                 },
                 onFileReset: (name) => {
-                  const base = state.agentFileContents[name] ?? "";
-                  state.agentFileDrafts = { ...state.agentFileDrafts, [name]: base };
+                  if (!resolvedAgentId) {
+                    return;
+                  }
+                  const cacheKey = agentFileCacheKey(resolvedAgentId, name);
+                  const base = state.agentFileContents[cacheKey] ?? "";
+                  state.agentFileDrafts = { ...state.agentFileDrafts, [cacheKey]: base };
                 },
                 onFileSave: (name) => {
                   if (!resolvedAgentId) {
                     return;
                   }
+                  const cacheKey = agentFileCacheKey(resolvedAgentId, name);
                   const content =
-                    state.agentFileDrafts[name] ?? state.agentFileContents[name] ?? "";
+                    state.agentFileDrafts[cacheKey] ?? state.agentFileContents[cacheKey] ?? "";
                   void saveAgentFile(state, resolvedAgentId, name, content);
                 },
                 onToolsProfileChange: (agentId, profile, clearAllow) => {

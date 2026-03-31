@@ -1,6 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import { createChatLifecycleGuard } from "./chat-lifecycle-guard.ts";
-import { handleChatEvent, sendChatMessage, type ChatEventPayload, type ChatState } from "./chat.ts";
+import {
+  handleChatEvent,
+  loadChatHistory,
+  sendChatMessage,
+  type ChatEventPayload,
+  type ChatState,
+} from "./chat.ts";
 
 function createState(overrides: Partial<ChatState> = {}): ChatState {
   const chatLifecycleGuard = createChatLifecycleGuard();
@@ -157,5 +163,52 @@ describe("sendChatMessage", () => {
     expect(state.chatLifecycleGuard?.getSnapshot().runId).toBe(secondRunId);
     expect(state.chatStream).toBe("");
     expect(state.lastError).toBeNull();
+  });
+});
+
+describe("loadChatHistory", () => {
+  it("ignores stale history responses after the session changes", async () => {
+    const first = createDeferred<{ messages: Array<unknown>; thinkingLevel: string }>();
+    const second = createDeferred<{ messages: Array<unknown>; thinkingLevel: string }>();
+    const client = {
+      request: vi.fn((method: string, params: unknown) => {
+        const payload = params as { sessionKey?: string };
+        if (method === "chat.history" && payload.sessionKey === "session-a") {
+          return first.promise;
+        }
+        if (method === "chat.history" && payload.sessionKey === "session-b") {
+          return second.promise;
+        }
+        return Promise.resolve({ messages: [], thinkingLevel: "low" });
+      }),
+    } as unknown as NonNullable<ChatState["client"]>;
+    const state = createState({ client, sessionKey: "session-a" });
+
+    const sessionA = loadChatHistory(state);
+    state.sessionKey = "session-b";
+    const sessionB = loadChatHistory(state);
+
+    second.resolve({
+      messages: [{ role: "assistant", content: [{ type: "text", text: "B" }] }],
+      thinkingLevel: "high",
+    });
+    await sessionB;
+
+    expect(state.chatMessages).toEqual([
+      { role: "assistant", content: [{ type: "text", text: "B" }] },
+    ]);
+    expect(state.chatThinkingLevel).toBe("high");
+
+    first.resolve({
+      messages: [{ role: "assistant", content: [{ type: "text", text: "A" }] }],
+      thinkingLevel: "low",
+    });
+    await sessionA;
+
+    expect(state.chatMessages).toEqual([
+      { role: "assistant", content: [{ type: "text", text: "B" }] },
+    ]);
+    expect(state.chatThinkingLevel).toBe("high");
+    expect(state.chatLoading).toBe(false);
   });
 });
