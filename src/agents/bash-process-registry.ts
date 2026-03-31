@@ -462,6 +462,33 @@ function resolveTaskOutputStatus(params: {
   }
 }
 
+function buildProcessTaskMetadata(params: {
+  sessionKey?: string;
+  scopeKey?: string;
+  startedAt: number;
+  endedAt?: number;
+  terminalReason?: ProcessTerminalReason;
+}) {
+  const metadata: Record<string, unknown> = {
+    started_at: params.startedAt,
+  };
+  const sessionKey = params.sessionKey?.trim();
+  if (sessionKey) {
+    metadata.session_key = sessionKey;
+  }
+  const scopeKey = params.scopeKey?.trim();
+  if (scopeKey) {
+    metadata.scope_key = scopeKey;
+  }
+  if (typeof params.endedAt === "number") {
+    metadata.ended_at = params.endedAt;
+  }
+  if (params.terminalReason) {
+    metadata.terminal_reason = params.terminalReason;
+  }
+  return metadata;
+}
+
 export function buildTaskOutputFromProcessSession(session: ProcessSession): TaskOutput {
   return {
     task_id: session.id,
@@ -481,6 +508,12 @@ export function buildTaskOutputFromProcessSession(session: ProcessSession): Task
     prompt: session.command,
     notified: session.notified ?? false,
     awaiting_input: session.awaitingInput,
+    metadata: buildProcessTaskMetadata({
+      sessionKey: session.sessionKey,
+      scopeKey: session.scopeKey,
+      startedAt: session.startedAt,
+      terminalReason: session.terminalReason,
+    }),
   };
 }
 
@@ -502,6 +535,13 @@ export function buildTaskOutputFromFinishedSession(session: FinishedSession): Ta
     prompt: session.command,
     notified: session.notified ?? false,
     awaiting_input: session.awaitingInput,
+    metadata: buildProcessTaskMetadata({
+      sessionKey: session.sessionKey,
+      scopeKey: session.scopeKey,
+      startedAt: session.startedAt,
+      endedAt: session.endedAt,
+      terminalReason: session.terminalReason,
+    }),
   };
 }
 

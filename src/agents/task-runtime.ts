@@ -16,8 +16,16 @@ import {
   listSubagentRuns,
   type SubagentRunRecord,
 } from "./subagent-registry.js";
-import { readTaskOutputArtifact } from "./task-output-artifacts.js";
 import { isTerminalTaskStatus, type TaskOutput } from "./task-output-contract.js";
+import {
+  getTaskEndedAt,
+  getTaskOwnerSessionKey,
+  getTaskParentTaskId,
+  getTaskStartedAt,
+  hasLiveRuntimeTask,
+  listDurableTaskOutputs,
+  readDurableTaskOutput,
+} from "./task-output-recovery.js";
 
 export type RuntimeTask = TaskOutput & {
   started_at?: number;
@@ -54,6 +62,24 @@ function buildRuntimeTaskFromSubagentRun(entry: SubagentRunRecord): RuntimeTask 
   };
 }
 
+function buildRuntimeTaskFromArtifact(task: TaskOutput): RuntimeTask {
+  return {
+    ...task,
+    started_at: getTaskStartedAt(task),
+    ended_at: getTaskEndedAt(task),
+    is_backgrounded: true,
+    parent_task_id: getTaskParentTaskId(task),
+  };
+}
+
+function matchesRequesterSessionKey(task: TaskOutput, requesterSessionKey?: string): boolean {
+  const requester = requesterSessionKey?.trim();
+  if (!requester) {
+    return true;
+  }
+  return getTaskOwnerSessionKey(task) === requester;
+}
+
 export function getRuntimeTask(taskId: string): RuntimeTask | null {
   const trimmed = taskId.trim();
   if (!trimmed) {
@@ -74,25 +100,28 @@ export function getRuntimeTask(taskId: string): RuntimeTask | null {
   if (subagent) {
     return buildRuntimeTaskFromSubagentRun(subagent);
   }
-  const artifact = readTaskOutputArtifact(trimmed);
+  const artifact = readDurableTaskOutput(trimmed);
   if (!artifact) {
     return null;
   }
-  return {
-    ...artifact,
-    is_backgrounded: true,
-  };
+  return buildRuntimeTaskFromArtifact(artifact);
 }
 
 export function listRuntimeTasks(params?: { requesterSessionKey?: string }): RuntimeTask[] {
   const requesterSessionKey = params?.requesterSessionKey?.trim();
-  const tasks: RuntimeTask[] = [];
+  const tasks = new Map<string, RuntimeTask>();
+
+  const addTask = (task: RuntimeTask) => {
+    if (!tasks.has(task.task_id)) {
+      tasks.set(task.task_id, task);
+    }
+  };
 
   for (const session of listRunningSessions()) {
     if (requesterSessionKey && session.sessionKey !== requesterSessionKey) {
       continue;
     }
-    tasks.push(
+    addTask(
       buildRuntimeTaskFromProcessSession(session, buildTaskOutputFromProcessSession(session)),
     );
   }
@@ -101,7 +130,7 @@ export function listRuntimeTasks(params?: { requesterSessionKey?: string }): Run
     if (requesterSessionKey && session.sessionKey !== requesterSessionKey) {
       continue;
     }
-    tasks.push(
+    addTask(
       buildRuntimeTaskFromProcessSession(session, buildTaskOutputFromFinishedSession(session)),
     );
   }
@@ -110,10 +139,20 @@ export function listRuntimeTasks(params?: { requesterSessionKey?: string }): Run
     if (requesterSessionKey && run.requesterSessionKey !== requesterSessionKey) {
       continue;
     }
-    tasks.push(buildRuntimeTaskFromSubagentRun(run));
+    addTask(buildRuntimeTaskFromSubagentRun(run));
   }
 
-  return tasks.toSorted((a, b) => {
+  for (const artifact of listDurableTaskOutputs()) {
+    if (
+      hasLiveRuntimeTask(artifact) ||
+      !matchesRequesterSessionKey(artifact, requesterSessionKey)
+    ) {
+      continue;
+    }
+    addTask(buildRuntimeTaskFromArtifact(artifact));
+  }
+
+  return [...tasks.values()].toSorted((a, b) => {
     const aTime = a.started_at ?? a.ended_at ?? 0;
     const bTime = b.started_at ?? b.ended_at ?? 0;
     return bTime - aTime;
@@ -171,15 +210,12 @@ export function stopRuntimeTask(taskId: string, reason?: string): StopRuntimeTas
     };
   }
 
-  const artifact = readTaskOutputArtifact(trimmed);
+  const artifact = readDurableTaskOutput(trimmed);
   if (artifact) {
     return {
       ok: false,
       code: isTerminalTaskStatus(artifact.status) ? "not_running" : "unsupported_type",
-      task: {
-        ...artifact,
-        is_backgrounded: true,
-      },
+      task: buildRuntimeTaskFromArtifact(artifact),
     };
   }
 

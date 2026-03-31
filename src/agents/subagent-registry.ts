@@ -206,6 +206,12 @@ function resolveSubagentUsage(entry: SubagentRunRecord): TaskOutput["usage"] | u
 
 function buildSubagentTaskMetadata(entry: SubagentRunRecord): TaskOutput["metadata"] | undefined {
   const metadata: Record<string, unknown> = {};
+  metadata.requester_session_key = entry.requesterSessionKey;
+  metadata.child_session_key = entry.childSessionKey;
+  metadata.started_at = entry.startedAt ?? entry.createdAt;
+  if (typeof entry.endedAt === "number") {
+    metadata.ended_at = entry.endedAt;
+  }
   if (entry.taskType) {
     metadata.task_type = entry.taskType;
   }

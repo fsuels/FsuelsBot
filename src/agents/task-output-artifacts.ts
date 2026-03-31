@@ -106,6 +106,29 @@ export function readTaskOutputArtifact(taskId: string, env: NodeJS.ProcessEnv = 
   return null;
 }
 
+export function listTaskOutputArtifacts(env: NodeJS.ProcessEnv = process.env): TaskOutput[] {
+  let fileNames: string[] = [];
+  try {
+    fileNames = fs.readdirSync(resolveTaskArtifactsDir(env));
+  } catch {
+    return [];
+  }
+  const artifacts = new Map<string, TaskOutput>();
+  for (const fileName of fileNames) {
+    if (!fileName.endsWith(".json")) {
+      continue;
+    }
+    const artifact = readTaskOutputArtifactAtPath(
+      path.join(resolveTaskArtifactsDir(env), fileName),
+    );
+    if (!artifact || artifacts.has(artifact.task_id)) {
+      continue;
+    }
+    artifacts.set(artifact.task_id, artifact);
+  }
+  return [...artifacts.values()];
+}
+
 export function setTaskOutputArtifactNotified(
   taskId: string,
   notified = true,

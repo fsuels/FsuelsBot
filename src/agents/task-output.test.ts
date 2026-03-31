@@ -21,11 +21,16 @@ import { resolveTaskOutputPath, resolveTaskTranscriptPath } from "./task-output-
 import { getTaskOutput } from "./task-output.js";
 import { createGetTaskOutputTool, createTaskOutputTools } from "./tools/get-task-output-tool.js";
 
-function createBackgroundShellSession(id: string, command = `echo ${id}`): ProcessSession {
+function createBackgroundShellSession(
+  id: string,
+  command = `echo ${id}`,
+  sessionKey = "agent:main:main",
+): ProcessSession {
   return {
     id,
     command,
     description: command,
+    sessionKey,
     startedAt: Date.now(),
     maxOutputChars: 8_000,
     totalOutputChars: 0,
@@ -443,7 +448,7 @@ describe("task output runtime", () => {
     expect(persisted.notified).toBe(true);
   });
 
-  it("returns running partial output from persisted artifacts", async () => {
+  it("marks orphaned running shell artifacts as terminal after restart", async () => {
     const task = createBackgroundShellSession("shell-durable-running", "printf partial");
     addSession(task);
     appendOutput(task, "stdout", "partial\n");
@@ -456,14 +461,24 @@ describe("task output runtime", () => {
     });
 
     expect(result).toMatchObject({
-      retrieval_status: "not_ready",
+      retrieval_status: "success",
       task: {
         task_id: task.id,
         task_type: "shell",
-        status: "running",
+        status: "error",
         stdout: "partial\n",
+        metadata: {
+          stale_runtime: true,
+          stale_reason: "process_session_missing",
+        },
       },
     });
+
+    const persisted = JSON.parse(
+      await fs.readFile(resolveTaskOutputPath({ taskId: task.id, taskType: "shell" }), "utf8"),
+    ) as { status?: string; metadata?: Record<string, unknown> };
+    expect(persisted.status).toBe("error");
+    expect(persisted.metadata?.stale_runtime).toBe(true);
   });
 
   it("surfaces awaiting_input when a background shell stalls on an interactive prompt", async () => {

@@ -14,17 +14,14 @@ import {
   setSubagentRunNotified,
   waitForSubagentTerminal,
 } from "./subagent-registry.js";
-import {
-  readTaskOutputArtifact,
-  readTaskOutputFromTranscript,
-  setTaskOutputArtifactNotified,
-} from "./task-output-artifacts.js";
+import { setTaskOutputArtifactNotified } from "./task-output-artifacts.js";
 import {
   TASK_OUTPUT_WAIT_BACKOFF_MS,
   isTerminalTaskStatus,
   type TaskOutput,
   type TaskOutputRetrieval,
 } from "./task-output-contract.js";
+import { readDurableTaskOutput } from "./task-output-recovery.js";
 import { readLatestAssistantReply } from "./tools/agent-step.js";
 
 function getShellTaskOutput(taskId: string): TaskOutput | null {
@@ -81,7 +78,7 @@ export function getTaskOutputSnapshot(taskId: string): TaskOutput | null {
   if (subagent) {
     return buildTaskOutputFromSubagentRun(subagent);
   }
-  return readTaskOutputArtifact(trimmed) ?? readTaskOutputFromTranscript(trimmed);
+  return readDurableTaskOutput(trimmed);
 }
 
 function markTaskNotified(taskId: string) {

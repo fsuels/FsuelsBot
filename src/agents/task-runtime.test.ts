@@ -14,12 +14,16 @@ import { addSubagentRunForTests, resetSubagentRegistryForTests } from "./subagen
 import { resolveTaskOutputPath, resolveTaskTranscriptPath } from "./task-output-artifacts.js";
 import { listActionableRuntimeTaskIds, stopRuntimeTask, type RuntimeTask } from "./task-runtime.js";
 
-function createBackgroundShellSession(id: string, command = `echo ${id}`): ProcessSession {
+function createBackgroundShellSession(
+  id: string,
+  command = `echo ${id}`,
+  sessionKey = "agent:main:main",
+): ProcessSession {
   return {
     id,
     command,
     description: command,
-    sessionKey: "agent:main:main",
+    sessionKey,
     startedAt: Date.now(),
     maxOutputChars: 8_000,
     totalOutputChars: 0,
@@ -121,5 +125,25 @@ describe("task runtime", () => {
     expect(listActionableRuntimeTaskIds({ requesterSessionKey: "agent:main:main" })).toContain(
       task.id,
     );
+  });
+
+  it("restores finished disk-backed shell tasks for the owning session after restart", () => {
+    const taskA = createBackgroundShellSession("shell-restart-a", "printf a", "agent:main:main");
+    const taskB = createBackgroundShellSession("shell-restart-b", "printf b", "agent:main:other");
+    addSession(taskA);
+    addSession(taskB);
+    appendOutput(taskA, "stdout", "a\n");
+    appendOutput(taskB, "stdout", "b\n");
+    markExited(taskA, 0, null, "completed", { terminalReason: "completed" });
+    markExited(taskB, 0, null, "completed", { terminalReason: "completed" });
+
+    resetProcessRegistryForTests();
+
+    expect(listActionableRuntimeTaskIds({ requesterSessionKey: "agent:main:main" })).toEqual([
+      taskA.id,
+    ]);
+    expect(listActionableRuntimeTaskIds({ requesterSessionKey: "agent:main:other" })).toEqual([
+      taskB.id,
+    ]);
   });
 });
