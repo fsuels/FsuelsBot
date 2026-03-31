@@ -602,6 +602,7 @@ export async function runTui(opts: TuiOptions) {
     handleOverlayEscape({
       hasActiveOverlay,
       closeOverlay,
+      canAbortActive: () => Boolean(turnLifecycle.getSnapshot().activeRunId),
       abortActive,
       requestRender: () => tui.requestRender(),
     });

@@ -18,7 +18,6 @@ import {
   analyzeArgvCommand,
   evaluateExecAllowlist,
   evaluateShellAllowlist,
-  requiresExecApproval,
   normalizeExecApprovals,
   recordAllowlistUse,
   resolveExecApprovals,
@@ -45,6 +44,7 @@ import { detectMime } from "../media/mime.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
 import { VERSION } from "../version.js";
 import { ensureNodeHostConfig, saveNodeHostConfig, type NodeHostGatewayConfig } from "./config.js";
+import { isCmdExeInvocation, resolveSystemRunPermission } from "./system-run-permissions.js";
 
 type NodeHostRunOptions = {
   gatewayHost: string;
@@ -117,15 +117,6 @@ type RunResult = {
 
 function resolveExecSecurity(value?: string): ExecSecurity {
   return value === "deny" || value === "allowlist" || value === "full" ? value : "allowlist";
-}
-
-function isCmdExeInvocation(argv: string[]): boolean {
-  const token = argv[0]?.trim();
-  if (!token) {
-    return false;
-  }
-  const base = path.win32.basename(token).toLowerCase();
-  return base === "cmd.exe" || base === "cmd";
 }
 
 function resolveExecAsk(value?: string): ExecAsk {
@@ -1063,19 +1054,23 @@ async function handleInvoke(
     return;
   }
 
-  const requiresAsk = requiresExecApproval({
-    ask,
+  const permissionDecision = resolveSystemRunPermission({
+    argv,
+    rawCommand,
     security,
+    ask,
     analysisOk,
+    analysisReason,
     allowlistSatisfied,
+    allowlistMatches,
+    segments,
+    approvalDecision: params.approvalDecision,
+    approved: params.approved,
+    needsScreenRecording: params.needsScreenRecording,
+    platform: process.platform,
   });
 
-  const approvalDecision =
-    params.approvalDecision === "allow-once" || params.approvalDecision === "allow-always"
-      ? params.approvalDecision
-      : null;
-  const approvedByAsk = approvalDecision !== null || params.approved === true;
-  if (requiresAsk && !approvedByAsk) {
+  if (permissionDecision.state === "ask" || permissionDecision.state === "deny") {
     await sendNodeEvent(
       client,
       "exec.denied",
@@ -1084,46 +1079,20 @@ async function handleInvoke(
         runId,
         host: "node",
         command: cmdText,
-        reason: "approval-required",
+        reason: permissionDecision.reasonCode,
       }),
     );
     await sendInvokeResult(client, frame, {
       ok: false,
-      error: { code: "UNAVAILABLE", message: "SYSTEM_RUN_DENIED: approval required" },
+      error: { code: "UNAVAILABLE", message: permissionDecision.message },
     });
     return;
-  }
-  if (approvalDecision === "allow-always" && security === "allowlist") {
-    if (analysisOk) {
-      for (const segment of segments) {
-        const pattern = segment.resolution?.resolvedPath ?? "";
-        if (pattern) {
-          addAllowlistEntry(approvals.file, agentId, pattern);
-        }
-      }
-    }
   }
 
-  if (security === "allowlist" && (!analysisOk || !allowlistSatisfied) && !approvedByAsk) {
-    await sendNodeEvent(
-      client,
-      "exec.denied",
-      buildExecEventPayload({
-        sessionKey,
-        runId,
-        host: "node",
-        command: cmdText,
-        reason: "allowlist-miss",
-      }),
-    );
-    await sendInvokeResult(client, frame, {
-      ok: false,
-      error: {
-        code: "UNAVAILABLE",
-        message: `SYSTEM_RUN_DENIED: ${!analysisOk && analysisReason ? analysisReason : "allowlist miss"}`,
-      },
-    });
-    return;
+  if (permissionDecision.allowAlwaysPatterns.length > 0) {
+    for (const pattern of permissionDecision.allowAlwaysPatterns) {
+      addAllowlistEntry(approvals.file, agentId, pattern);
+    }
   }
 
   if (allowlistMatches.length > 0) {
@@ -1143,39 +1112,7 @@ async function handleInvoke(
     }
   }
 
-  if (params.needsScreenRecording === true) {
-    await sendNodeEvent(
-      client,
-      "exec.denied",
-      buildExecEventPayload({
-        sessionKey,
-        runId,
-        host: "node",
-        command: cmdText,
-        reason: "permission:screenRecording",
-      }),
-    );
-    await sendInvokeResult(client, frame, {
-      ok: false,
-      error: { code: "UNAVAILABLE", message: "PERMISSION_MISSING: screenRecording" },
-    });
-    return;
-  }
-
-  let execArgv = argv;
-  if (
-    security === "allowlist" &&
-    isWindows &&
-    !approvedByAsk &&
-    rawCommand &&
-    analysisOk &&
-    allowlistSatisfied &&
-    segments.length === 1 &&
-    segments[0]?.argv.length > 0
-  ) {
-    // Avoid cmd.exe in allowlist mode on Windows; run the parsed argv directly.
-    execArgv = segments[0].argv;
-  }
+  const execArgv = permissionDecision.execArgv;
 
   const result = await runCommand(
     execArgv,

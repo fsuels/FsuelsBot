@@ -4,6 +4,24 @@ import Testing
 @Suite
 @MainActor
 struct ExecApprovalsGatewayPrompterTests {
+    @Test func deduperRejectsDuplicateInFlightAndHandledRequests() {
+        var deduper = ExecApprovalRequestDeduper()
+
+        #expect(deduper.begin(id: "req-1", expiresAtMs: 500, nowMs: 100))
+        #expect(!deduper.begin(id: "req-1", expiresAtMs: 500, nowMs: 100))
+
+        deduper.finish(id: "req-1", expiresAtMs: 500, markHandled: true)
+
+        #expect(!deduper.begin(id: "req-1", expiresAtMs: 500, nowMs: 200))
+        #expect(deduper.begin(id: "req-1", expiresAtMs: 900, nowMs: 600))
+    }
+
+    @Test func deduperDropsExpiredRequests() {
+        var deduper = ExecApprovalRequestDeduper()
+        #expect(!deduper.begin(id: "expired", expiresAtMs: 100, nowMs: 100))
+        #expect(!deduper.begin(id: "expired", expiresAtMs: 90, nowMs: 100))
+    }
+
     @Test func sessionMatchPrefersActiveSession() {
         let matches = ExecApprovalsGatewayPrompter._testShouldPresent(
             mode: .remote,

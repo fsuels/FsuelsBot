@@ -9,6 +9,7 @@ type OverlayHost = Pick<TUI, "showOverlay" | "hideOverlay" | "hasOverlay" | "set
 export function handleOverlayEscape(params: {
   hasActiveOverlay: () => boolean;
   closeOverlay: () => void;
+  canAbortActive?: () => boolean;
   abortActive: () => Promise<void> | void;
   requestRender?: () => void;
 }) {
@@ -16,6 +17,9 @@ export function handleOverlayEscape(params: {
     params.closeOverlay();
     params.requestRender?.();
     return "overlay";
+  }
+  if (params.canAbortActive && !params.canAbortActive()) {
+    return "noop";
   }
   void params.abortActive();
   return "abort";

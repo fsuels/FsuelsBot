@@ -115,4 +115,20 @@ describe("createOverlayHandlers", () => {
     expect(closeOverlay).not.toHaveBeenCalled();
     expect(abortActive).toHaveBeenCalledTimes(1);
   });
+
+  it("is a no-op when no overlay is active and nothing can be aborted", () => {
+    const closeOverlay = vi.fn();
+    const abortActive = vi.fn();
+
+    const result = handleOverlayEscape({
+      hasActiveOverlay: () => false,
+      closeOverlay,
+      canAbortActive: () => false,
+      abortActive,
+    });
+
+    expect(result).toBe("noop");
+    expect(closeOverlay).not.toHaveBeenCalled();
+    expect(abortActive).not.toHaveBeenCalled();
+  });
 });

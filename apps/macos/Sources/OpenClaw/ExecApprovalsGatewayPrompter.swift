@@ -4,12 +4,43 @@ import CoreGraphics
 import Foundation
 import OSLog
 
+struct ExecApprovalRequestDeduper {
+    private var handledExpirationsByID: [String: Int] = [:]
+    private var inFlightRequestIDs = Set<String>()
+
+    mutating func begin(id: String, expiresAtMs: Int, nowMs: Int) -> Bool {
+        self.prune(nowMs: nowMs)
+        guard !id.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+        guard expiresAtMs > nowMs else { return false }
+        guard !self.inFlightRequestIDs.contains(id) else { return false }
+        guard self.handledExpirationsByID[id] == nil else { return false }
+        self.inFlightRequestIDs.insert(id)
+        return true
+    }
+
+    mutating func finish(id: String, expiresAtMs: Int, markHandled: Bool) {
+        self.inFlightRequestIDs.remove(id)
+        guard markHandled else { return }
+        self.handledExpirationsByID[id] = expiresAtMs
+    }
+
+    mutating func reset() {
+        self.handledExpirationsByID.removeAll()
+        self.inFlightRequestIDs.removeAll()
+    }
+
+    private mutating func prune(nowMs: Int) {
+        self.handledExpirationsByID = self.handledExpirationsByID.filter { $0.value > nowMs }
+    }
+}
+
 @MainActor
 final class ExecApprovalsGatewayPrompter {
     static let shared = ExecApprovalsGatewayPrompter()
 
     private let logger = Logger(subsystem: "ai.openclaw", category: "exec-approvals.gateway")
     private var task: Task<Void, Never>?
+    private var deduper = ExecApprovalRequestDeduper()
 
     struct GatewayApprovalRequest: Codable, Sendable {
         var id: String
@@ -21,13 +52,15 @@ final class ExecApprovalsGatewayPrompter {
     func start() {
         guard self.task == nil else { return }
         self.task = Task { [weak self] in
-            await self?.run()
+            guard let self else { return }
+            await self.run()
         }
     }
 
     func stop() {
         self.task?.cancel()
         self.task = nil
+        self.deduper.reset()
     }
 
     private func run() async {
@@ -45,6 +78,20 @@ final class ExecApprovalsGatewayPrompter {
         do {
             let data = try JSONEncoder().encode(payload)
             let request = try JSONDecoder().decode(GatewayApprovalRequest.self, from: data)
+            guard self.deduper.begin(
+                id: request.id,
+                expiresAtMs: request.expiresAtMs,
+                nowMs: Self.nowMs())
+            else { return }
+
+            var shouldMarkHandled = false
+            defer {
+                self.deduper.finish(
+                    id: request.id,
+                    expiresAtMs: request.expiresAtMs,
+                    markHandled: shouldMarkHandled)
+            }
+
             guard self.shouldPresent(request: request) else { return }
             let decision = ExecApprovalsPromptPresenter.prompt(request.request)
             try await GatewayConnection.shared.requestVoid(
@@ -54,6 +101,7 @@ final class ExecApprovalsGatewayPrompter {
                     "decision": AnyCodable(decision.rawValue),
                 ],
                 timeoutMs: 10000)
+            shouldMarkHandled = true
         } catch {
             self.logger.error("exec approval handling failed \(error.localizedDescription, privacy: .public)")
         }
@@ -100,6 +148,10 @@ final class ExecApprovalsGatewayPrompter {
         let seconds = CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: anyEvent)
         if seconds.isNaN || seconds.isInfinite || seconds < 0 { return nil }
         return Int(seconds.rounded())
+    }
+
+    private static func nowMs() -> Int {
+        Int(Date().timeIntervalSince1970 * 1000)
     }
 }
 
