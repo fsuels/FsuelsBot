@@ -283,15 +283,47 @@ describe("sessions tools", () => {
     expect(details.warnings).toEqual([
       {
         sessionKey: "cron:job-1",
-        reason: "history backend unavailable",
+        reason: "sessions_list chat.history cron:job-1 failed: history backend unavailable; using fallback",
       },
     ]);
     expect(details.sessions?.find((session) => session.key === "main")?.messages).toHaveLength(1);
-    expect(
-      details.sessions?.find((session) => session.key === "cron:job-1")?.messages,
-    ).toBeUndefined();
+    expect(details.sessions?.find((session) => session.key === "cron:job-1")?.messages).toEqual([]);
     expect(result.content[0]?.text).toContain('"partial":true');
     expect(result.content[0]?.text).toContain('"warnings"');
+  });
+
+  it("falls back to empty previews when history lookups time out", async () => {
+    callGatewayMock.mockReset();
+    callGatewayMock.mockImplementation(async (opts: unknown) => {
+      const request = opts as { method?: string };
+      if (request.method === "sessions.list") {
+        return {
+          path: "/tmp/sessions.json",
+          sessions: [{ key: "main", kind: "direct", sessionId: "s-main", updatedAt: 10 }],
+        };
+      }
+      if (request.method === "chat.history") {
+        return await new Promise<never>(() => {});
+      }
+      return {};
+    });
+
+    const tool = createOpenClawTools().find((candidate) => candidate.name === "sessions_list");
+    if (!tool) {
+      throw new Error("missing sessions_list tool");
+    }
+
+    const result = await tool.execute("call-timeout", { messageLimit: 1 });
+    const details = result.details as {
+      partial?: boolean;
+      warnings?: Array<{ sessionKey?: string; reason?: string }>;
+      sessions?: Array<Record<string, unknown>>;
+    };
+
+    expect(details.partial).toBe(true);
+    expect(details.warnings?.[0]?.sessionKey).toBe("main");
+    expect(details.warnings?.[0]?.reason).toContain("timed out");
+    expect(details.sessions?.[0]?.messages).toEqual([]);
   });
 
   it("summarizes oversized session payloads for the model while keeping full details", async () => {

@@ -3,6 +3,7 @@ import path from "node:path";
 import type { AnyAgentTool } from "./common.js";
 import { loadConfig } from "../../config/config.js";
 import { callGateway } from "../../gateway/call.js";
+import { runReliableOperation } from "../../infra/reliability.js";
 import { isSubagentSessionKey, resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
 import { defineOpenClawTool } from "../tool-contract.js";
 import {
@@ -106,15 +107,7 @@ function buildSessionsListOperatorManual() {
   ].join("\n");
 }
 
-function extractErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message || String(error);
-  }
-  if (typeof error === "string") {
-    return error;
-  }
-  return String(error);
-}
+const HISTORY_LOOKUP_TIMEOUT_MS = 1_500;
 
 function summarizeSessionPreview(row: SessionListRow): Record<string, unknown> {
   return {
@@ -329,26 +322,44 @@ export function createSessionsListTool(opts?: {
               alias,
               mainKey,
             });
-            try {
-              const history = await callGateway<{ messages: Array<unknown> }>({
-                method: "chat.history",
-                params: { sessionKey: resolvedKey, limit: messageLimit },
-              });
-              const rawMessages = Array.isArray(history?.messages) ? history.messages : [];
-              const filtered = stripToolMessages(rawMessages);
+            const historyResult = await runReliableOperation({
+              name: `sessions_list chat.history ${row.key}`,
+              criticality: "best_effort",
+              timeoutMs: HISTORY_LOOKUP_TIMEOUT_MS,
+              task: async () => {
+                const history = await callGateway<{ messages: Array<unknown> }>({
+                  method: "chat.history",
+                  params: { sessionKey: resolvedKey, limit: messageLimit },
+                });
+                const rawMessages = Array.isArray(history?.messages) ? history.messages : [];
+                const filtered = stripToolMessages(rawMessages);
+                return filtered.length > messageLimit ? filtered.slice(-messageLimit) : filtered;
+              },
+              fallback: () => [],
+            });
+
+            if (!historyResult.ok) {
               return {
                 sessionKey: row.key,
-                messages: filtered.length > messageLimit ? filtered.slice(-messageLimit) : filtered,
-              };
-            } catch (error) {
-              return {
-                sessionKey: row.key,
+                messages: [] as Array<unknown>,
                 warning: {
                   sessionKey: row.key,
-                  reason: extractErrorMessage(error),
+                  reason: historyResult.message,
                 } satisfies SessionsListWarning,
               };
             }
+
+            return {
+              sessionKey: row.key,
+              messages: historyResult.value,
+              warning:
+                historyResult.fallbackUsed && historyResult.message
+                  ? ({
+                      sessionKey: row.key,
+                      reason: historyResult.message,
+                    } satisfies SessionsListWarning)
+                  : undefined,
+            };
           }),
         );
 
@@ -357,11 +368,10 @@ export function createSessionsListTool(opts?: {
           if (!row) {
             continue;
           }
-          if ("warning" in result) {
-            warnings.push(result.warning);
-            continue;
-          }
           row.messages = result.messages;
+          if (result.warning) {
+            warnings.push(result.warning);
+          }
         }
       }
 
