@@ -1,6 +1,6 @@
 {
-  "version": 98,
-  "updated_at": "2026-03-31T12:21:32.746017+00:00",
+  "version": 99,
+  "updated_at": "2026-03-31T14:20:02.695136+00:00",
   "updated_by": "heartbeat",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
@@ -71,7 +71,8 @@
       "CRON-20260315-ship",
       "CRON-20260315-backup",
       "CRON-20260316-consolidation",
-      "research-review-heartbeat-md-4"
+      "research-review-heartbeat-md-4",
+      "research-review-heartbeat-md-5"
     ],
     "trash": ["fix-that-and-make-sure-that-never-happens-again"],
     "paused": ["pomelli-dresses-refresh"]
@@ -2545,6 +2546,92 @@
         "evidence": [
           "https://heartbeat.md/ returned HTTP/2 521 on 2026-03-31",
           "Wayback snapshot 2026-03-03 title: \"Future home of heartbeat.md\" (domain parking page)"
+        ],
+        "scores": {
+          "revenue_potential": 0,
+          "autonomy_gain": 0,
+          "reliability_gain": 0,
+          "implementation_cost": 0,
+          "risk": 0
+        }
+      }
+    },
+    "research-review-heartbeat-md-5": {
+      "title": "Research review: heartbeat.md",
+      "status": "completed",
+      "lane": "done_today",
+      "updated_at": "2026-03-31T14:20:02Z",
+      "created_at": "2026-03-31T13:19:09.269Z",
+      "kind": "research_review",
+      "requirements": {
+        "goals": ["Research review: heartbeat.md"],
+        "constraints": [],
+        "assumptions": [],
+        "exclusions": ["Do not infer or repeat old tasks from prior chats."],
+        "acceptance_criteria": ["Provide at least one concrete receipt proving completion."],
+        "updated_at": "2026-03-31T13:19:09.269Z",
+        "source": "task-board.turn-sync"
+      },
+      "steps": [
+        {
+          "id": "credibility",
+          "text": "Classify source credibility tier and validate claims",
+          "status": "done",
+          "checked": true,
+          "updated_at": "2026-03-31T14:20:02Z"
+        },
+        {
+          "id": "score",
+          "text": "Score impact/cost/risk and decide ADOPT, EXPERIMENT, or IGNORE",
+          "status": "done",
+          "checked": true,
+          "updated_at": "2026-03-31T14:20:02Z"
+        },
+        {
+          "id": "plan",
+          "text": "If ADOPT/EXPERIMENT, define KPI, affected modules, and rollback plan",
+          "status": "done",
+          "checked": true,
+          "updated_at": "2026-03-31T14:20:02Z"
+        }
+      ],
+      "current_step": 0,
+      "next_action": "Run structured URL research review and choose ADOPT, EXPERIMENT, or IGNORE.",
+      "source_urls": ["https://heartbeat.md/"],
+      "review_template": {
+        "protocol": "research_review_v1",
+        "source_urls": ["https://heartbeat.md/"],
+        "required_sections": [
+          "credibility_gate",
+          "actionable_extraction",
+          "system_comparison",
+          "feasibility_filter",
+          "impact_scoring",
+          "decision",
+          "execution_plan"
+        ],
+        "scoring": {
+          "scale": "0-5",
+          "dimensions": [
+            "revenue_generation_potential",
+            "autonomy_improvement",
+            "reliability_improvement",
+            "implementation_cost",
+            "risk"
+          ]
+        },
+        "decisions": ["ADOPT", "EXPERIMENT", "IGNORE"],
+        "decision_rule": "Choose exactly one: ADOPT, EXPERIMENT, or IGNORE.",
+        "adopt_or_experiment_requirements": ["kpi", "affected_modules", "rollback_strategy"]
+      },
+      "started_at": "2026-03-31T13:19:59.742838+00:00",
+      "completed_at": "2026-03-31T14:20:02Z",
+      "result": {
+        "decision": "IGNORE",
+        "reason": "Duplicate of research-review-heartbeat-md-4. heartbeat.md remains unavailable (HTTP 521) with only a parked-domain placeholder in archive. No actionable mechanisms.",
+        "evidence": [
+          "Previously verified HTTP 521 on 2026-03-31 (task -4)",
+          "Wayback snapshot: parked domain \"Future home of heartbeat.md\""
         ],
         "scores": {
           "revenue_potential": 0,
