@@ -11,11 +11,7 @@ import { getMachineDisplayName } from "../../../infra/machine-name.js";
 import { MAX_IMAGE_BYTES } from "../../../media/constants.js";
 import { getGlobalHookRunner } from "../../../plugins/hook-runner-global.js";
 import { isSubagentSessionKey, normalizeAgentId } from "../../../routing/session-key.js";
-import {
-  appendTaskContextMarker,
-  resolveSessionTaskId,
-  resolveTaskScopedHistoryMessages,
-} from "../../../sessions/task-context.js";
+import { appendTaskContextMarker, resolveSessionTaskId } from "../../../sessions/task-context.js";
 import { resolveSignalReactionLevel } from "../../../signal/reaction-level.js";
 import { resolveTelegramInlineButtonsScope } from "../../../telegram/inline-buttons.js";
 import { resolveTelegramReactionLevel } from "../../../telegram/reaction-level.js";
@@ -33,18 +29,19 @@ import {
   listChannelSupportedActions,
   resolveChannelMessageToolHints,
 } from "../../channel-tools.js";
-import { estimateMessagesTokens } from "../../compaction.js";
 import { shouldTriggerProactiveCompaction } from "../../context-budget.js";
 import { resolveOpenClawDocsPath } from "../../docs-path.js";
 import { isTimeoutError } from "../../failover-error.js";
 import { resolveModelAuthMode } from "../../model-auth.js";
 import { resolveDefaultModelForAgent } from "../../model-selection.js";
 import {
+  attachModelViewToSystemPromptReport,
+  projectConversationForModel,
+} from "../../model-visible-context.js";
+import {
   isCloudCodeAssistFormatError,
   resolveBootstrapMaxChars,
   resolveProviderPromptMode,
-  validateAnthropicTurns,
-  validateGeminiTurns,
 } from "../../pi-embedded-helpers.js";
 import { subscribeEmbeddedPiSession } from "../../pi-embedded-subscribe.js";
 import {
@@ -74,12 +71,7 @@ import { isAbortError } from "../abort.js";
 import { appendCacheTtlTimestamp, isCacheTtlEligibleProvider } from "../cache-ttl.js";
 import { buildEmbeddedExtensionPaths } from "../extensions.js";
 import { applyExtraParamsToAgent } from "../extra-params.js";
-import {
-  logToolSchemasForGoogle,
-  sanitizeSessionHistory,
-  sanitizeToolsForGoogle,
-} from "../google.js";
-import { getDmHistoryLimitFromSessionKey, limitHistoryTurns } from "../history.js";
+import { logToolSchemasForGoogle, sanitizeToolsForGoogle } from "../google.js";
 import { log } from "../logger.js";
 import { buildModelAliasLines } from "../model.js";
 import {
@@ -96,7 +88,6 @@ import {
   buildEmbeddedSystemPromptArtifacts,
   createSystemPromptOverride,
 } from "../system-prompt.js";
-import { truncateOversizedToolResultsInMessages } from "../tool-result-truncation.js";
 import { splitSdkTools } from "../tool-split.js";
 import { describeUnknownError, mapThinkingLevel } from "../utils.js";
 import { tryDelegateRoute } from "./delegate-router.js";
@@ -651,80 +642,71 @@ export async function runEmbeddedAttempt(
         });
       }
 
+      let projectedSystemPromptReport = systemPromptReport;
       try {
-        const history = resolveTaskScopedHistoryMessages({
-          sessionManager,
-          taskId: activeTaskId,
-        });
-        const prior = await sanitizeSessionHistory({
-          messages: history.messages,
-          modelApi: params.model.api,
-          modelId: params.modelId,
-          provider: params.provider,
+        const projection = await projectConversationForModel({
           sessionManager,
           sessionId: params.sessionId,
-          policy: transcriptPolicy,
+          sessionKey: params.sessionKey,
+          taskId: activeTaskId,
+          config: params.config,
+          provider: params.provider,
+          modelId: params.modelId,
+          modelApi: params.model.api,
+          contextWindowTokens: params.model.contextWindow,
+          systemPromptReport,
+          transcriptPolicy,
         });
-        cacheTrace?.recordStage("session:sanitized", { messages: prior });
-        const validatedGemini = transcriptPolicy.validateGeminiTurns
-          ? validateGeminiTurns(prior)
-          : prior;
-        const validated = transcriptPolicy.validateAnthropicTurns
-          ? validateAnthropicTurns(validatedGemini)
-          : validatedGemini;
-        const limited = limitHistoryTurns(
-          validated,
-          getDmHistoryLimitFromSessionKey(params.sessionKey, params.config),
-        );
-        cacheTrace?.recordStage("session:limited", { messages: limited });
+        cacheTrace?.recordStage("session:scoped", { messages: projection.scopedMessages });
+        cacheTrace?.recordStage("session:sanitized", { messages: projection.sanitizedMessages });
+        cacheTrace?.recordStage("session:limited", { messages: projection.limitedMessages });
+        cacheTrace?.recordStage("session:projected", { messages: projection.projectedMessages });
 
-        // Proactively truncate oversized tool results before sending to API
-        const { messages: truncated, truncatedCount } = truncateOversizedToolResultsInMessages(
-          limited,
-          params.model.contextWindow,
-        );
-        if (truncatedCount > 0) {
+        if (projection.usage.truncatedToolResults > 0) {
           log.info(
-            `[proactive-truncation] Truncated ${truncatedCount} oversized tool result(s) before prompt`,
+            `[proactive-truncation] Truncated ${projection.usage.truncatedToolResults} oversized tool result(s) before prompt`,
           );
         }
-        activeSession.agent.replaceMessages(truncated);
+
+        projectedSystemPromptReport = attachModelViewToSystemPromptReport(
+          systemPromptReport,
+          projection.usage,
+        );
+        activeSession.agent.replaceMessages(projection.projectedMessages);
 
         // ── Proactive compaction check (Working Memory P1) ──────────────
-        // Estimate token usage before sending to API. If we're above 80%
-        // of context window, signal the caller to compact first.
-        if (params.model.contextWindow) {
-          const estimatedTokens = estimateMessagesTokens(truncated);
-          if (
-            shouldTriggerProactiveCompaction({
-              contextWindowTokens: params.model.contextWindow,
-              currentUsageTokens: estimatedTokens,
-            })
-          ) {
-            log.info(
-              `[proactive-compaction] Estimated ${estimatedTokens} tokens vs ${params.model.contextWindow} context window ` +
-                `(${((estimatedTokens / params.model.contextWindow) * 100).toFixed(1)}%); signaling compaction`,
-            );
-            sessionManager.flushPendingToolResults?.();
-            activeSession.dispose();
-            return {
-              aborted: false,
-              timedOut: false,
-              promptError: null,
-              sessionIdUsed: activeSession.sessionId,
-              systemPromptReport: systemPromptReport ?? undefined,
-              messagesSnapshot: truncated,
-              assistantTexts: [],
-              toolMetas: [],
-              lastAssistant: undefined,
-              webSearchSources: [],
-              didSendViaMessagingTool: false,
-              messagingToolSentTexts: [],
-              messagingToolSentTargets: [],
-              cloudCodeAssistFormatError: false,
-              proactiveCompactionNeeded: true,
-            };
-          }
+        // Estimate the payload from the same projected system prompt + tool schemas
+        // + history view the model will actually see before sending to the API.
+        if (
+          params.model.contextWindow &&
+          shouldTriggerProactiveCompaction({
+            contextWindowTokens: params.model.contextWindow,
+            currentUsageTokens: projection.usage.projectedTotalTokens,
+          })
+        ) {
+          log.info(
+            `[proactive-compaction] Estimated ${projection.usage.projectedTotalTokens} tokens vs ${params.model.contextWindow} context window ` +
+              `(${((projection.usage.projectedTotalTokens / params.model.contextWindow) * 100).toFixed(1)}%); signaling compaction`,
+          );
+          sessionManager.flushPendingToolResults?.();
+          activeSession.dispose();
+          return {
+            aborted: false,
+            timedOut: false,
+            promptError: null,
+            sessionIdUsed: activeSession.sessionId,
+            systemPromptReport: projectedSystemPromptReport ?? undefined,
+            messagesSnapshot: projection.projectedMessages,
+            assistantTexts: [],
+            toolMetas: [],
+            lastAssistant: undefined,
+            webSearchSources: [],
+            didSendViaMessagingTool: false,
+            messagingToolSentTexts: [],
+            messagingToolSentTargets: [],
+            cloudCodeAssistFormatError: false,
+            proactiveCompactionNeeded: true,
+          };
         }
       } catch (err) {
         runtimeState?.recordError({
@@ -1137,7 +1119,7 @@ export async function runEmbeddedAttempt(
         timedOut,
         promptError,
         sessionIdUsed,
-        systemPromptReport,
+        systemPromptReport: projectedSystemPromptReport,
         messagesSnapshot,
         assistantTexts,
         toolMetas: toolMetasNormalized,

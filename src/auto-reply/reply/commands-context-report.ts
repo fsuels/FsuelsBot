@@ -1,9 +1,15 @@
+import { SessionManager } from "@mariozechner/pi-coding-agent";
 import type { SessionSystemPromptReport } from "../../config/sessions/types.js";
 import type { ReplyPayload } from "../types.js";
 import type { HandleCommandsParams } from "./commands-types.js";
 import { resolveSessionAgentIds } from "../../agents/agent-scope.js";
 import { resolveBootstrapContextForRun } from "../../agents/bootstrap-files.js";
 import { resolveDefaultModelForAgent } from "../../agents/model-selection.js";
+import {
+  attachModelViewToSystemPromptReport,
+  estimateTokensFromChars,
+  projectConversationForModel,
+} from "../../agents/model-visible-context.js";
 import { resolveBootstrapMaxChars } from "../../agents/pi-embedded-helpers.js";
 import { createOpenClawCodingTools } from "../../agents/pi-tools.js";
 import { resolveSandboxRuntimeStatus } from "../../agents/sandbox.js";
@@ -13,12 +19,10 @@ import { buildSystemPromptParams } from "../../agents/system-prompt-params.js";
 import { buildSystemPromptReport } from "../../agents/system-prompt-report.js";
 import { buildAgentSystemPromptArtifacts } from "../../agents/system-prompt.js";
 import { buildToolOperatorManualMap, buildToolSummaryMap } from "../../agents/tool-summaries.js";
+import { resolveSessionFilePath } from "../../config/sessions.js";
 import { getRemoteSkillEligibility } from "../../infra/skills-remote.js";
+import { resolveSessionTaskId } from "../../sessions/task-context.js";
 import { buildTtsSystemPromptHint } from "../../tts/tts.js";
-
-function estimateTokensFromChars(chars: number): number {
-  return Math.ceil(Math.max(0, chars) / 4);
-}
 
 function formatInt(n: number): string {
   return new Intl.NumberFormat("en-US").format(n);
@@ -26,6 +30,14 @@ function formatInt(n: number): string {
 
 function formatCharsAndTokens(chars: number): string {
   return `${formatInt(chars)} chars (~${formatInt(estimateTokensFromChars(chars))} tok)`;
+}
+
+function formatTokenCount(tokens: number): string {
+  return `${formatInt(tokens)} tok`;
+}
+
+function formatPercent(value: number): string {
+  return `${(value * 100).toFixed(1)}%`;
 }
 
 function parseContextArgs(commandBodyNormalized: string): string {
@@ -49,7 +61,7 @@ function formatListTop(
   return { lines, omitted };
 }
 
-async function resolveContextReport(
+export async function loadContextReport(
   params: HandleCommandsParams,
 ): Promise<SessionSystemPromptReport> {
   const existing = params.sessionEntry?.systemPromptReport;
@@ -182,6 +194,46 @@ async function resolveContextReport(
   });
 }
 
+async function loadProjectedContextReport(
+  params: HandleCommandsParams,
+): Promise<SessionSystemPromptReport> {
+  const report = await loadContextReport(params);
+  const sessionId = params.sessionEntry?.sessionId?.trim();
+  if (!sessionId) {
+    return report;
+  }
+
+  const { sessionAgentId } = resolveSessionAgentIds({
+    sessionKey: params.sessionKey,
+    config: params.cfg,
+  });
+  const sessionFile = resolveSessionFilePath(sessionId, params.sessionEntry, {
+    agentId: sessionAgentId,
+  });
+
+  try {
+    const sessionManager = SessionManager.open(sessionFile);
+    const projection = await projectConversationForModel({
+      sessionManager,
+      sessionId,
+      sessionKey: params.sessionKey,
+      taskId: resolveSessionTaskId({ entry: params.sessionEntry }),
+      config: params.cfg,
+      provider: params.provider,
+      modelId: params.model,
+      contextWindowTokens:
+        typeof params.contextTokens === "number" && params.contextTokens > 0
+          ? params.contextTokens
+          : undefined,
+      systemPromptReport: report,
+      sanitizeOptions: { recordModelSnapshot: false },
+    });
+    return attachModelViewToSystemPromptReport(report, projection.usage);
+  } catch {
+    return report;
+  }
+}
+
 export async function buildContextReply(params: HandleCommandsParams): Promise<ReplyPayload> {
   const args = parseContextArgs(params.command.commandBodyNormalized);
   const sub = args.split(/\s+/).filter(Boolean)[0]?.toLowerCase() ?? "";
@@ -203,7 +255,7 @@ export async function buildContextReply(params: HandleCommandsParams): Promise<R
     };
   }
 
-  const report = await resolveContextReport(params);
+  const report = await loadProjectedContextReport(params);
   const session = {
     totalTokens: params.sessionEntry?.totalTokens ?? null,
     inputTokens: params.sessionEntry?.inputTokens ?? null,
@@ -249,6 +301,40 @@ export async function buildContextReply(params: HandleCommandsParams): Promise<R
     ? `Tools: ${formatNameList(toolNames, 30)}`
     : "Tools: (none)";
   const systemPromptLine = `System prompt (${report.source}): ${formatCharsAndTokens(report.systemPrompt.chars)} (Project Context ${formatCharsAndTokens(report.systemPrompt.projectContextChars)})`;
+  const modelVisibleLine = report.modelView
+    ? (() => {
+        const pressure =
+          typeof report.modelView.contextPressure === "number"
+            ? ` (${formatPercent(report.modelView.contextPressure)})`
+            : "";
+        const windowSuffix =
+          typeof report.modelView.contextWindowTokens === "number"
+            ? ` / ${formatTokenCount(report.modelView.contextWindowTokens)} window`
+            : "";
+        return `Model-visible payload: ${formatTokenCount(report.modelView.projectedTotalTokens)}${windowSuffix}${pressure}`;
+      })()
+    : null;
+  const branchHistoryLine = report.modelView
+    ? `Branch history: ${formatInt(report.modelView.branchHistoryMessages)} messages / ${formatTokenCount(report.modelView.branchHistoryTokens)}`
+    : null;
+  const scopedHistoryLine = report.modelView
+    ? `Task-scoped history: ${formatInt(report.modelView.scopedHistoryMessages)} messages / ${formatTokenCount(report.modelView.scopedHistoryTokens)}${report.modelView.taskScoped ? " (active)" : " (full branch)"}`
+    : null;
+  const projectedHistoryLine = report.modelView
+    ? `Model-visible history: ${formatInt(report.modelView.projectedHistoryMessages)} messages / ${formatTokenCount(report.modelView.projectedHistoryTokens)}`
+    : null;
+  const historyGuardsLine = report.modelView
+    ? [
+        typeof report.modelView.dmHistoryLimit === "number"
+          ? `DM limit=${report.modelView.dmHistoryLimit}`
+          : null,
+        report.modelView.truncatedToolResults > 0
+          ? `truncated tool results=${report.modelView.truncatedToolResults}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(" | ")
+    : null;
   const workspaceLabel = report.workspaceDir ?? params.workspaceDir;
   const bootstrapMaxLabel =
     typeof report.bootstrapMaxChars === "number"
@@ -286,6 +372,10 @@ export async function buildContextReply(params: HandleCommandsParams): Promise<R
         `Bootstrap max/file: ${bootstrapMaxLabel}`,
         sandboxLine,
         systemPromptLine,
+        ...(modelVisibleLine
+          ? [modelVisibleLine, branchHistoryLine, scopedHistoryLine, projectedHistoryLine]
+          : []),
+        ...(historyGuardsLine ? [historyGuardsLine] : []),
         "",
         "Injected workspace files:",
         ...fileLines,
@@ -323,6 +413,10 @@ export async function buildContextReply(params: HandleCommandsParams): Promise<R
       `Bootstrap max/file: ${bootstrapMaxLabel}`,
       sandboxLine,
       systemPromptLine,
+      ...(modelVisibleLine
+        ? [modelVisibleLine, branchHistoryLine, scopedHistoryLine, projectedHistoryLine]
+        : []),
+      ...(historyGuardsLine ? [historyGuardsLine] : []),
       "",
       "Injected workspace files:",
       ...fileLines,

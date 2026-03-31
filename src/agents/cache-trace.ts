@@ -9,8 +9,10 @@ import { parseBooleanValue } from "../utils/boolean.js";
 
 export type CacheTraceStage =
   | "session:loaded"
+  | "session:scoped"
   | "session:sanitized"
   | "session:limited"
+  | "session:projected"
   | "prompt:before"
   | "prompt:images"
   | "stream:context"

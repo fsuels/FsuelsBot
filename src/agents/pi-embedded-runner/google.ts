@@ -322,6 +322,10 @@ export function applyGoogleTurnOrderingFix(params: {
   return { messages: sanitized, didPrepend };
 }
 
+export type SanitizeSessionHistoryOptions = {
+  recordModelSnapshot?: boolean;
+};
+
 export async function sanitizeSessionHistory(params: {
   messages: AgentMessage[];
   modelApi?: string | null;
@@ -330,6 +334,7 @@ export async function sanitizeSessionHistory(params: {
   sessionManager: SessionManager;
   sessionId: string;
   policy?: TranscriptPolicy;
+  options?: SanitizeSessionHistoryOptions;
 }): Promise<AgentMessage[]> {
   // Keep docs/reference/transcript-hygiene.md in sync with any logic changes here.
   const policy =
@@ -371,7 +376,11 @@ export async function sanitizeSessionHistory(params: {
       ? downgradeOpenAIReasoningBlocks(repairedTools)
       : repairedTools;
 
-  if (hasSnapshot && (!priorSnapshot || modelChanged)) {
+  if (
+    params.options?.recordModelSnapshot !== false &&
+    hasSnapshot &&
+    (!priorSnapshot || modelChanged)
+  ) {
     appendModelSnapshot(params.sessionManager, {
       timestamp: Date.now(),
       provider: params.provider,
