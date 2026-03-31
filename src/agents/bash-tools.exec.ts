@@ -105,6 +105,24 @@ function validateHostEnv(env: Record<string, string>): void {
     }
   }
 }
+
+function detectShellSleepCommand(command: string): string | null {
+  const trimmed = command.trim();
+  if (!trimmed) {
+    return null;
+  }
+  if (/^(sleep|start-sleep)\b/i.test(trimmed)) {
+    return "Use the sleep tool instead of shell sleep so waiting does not block an exec slot.";
+  }
+  if (/^timeout\b[\s\S]*\b(sleep|start-sleep)\b/i.test(trimmed)) {
+    return "Use the sleep tool instead of wrapping shell sleep with timeout.";
+  }
+  if (/\b(while|until|for)\b[\s\S]*\bdo\b[\s\S]*\b(sleep|start-sleep)\b/i.test(trimmed)) {
+    return "Use the sleep tool instead of shell polling loops that sleep between checks.";
+  }
+  return null;
+}
+
 const DEFAULT_MAX_OUTPUT = clampWithDefault(
   readEnvInt("PI_BASH_MAX_OUTPUT_CHARS"),
   200_000,
@@ -847,6 +865,10 @@ export function createExecTool(
 
       if (!params.command) {
         throw new Error("Provide a command to start.");
+      }
+      const sleepCommandIssue = detectShellSleepCommand(params.command);
+      if (sleepCommandIssue) {
+        throw new Error(sleepCommandIssue);
       }
 
       const maxOutput = DEFAULT_MAX_OUTPUT;

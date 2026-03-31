@@ -176,5 +176,41 @@ describe("bash process registry", () => {
     markBackgrounded(session);
     markExited(session, 0, null, "completed");
     expect(listFinishedSessions()).toHaveLength(1);
+    expect(listFinishedSessions()[0]?.sessionKey).toBeUndefined();
+  });
+
+  it("carries sessionKey into finished background sessions", () => {
+    const session: ProcessSession = {
+      id: "sess-finished-session",
+      command: "echo test",
+      child: { pid: 123 } as ChildProcessWithoutNullStreams,
+      sessionKey: "agent:main:main",
+      startedAt: Date.now(),
+      cwd: "/tmp",
+      maxOutputChars: 100,
+      pendingMaxOutputChars: 30_000,
+      totalOutputChars: 0,
+      pendingStdout: [],
+      pendingStderr: [],
+      pendingStdoutChars: 0,
+      pendingStderrChars: 0,
+      aggregated: "",
+      tail: "",
+      exited: false,
+      exitCode: undefined,
+      exitSignal: undefined,
+      truncated: false,
+      backgrounded: true,
+    };
+
+    addSession(session);
+    markExited(session, 0, null, "completed");
+
+    expect(listFinishedSessions()).toEqual([
+      expect.objectContaining({
+        id: "sess-finished-session",
+        sessionKey: "agent:main:main",
+      }),
+    ]);
   });
 });
