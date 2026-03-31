@@ -7,12 +7,22 @@ import {
   ensureActiveVerificationTask,
   resolveTaskTrackerContextFromSessionKey,
 } from "../task-tracker.js";
+import {
+  persistToolResultTextArtifact,
+  type PersistedToolResultArtifact,
+} from "../tool-result-artifacts.js";
 import { jsonResult, readNumberParam, readStringArrayParam, readStringParam } from "./common.js";
 import { createSessionsSpawnTool } from "./sessions-spawn-tool.js";
 
 const DEFAULT_TIMEOUT_MS = 180_000;
 const DEFAULT_SPOT_CHECK_COUNT = 2;
 const MAX_SPOT_CHECK_COUNT = 3;
+const DEFAULT_PASS_CONFIDENCE = 0.9;
+const DEFAULT_FAIL_CONFIDENCE = 0.9;
+const DEFAULT_PARTIAL_CONFIDENCE = 0.5;
+const PASS_CONFIDENCE_THRESHOLD = 0.75;
+const FAIL_CONFIDENCE_THRESHOLD = 0.85;
+const ADVERSARIAL_PROBE_PREFIX = "Adversarial probe:";
 
 const VerificationGateToolSchema = Type.Object(
   {
@@ -91,9 +101,34 @@ export type VerificationCommandReport = {
   relevant_output?: string;
 };
 
+export type VerificationArtifactCheckResult = {
+  phase: "primary" | "spotcheck";
+  check_name: string;
+  command_run?: string;
+  output_observed?: string;
+  expected_vs_actual: string;
+  result: "passed" | "failed" | "skipped";
+};
+
+export type VerificationArtifact = {
+  schema_version: 1;
+  verdict: VerificationVerdict;
+  verdict_line: `VERDICT: ${VerificationVerdict}`;
+  change_summary: string;
+  summary: string;
+  confidence: number;
+  checks: VerificationArtifactCheckResult[];
+  verified: string[];
+  unverified: string[];
+  failure_reasons: string[];
+  primary_task_id?: string;
+  spotcheck_task_id?: string;
+};
+
 export type VerificationReport = {
   verdict: VerificationVerdict;
   summary: string;
+  confidence: number;
   commands_executed: VerificationCommandReport[];
   verified: string[];
   unverified: string[];
@@ -127,10 +162,17 @@ type VerificationGateDeps = {
     metadata?: Record<string, unknown>;
   }) => Promise<{ id: string } | null>;
   completeVerificationTask?: (params: { metadata?: Record<string, unknown> }) => Promise<void>;
+  persistArtifact?: (
+    artifact: VerificationArtifact,
+  ) => Promise<PersistedToolResultArtifact | undefined>;
 };
 
 function normalizeList(value?: string[]): string[] {
   return (value ?? []).map((entry) => entry.trim()).filter(Boolean);
+}
+
+function uniqueList(values: string[]): string[] {
+  return values.filter((entry, index, list) => list.indexOf(entry) === index);
 }
 
 export function requiresIndependentVerification(params: {
@@ -155,6 +197,7 @@ function buildJsonSchemaReminder() {
     {
       verdict: "PASS|FAIL|PARTIAL",
       summary: "short evidence-based summary",
+      confidence: 0.0,
       commands_executed: [
         {
           command: "string",
@@ -162,7 +205,7 @@ function buildJsonSchemaReminder() {
           relevant_output: "short decisive output",
         },
       ],
-      verified: ["what you verified"],
+      verified: ["what you verified", "Adversarial probe: boundary case ..."],
       unverified: ["what you could not verify"],
       failure_reasons: ["specific failure reasons when verdict is FAIL"],
     },
@@ -182,6 +225,7 @@ export function buildPrimaryVerifierTask(params: {
     "You are an independent verification worker.",
     "Do not edit files. Re-check the finished change from scratch using the available read/test tools.",
     "Prefer direct evidence over trusting the implementation summary.",
+    "Prefer PARTIAL over speculative PASS or FAIL.",
     "",
     `Change summary: ${params.changeSummary}`,
   ];
@@ -207,7 +251,24 @@ export function buildPrimaryVerifierTask(params: {
   }
   lines.push(
     "",
+    "Process to follow internally:",
+    "1. Candidate discovery: identify only concrete ways this change could be wrong.",
+    "2. Adversarial probe: before PASS, attempt at least one break-it check such as a boundary case, malformed input, retry/idempotency path, cancellation/interruption, concurrency/race, or orphan/incomplete state.",
+    "3. Verification: run commands and inspect code paths that confirm or clear each candidate.",
+    "4. Filter: discard anything not backed by decisive evidence before producing the final JSON.",
+    "",
     "Rules:",
+    "- Ignore style nits, naming opinions, theoretical risks without a concrete failure path, TODOs, and unrelated pre-existing failures.",
+    "- Before FAIL, check whether the observed behavior is already handled elsewhere, intentional, or required by an external contract. If so, do not call FAIL.",
+    "- If a command is flaky, blocked by the environment, or fails for a reason you cannot tie to the change, return PARTIAL instead of FAIL.",
+    "- PARTIAL is for environmental or tooling limitations only. Do not use PARTIAL as a substitute for vague uncertainty after a command already produced decisive output.",
+    "- Reading code alone is never enough for PASS; PASS requires executed evidence.",
+    "- PASS requires at least one successfully executed command with the exact observed output captured in commands_executed[].relevant_output.",
+    "- FAIL only when the evidence is decisive and confidence is at least 0.85.",
+    "- PASS only when the evidence is decisive and confidence is at least 0.75.",
+    `- Before PASS, record at least one adversarial probe in verified or unverified using the exact prefix "${ADVERSARIAL_PROBE_PREFIX}".`,
+    "- Capture the exact decisive command output in commands_executed[].relevant_output whenever you run a command.",
+    "- Set confidence as a number from 0.0 to 1.0.",
     "- If a requested command or check cannot be completed, list it under unverified instead of guessing.",
     "- If anything fails, explain the specific failure reason.",
     "- Return ONLY valid JSON. No markdown fences, no prose before or after.",
@@ -223,6 +284,7 @@ export function buildSpotCheckVerifierTask(params: {
   return [
     "You are an independent spot-check verifier.",
     "Do not edit files. Re-run the listed commands and compare their outcomes to the earlier verification claim.",
+    "Prefer PARTIAL over speculative PASS or FAIL.",
     "",
     `Change summary: ${params.changeSummary}`,
     "",
@@ -230,9 +292,13 @@ export function buildSpotCheckVerifierTask(params: {
     ...params.commands.map((command) => `- ${command}`),
     "",
     "Rules:",
+    `- Record at least one adversarial probe in verified or unverified using the exact prefix "${ADVERSARIAL_PROBE_PREFIX}".`,
     "- Return PASS only if the rerun corroborates the prior verification claims.",
-    "- Return FAIL if any rerun diverges materially or surfaces a failure.",
-    "- Return PARTIAL if you cannot rerun one or more commands.",
+    "- PASS requires at least one successfully rerun command with the exact observed output captured in commands_executed[].relevant_output.",
+    "- Return FAIL only if a rerun diverges materially and you can tie the failure to the change with high confidence.",
+    "- Return PARTIAL if you cannot rerun one or more commands or the evidence is ambiguous.",
+    "- Capture the exact decisive command output in commands_executed[].relevant_output whenever you rerun a command.",
+    "- Set confidence as a number from 0.0 to 1.0.",
     "- Return ONLY valid JSON. No markdown fences, no prose before or after.",
     buildJsonSchemaReminder(),
   ].join("\n");
@@ -282,6 +348,18 @@ export function normalizeVerificationReport(raw: unknown): VerificationReport {
         : verdict === "FAIL"
           ? "Verification failed."
           : "Verification was only partial.";
+  const confidenceRaw =
+    typeof record.confidence === "number" && Number.isFinite(record.confidence)
+      ? record.confidence
+      : undefined;
+  const confidence =
+    confidenceRaw !== undefined
+      ? Math.max(0, Math.min(1, confidenceRaw))
+      : verdict === "PASS"
+        ? DEFAULT_PASS_CONFIDENCE
+        : verdict === "FAIL"
+          ? DEFAULT_FAIL_CONFIDENCE
+          : DEFAULT_PARTIAL_CONFIDENCE;
   const commands_executed = Array.isArray(record.commands_executed)
     ? record.commands_executed
         .map((entry) => {
@@ -327,6 +405,7 @@ export function normalizeVerificationReport(raw: unknown): VerificationReport {
   return {
     verdict,
     summary,
+    confidence,
     commands_executed,
     verified,
     unverified,
@@ -334,20 +413,180 @@ export function normalizeVerificationReport(raw: unknown): VerificationReport {
   };
 }
 
+function hasConcreteSuccessEvidence(report: VerificationReport): boolean {
+  return report.commands_executed.some(
+    (entry) =>
+      entry.status === "passed" &&
+      typeof entry.relevant_output === "string" &&
+      entry.relevant_output.trim().length > 0,
+  );
+}
+
+function hasConcreteFailureEvidence(report: VerificationReport): boolean {
+  return (
+    report.failure_reasons.length > 0 ||
+    report.commands_executed.some((entry) => entry.status === "failed")
+  );
+}
+
+function hasAdversarialProbeEvidence(report: VerificationReport): boolean {
+  return [...report.verified, ...report.unverified].some((entry) =>
+    entry.toLowerCase().startsWith(ADVERSARIAL_PROBE_PREFIX.toLowerCase()),
+  );
+}
+
+function buildCommandCheck(
+  phase: "primary" | "spotcheck",
+  entry: VerificationCommandReport,
+): VerificationArtifactCheckResult {
+  return {
+    phase,
+    check_name: entry.command,
+    command_run: entry.command,
+    output_observed: entry.relevant_output,
+    expected_vs_actual:
+      entry.status === "passed"
+        ? "Expected the command to succeed and corroborate the change; it succeeded."
+        : entry.status === "failed"
+          ? "Expected the command to succeed; it failed or diverged."
+          : "Expected to rerun or inspect the command, but it was skipped.",
+    result: entry.status,
+  };
+}
+
+function buildNarrativeCheck(
+  phase: "primary" | "spotcheck",
+  entry: string,
+  result: "passed" | "skipped",
+): VerificationArtifactCheckResult {
+  return {
+    phase,
+    check_name: entry,
+    expected_vs_actual:
+      result === "passed"
+        ? "Observed behavior matched the expected verification target."
+        : "This check could not be completed or confirmed in the current environment.",
+    result,
+  };
+}
+
+export function buildVerificationArtifact(params: {
+  changeSummary: string;
+  finalReport: VerificationReport;
+  primaryTaskId?: string;
+  primaryReport?: VerificationReport;
+  spotCheckTaskId?: string;
+  spotCheckReport?: VerificationReport;
+}): VerificationArtifact {
+  const primaryChecks = [
+    ...(params.primaryReport?.commands_executed ?? []).map((entry) =>
+      buildCommandCheck("primary", entry),
+    ),
+    ...(params.primaryReport?.verified ?? []).map((entry) =>
+      buildNarrativeCheck("primary", entry, "passed"),
+    ),
+    ...(params.primaryReport?.unverified ?? []).map((entry) =>
+      buildNarrativeCheck("primary", entry, "skipped"),
+    ),
+  ];
+  const spotcheckChecks = params.spotCheckReport
+    ? [
+        ...params.spotCheckReport.commands_executed.map((entry) =>
+          buildCommandCheck("spotcheck", entry),
+        ),
+        ...params.spotCheckReport.verified.map((entry) =>
+          buildNarrativeCheck("spotcheck", entry, "passed"),
+        ),
+        ...params.spotCheckReport.unverified.map((entry) =>
+          buildNarrativeCheck("spotcheck", entry, "skipped"),
+        ),
+      ]
+    : [];
+
+  return {
+    schema_version: 1,
+    verdict: params.finalReport.verdict,
+    verdict_line: `VERDICT: ${params.finalReport.verdict}`,
+    change_summary: params.changeSummary,
+    summary: params.finalReport.summary,
+    confidence: params.finalReport.confidence,
+    checks: [...primaryChecks, ...spotcheckChecks],
+    verified: params.finalReport.verified,
+    unverified: params.finalReport.unverified,
+    failure_reasons: params.finalReport.failure_reasons,
+    primary_task_id: params.primaryTaskId,
+    spotcheck_task_id: params.spotCheckTaskId,
+  };
+}
+
+function applyVerificationConfidencePolicy(report: VerificationReport): VerificationReport {
+  if (report.verdict === "PASS") {
+    if (
+      report.confidence >= PASS_CONFIDENCE_THRESHOLD &&
+      hasConcreteSuccessEvidence(report) &&
+      hasAdversarialProbeEvidence(report)
+    ) {
+      return report;
+    }
+    const missingProbe = !hasAdversarialProbeEvidence(report);
+    return {
+      ...report,
+      verdict: "PARTIAL",
+      summary:
+        report.summary ||
+        "Verification reported PASS without enough confidence or concrete supporting evidence.",
+      confidence: Math.min(report.confidence, DEFAULT_PARTIAL_CONFIDENCE),
+      unverified: uniqueList([
+        ...report.unverified,
+        "PASS verdict was downgraded because the evidence or confidence was not strong enough.",
+        ...(!hasConcreteSuccessEvidence(report)
+          ? [
+              "PASS verdict was downgraded because no successful command included exact observed output evidence.",
+            ]
+          : []),
+        ...(missingProbe
+          ? [
+              `PASS verdict was downgraded because no adversarial probe was recorded with the prefix "${ADVERSARIAL_PROBE_PREFIX}".`,
+            ]
+          : []),
+      ]),
+    };
+  }
+  if (report.verdict === "FAIL") {
+    if (report.confidence >= FAIL_CONFIDENCE_THRESHOLD && hasConcreteFailureEvidence(report)) {
+      return report;
+    }
+    return {
+      ...report,
+      verdict: "PARTIAL",
+      summary:
+        report.summary ||
+        "Verification reported FAIL without enough confidence or concrete supporting evidence.",
+      confidence: Math.min(report.confidence, DEFAULT_PARTIAL_CONFIDENCE),
+      unverified: uniqueList([
+        ...report.unverified,
+        "FAIL verdict was downgraded because the evidence or confidence was not strong enough.",
+      ]),
+    };
+  }
+  return report;
+}
+
 function parseVerificationReportText(text?: string, fallbackError?: string): VerificationReport {
   const parsed = text ? tryParseJsonObject(text) : undefined;
   if (parsed) {
-    return normalizeVerificationReport(parsed);
+    return applyVerificationConfidencePolicy(normalizeVerificationReport(parsed));
   }
   const failureReason = fallbackError?.trim() || "Verifier did not return parseable JSON.";
-  return {
+  return applyVerificationConfidencePolicy({
     verdict: "PARTIAL",
     summary: failureReason,
+    confidence: DEFAULT_PARTIAL_CONFIDENCE,
     commands_executed: [],
     verified: [],
     unverified: ["Verifier output was unavailable or malformed."],
     failure_reasons: [],
-  };
+  });
 }
 
 function selectSpotCheckCommands(
@@ -382,6 +621,7 @@ export function combineVerificationReports(params: {
     return {
       verdict: "PARTIAL",
       summary: "Primary verification passed, but no independent spot-check could be completed.",
+      confidence: Math.min(params.primary.confidence, DEFAULT_PARTIAL_CONFIDENCE),
       commands_executed: params.primary.commands_executed,
       verified: params.primary.verified,
       unverified: [...params.primary.unverified, "Spot-check pass could not be completed."].filter(
@@ -394,6 +634,7 @@ export function combineVerificationReports(params: {
     return {
       verdict: "FAIL",
       summary: params.spotCheck.summary || "Spot-check diverged from the primary verifier.",
+      confidence: Math.max(params.primary.confidence, params.spotCheck.confidence),
       commands_executed: [
         ...params.primary.commands_executed,
         ...params.spotCheck.commands_executed,
@@ -412,6 +653,7 @@ export function combineVerificationReports(params: {
     return {
       verdict: "PARTIAL",
       summary: params.spotCheck.summary || params.primary.summary,
+      confidence: Math.min(params.primary.confidence, params.spotCheck.confidence),
       commands_executed: [
         ...params.primary.commands_executed,
         ...params.spotCheck.commands_executed,
@@ -426,6 +668,7 @@ export function combineVerificationReports(params: {
   return {
     verdict: params.primary.verdict,
     summary: params.primary.summary,
+    confidence: Math.min(params.primary.confidence, params.spotCheck.confidence),
     commands_executed: [...params.primary.commands_executed, ...params.spotCheck.commands_executed],
     verified: params.primary.verified,
     unverified: params.primary.unverified,
@@ -548,6 +791,8 @@ function buildDefaultDeps(opts?: {
         metadata,
       });
     },
+    persistArtifact: async (artifact) =>
+      await persistToolResultTextArtifact(JSON.stringify(artifact, null, 2)),
   };
 }
 
@@ -659,12 +904,22 @@ export function createVerificationGateTool(
         spotCheck: spotCheckReport,
         spotCheckCommands,
       });
+      const verificationArtifact = buildVerificationArtifact({
+        changeSummary,
+        finalReport,
+        primaryTaskId: primaryHandle.taskId,
+        primaryReport,
+        spotCheckTaskId: spotCheckHandle?.taskId,
+        spotCheckReport,
+      });
+      const persistedArtifact = await resolvedDeps.persistArtifact?.(verificationArtifact);
 
       if (finalReport.verdict === "PASS" || finalReport.verdict === "PARTIAL") {
         await resolvedDeps.completeVerificationTask?.({
           metadata: {
             verdict: finalReport.verdict,
             summary: finalReport.summary,
+            confidence: finalReport.confidence,
             verified: finalReport.verified,
             unverified: finalReport.unverified,
             failure_reasons: finalReport.failure_reasons,
@@ -679,6 +934,8 @@ export function createVerificationGateTool(
         summary: finalReport.summary,
         verificationTaskId: verificationTask?.id,
         report: finalReport,
+        verificationArtifact,
+        ...(persistedArtifact ? { artifact: persistedArtifact } : {}),
         primary: {
           taskId: primaryHandle.taskId,
           outputPath: primaryResult.outputPath ?? primaryHandle.outputPath,
