@@ -1,7 +1,3 @@
-import type {
-  TuiEditorKeybindingsConfig,
-  TuiShortcutBindingsConfig,
-} from "../tui/tui-keybindings.js";
 import type { AgentBinding, AgentsConfig } from "./types.agents.js";
 import type { ApprovalsConfig } from "./types.approvals.js";
 import type { AuthConfig } from "./types.auth.js";
@@ -77,12 +73,6 @@ export type OpenClawConfig = {
       name?: string;
       /** Assistant avatar (emoji, short text, or image URL/data URI). */
       avatar?: string;
-    };
-    tui?: {
-      /** Overrides for built-in editor actions shared by the TUI input and overlays. */
-      editor?: TuiEditorKeybindingsConfig;
-      /** TUI-level shortcuts handled before editor input. Set an action to null to unbind it. */
-      shortcuts?: TuiShortcutBindingsConfig;
     };
   };
   skills?: SkillsConfig;

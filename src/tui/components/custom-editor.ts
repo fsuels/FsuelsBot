@@ -1,88 +1,57 @@
 import { Editor, Key, matchesKey } from "@mariozechner/pi-tui";
-import { TuiShortcutManager, type TuiShortcutAction } from "../tui-keybindings.js";
 
 export class CustomEditor extends Editor {
+  onEscape?: () => void;
+  onCtrlC?: () => void;
+  onCtrlD?: () => void;
+  onCtrlG?: () => void;
+  onCtrlL?: () => void;
+  onCtrlO?: () => void;
+  onCtrlP?: () => void;
+  onCtrlT?: () => void;
   onShiftTab?: () => void;
   onAltEnter?: () => void;
-  private shortcutManager = new TuiShortcutManager();
-  private shortcutHandlers = new Map<TuiShortcutAction, () => void>();
-
-  setShortcutManager(manager: TuiShortcutManager): void {
-    this.shortcutManager = manager;
-  }
-
-  setShortcutHandler(action: TuiShortcutAction, handler?: () => void): void {
-    if (!handler) {
-      this.shortcutHandlers.delete(action);
-      return;
-    }
-    this.shortcutHandlers.set(action, handler);
-  }
-
-  private triggerShortcut(action: TuiShortcutAction): boolean {
-    const handler = this.shortcutHandlers.get(action);
-    if (!handler) {
-      return false;
-    }
-    handler();
-    return true;
-  }
 
   handleInput(data: string): void {
     if (matchesKey(data, Key.alt("enter")) && this.onAltEnter) {
       this.onAltEnter();
       return;
     }
-    if (
-      this.shortcutManager.matches(data, "openModelPicker") &&
-      this.triggerShortcut("openModelPicker")
-    ) {
+    if (matchesKey(data, Key.ctrl("l")) && this.onCtrlL) {
+      this.onCtrlL();
       return;
     }
-    if (
-      this.shortcutManager.matches(data, "toggleToolOutput") &&
-      this.triggerShortcut("toggleToolOutput")
-    ) {
+    if (matchesKey(data, Key.ctrl("o")) && this.onCtrlO) {
+      this.onCtrlO();
       return;
     }
-    if (
-      this.shortcutManager.matches(data, "openSessionPicker") &&
-      this.triggerShortcut("openSessionPicker")
-    ) {
+    if (matchesKey(data, Key.ctrl("p")) && this.onCtrlP) {
+      this.onCtrlP();
       return;
     }
-    if (
-      this.shortcutManager.matches(data, "openAgentPicker") &&
-      this.triggerShortcut("openAgentPicker")
-    ) {
+    if (matchesKey(data, Key.ctrl("g")) && this.onCtrlG) {
+      this.onCtrlG();
       return;
     }
-    if (
-      this.shortcutManager.matches(data, "toggleThinking") &&
-      this.triggerShortcut("toggleThinking")
-    ) {
+    if (matchesKey(data, Key.ctrl("t")) && this.onCtrlT) {
+      this.onCtrlT();
       return;
     }
     if (matchesKey(data, Key.shift("tab")) && this.onShiftTab) {
       this.onShiftTab();
       return;
     }
-    if (
-      this.shortcutManager.matches(data, "abortRun") &&
-      !this.isShowingAutocomplete() &&
-      this.triggerShortcut("abortRun")
-    ) {
+    if (matchesKey(data, Key.escape) && this.onEscape && !this.isShowingAutocomplete()) {
+      this.onEscape();
       return;
     }
-    if (
-      this.shortcutManager.matches(data, "clearInputOrExit") &&
-      this.triggerShortcut("clearInputOrExit")
-    ) {
+    if (matchesKey(data, Key.ctrl("c")) && this.onCtrlC) {
+      this.onCtrlC();
       return;
     }
-    if (this.shortcutManager.matches(data, "exit")) {
-      if (this.getText().length === 0 && this.triggerShortcut("exit")) {
-        return;
+    if (matchesKey(data, Key.ctrl("d"))) {
+      if (this.getText().length === 0 && this.onCtrlD) {
+        this.onCtrlD();
       }
       return;
     }

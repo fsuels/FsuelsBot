@@ -1,6 +1,4 @@
-import { DEFAULT_EDITOR_KEYBINDINGS } from "@mariozechner/pi-tui";
 import { z } from "zod";
-import { isValidTuiKeybindingValue, TUI_SHORTCUT_ACTIONS } from "../tui/tui-keybindings.js";
 import { ToolsSchema } from "./zod-schema.agent-runtime.js";
 import { AgentsSchema, AudioSchema, BindingsSchema, BroadcastSchema } from "./zod-schema.agents.js";
 import { ApprovalsSchema } from "./zod-schema.approvals.js";
@@ -90,38 +88,6 @@ const MemorySchema = z
     citations: z.union([z.literal("auto"), z.literal("on"), z.literal("off")]).optional(),
     qmd: MemoryQmdSchema.optional(),
   })
-  .strict()
-  .optional();
-
-const TuiKeybindingValueSchema = z
-  .union([z.string(), z.array(z.string()).min(1), z.null()])
-  .superRefine((value, ctx) => {
-    if (!isValidTuiKeybindingValue(value)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Expected a key id like ctrl+p, shift+enter, or null to unbind.",
-      });
-    }
-  });
-
-const TuiEditorKeybindingsSchema = z
-  .object(
-    Object.fromEntries(
-      Object.keys(DEFAULT_EDITOR_KEYBINDINGS).map((action) => [
-        action,
-        TuiKeybindingValueSchema.optional(),
-      ]),
-    ),
-  )
-  .strict()
-  .optional();
-
-const TuiShortcutBindingsSchema = z
-  .object(
-    Object.fromEntries(
-      TUI_SHORTCUT_ACTIONS.map((action) => [action, TuiKeybindingValueSchema.optional()]),
-    ),
-  )
   .strict()
   .optional();
 
@@ -271,13 +237,6 @@ export const OpenClawSchema = z
           .object({
             name: z.string().max(50).optional(),
             avatar: z.string().max(200).optional(),
-          })
-          .strict()
-          .optional(),
-        tui: z
-          .object({
-            editor: TuiEditorKeybindingsSchema,
-            shortcuts: TuiShortcutBindingsSchema,
           })
           .strict()
           .optional(),

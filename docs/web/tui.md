@@ -65,11 +65,9 @@ Use `--password` if your Gateway uses password auth.
 - Model picker: list available models and set the session override.
 - Agent picker: choose a different agent.
 - Session picker: shows only sessions for the current agent.
-- Settings: toggle tool output expansion and thinking visibility.
+- Settings: toggle deliver, tool output expansion, and thinking visibility.
 
 ## Keyboard shortcuts
-
-Defaults:
 
 - Enter: send message
 - Esc: abort active run
@@ -80,25 +78,6 @@ Defaults:
 - Ctrl+P: session picker
 - Ctrl+O: toggle tool output expansion
 - Ctrl+T: toggle thinking visibility (reloads history)
-
-Override them in config with `ui.tui.shortcuts` for TUI actions and `ui.tui.editor` for shared editor bindings. Set any action to `null` to unbind it.
-
-```json5
-{
-  ui: {
-    tui: {
-      shortcuts: {
-        openModelPicker: "ctrl+x",
-        abortRun: null,
-      },
-      editor: {
-        submit: ["enter", "ctrl+j"],
-        newLine: "shift+enter",
-      },
-    },
-  },
-}
-```
 
 ## Slash commands
 
