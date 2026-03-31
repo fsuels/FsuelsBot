@@ -1,4 +1,3 @@
-import { Type } from "@sinclair/typebox";
 import type { AnyAgentTool } from "./common.js";
 import { loadConfig } from "../../config/config.js";
 import {
@@ -7,10 +6,13 @@ import {
   parseAgentSessionKey,
 } from "../../routing/session-key.js";
 import { resolveAgentConfig } from "../agent-scope.js";
+import { createStrictEmptyObjectSchema, defineOpenClawTool } from "../tool-contract.js";
 import { jsonResult } from "./common.js";
 import { resolveInternalSessionKey, resolveMainSessionAlias } from "./sessions-helpers.js";
 
-const AgentsListToolSchema = Type.Object({});
+const AgentsListToolSchema = createStrictEmptyObjectSchema({
+  description: "No arguments accepted.",
+});
 
 type AgentListEntry = {
   id: string;
@@ -23,11 +25,13 @@ export function createAgentsListTool(opts?: {
   /** Explicit agent ID override for cron/hook sessions. */
   requesterAgentIdOverride?: string;
 }): AnyAgentTool {
-  return {
+  return defineOpenClawTool({
     label: "Agents",
     name: "agents_list",
     description: "List agent ids you can target with sessions_spawn (based on allowlists).",
     parameters: AgentsListToolSchema,
+    isReadOnly: () => true,
+    isConcurrencySafe: () => true,
     execute: async () => {
       const cfg = loadConfig();
       const { mainKey, alias } = resolveMainSessionAlias(cfg);
@@ -93,5 +97,5 @@ export function createAgentsListTool(opts?: {
         agents,
       });
     },
-  };
+  });
 }
