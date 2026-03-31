@@ -1,5 +1,6 @@
 import { lookup as dnsLookupCb, type LookupAddress } from "node:dns";
 import { lookup as dnsLookup } from "node:dns/promises";
+import { isIP } from "node:net";
 import { Agent, type Dispatcher } from "undici";
 
 type LookupCallback = (
@@ -8,10 +9,26 @@ type LookupCallback = (
   family?: number,
 ) => void;
 
+export type SsrFBlockCode =
+  | "INVALID_URL"
+  | "INVALID_SCHEME"
+  | "URL_CREDENTIALS_BLOCKED"
+  | "HOSTNAME_BLOCKED"
+  | "LOCALHOST_BLOCKED"
+  | "LOCAL_NETWORK_HOSTNAME_BLOCKED"
+  | "PRIVATE_ADDRESS_BLOCKED"
+  | "DNS_RESOLUTION_BLOCKED"
+  | "REDIRECT_TARGET_BLOCKED";
+
 export class SsrFBlockedError extends Error {
-  constructor(message: string) {
+  readonly code: SsrFBlockCode;
+  readonly details?: Record<string, unknown>;
+
+  constructor(code: SsrFBlockCode, message: string, details?: Record<string, unknown>) {
     super(message);
     this.name = "SsrFBlockedError";
+    this.code = code;
+    this.details = details;
   }
 }
 
@@ -20,10 +37,28 @@ export type LookupFn = typeof dnsLookup;
 export type SsrFPolicy = {
   allowPrivateNetwork?: boolean;
   allowedHostnames?: string[];
+  blockedHostnames?: string[];
 };
 
-const PRIVATE_IPV6_PREFIXES = ["fe80:", "fec0:", "fc", "fd"];
-const BLOCKED_HOSTNAMES = new Set(["localhost", "metadata.google.internal"]);
+const PRIVATE_IPV6_PREFIXES = [
+  "fe8",
+  "fe9",
+  "fea",
+  "feb",
+  "fec",
+  "fed",
+  "fee",
+  "fef",
+  "fc",
+  "fd",
+  "ff",
+  "2001:db8",
+];
+const BLOCKED_HOSTNAMES = new Set(["localhost", "metadata", "metadata.google.internal"]);
+const DEFAULT_PORT_BY_PROTOCOL = {
+  "http:": "80",
+  "https:": "443",
+} as const;
 
 function normalizeHostname(hostname: string): string {
   const normalized = hostname.trim().toLowerCase().replace(/\.$/, "");
@@ -38,6 +73,20 @@ function normalizeHostnameSet(values?: string[]): Set<string> {
     return new Set<string>();
   }
   return new Set(values.map((value) => normalizeHostname(value)).filter(Boolean));
+}
+
+function defaultPortForProtocol(protocol: string): string {
+  if (protocol === "http:") {
+    return DEFAULT_PORT_BY_PROTOCOL["http:"];
+  }
+  if (protocol === "https:") {
+    return DEFAULT_PORT_BY_PROTOCOL["https:"];
+  }
+  return "";
+}
+
+function isIpLiteral(hostname: string): boolean {
+  return isIP(normalizeHostname(hostname)) !== 0;
 }
 
 function parseIpv4(address: string): number[] | null {
@@ -84,7 +133,7 @@ function parseIpv4FromMappedIpv6(mapped: string): number[] | null {
 }
 
 function isPrivateIpv4(parts: number[]): boolean {
-  const [octet1, octet2] = parts;
+  const [octet1, octet2, octet3] = parts;
   if (octet1 === 0) {
     return true;
   }
@@ -104,6 +153,24 @@ function isPrivateIpv4(parts: number[]): boolean {
     return true;
   }
   if (octet1 === 100 && octet2 >= 64 && octet2 <= 127) {
+    return true;
+  }
+  if (octet1 === 192 && octet2 === 0) {
+    return true;
+  }
+  if (octet1 === 192 && octet2 === 88 && octet3 === 99) {
+    return true;
+  }
+  if (octet1 === 198 && (octet2 === 18 || octet2 === 19)) {
+    return true;
+  }
+  if (octet1 === 198 && octet2 === 51 && octet3 === 100) {
+    return true;
+  }
+  if (octet1 === 203 && octet2 === 0 && octet3 === 113) {
+    return true;
+  }
+  if (octet1 >= 224) {
     return true;
   }
   return false;
@@ -140,6 +207,11 @@ export function isPrivateIpAddress(address: string): boolean {
   return isPrivateIpv4(ipv4);
 }
 
+function isSingleLabelHostname(hostname: string): boolean {
+  const normalized = normalizeHostname(hostname);
+  return Boolean(normalized) && !isIpLiteral(normalized) && !normalized.includes(".");
+}
+
 export function isBlockedHostname(hostname: string): boolean {
   const normalized = normalizeHostname(hostname);
   if (!normalized) {
@@ -151,8 +223,110 @@ export function isBlockedHostname(hostname: string): boolean {
   return (
     normalized.endsWith(".localhost") ||
     normalized.endsWith(".local") ||
-    normalized.endsWith(".internal")
+    normalized.endsWith(".internal") ||
+    isSingleLabelHostname(normalized)
   );
+}
+
+export type ValidatedFetchUrl = {
+  url: URL;
+  canonicalUrl: string;
+  normalizedHostname: string;
+  normalizedPort: string;
+};
+
+export function normalizeFetchPort(url: Pick<URL, "protocol" | "port">): string {
+  return url.port || defaultPortForProtocol(url.protocol);
+}
+
+export function canonicalizeFetchUrl(url: URL): string {
+  const canonical = new URL(url.toString());
+  if (canonical.port === defaultPortForProtocol(canonical.protocol)) {
+    canonical.port = "";
+  }
+  return canonical.toString();
+}
+
+function assertHostnameAllowed(
+  hostname: string,
+  policy: SsrFPolicy | undefined,
+  details: Record<string, unknown>,
+): { allowPrivateNetwork: boolean; isExplicitAllowed: boolean } {
+  const normalized = normalizeHostname(hostname);
+  if (!normalized) {
+    throw new SsrFBlockedError("INVALID_URL", "Invalid hostname", details);
+  }
+
+  const allowPrivateNetwork = Boolean(policy?.allowPrivateNetwork);
+  const allowedHostnames = normalizeHostnameSet(policy?.allowedHostnames);
+  const blockedHostnames = normalizeHostnameSet(policy?.blockedHostnames);
+  const isExplicitAllowed = allowedHostnames.has(normalized);
+
+  if (blockedHostnames.has(normalized)) {
+    throw new SsrFBlockedError("HOSTNAME_BLOCKED", `Blocked hostname: ${hostname}`, details);
+  }
+
+  if (!allowPrivateNetwork && !isExplicitAllowed) {
+    if (normalized === "localhost" || normalized.endsWith(".localhost")) {
+      throw new SsrFBlockedError("LOCALHOST_BLOCKED", `Blocked hostname: ${hostname}`, details);
+    }
+    if (isBlockedHostname(normalized)) {
+      throw new SsrFBlockedError(
+        "LOCAL_NETWORK_HOSTNAME_BLOCKED",
+        `Blocked hostname: ${hostname}`,
+        details,
+      );
+    }
+    if (isPrivateIpAddress(normalized)) {
+      throw new SsrFBlockedError(
+        "PRIVATE_ADDRESS_BLOCKED",
+        "Blocked: private/internal IP address",
+        details,
+      );
+    }
+  }
+
+  return { allowPrivateNetwork, isExplicitAllowed };
+}
+
+export function validateFetchUrl(
+  value: string,
+  params: { policy?: SsrFPolicy } = {},
+): ValidatedFetchUrl {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new SsrFBlockedError("INVALID_URL", "Invalid URL: must be http or https", {
+      url: value,
+    });
+  }
+  if (!["http:", "https:"].includes(url.protocol)) {
+    throw new SsrFBlockedError("INVALID_SCHEME", "Invalid URL: must be http or https", {
+      url: value,
+      scheme: url.protocol,
+    });
+  }
+  if (url.username || url.password) {
+    throw new SsrFBlockedError(
+      "URL_CREDENTIALS_BLOCKED",
+      "Blocked URL: embedded credentials are not allowed",
+      { url: value },
+    );
+  }
+
+  const normalizedHostname = normalizeHostname(url.hostname);
+  assertHostnameAllowed(normalizedHostname, params.policy, {
+    url: value,
+    hostname: normalizedHostname,
+  });
+
+  return {
+    url,
+    canonicalUrl: canonicalizeFetchUrl(url),
+    normalizedHostname,
+    normalizedPort: normalizeFetchPort(url),
+  };
 }
 
 export function createPinnedLookup(params: {
@@ -223,41 +397,41 @@ export async function resolvePinnedHostnameWithPolicy(
   params: { lookupFn?: LookupFn; policy?: SsrFPolicy } = {},
 ): Promise<PinnedHostname> {
   const normalized = normalizeHostname(hostname);
-  if (!normalized) {
-    throw new Error("Invalid hostname");
-  }
-
-  const allowPrivateNetwork = Boolean(params.policy?.allowPrivateNetwork);
-  const allowedHostnames = normalizeHostnameSet(params.policy?.allowedHostnames);
-  const isExplicitAllowed = allowedHostnames.has(normalized);
-
-  if (!allowPrivateNetwork && !isExplicitAllowed) {
-    if (isBlockedHostname(normalized)) {
-      throw new SsrFBlockedError(`Blocked hostname: ${hostname}`);
-    }
-
-    if (isPrivateIpAddress(normalized)) {
-      throw new SsrFBlockedError("Blocked: private/internal IP address");
-    }
-  }
+  const { allowPrivateNetwork, isExplicitAllowed } = assertHostnameAllowed(
+    normalized,
+    params.policy,
+    { hostname: normalized },
+  );
 
   const lookupFn = params.lookupFn ?? dnsLookup;
   const results = await lookupFn(normalized, { all: true });
   if (results.length === 0) {
-    throw new Error(`Unable to resolve hostname: ${hostname}`);
+    throw new SsrFBlockedError(
+      "DNS_RESOLUTION_BLOCKED",
+      `Unable to resolve hostname: ${hostname}`,
+      { hostname: normalized },
+    );
   }
 
   if (!allowPrivateNetwork && !isExplicitAllowed) {
     for (const entry of results) {
       if (isPrivateIpAddress(entry.address)) {
-        throw new SsrFBlockedError("Blocked: resolves to private/internal IP address");
+        throw new SsrFBlockedError(
+          "DNS_RESOLUTION_BLOCKED",
+          "Blocked: resolves to private/internal IP address",
+          { hostname: normalized, address: entry.address },
+        );
       }
     }
   }
 
   const addresses = Array.from(new Set(results.map((entry) => entry.address)));
   if (addresses.length === 0) {
-    throw new Error(`Unable to resolve hostname: ${hostname}`);
+    throw new SsrFBlockedError(
+      "DNS_RESOLUTION_BLOCKED",
+      `Unable to resolve hostname: ${hostname}`,
+      { hostname: normalized },
+    );
   }
 
   return {

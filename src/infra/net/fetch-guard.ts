@@ -4,8 +4,11 @@ import {
   createPinnedDispatcher,
   resolvePinnedHostname,
   resolvePinnedHostnameWithPolicy,
+  SsrFBlockedError,
+  type SsrFBlockCode,
   type LookupFn,
   type SsrFPolicy,
+  validateFetchUrl,
 } from "./ssrf.js";
 
 type FetchLike = (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
@@ -20,6 +23,7 @@ export type GuardedFetchOptions = {
   policy?: SsrFPolicy;
   lookupFn?: LookupFn;
   pinDns?: boolean;
+  redirectScope?: RedirectScope;
 };
 
 export type GuardedFetchResult = {
@@ -30,8 +34,137 @@ export type GuardedFetchResult = {
 
 const DEFAULT_MAX_REDIRECTS = 3;
 
+export type RedirectScope = {
+  protocol: "http:" | "https:";
+  hostname: string;
+  port?: string;
+  pathPrefix?: string;
+  allowWwwVariant?: boolean;
+};
+
 function isRedirectStatus(status: number): boolean {
   return status === 301 || status === 302 || status === 303 || status === 307 || status === 308;
+}
+
+function defaultPortForProtocol(protocol: string): string {
+  if (protocol === "http:") {
+    return "80";
+  }
+  if (protocol === "https:") {
+    return "443";
+  }
+  return "";
+}
+
+function normalizeScopeHostname(hostname: string): string {
+  const normalized = hostname.trim().toLowerCase().replace(/\.$/, "");
+  if (normalized.startsWith("[") && normalized.endsWith("]")) {
+    return normalized.slice(1, -1);
+  }
+  return normalized;
+}
+
+function normalizeScopePort(scope: RedirectScope): string {
+  return scope.port || defaultPortForProtocol(scope.protocol);
+}
+
+function stripSingleWww(hostname: string): string {
+  return hostname.startsWith("www.") ? hostname.slice(4) : hostname;
+}
+
+function hostnameWithinScope(hostname: string, scope: RedirectScope): boolean {
+  const normalizedScopeHostname = normalizeScopeHostname(scope.hostname);
+  if (hostname === normalizedScopeHostname) {
+    return true;
+  }
+  if (!scope.allowWwwVariant) {
+    return false;
+  }
+  if (stripSingleWww(hostname) !== stripSingleWww(normalizedScopeHostname)) {
+    return false;
+  }
+  return hostname.startsWith("www.") || normalizedScopeHostname.startsWith("www.");
+}
+
+export function buildRedirectScope(
+  value: string | URL,
+  options?: { pathPrefix?: string; allowWwwVariant?: boolean },
+): RedirectScope {
+  const parsed = typeof value === "string" ? new URL(value) : new URL(value.toString());
+  if (!["http:", "https:"].includes(parsed.protocol)) {
+    throw new Error("Invalid redirect scope URL: must be http or https");
+  }
+  return {
+    protocol: parsed.protocol as "http:" | "https:",
+    hostname: normalizeScopeHostname(parsed.hostname),
+    port: parsed.port || defaultPortForProtocol(parsed.protocol),
+    pathPrefix: options?.pathPrefix ?? parsed.pathname,
+    allowWwwVariant: options?.allowWwwVariant ?? true,
+  };
+}
+
+function normalizePathPrefix(pathPrefix: string | undefined): string | undefined {
+  const trimmed = pathPrefix?.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  if (trimmed === "/") {
+    return "/";
+  }
+  const withLeadingSlash = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+  return withLeadingSlash.endsWith("/") ? withLeadingSlash.slice(0, -1) : withLeadingSlash;
+}
+
+function pathnameWithinScope(pathname: string, pathPrefix: string | undefined): boolean {
+  const normalizedPrefix = normalizePathPrefix(pathPrefix);
+  if (!normalizedPrefix || normalizedPrefix === "/") {
+    return true;
+  }
+  return pathname === normalizedPrefix || pathname.startsWith(`${normalizedPrefix}/`);
+}
+
+function blockRedirect(
+  reason: string,
+  details: Record<string, unknown>,
+  code: SsrFBlockCode = "REDIRECT_TARGET_BLOCKED",
+): never {
+  throw new SsrFBlockedError(code, `Blocked redirect target: ${reason}`, details);
+}
+
+function assertRedirectWithinScope(params: {
+  redirectScope?: RedirectScope;
+  originalUrl: string;
+  redirectUrl: string;
+  redirectStatus: number;
+  targetUrl: URL;
+  normalizedHostname: string;
+  normalizedPort: string;
+}) {
+  const { redirectScope, originalUrl, redirectUrl, redirectStatus, targetUrl } = params;
+  if (!redirectScope) {
+    return;
+  }
+  const details = {
+    originalUrl,
+    redirectUrl,
+    statusCode: redirectStatus,
+    scope: {
+      protocol: redirectScope.protocol,
+      hostname: redirectScope.hostname,
+      port: normalizeScopePort(redirectScope),
+      pathPrefix: normalizePathPrefix(redirectScope.pathPrefix),
+    },
+  };
+
+  if (!hostnameWithinScope(params.normalizedHostname, redirectScope)) {
+    blockRedirect("hostname left the allowed scope", details);
+  }
+  if (params.normalizedPort !== normalizeScopePort(redirectScope)) {
+    blockRedirect("port left the allowed scope", details);
+  }
+  if (!pathnameWithinScope(targetUrl.pathname, redirectScope.pathPrefix)) {
+    blockRedirect("path left the allowed scope", details);
+  }
 }
 
 function buildAbortSignal(params: { timeoutMs?: number; signal?: AbortSignal }): {
@@ -100,21 +233,22 @@ export async function fetchWithSsrFGuard(params: GuardedFetchOptions): Promise<G
 
   while (true) {
     let parsedUrl: URL;
+    let canonicalCurrentUrl = currentUrl;
     try {
-      parsedUrl = new URL(currentUrl);
-    } catch {
+      const validated = validateFetchUrl(currentUrl, { policy: params.policy });
+      parsedUrl = validated.url;
+      canonicalCurrentUrl = validated.canonicalUrl;
+    } catch (err) {
       await release();
-      throw new Error("Invalid URL: must be http or https");
-    }
-    if (!["http:", "https:"].includes(parsedUrl.protocol)) {
-      await release();
-      throw new Error("Invalid URL: must be http or https");
+      throw err;
     }
 
     let dispatcher: Dispatcher | null = null;
     try {
       const usePolicy = Boolean(
-        params.policy?.allowPrivateNetwork || params.policy?.allowedHostnames?.length,
+        params.policy?.allowPrivateNetwork ||
+        params.policy?.allowedHostnames?.length ||
+        params.policy?.blockedHostnames?.length,
       );
       const pinned = usePolicy
         ? await resolvePinnedHostnameWithPolicy(parsedUrl.hostname, {
@@ -133,7 +267,7 @@ export async function fetchWithSsrFGuard(params: GuardedFetchOptions): Promise<G
         ...(signal ? { signal } : {}),
       };
 
-      const response = await fetcher(parsedUrl.toString(), init);
+      const response = await fetcher(canonicalCurrentUrl, init);
 
       if (isRedirectStatus(response.status)) {
         const location = response.headers.get("location");
@@ -146,21 +280,31 @@ export async function fetchWithSsrFGuard(params: GuardedFetchOptions): Promise<G
           await release(dispatcher);
           throw new Error(`Too many redirects (limit: ${maxRedirects})`);
         }
-        const nextUrl = new URL(location, parsedUrl).toString();
-        if (visited.has(nextUrl)) {
+        const nextUrlRaw = new URL(location, parsedUrl).toString();
+        const validatedRedirect = validateFetchUrl(nextUrlRaw, { policy: params.policy });
+        assertRedirectWithinScope({
+          redirectScope: params.redirectScope,
+          originalUrl: canonicalCurrentUrl,
+          redirectUrl: validatedRedirect.canonicalUrl,
+          redirectStatus: response.status,
+          targetUrl: validatedRedirect.url,
+          normalizedHostname: validatedRedirect.normalizedHostname,
+          normalizedPort: validatedRedirect.normalizedPort,
+        });
+        if (visited.has(validatedRedirect.canonicalUrl)) {
           await release(dispatcher);
           throw new Error("Redirect loop detected");
         }
-        visited.add(nextUrl);
+        visited.add(validatedRedirect.canonicalUrl);
         void response.body?.cancel();
         await closeDispatcher(dispatcher);
-        currentUrl = nextUrl;
+        currentUrl = validatedRedirect.canonicalUrl;
         continue;
       }
 
       return {
         response,
-        finalUrl: currentUrl,
+        finalUrl: canonicalCurrentUrl,
         release: async () => release(dispatcher),
       };
     } catch (err) {

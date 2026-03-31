@@ -70,6 +70,94 @@ describe("web_fetch SSRF protection", () => {
     expect(lookupMock).not.toHaveBeenCalled();
   });
 
+  it("blocks unsupported schemes before fetch/firecrawl", async () => {
+    const fetchSpy = vi.fn();
+    // @ts-expect-error mock fetch
+    global.fetch = fetchSpy;
+
+    const { createWebFetchTool } = await import("./web-tools.js");
+    const tool = createWebFetchTool({
+      config: {
+        tools: {
+          web: {
+            fetch: {
+              cacheTtlMinutes: 0,
+              firecrawl: { apiKey: "firecrawl-test" },
+            },
+          },
+        },
+      },
+    });
+
+    await expect(tool?.execute?.("call", { url: "file:///tmp/secret.txt" })).rejects.toMatchObject({
+      code: "INVALID_SCHEME",
+    });
+    await expect(
+      tool?.execute?.("call", { url: "ftp://example.com/file.txt" }),
+    ).rejects.toMatchObject({
+      code: "INVALID_SCHEME",
+    });
+    await expect(tool?.execute?.("call", { url: "data:text/plain,hello" })).rejects.toMatchObject({
+      code: "INVALID_SCHEME",
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(lookupMock).not.toHaveBeenCalled();
+  });
+
+  it("blocks embedded credentials before fetch/firecrawl", async () => {
+    const fetchSpy = vi.fn();
+    // @ts-expect-error mock fetch
+    global.fetch = fetchSpy;
+
+    const { createWebFetchTool } = await import("./web-tools.js");
+    const tool = createWebFetchTool({
+      config: {
+        tools: {
+          web: {
+            fetch: {
+              cacheTtlMinutes: 0,
+              firecrawl: { apiKey: "firecrawl-test" },
+            },
+          },
+        },
+      },
+    });
+
+    await expect(
+      tool?.execute?.("call", { url: "https://user:pass@example.com/private" }),
+    ).rejects.toMatchObject({
+      code: "URL_CREDENTIALS_BLOCKED",
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(lookupMock).not.toHaveBeenCalled();
+  });
+
+  it("blocks single-label hostnames before fetch/firecrawl", async () => {
+    const fetchSpy = vi.fn();
+    // @ts-expect-error mock fetch
+    global.fetch = fetchSpy;
+
+    const { createWebFetchTool } = await import("./web-tools.js");
+    const tool = createWebFetchTool({
+      config: {
+        tools: {
+          web: {
+            fetch: {
+              cacheTtlMinutes: 0,
+              firecrawl: { apiKey: "firecrawl-test" },
+            },
+          },
+        },
+      },
+    });
+
+    await expect(tool?.execute?.("call", { url: "http://printer/status" })).rejects.toMatchObject({
+      code: "LOCAL_NETWORK_HOSTNAME_BLOCKED",
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(lookupMock).not.toHaveBeenCalled();
+  });
+
   it("blocks private IP literals without DNS", async () => {
     const fetchSpy = vi.fn();
     // @ts-expect-error mock fetch
