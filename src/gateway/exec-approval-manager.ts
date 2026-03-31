@@ -24,17 +24,17 @@ export type ExecApprovalRecord = {
 
 type PendingEntry = {
   record: ExecApprovalRecord;
+  promise: Promise<ExecApprovalDecision | null>;
   resolve: (decision: ExecApprovalDecision | null) => void;
-  reject: (err: Error) => void;
   timer: ReturnType<typeof setTimeout>;
 };
 
 type RecentTerminalEntry = {
   id: string;
+  record: ExecApprovalRecord;
   decision: ExecApprovalDecision | null;
   terminalState: "resolved" | "expired";
   resolvedAtMs: number;
-  resolvedBy?: string | null;
 };
 
 export type ExecApprovalResolveResult =
@@ -76,19 +76,57 @@ export class ExecApprovalManager {
     record: ExecApprovalRecord,
     timeoutMs: number,
   ): Promise<ExecApprovalDecision | null> {
-    return await new Promise<ExecApprovalDecision | null>((resolve, reject) => {
-      const timer = setTimeout(() => {
-        this.pending.delete(record.id);
-        this.rememberTerminal({
-          id: record.id,
-          decision: null,
-          terminalState: "expired",
-          resolvedAtMs: Date.now(),
-        });
-        resolve(null);
-      }, timeoutMs);
-      this.pending.set(record.id, { record, resolve, reject, timer });
+    return this.register(record, timeoutMs);
+  }
+
+  register(record: ExecApprovalRecord, timeoutMs: number): Promise<ExecApprovalDecision | null> {
+    if (this.pending.has(record.id)) {
+      throw new Error(`approval id already pending: ${record.id}`);
+    }
+    if (this.recentTerminal.has(record.id)) {
+      throw new Error(`approval id already used recently: ${record.id}`);
+    }
+
+    let resolvePromise!: (decision: ExecApprovalDecision | null) => void;
+    const promise = new Promise<ExecApprovalDecision | null>((resolve) => {
+      resolvePromise = resolve;
     });
+    const timer = setTimeout(() => {
+      const pending = this.pending.get(record.id);
+      if (!pending) {
+        return;
+      }
+      this.pending.delete(record.id);
+      pending.record.resolvedAtMs = Date.now();
+      pending.record.resolvedBy = null;
+      this.rememberTerminal({
+        id: record.id,
+        record: pending.record,
+        decision: null,
+        terminalState: "expired",
+        resolvedAtMs: pending.record.resolvedAtMs,
+      });
+      pending.resolve(null);
+    }, timeoutMs);
+    this.pending.set(record.id, { record, promise, resolve: resolvePromise, timer });
+    return promise;
+  }
+
+  awaitDecision(
+    recordId: string,
+  ): { record: ExecApprovalRecord; promise: Promise<ExecApprovalDecision | null> } | null {
+    const pending = this.pending.get(recordId);
+    if (pending) {
+      return { record: pending.record, promise: pending.promise };
+    }
+    const recent = this.recentTerminal.get(recordId);
+    if (!recent) {
+      return null;
+    }
+    return {
+      record: recent.record,
+      promise: Promise.resolve(recent.decision),
+    };
   }
 
   resolve(
@@ -105,10 +143,10 @@ export class ExecApprovalManager {
       this.pending.delete(recordId);
       this.rememberTerminal({
         id: recordId,
+        record: pending.record,
         decision,
         terminalState: "resolved",
         resolvedAtMs: pending.record.resolvedAtMs,
-        resolvedBy: pending.record.resolvedBy,
       });
       pending.resolve(decision);
       return {
@@ -133,6 +171,17 @@ export class ExecApprovalManager {
 
   hasRecent(recordId: string): boolean {
     return this.recentTerminal.has(recordId);
+  }
+
+  clearAll(): number {
+    const clearedPending = this.pending.size;
+    for (const pending of this.pending.values()) {
+      clearTimeout(pending.timer);
+      pending.resolve(null);
+    }
+    this.pending.clear();
+    this.recentTerminal.clear();
+    return clearedPending;
   }
 
   private rememberTerminal(entry: RecentTerminalEntry): void {

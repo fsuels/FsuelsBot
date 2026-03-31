@@ -8,6 +8,7 @@ import {
   formatValidationErrors,
   validateExecApprovalRequestParams,
   validateExecApprovalResolveParams,
+  validateExecApprovalWaitDecisionParams,
 } from "../protocol/index.js";
 
 export function createExecApprovalHandlers(
@@ -40,7 +41,9 @@ export function createExecApprovalHandlers(
         resolvedPath?: string;
         sessionKey?: string;
         timeoutMs?: number;
+        twoPhase?: boolean;
       };
+      const twoPhase = p.twoPhase === true;
       const timeoutMs = typeof p.timeoutMs === "number" ? p.timeoutMs : 120_000;
       const explicitId = typeof p.id === "string" && p.id.trim().length > 0 ? p.id.trim() : null;
       if (explicitId && manager.getSnapshot(explicitId)) {
@@ -70,7 +73,17 @@ export function createExecApprovalHandlers(
         sessionKey: p.sessionKey ?? null,
       };
       const record = manager.create(request, timeoutMs, explicitId);
-      const decisionPromise = manager.waitForDecision(record, timeoutMs);
+      let decisionPromise: Promise<ExecApprovalDecision | null>;
+      try {
+        decisionPromise = manager.register(record, timeoutMs);
+      } catch (err) {
+        respond(
+          false,
+          undefined,
+          errorShape(ErrorCodes.INVALID_REQUEST, err instanceof Error ? err.message : String(err)),
+        );
+        return;
+      }
       context.broadcast(
         "exec.approval.requested",
         {
@@ -91,6 +104,18 @@ export function createExecApprovalHandlers(
         .catch((err) => {
           context.logGateway?.error?.(`exec approvals: forward request failed: ${String(err)}`);
         });
+      if (twoPhase) {
+        respond(
+          true,
+          {
+            status: "accepted",
+            id: record.id,
+            createdAtMs: record.createdAtMs,
+            expiresAtMs: record.expiresAtMs,
+          },
+          undefined,
+        );
+      }
       const decision = await decisionPromise;
       respond(
         true,
@@ -99,6 +124,37 @@ export function createExecApprovalHandlers(
           decision,
           createdAtMs: record.createdAtMs,
           expiresAtMs: record.expiresAtMs,
+        },
+        undefined,
+      );
+    },
+    "exec.approval.waitDecision": async ({ params, respond }) => {
+      if (!validateExecApprovalWaitDecisionParams(params)) {
+        respond(
+          false,
+          undefined,
+          errorShape(
+            ErrorCodes.INVALID_REQUEST,
+            `invalid exec.approval.waitDecision params: ${formatValidationErrors(
+              validateExecApprovalWaitDecisionParams.errors,
+            )}`,
+          ),
+        );
+        return;
+      }
+      const wait = manager.awaitDecision((params as { id: string }).id);
+      if (!wait) {
+        respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, "unknown approval id"));
+        return;
+      }
+      const decision = await wait.promise;
+      respond(
+        true,
+        {
+          id: wait.record.id,
+          decision,
+          createdAtMs: wait.record.createdAtMs,
+          expiresAtMs: wait.record.expiresAtMs,
         },
         undefined,
       );

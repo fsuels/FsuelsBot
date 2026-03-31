@@ -47,6 +47,14 @@ describe("exec approval handlers", () => {
       };
       expect(validateExecApprovalRequestParams(params)).toBe(true);
     });
+
+    it("accepts request with twoPhase enabled", () => {
+      const params = {
+        command: "echo hi",
+        twoPhase: true,
+      };
+      expect(validateExecApprovalRequestParams(params)).toBe(true);
+    });
   });
 
   it("broadcasts request + resolve", async () => {
@@ -207,6 +215,124 @@ describe("exec approval handlers", () => {
     expect(respond).toHaveBeenCalledWith(
       true,
       expect.objectContaining({ id: "approval-123", decision: "allow-once" }),
+      undefined,
+    );
+  });
+
+  it("supports two-phase registration followed by a final response", async () => {
+    const manager = new ExecApprovalManager();
+    const handlers = createExecApprovalHandlers(manager);
+    const broadcasts: Array<{ event: string; payload: unknown }> = [];
+
+    const respond = vi.fn();
+    const context = {
+      broadcast: (event: string, payload: unknown) => {
+        broadcasts.push({ event, payload });
+      },
+    };
+
+    const requestPromise = handlers["exec.approval.request"]({
+      params: {
+        id: "approval-two-phase-1",
+        command: "echo ok",
+        timeoutMs: 2_000,
+        twoPhase: true,
+      },
+      respond,
+      context: context as unknown as Parameters<
+        (typeof handlers)["exec.approval.request"]
+      >[0]["context"],
+      client: null,
+      req: { id: "req-1", type: "req", method: "exec.approval.request" },
+      isWebchatConnect: noop,
+    });
+
+    expect(respond).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({
+        status: "accepted",
+        id: "approval-two-phase-1",
+      }),
+      undefined,
+    );
+
+    const resolveRespond = vi.fn();
+    await handlers["exec.approval.resolve"]({
+      params: { id: "approval-two-phase-1", decision: "allow-once" },
+      respond: resolveRespond,
+      context: context as unknown as Parameters<
+        (typeof handlers)["exec.approval.resolve"]
+      >[0]["context"],
+      client: { connect: { client: { id: "cli", displayName: "CLI" } } },
+      req: { id: "req-2", type: "req", method: "exec.approval.resolve" },
+      isWebchatConnect: noop,
+    });
+
+    await requestPromise;
+
+    expect(resolveRespond).toHaveBeenCalledWith(true, { ok: true }, undefined);
+    expect(respond).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({
+        id: "approval-two-phase-1",
+        decision: "allow-once",
+      }),
+      undefined,
+    );
+    expect(broadcasts.some((entry) => entry.event === "exec.approval.requested")).toBe(true);
+    expect(broadcasts.some((entry) => entry.event === "exec.approval.resolved")).toBe(true);
+  });
+
+  it("lets waitDecision observe approvals that were already resolved", async () => {
+    const manager = new ExecApprovalManager();
+    const handlers = createExecApprovalHandlers(manager);
+    const context = { broadcast: noop };
+
+    const requestPromise = handlers["exec.approval.request"]({
+      params: {
+        id: "approval-wait-1",
+        command: "echo ok",
+        timeoutMs: 2_000,
+        twoPhase: true,
+      },
+      respond: vi.fn(),
+      context: context as unknown as Parameters<
+        (typeof handlers)["exec.approval.request"]
+      >[0]["context"],
+      client: null,
+      req: { id: "req-1", type: "req", method: "exec.approval.request" },
+      isWebchatConnect: noop,
+    });
+
+    await handlers["exec.approval.resolve"]({
+      params: { id: "approval-wait-1", decision: "allow-once" },
+      respond: vi.fn(),
+      context: context as unknown as Parameters<
+        (typeof handlers)["exec.approval.resolve"]
+      >[0]["context"],
+      client: { connect: { client: { id: "cli", displayName: "CLI" } } },
+      req: { id: "req-2", type: "req", method: "exec.approval.resolve" },
+      isWebchatConnect: noop,
+    });
+
+    const waitRespond = vi.fn();
+    await handlers["exec.approval.waitDecision"]({
+      params: { id: "approval-wait-1" },
+      respond: waitRespond,
+      context: context as never,
+      client: null,
+      req: { id: "req-3", type: "req", method: "exec.approval.waitDecision" },
+      isWebchatConnect: noop,
+    });
+
+    await requestPromise;
+
+    expect(waitRespond).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({
+        id: "approval-wait-1",
+        decision: "allow-once",
+      }),
       undefined,
     );
   });

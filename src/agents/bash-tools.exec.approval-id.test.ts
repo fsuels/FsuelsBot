@@ -51,6 +51,9 @@ describe("exec approvals", () => {
 
     vi.mocked(callGatewayTool).mockImplementation(async (method, _opts, params) => {
       if (method === "exec.approval.request") {
+        return { status: "accepted", expiresAtMs: Date.now() + 120_000 };
+      }
+      if (method === "exec.approval.waitDecision") {
         return { decision: "allow-once" };
       }
       if (method === "node.invoke") {
@@ -76,6 +79,64 @@ describe("exec approvals", () => {
 
     const runId = (invokeParams as { params?: { runId?: string } } | undefined)?.params?.runId;
     expect(runId).toBe(approvalId);
+  });
+
+  it("waits for approval registration before returning approval-pending", async () => {
+    const { callGatewayTool } = await import("./tools/gateway.js");
+    let resolveRegistration: (() => void) | undefined;
+    const registrationGate = new Promise<void>((resolve) => {
+      resolveRegistration = resolve;
+    });
+
+    vi.mocked(callGatewayTool).mockImplementation(async (method) => {
+      if (method === "exec.approval.request") {
+        await registrationGate;
+        return { status: "accepted", expiresAtMs: Date.now() + 120_000 };
+      }
+      if (method === "exec.approval.waitDecision") {
+        return { decision: "deny" };
+      }
+      return { ok: true };
+    });
+
+    const { createExecTool } = await import("./bash-tools.exec.js");
+    const tool = createExecTool({
+      host: "gateway",
+      ask: "always",
+      approvalRunningNoticeMs: 0,
+    });
+
+    const resultPromise = tool.execute("call-registration", { command: "echo ok" });
+    const settled = vi.fn();
+    void resultPromise.then(settled);
+
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(settled).not.toHaveBeenCalled();
+
+    resolveRegistration?.();
+    const result = await resultPromise;
+
+    expect(result.details.status).toBe("approval-pending");
+    expect(callGatewayTool).toHaveBeenNthCalledWith(
+      1,
+      "exec.approval.request",
+      { timeoutMs: 10_000 },
+      expect.objectContaining({
+        command: "echo ok",
+        host: "gateway",
+        twoPhase: true,
+      }),
+      { expectFinal: false },
+    );
+    expect(callGatewayTool).toHaveBeenNthCalledWith(
+      2,
+      "exec.approval.waitDecision",
+      { timeoutMs: 130_000 },
+      expect.objectContaining({
+        id: (result.details as { approvalId: string }).approvalId,
+      }),
+    );
   });
 
   it("skips approval when node allowlist is satisfied", async () => {
@@ -163,6 +224,10 @@ describe("exec approvals", () => {
       calls.push(method);
       if (method === "exec.approval.request") {
         resolveApproval?.();
+        return { status: "accepted", expiresAtMs: Date.now() + 120_000 };
+      }
+      if (method === "exec.approval.waitDecision") {
+        resolveApproval?.();
         return { decision: "deny" };
       }
       return { ok: true };
@@ -180,5 +245,6 @@ describe("exec approvals", () => {
     expect(result.details.status).toBe("approval-pending");
     await approvalSeen;
     expect(calls).toContain("exec.approval.request");
+    expect(calls).toContain("exec.approval.waitDecision");
   });
 });

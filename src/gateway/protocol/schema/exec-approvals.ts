@@ -99,6 +99,14 @@ export const ExecApprovalRequestParamsSchema = Type.Object(
     resolvedPath: Type.Optional(Type.Union([Type.String(), Type.Null()])),
     sessionKey: Type.Optional(Type.Union([Type.String(), Type.Null()])),
     timeoutMs: Type.Optional(Type.Integer({ minimum: 1 })),
+    twoPhase: Type.Optional(Type.Boolean()),
+  },
+  { additionalProperties: false },
+);
+
+export const ExecApprovalWaitDecisionParamsSchema = Type.Object(
+  {
+    id: NonEmptyString,
   },
   { additionalProperties: false },
 );
