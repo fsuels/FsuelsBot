@@ -5,13 +5,6 @@ import type { AnyAgentTool } from "./common.js";
 import { formatCliCommand } from "../../cli/command-format.js";
 import { wrapWebContent } from "../../security/external-content.js";
 import { normalizeSecretInput } from "../../utils/normalize-secret-input.js";
-import {
-  buildCapabilityBlockedPayload,
-  getCapabilityAuthStatus,
-  getCapabilityStatus,
-  isCapabilityEnabled,
-  logCapabilityBlocked,
-} from "../capability-gate.js";
 import { jsonResult, readNumberParam, readStringArrayParam, readStringParam } from "./common.js";
 import {
   dedupeWebSearchSources,
@@ -274,47 +267,6 @@ function resolveSearchProvider(search?: WebSearchConfig): (typeof SEARCH_PROVIDE
     return "brave";
   }
   return "brave";
-}
-
-function getWebSearchCapabilityStatus(params: {
-  config?: OpenClawConfig;
-  sandboxed?: boolean;
-  mode?: "render" | "runtime";
-}) {
-  const search = resolveSearchConfig(params.config);
-  const provider = resolveSearchProvider(search);
-  return getCapabilityStatus({
-    capability: "web_search",
-    mode: params.mode,
-    cacheKey: JSON.stringify({
-      provider,
-      enabled: search?.enabled ?? null,
-      sandboxed: params.sandboxed === true,
-    }),
-    evaluate: () => {
-      const visible = resolveSearchEnabled({ search, sandboxed: params.sandboxed });
-      const auth =
-        provider === "perplexity"
-          ? getCapabilityAuthStatus({
-              ok: Boolean(resolvePerplexityApiKey(resolvePerplexityConfig(search)).apiKey),
-              reason: "missing_credentials",
-            })
-          : provider === "grok"
-            ? getCapabilityAuthStatus({
-                ok: Boolean(resolveGrokApiKey(resolveGrokConfig(search))),
-                reason: "missing_credentials",
-              })
-            : getCapabilityAuthStatus({
-                ok: Boolean(resolveSearchApiKey(search)),
-                reason: "missing_credentials",
-              });
-      return {
-        visible,
-        auth,
-        reasons: visible ? [] : ["build_flag_off"],
-      };
-    },
-  });
 }
 
 function resolvePerplexityConfig(search?: WebSearchConfig): PerplexityConfig {
@@ -971,16 +923,11 @@ export function createWebSearchTool(options?: {
   config?: OpenClawConfig;
   sandboxed?: boolean;
 }): AnyAgentTool | null {
-  const capabilityStatus = getWebSearchCapabilityStatus({
-    config: options?.config,
-    sandboxed: options?.sandboxed,
-    mode: "render",
-  });
-  if (!isCapabilityEnabled(capabilityStatus)) {
+  const search = resolveSearchConfig(options?.config);
+  if (!resolveSearchEnabled({ search, sandboxed: options?.sandboxed })) {
     return null;
   }
 
-  const search = resolveSearchConfig(options?.config);
   const provider = resolveSearchProvider(search);
   const perplexityConfig = resolvePerplexityConfig(search);
   const grokConfig = resolveGrokConfig(search);
@@ -999,28 +946,6 @@ export function createWebSearchTool(options?: {
     parameters: WebSearchSchema,
     isReadOnly: () => true,
     execute: async (toolCallId, args, _signal, onUpdate) => {
-      const runtimeStatus = getWebSearchCapabilityStatus({
-        config: options?.config,
-        sandboxed: options?.sandboxed,
-        mode: "runtime",
-      });
-      if (!isCapabilityEnabled(runtimeStatus)) {
-        const blocked = missingSearchKeyPayload(provider);
-        logCapabilityBlocked(runtimeStatus, {
-          provider,
-          tool: "web_search",
-        });
-        return jsonResult(
-          buildCapabilityBlockedPayload(runtimeStatus, {
-            message: blocked.message,
-            extra: {
-              providerError: blocked.error,
-              docs: blocked.docs,
-            },
-          }),
-        );
-      }
-
       const perplexityAuth =
         provider === "perplexity" ? resolvePerplexityApiKey(perplexityConfig) : undefined;
       const apiKey =
