@@ -175,6 +175,28 @@ describe("routeExplicitSkillInvocation", () => {
     });
     expect(routed.ok).toBe(true);
   });
+
+  it("resolves explicit invocation aliases to the canonical skill name", async () => {
+    const workspaceDir = await makeWorkspace();
+    await writeSkill({
+      dir: path.join(workspaceDir, "skills", "docs-skill"),
+      name: "docs-skill",
+      description: "Documentation helper",
+      frontmatterExtra: 'aliases: ["docs", "reference"]',
+    });
+
+    const routed = await routeExplicitSkillInvocation({
+      workspaceDir,
+      state: createSkillRuntimeState(),
+      skillName: "reference",
+      commandName: "skill",
+    });
+    expect(routed.ok).toBe(true);
+    if (!routed.ok) {
+      return;
+    }
+    expect(routed.record.skillName).toBe("docs-skill");
+  });
 });
 
 describe("evaluateSkillPermission", () => {

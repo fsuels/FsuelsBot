@@ -67,4 +67,45 @@ describe("buildWorkspaceSkillSnapshot", () => {
       "visible-skill",
     ]);
   });
+
+  it("filters path-scoped skills when activation paths are provided", async () => {
+    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-"));
+    await _writeSkill({
+      dir: path.join(workspaceDir, "skills", "always-visible"),
+      name: "always-visible",
+      description: "General helper",
+    });
+    await _writeSkill({
+      dir: path.join(workspaceDir, "skills", "docs-only"),
+      name: "docs-only",
+      description: "Docs helper",
+      frontmatterExtra: 'paths: ["docs/**/*.md", "*.mdx"]',
+    });
+
+    const defaultSnapshot = buildWorkspaceSkillSnapshot(workspaceDir, {
+      managedSkillsDir: path.join(workspaceDir, ".managed"),
+      bundledSkillsDir: path.join(workspaceDir, ".bundled"),
+    });
+    expect(defaultSnapshot.prompt).toContain("always-visible");
+    expect(defaultSnapshot.prompt).toContain("docs-only");
+
+    const hiddenSnapshot = buildWorkspaceSkillSnapshot(workspaceDir, {
+      managedSkillsDir: path.join(workspaceDir, ".managed"),
+      bundledSkillsDir: path.join(workspaceDir, ".bundled"),
+      eligibility: {
+        activationPaths: ["src/app.ts"],
+      },
+    });
+    expect(hiddenSnapshot.prompt).toContain("always-visible");
+    expect(hiddenSnapshot.prompt).not.toContain("docs-only");
+
+    const activeSnapshot = buildWorkspaceSkillSnapshot(workspaceDir, {
+      managedSkillsDir: path.join(workspaceDir, ".managed"),
+      bundledSkillsDir: path.join(workspaceDir, ".bundled"),
+      eligibility: {
+        activationPaths: ["docs/getting-started.md"],
+      },
+    });
+    expect(activeSnapshot.prompt).toContain("docs-only");
+  });
 });

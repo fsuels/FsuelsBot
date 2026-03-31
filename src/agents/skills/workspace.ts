@@ -1,4 +1,8 @@
-import { loadSkillsFromDir, type Skill } from "@mariozechner/pi-coding-agent";
+import {
+  loadSkillsFromDir,
+  type LoadSkillsResult,
+  type Skill,
+} from "@mariozechner/pi-coding-agent";
 import fs from "node:fs";
 import path from "node:path";
 import type { OpenClawConfig } from "../../config/config.js";
@@ -10,13 +14,16 @@ import type {
   SkillSnapshot,
 } from "./types.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
+import { clearPluginManifestRegistryCache } from "../../plugins/manifest-registry.js";
 import { CONFIG_DIR, resolveUserPath } from "../../utils.js";
 import { resolveBundledSkillsDir } from "./bundled-dir.js";
 import { shouldIncludeSkill } from "./config.js";
 import {
   parseFrontmatter,
+  resolveSkillDefinitionMetadata,
   resolveOpenClawMetadata,
   resolveSkillInvocationPolicy,
+  stripFrontmatter,
 } from "./frontmatter.js";
 import { resolvePluginSkillDirs } from "./plugin-skills.js";
 import { buildBudgetedSkillsPrompt, buildDiscoverableSkills } from "./registry.js";
@@ -25,6 +32,268 @@ import { serializeByKey } from "./serialize.js";
 const fsp = fs.promises;
 const skillsLogger = createSubsystemLogger("skills");
 const skillCommandDebugOnce = new Set<string>();
+const workspaceSkillEntriesCache = new Map<string, SkillEntry[]>();
+
+type SkillSourceLayer = "extra" | "plugin" | "bundled" | "managed" | "workspace";
+
+type SkillLoaderDiagnostic = {
+  type?: string;
+  message?: string;
+  path?: string;
+  collision?: {
+    resourceType?: string;
+    name?: string;
+    winnerPath?: string;
+    loserPath?: string;
+  };
+};
+
+type LoadedSkillSource = {
+  sourceLayer: SkillSourceLayer;
+  sourceLabel: string;
+  skills: Skill[];
+  diagnostics: SkillLoaderDiagnostic[];
+  recoveredDiagnosticPaths: Set<string>;
+};
+
+function normalizeSkillLoaderResult(loaded: Skill[] | LoadSkillsResult | null | undefined): {
+  skills: Skill[];
+  diagnostics: SkillLoaderDiagnostic[];
+} {
+  if (Array.isArray(loaded)) {
+    return { skills: loaded, diagnostics: [] };
+  }
+  if (
+    loaded &&
+    typeof loaded === "object" &&
+    "skills" in loaded &&
+    Array.isArray((loaded as { skills?: unknown }).skills)
+  ) {
+    return {
+      skills: (loaded as { skills: Skill[] }).skills,
+      diagnostics: Array.isArray((loaded as { diagnostics?: unknown }).diagnostics)
+        ? ((loaded as { diagnostics: SkillLoaderDiagnostic[] }).diagnostics ?? [])
+        : [],
+    };
+  }
+  return { skills: [], diagnostics: [] };
+}
+
+function extractFallbackDescription(content: string): string | undefined {
+  const body = stripFrontmatter(content);
+  const blocks = body.split(/\n\s*\n+/);
+  for (const block of blocks) {
+    const lines = block
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .filter(
+        (line) =>
+          !/^#{1,6}\s/.test(line) &&
+          !/^(```|~~~)/.test(line) &&
+          !/^([-*+]|\d+\.)\s/.test(line) &&
+          !/^>/.test(line),
+      );
+    const candidate = lines.join(" ").trim();
+    if (candidate) {
+      return candidate;
+    }
+  }
+  return undefined;
+}
+
+function resolveFallbackSkill(params: { filePath: string; source: string }): Skill | null {
+  try {
+    const raw = fs.readFileSync(params.filePath, "utf-8");
+    const frontmatter = parseFrontmatter(raw);
+    const fallbackName = path.basename(path.dirname(params.filePath));
+    const name = frontmatter.name?.trim() || fallbackName;
+    const description =
+      frontmatter.description?.trim() || extractFallbackDescription(raw) || `Custom ${name} skill`;
+    const invocation = resolveSkillInvocationPolicy(frontmatter);
+    return {
+      name,
+      description,
+      filePath: params.filePath,
+      baseDir: path.dirname(params.filePath),
+      source: params.source,
+      disableModelInvocation: invocation.disableModelInvocation,
+    };
+  } catch (error) {
+    skillsLogger.warn("failed to recover skill with fallback description", {
+      path: params.filePath,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
+}
+
+function recoverFallbackSkills(params: {
+  diagnostics: SkillLoaderDiagnostic[];
+  loadedSkills: Skill[];
+  source: string;
+  sourceLabel: string;
+}): { skills: Skill[]; recoveredDiagnosticPaths: Set<string> } {
+  const loadedPaths = new Set(params.loadedSkills.map((skill) => skill.filePath));
+  const recovered: Skill[] = [];
+  const recoveredPaths = new Set<string>();
+  for (const diagnostic of params.diagnostics) {
+    const filePath = diagnostic.path?.trim();
+    if (!filePath || loadedPaths.has(filePath) || recoveredPaths.has(filePath)) {
+      continue;
+    }
+    if (!/description is required/i.test(diagnostic.message ?? "")) {
+      continue;
+    }
+    const skill = resolveFallbackSkill({
+      filePath,
+      source: params.source,
+    });
+    if (!skill) {
+      continue;
+    }
+    recovered.push(skill);
+    recoveredPaths.add(filePath);
+    skillsLogger.warn("skill missing description; recovered fallback description from file body", {
+      source: params.sourceLabel,
+      path: filePath,
+      skillName: skill.name,
+    });
+  }
+  return { skills: recovered, recoveredDiagnosticPaths: recoveredPaths };
+}
+
+function logSkillLoaderDiagnostics(
+  sourceLabel: string,
+  diagnostics: SkillLoaderDiagnostic[],
+  recoveredDiagnosticPaths?: Set<string>,
+): void {
+  for (const diagnostic of diagnostics) {
+    const diagnosticPath = diagnostic.path?.trim();
+    if (diagnosticPath && recoveredDiagnosticPaths?.has(diagnosticPath)) {
+      continue;
+    }
+    const diagnosticMessage = diagnostic.message ?? "unknown";
+    const parentDir = diagnosticPath ? path.basename(path.dirname(diagnosticPath)) : "";
+    if (
+      sourceLabel === "managed" &&
+      /does not match parent directory/i.test(diagnosticMessage) &&
+      parentDir.startsWith("generated-")
+    ) {
+      continue;
+    }
+    const collision = diagnostic.collision;
+    if (collision?.resourceType === "skill" || diagnostic.type === "collision") {
+      skillsLogger.warn("duplicate skill name detected within source; keeping existing winner", {
+        source: sourceLabel,
+        skillName: collision?.name,
+        winnerPath: collision?.winnerPath,
+        loserPath: collision?.loserPath,
+      });
+      continue;
+    }
+    skillsLogger.warn(`skill loader warning (${sourceLabel}): ${diagnosticMessage}`, {
+      path: diagnostic.path,
+      diagnosticType: diagnostic.type ?? "warning",
+    });
+  }
+}
+
+function toSkillEntry(skill: Skill): SkillEntry {
+  const canonicalFilePath = resolveCanonicalSkillFilePath(skill.filePath);
+  let frontmatter: ParsedSkillFrontmatter = {};
+  try {
+    const raw = fs.readFileSync(skill.filePath, "utf-8");
+    frontmatter = parseFrontmatter(raw);
+  } catch (error) {
+    skillsLogger.warn("failed to read skill frontmatter; using empty metadata", {
+      path: skill.filePath,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+  return {
+    skill,
+    frontmatter,
+    metadata: resolveOpenClawMetadata(frontmatter),
+    invocation: resolveSkillInvocationPolicy(frontmatter),
+    definition: resolveSkillDefinitionMetadata(frontmatter),
+    canonicalFilePath,
+  };
+}
+
+function resolveCanonicalSkillFilePath(filePath: string): string {
+  try {
+    return fs.realpathSync.native(filePath);
+  } catch {
+    try {
+      return fs.realpathSync(filePath);
+    } catch {
+      return resolveUserPath(filePath);
+    }
+  }
+}
+
+function loadSkillSource(params: {
+  dir: string;
+  source: string;
+  sourceLayer: SkillSourceLayer;
+  sourceLabel: string;
+}): LoadedSkillSource {
+  try {
+    const normalized = normalizeSkillLoaderResult(
+      loadSkillsFromDir({
+        dir: params.dir,
+        source: params.source,
+      }),
+    );
+    const recovered = recoverFallbackSkills({
+      diagnostics: normalized.diagnostics,
+      loadedSkills: normalized.skills,
+      source: params.source,
+      sourceLabel: params.sourceLabel,
+    });
+    return {
+      sourceLayer: params.sourceLayer,
+      sourceLabel: params.sourceLabel,
+      skills: [...normalized.skills, ...recovered.skills],
+      diagnostics: normalized.diagnostics,
+      recoveredDiagnosticPaths: recovered.recoveredDiagnosticPaths,
+    };
+  } catch (error) {
+    skillsLogger.warn(`failed to load skills from ${params.sourceLabel}`, {
+      dir: params.dir,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return {
+      sourceLayer: params.sourceLayer,
+      sourceLabel: params.sourceLabel,
+      skills: [],
+      diagnostics: [],
+      recoveredDiagnosticPaths: new Set<string>(),
+    };
+  }
+}
+
+function buildWorkspaceSkillEntriesCacheKey(params: {
+  workspaceDir: string;
+  managedSkillsDir: string;
+  bundledSkillsDir: string;
+  extraDirs: string[];
+  pluginSkillDirs: string[];
+}): string {
+  return JSON.stringify({
+    workspaceDir: params.workspaceDir,
+    managedSkillsDir: params.managedSkillsDir,
+    bundledSkillsDir: params.bundledSkillsDir,
+    extraDirs: params.extraDirs,
+    pluginSkillDirs: params.pluginSkillDirs,
+  });
+}
+
+export function clearWorkspaceSkillCaches(): void {
+  workspaceSkillEntriesCache.clear();
+  clearPluginManifestRegistryCache();
+}
 
 function debugSkillCommandOnce(
   messageKey: string,
@@ -40,11 +309,14 @@ function debugSkillCommandOnce(
 
 function filterSkillEntries(
   entries: SkillEntry[],
+  workspaceDir: string,
   config?: OpenClawConfig,
   skillFilter?: string[],
   eligibility?: SkillEligibilityContext,
 ): SkillEntry[] {
-  let filtered = entries.filter((entry) => shouldIncludeSkill({ entry, config, eligibility }));
+  let filtered = entries.filter((entry) =>
+    shouldIncludeSkill({ entry, config, eligibility, workspaceDir }),
+  );
   // If skillFilter is provided, only include skills in the filter list.
   if (skillFilter !== undefined) {
     const normalized = skillFilter.map((entry) => String(entry).trim()).filter(Boolean);
@@ -101,97 +373,115 @@ function loadSkillEntries(
     bundledSkillsDir?: string;
   },
 ): SkillEntry[] {
-  const loadSkills = (params: { dir: string; source: string }): Skill[] => {
-    const loaded = loadSkillsFromDir(params);
-    if (Array.isArray(loaded)) {
-      return loaded;
-    }
-    if (
-      loaded &&
-      typeof loaded === "object" &&
-      "skills" in loaded &&
-      Array.isArray((loaded as { skills?: unknown }).skills)
-    ) {
-      return (loaded as { skills: Skill[] }).skills;
-    }
-    return [];
-  };
-
-  const managedSkillsDir = opts?.managedSkillsDir ?? path.join(CONFIG_DIR, "skills");
-  const workspaceSkillsDir = path.join(workspaceDir, "skills");
-  const bundledSkillsDir = opts?.bundledSkillsDir ?? resolveBundledSkillsDir();
+  const resolvedWorkspaceDir = resolveUserPath(workspaceDir);
+  const managedSkillsDir = resolveUserPath(
+    opts?.managedSkillsDir ?? path.join(CONFIG_DIR, "skills"),
+  );
+  const workspaceSkillsDir = path.join(resolvedWorkspaceDir, "skills");
+  const bundledSkillsDirRaw = opts?.bundledSkillsDir ?? resolveBundledSkillsDir();
+  const bundledSkillsDir = bundledSkillsDirRaw ? resolveUserPath(bundledSkillsDirRaw) : "";
   const extraDirsRaw = opts?.config?.skills?.load?.extraDirs ?? [];
   const extraDirs = extraDirsRaw
     .map((d) => (typeof d === "string" ? d.trim() : ""))
-    .filter(Boolean);
+    .filter(Boolean)
+    .map((dir) => resolveUserPath(dir));
   const pluginSkillDirs = resolvePluginSkillDirs({
-    workspaceDir,
+    workspaceDir: resolvedWorkspaceDir,
     config: opts?.config,
+  }).map((dir) => resolveUserPath(dir));
+  const cacheKey = buildWorkspaceSkillEntriesCacheKey({
+    workspaceDir: resolvedWorkspaceDir,
+    managedSkillsDir,
+    bundledSkillsDir,
+    extraDirs,
+    pluginSkillDirs,
   });
-  const mergedExtraDirs = [...extraDirs];
+  const cached = workspaceSkillEntriesCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
 
-  const bundledSkills = bundledSkillsDir
-    ? loadSkills({
+  const sources: LoadedSkillSource[] = [];
+  for (const dir of extraDirs) {
+    sources.push(
+      loadSkillSource({
+        dir,
+        source: "openclaw-extra",
+        sourceLayer: "extra",
+        sourceLabel: "extra",
+      }),
+    );
+  }
+  for (const dir of pluginSkillDirs) {
+    sources.push(
+      loadSkillSource({
+        dir,
+        source: "openclaw-plugin",
+        sourceLayer: "plugin",
+        sourceLabel: "plugin",
+      }),
+    );
+  }
+  if (bundledSkillsDir) {
+    sources.push(
+      loadSkillSource({
         dir: bundledSkillsDir,
         source: "openclaw-bundled",
-      })
-    : [];
-  const extraSkills = mergedExtraDirs.flatMap((dir) => {
-    const resolved = resolveUserPath(dir);
-    return loadSkills({
-      dir: resolved,
-      source: "openclaw-extra",
-    });
-  });
-  const pluginSkills = pluginSkillDirs.flatMap((dir) => {
-    const resolved = resolveUserPath(dir);
-    return loadSkills({
-      dir: resolved,
-      source: "openclaw-plugin",
-    });
-  });
-  const managedSkills = loadSkills({
-    dir: managedSkillsDir,
-    source: "openclaw-managed",
-  });
-  const workspaceSkills = loadSkills({
-    dir: workspaceSkillsDir,
-    source: "openclaw-workspace",
-  });
+        sourceLayer: "bundled",
+        sourceLabel: "bundled",
+      }),
+    );
+  }
+  sources.push(
+    loadSkillSource({
+      dir: managedSkillsDir,
+      source: "openclaw-managed",
+      sourceLayer: "managed",
+      sourceLabel: "managed",
+    }),
+  );
+  sources.push(
+    loadSkillSource({
+      dir: workspaceSkillsDir,
+      source: "openclaw-workspace",
+      sourceLayer: "workspace",
+      sourceLabel: "workspace",
+    }),
+  );
 
-  const merged = new Map<string, Skill>();
-  // Precedence: extra < plugin < bundled < managed < workspace
-  for (const skill of extraSkills) {
-    merged.set(skill.name, skill);
-  }
-  for (const skill of pluginSkills) {
-    merged.set(skill.name, skill);
-  }
-  for (const skill of bundledSkills) {
-    merged.set(skill.name, skill);
-  }
-  for (const skill of managedSkills) {
-    merged.set(skill.name, skill);
-  }
-  for (const skill of workspaceSkills) {
-    merged.set(skill.name, skill);
+  for (const source of sources) {
+    logSkillLoaderDiagnostics(
+      source.sourceLabel,
+      source.diagnostics,
+      source.recoveredDiagnosticPaths,
+    );
   }
 
-  const skillEntries: SkillEntry[] = Array.from(merged.values()).map((skill) => {
-    let frontmatter: ParsedSkillFrontmatter = {};
-    try {
-      const raw = fs.readFileSync(skill.filePath, "utf-8");
-      frontmatter = parseFrontmatter(raw);
-    } catch {
-      // ignore malformed skills
+  const uniqueByCanonicalPath = new Map<string, { skill: Skill; sourceLabel: string }>();
+  for (const source of sources) {
+    for (const skill of source.skills) {
+      const canonicalFilePath = resolveCanonicalSkillFilePath(skill.filePath);
+      uniqueByCanonicalPath.set(canonicalFilePath, { skill, sourceLabel: source.sourceLabel });
     }
-    return {
-      skill,
-      frontmatter,
-      metadata: resolveOpenClawMetadata(frontmatter),
-      invocation: resolveSkillInvocationPolicy(frontmatter),
-    };
-  });
+  }
+
+  const merged = new Map<string, { skill: Skill; sourceLabel: string }>();
+  for (const { skill, sourceLabel } of uniqueByCanonicalPath.values()) {
+    const existing = merged.get(skill.name);
+    if (existing) {
+      skillsLogger.warn("skill name collision across sources; applying precedence", {
+        skillName: skill.name,
+        winnerSource: sourceLabel,
+        winnerPath: skill.filePath,
+        loserSource: existing.sourceLabel,
+        loserPath: existing.skill.filePath,
+      });
+    }
+    merged.set(skill.name, { skill, sourceLabel });
+  }
+
+  const skillEntries = Array.from(merged.values()).map((entry) => toSkillEntry(entry.skill));
+  workspaceSkillEntriesCache.set(cacheKey, skillEntries);
   return skillEntries;
 }
 
@@ -211,6 +501,7 @@ export function buildWorkspaceSkillSnapshot(
   const skillEntries = opts?.entries ?? loadSkillEntries(workspaceDir, opts);
   const eligible = filterSkillEntries(
     skillEntries,
+    workspaceDir,
     opts?.config,
     opts?.skillFilter,
     opts?.eligibility,
@@ -252,6 +543,7 @@ export function buildWorkspaceSkillsPrompt(
   const skillEntries = opts?.entries ?? loadSkillEntries(workspaceDir, opts);
   const eligible = filterSkillEntries(
     skillEntries,
+    workspaceDir,
     opts?.config,
     opts?.skillFilter,
     opts?.eligibility,
@@ -332,14 +624,17 @@ export async function syncSkillsToWorkspace(params: {
         console.warn(`[skills] Failed to copy ${entry.skill.name} to sandbox: ${message}`);
       }
     }
+
+    clearWorkspaceSkillCaches();
   });
 }
 
 export function filterWorkspaceSkillEntries(
   entries: SkillEntry[],
   config?: OpenClawConfig,
+  workspaceDir = process.cwd(),
 ): SkillEntry[] {
-  return filterSkillEntries(entries, config);
+  return filterSkillEntries(entries, workspaceDir, config);
 }
 
 export function buildWorkspaceSkillCommandSpecs(
@@ -357,17 +652,19 @@ export function buildWorkspaceSkillCommandSpecs(
   const skillEntries = opts?.entries ?? loadSkillEntries(workspaceDir, opts);
   const eligible = filterSkillEntries(
     skillEntries,
+    workspaceDir,
     opts?.config,
     opts?.skillFilter,
     opts?.eligibility,
   );
   const userInvocable = eligible.filter((entry) => entry.invocation?.userInvocable !== false);
-  const used = new Set<string>();
-  for (const reserved of opts?.reservedNames ?? []) {
-    used.add(reserved.toLowerCase());
+  const reserved = new Set<string>();
+  for (const entry of opts?.reservedNames ?? []) {
+    reserved.add(entry.toLowerCase());
   }
 
   const specs: SkillCommandSpec[] = [];
+  const usedPrimaryNames = new Set<string>(reserved);
   for (const entry of userInvocable) {
     const rawName = entry.skill.name;
     const base = sanitizeSkillCommandName(rawName);
@@ -378,7 +675,7 @@ export function buildWorkspaceSkillCommandSpecs(
         { rawName, sanitized: `/${base}` },
       );
     }
-    const unique = resolveUniqueSkillCommandName(base, used);
+    const unique = resolveUniqueSkillCommandName(base, usedPrimaryNames);
     if (unique !== base) {
       debugSkillCommandOnce(
         `dedupe:${rawName}:${unique}`,
@@ -386,7 +683,7 @@ export function buildWorkspaceSkillCommandSpecs(
         { rawName, deduped: `/${unique}` },
       );
     }
-    used.add(unique.toLowerCase());
+    usedPrimaryNames.add(unique.toLowerCase());
     const rawDescription = entry.skill.description?.trim() || rawName;
     const description =
       rawDescription.length > SKILL_COMMAND_DESCRIPTION_MAX_LENGTH
@@ -446,6 +743,28 @@ export function buildWorkspaceSkillCommandSpecs(
       description,
       ...(dispatch ? { dispatch } : {}),
     });
+  }
+
+  const usedAliases = new Set<string>(usedPrimaryNames);
+  for (const spec of specs) {
+    const entry = userInvocable.find((candidate) => candidate.skill.name === spec.skillName);
+    const rawAliases = entry?.definition?.aliases ?? [];
+    const aliases: string[] = [];
+    for (const rawAlias of rawAliases) {
+      const sanitizedAlias = sanitizeSkillCommandName(rawAlias);
+      if (!sanitizedAlias) {
+        continue;
+      }
+      const aliasKey = sanitizedAlias.toLowerCase();
+      if (usedAliases.has(aliasKey)) {
+        continue;
+      }
+      usedAliases.add(aliasKey);
+      aliases.push(sanitizedAlias);
+    }
+    if (aliases.length > 0) {
+      spec.aliases = aliases;
+    }
   }
   return specs;
 }

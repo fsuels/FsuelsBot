@@ -37,6 +37,21 @@ export type SkillInvocationPolicy = {
   disableModelInvocation: boolean;
 };
 
+export type SkillExecutionContextMode = "inline" | "fork";
+
+export type SkillDefinitionMetadata = {
+  aliases?: string[];
+  whenToUse?: string;
+  argumentHint?: string;
+  arguments?: string[];
+  allowedTools?: string[];
+  model?: string;
+  effort?: string;
+  context?: SkillExecutionContextMode;
+  agent?: string;
+  pathFilters?: string[];
+};
+
 export type SkillCommandDispatchSpec = {
   kind: "tool";
   /** Name of the tool to invoke (AnyAgentTool.name). */
@@ -52,6 +67,7 @@ export type SkillCommandSpec = {
   name: string;
   skillName: string;
   description: string;
+  aliases?: string[];
   /** Optional deterministic dispatch behavior for this command. */
   dispatch?: SkillCommandDispatchSpec;
 };
@@ -68,6 +84,8 @@ export type SkillEntry = {
   frontmatter: ParsedSkillFrontmatter;
   metadata?: OpenClawSkillMetadata;
   invocation?: SkillInvocationPolicy;
+  definition?: SkillDefinitionMetadata;
+  canonicalFilePath?: string;
 };
 
 export type SkillEligibilityContext = {
@@ -77,6 +95,7 @@ export type SkillEligibilityContext = {
     hasAnyBin: (bins: string[]) => boolean;
     note?: string;
   };
+  activationPaths?: string[];
 };
 
 export type SkillSnapshot = {

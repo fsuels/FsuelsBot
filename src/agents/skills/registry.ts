@@ -189,13 +189,11 @@ export function buildDiscoverableSkills(entries: SkillEntry[]): DiscoverableSkil
     .filter((entry) => entry.invocation?.disableModelInvocation !== true)
     .map((entry) => {
       const sourceCategory = resolveSkillSourceCategory(entry.skill.source);
-      const whenToUse =
-        entry.frontmatter["when-to-use"]?.trim() || entry.frontmatter["when_to_use"]?.trim();
       return {
         entry,
         name: entry.skill.name,
         description: entry.skill.description?.trim() ?? "",
-        whenToUse: whenToUse || undefined,
+        whenToUse: entry.definition?.whenToUse,
         sourceCategory,
         promptPriority: categoryPriority(sourceCategory),
       };

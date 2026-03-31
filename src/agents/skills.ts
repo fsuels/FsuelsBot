@@ -16,12 +16,14 @@ export {
 } from "./skills/env-overrides.js";
 export type {
   DiscoverableSkill,
+  SkillDefinitionMetadata,
   OpenClawSkillMetadata,
   SkillPromptMetrics,
   SkillEligibilityContext,
   SkillCommandSpec,
   SkillEntry,
   SkillInstallSpec,
+  SkillExecutionContextMode,
   SkillSnapshot,
   SkillsPromptTruncationMode,
   SkillsInstallPreferences,
@@ -54,6 +56,7 @@ export {
   buildWorkspaceSkillSnapshot,
   buildWorkspaceSkillsPrompt,
   buildWorkspaceSkillCommandSpecs,
+  clearWorkspaceSkillCaches,
   filterWorkspaceSkillEntries,
   loadWorkspaceSkillEntries,
   resolveSkillsPromptForRun,

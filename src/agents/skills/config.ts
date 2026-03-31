@@ -75,6 +75,93 @@ function normalizeAllowlist(input: unknown): string[] | undefined {
   return normalized.length > 0 ? normalized : undefined;
 }
 
+function normalizePosixPath(value: string): string {
+  return value
+    .replaceAll("\\", "/")
+    .replace(/^\.\/+/, "")
+    .replace(/^\/+/, "");
+}
+
+function normalizeActivationPath(value: string, workspaceDir?: string): string | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  const normalizedWorkspace = workspaceDir?.trim() ? path.resolve(workspaceDir) : undefined;
+  const absolute = path.isAbsolute(trimmed)
+    ? path.resolve(trimmed)
+    : normalizedWorkspace
+      ? path.resolve(normalizedWorkspace, trimmed)
+      : undefined;
+  if (absolute && normalizedWorkspace) {
+    const relative = path.relative(normalizedWorkspace, absolute);
+    if (relative && !relative.startsWith("..") && !path.isAbsolute(relative)) {
+      return normalizePosixPath(relative);
+    }
+  }
+  return normalizePosixPath(trimmed);
+}
+
+function buildGlobCandidates(pattern: string): string[] {
+  const normalizedRaw = normalizePosixPath(pattern.trim());
+  const isDirectoryPattern = normalizedRaw.endsWith("/");
+  const normalized = normalizedRaw.replace(/\/+$/, "");
+  if (!normalized) {
+    return [];
+  }
+  const base = isDirectoryPattern ? `${normalized}/**` : normalized;
+  if (!base.includes("/")) {
+    return [base, `**/${base}`];
+  }
+  return [base];
+}
+
+function matchesActivationPattern(filePath: string, rawPattern: string): boolean {
+  const pattern = rawPattern.trim();
+  if (!pattern) {
+    return false;
+  }
+  const normalizedPattern = normalizePosixPath(pattern.replace(/^!/, ""));
+  return buildGlobCandidates(normalizedPattern).some((candidate) =>
+    path.posix.matchesGlob(filePath, candidate),
+  );
+}
+
+function matchesSkillPathFilters(params: {
+  entry: SkillEntry;
+  activationPaths?: string[];
+  workspaceDir?: string;
+}): boolean {
+  const pathFilters = params.entry.definition?.pathFilters ?? [];
+  if (pathFilters.length === 0) {
+    return true;
+  }
+  const activationPaths = (params.activationPaths ?? [])
+    .map((value) => normalizeActivationPath(value, params.workspaceDir))
+    .filter((value): value is string => Boolean(value));
+  if (activationPaths.length === 0) {
+    return true;
+  }
+
+  for (const activationPath of activationPaths) {
+    let matched = false;
+    for (const rawPattern of pathFilters) {
+      const trimmedPattern = rawPattern.trim();
+      if (!trimmedPattern) {
+        continue;
+      }
+      if (!matchesActivationPattern(activationPath, trimmedPattern)) {
+        continue;
+      }
+      matched = !trimmedPattern.startsWith("!");
+    }
+    if (matched) {
+      return true;
+    }
+  }
+  return false;
+}
+
 const BUNDLED_SOURCES = new Set(["openclaw-bundled"]);
 
 function isBundledSkill(entry: SkillEntry): boolean {
@@ -115,6 +202,7 @@ export function shouldIncludeSkill(params: {
   entry: SkillEntry;
   config?: OpenClawConfig;
   eligibility?: SkillEligibilityContext;
+  workspaceDir?: string;
 }): boolean {
   const { entry, config, eligibility } = params;
   const skillKey = resolveSkillKey(entry.skill, entry);
@@ -133,6 +221,15 @@ export function shouldIncludeSkill(params: {
     osList.length > 0 &&
     !osList.includes(resolveRuntimePlatform()) &&
     !remotePlatforms.some((platform) => osList.includes(platform))
+  ) {
+    return false;
+  }
+  if (
+    !matchesSkillPathFilters({
+      entry,
+      activationPaths: eligibility?.activationPaths,
+      workspaceDir: params.workspaceDir,
+    })
   ) {
     return false;
   }

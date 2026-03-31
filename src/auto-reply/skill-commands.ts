@@ -63,6 +63,9 @@ export function listSkillCommandsForAgents(params: {
     });
     for (const command of commands) {
       used.add(command.name.toLowerCase());
+      for (const alias of command.aliases ?? []) {
+        used.add(alias.toLowerCase());
+      }
       entries.push(command);
     }
   }
@@ -93,9 +96,13 @@ function findSkillCommand(
     if (entry.skillName.toLowerCase() === lowered) {
       return true;
     }
+    if ((entry.aliases ?? []).some((alias) => alias.toLowerCase() === lowered)) {
+      return true;
+    }
     return (
       normalizeSkillCommandLookup(entry.name) === normalized ||
-      normalizeSkillCommandLookup(entry.skillName) === normalized
+      normalizeSkillCommandLookup(entry.skillName) === normalized ||
+      (entry.aliases ?? []).some((alias) => normalizeSkillCommandLookup(alias) === normalized)
     );
   });
 }
@@ -132,7 +139,12 @@ export function resolveSkillCommandInvocation(params: {
     const args = skillMatch[2]?.trim();
     return { command: skillCommand, args: args || undefined };
   }
-  const command = params.skillCommands.find((entry) => entry.name.toLowerCase() === commandName);
+  const command = params.skillCommands.find((entry) => {
+    if (entry.name.toLowerCase() === commandName) {
+      return true;
+    }
+    return (entry.aliases ?? []).some((alias) => alias.toLowerCase() === commandName);
+  });
   if (!command) {
     return null;
   }

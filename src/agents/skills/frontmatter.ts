@@ -1,9 +1,11 @@
 import type { Skill } from "@mariozechner/pi-coding-agent";
 import JSON5 from "json5";
 import type {
+  SkillDefinitionMetadata,
   OpenClawSkillMetadata,
   ParsedSkillFrontmatter,
   SkillEntry,
+  SkillExecutionContextMode,
   SkillInstallSpec,
   SkillInvocationPolicy,
 } from "./types.js";
@@ -15,6 +17,18 @@ export function parseFrontmatter(content: string): ParsedSkillFrontmatter {
   return parseFrontmatterBlock(content);
 }
 
+export function stripFrontmatter(content: string): string {
+  const normalized = content.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  if (!normalized.startsWith("---")) {
+    return normalized;
+  }
+  const endIndex = normalized.indexOf("\n---", 3);
+  if (endIndex === -1) {
+    return normalized;
+  }
+  return normalized.slice(endIndex + "\n---".length).replace(/^\s+/, "");
+}
+
 function normalizeStringList(input: unknown): string[] {
   if (!input) {
     return [];
@@ -23,8 +37,22 @@ function normalizeStringList(input: unknown): string[] {
     return input.map((value) => String(value).trim()).filter(Boolean);
   }
   if (typeof input === "string") {
-    return input
-      .split(",")
+    const trimmed = input.trim();
+    if (!trimmed) {
+      return [];
+    }
+    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+      try {
+        const parsed = JSON5.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed.map((value) => String(value).trim()).filter(Boolean);
+        }
+      } catch {
+        // Fall through to comma/newline splitting.
+      }
+    }
+    return trimmed
+      .split(/[\n,]/)
       .map((value) => value.trim())
       .filter(Boolean);
   }
@@ -94,9 +122,30 @@ function getFrontmatterValue(frontmatter: ParsedSkillFrontmatter, key: string): 
   return typeof raw === "string" ? raw : undefined;
 }
 
+function getFirstFrontmatterValue(
+  frontmatter: ParsedSkillFrontmatter,
+  keys: string[],
+): string | undefined {
+  for (const key of keys) {
+    const value = getFrontmatterValue(frontmatter, key)?.trim();
+    if (value) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
 function parseFrontmatterBool(value: string | undefined, fallback: boolean): boolean {
   const parsed = parseBooleanValue(value);
   return parsed === undefined ? fallback : parsed;
+}
+
+function normalizeContextMode(value: string | undefined): SkillExecutionContextMode | undefined {
+  const normalized = value?.trim().toLowerCase();
+  if (normalized === "inline" || normalized === "fork") {
+    return normalized;
+  }
+  return undefined;
 }
 
 export function resolveOpenClawMetadata(
@@ -164,6 +213,64 @@ export function resolveSkillInvocationPolicy(
       getFrontmatterValue(frontmatter, "disable-model-invocation"),
       false,
     ),
+  };
+}
+
+export function resolveSkillDefinitionMetadata(
+  frontmatter: ParsedSkillFrontmatter,
+): SkillDefinitionMetadata | undefined {
+  const aliases = normalizeStringList(frontmatter.aliases ?? frontmatter.alias);
+  const whenToUse = getFirstFrontmatterValue(frontmatter, ["when-to-use", "when_to_use"]);
+  const argumentHint = getFirstFrontmatterValue(frontmatter, ["argument-hint", "argument_hint"]);
+  const argumentsList = normalizeStringList(frontmatter.arguments);
+  const allowedTools = normalizeStringList(
+    frontmatter["allowed-tools"] ?? frontmatter.allowed_tools,
+  );
+  const model = getFirstFrontmatterValue(frontmatter, [
+    "model",
+    "model-override",
+    "model_override",
+  ]);
+  const effort = getFirstFrontmatterValue(frontmatter, [
+    "effort",
+    "reasoning-effort",
+    "reasoning_effort",
+  ]);
+  const context = normalizeContextMode(getFirstFrontmatterValue(frontmatter, ["context"]));
+  const agent = getFirstFrontmatterValue(frontmatter, ["agent"]);
+  const pathFilters = normalizeStringList(
+    frontmatter.paths ??
+      frontmatter.path ??
+      frontmatter["path-filters"] ??
+      frontmatter.path_filters,
+  );
+
+  if (
+    aliases.length === 0 &&
+    !whenToUse &&
+    !argumentHint &&
+    argumentsList.length === 0 &&
+    allowedTools.length === 0 &&
+    !model &&
+    !effort &&
+    !context &&
+    !agent &&
+    pathFilters.length === 0
+  ) {
+    return undefined;
+  }
+
+  return {
+    ...(aliases.length > 0 ? { aliases } : {}),
+    ...(whenToUse ? { whenToUse } : {}),
+    ...(argumentHint ? { argumentHint } : {}),
+    ...(argumentsList.length > 0 ? { arguments: argumentsList } : {}),
+    ...(allowedTools.length > 0 ? { allowedTools } : {}),
+    ...(model ? { model } : {}),
+    ...(effort ? { effort } : {}),
+    ...(context ? { context } : {}),
+    ...(agent ? { agent } : {}),
+    ...(pathFilters.length > 0 ? { pathFilters } : {}),
   };
 }
 

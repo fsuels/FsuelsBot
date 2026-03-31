@@ -60,6 +60,30 @@ describe("resolveSkillCommandInvocation", () => {
     expect(invocation).toBeNull();
   });
 
+  it("matches aliases for direct slash commands and /skill lookups", () => {
+    const skillCommands = [
+      {
+        name: "docs_skill",
+        skillName: "docs-skill",
+        description: "Docs",
+        aliases: ["docs", "reference"],
+      },
+    ];
+
+    expect(
+      resolveSkillCommandInvocation({
+        commandBodyNormalized: "/docs api auth",
+        skillCommands,
+      })?.command.skillName,
+    ).toBe("docs-skill");
+    expect(
+      resolveSkillCommandInvocation({
+        commandBodyNormalized: "/skill reference api auth",
+        skillCommands,
+      })?.command.skillName,
+    ).toBe("docs-skill");
+  });
+
   it("parses explicit /skill requests even before command resolution", () => {
     expect(parseExplicitSkillCommandReference("/skill demo_skill do the thing")).toEqual({
       requestedName: "demo_skill",

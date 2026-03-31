@@ -129,6 +129,59 @@ describe("buildWorkspaceSkillCommandSpecs", () => {
     const cmd = commands.find((entry) => entry.skillName === "tool-dispatch");
     expect(cmd?.dispatch).toEqual({ kind: "tool", toolName: "sessions_send", argMode: "raw" });
   });
+
+  it("exposes non-conflicting aliases for direct slash matching", async () => {
+    const workspaceDir = await makeWorkspace();
+    await writeSkill({
+      dir: path.join(workspaceDir, "skills", "docs-skill"),
+      name: "docs-skill",
+      description: "Docs helper",
+      frontmatterExtra: 'aliases: ["docs", "reference"]',
+    });
+
+    const commands = buildWorkspaceSkillCommandSpecs(workspaceDir, {
+      managedSkillsDir: path.join(workspaceDir, ".managed"),
+      bundledSkillsDir: path.join(workspaceDir, ".bundled"),
+      reservedNames: new Set(["reference"]),
+    });
+
+    expect(commands).toHaveLength(1);
+    expect(commands[0]?.aliases).toEqual(["docs"]);
+  });
+
+  it("filters path-scoped skills from generated commands when activation paths are provided", async () => {
+    const workspaceDir = await makeWorkspace();
+    await writeSkill({
+      dir: path.join(workspaceDir, "skills", "docs-only"),
+      name: "docs-only",
+      description: "Docs helper",
+      frontmatterExtra: 'paths: ["docs/**/*.md"]',
+    });
+
+    const defaultCommands = buildWorkspaceSkillCommandSpecs(workspaceDir, {
+      managedSkillsDir: path.join(workspaceDir, ".managed"),
+      bundledSkillsDir: path.join(workspaceDir, ".bundled"),
+    });
+    expect(defaultCommands.map((entry) => entry.skillName)).toEqual(["docs-only"]);
+
+    const hidden = buildWorkspaceSkillCommandSpecs(workspaceDir, {
+      managedSkillsDir: path.join(workspaceDir, ".managed"),
+      bundledSkillsDir: path.join(workspaceDir, ".bundled"),
+      eligibility: {
+        activationPaths: ["src/app.ts"],
+      },
+    });
+    expect(hidden).toEqual([]);
+
+    const active = buildWorkspaceSkillCommandSpecs(workspaceDir, {
+      managedSkillsDir: path.join(workspaceDir, ".managed"),
+      bundledSkillsDir: path.join(workspaceDir, ".bundled"),
+      eligibility: {
+        activationPaths: ["docs/getting-started.md"],
+      },
+    });
+    expect(active.map((entry) => entry.skillName)).toEqual(["docs-only"]);
+  });
 });
 
 describe("buildWorkspaceSkillsPrompt", () => {

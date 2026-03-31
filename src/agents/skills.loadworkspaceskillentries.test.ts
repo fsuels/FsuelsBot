@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { loadWorkspaceSkillEntries } from "./skills.js";
 
 async function _writeSkill(params: {
@@ -116,5 +116,172 @@ describe("loadWorkspaceSkillEntries", () => {
     });
 
     expect(entries.map((entry) => entry.skill.name)).not.toContain("prose");
+  });
+
+  it("uses resolved plugin precedence when bundled and workspace plugins share an id", async () => {
+    const previousBundledDir = process.env.OPENCLAW_BUNDLED_PLUGINS_DIR;
+    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-"));
+    const managedDir = path.join(workspaceDir, ".managed");
+    const bundledDir = path.join(workspaceDir, ".bundled-plugins");
+    const bundledPluginRoot = path.join(bundledDir, "open-prose");
+    const workspacePluginRoot = path.join(workspaceDir, ".openclaw", "extensions", "open-prose");
+
+    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = bundledDir;
+    try {
+      await fs.mkdir(path.join(bundledPluginRoot, "skills", "bundled"), { recursive: true });
+      await fs.writeFile(
+        path.join(bundledPluginRoot, "openclaw.plugin.json"),
+        JSON.stringify(
+          {
+            id: "open-prose",
+            skills: ["./skills"],
+            configSchema: { type: "object", additionalProperties: false, properties: {} },
+          },
+          null,
+          2,
+        ),
+        "utf-8",
+      );
+      await fs.writeFile(
+        path.join(bundledPluginRoot, "index.js"),
+        `export default { id: "open-prose", register() {} };`,
+        "utf-8",
+      );
+      await fs.writeFile(
+        path.join(bundledPluginRoot, "skills", "bundled", "SKILL.md"),
+        `---\nname: bundled-prose\ndescription: bundled\n---\n`,
+        "utf-8",
+      );
+
+      await fs.mkdir(path.join(workspacePluginRoot, "skills", "workspace"), { recursive: true });
+      await fs.writeFile(
+        path.join(workspacePluginRoot, "openclaw.plugin.json"),
+        JSON.stringify(
+          {
+            id: "open-prose",
+            skills: ["./skills"],
+            configSchema: { type: "object", additionalProperties: false, properties: {} },
+          },
+          null,
+          2,
+        ),
+        "utf-8",
+      );
+      await fs.writeFile(
+        path.join(workspacePluginRoot, "index.js"),
+        `export default { id: "open-prose", register() {} };`,
+        "utf-8",
+      );
+      await fs.writeFile(
+        path.join(workspacePluginRoot, "skills", "workspace", "SKILL.md"),
+        `---\nname: workspace-prose\ndescription: workspace\n---\n`,
+        "utf-8",
+      );
+
+      const entries = loadWorkspaceSkillEntries(workspaceDir, {
+        config: {
+          plugins: {
+            entries: { "open-prose": { enabled: true } },
+          },
+        },
+        managedSkillsDir: managedDir,
+        bundledSkillsDir: path.join(workspaceDir, ".bundled-skills"),
+      });
+
+      expect(entries.map((entry) => entry.skill.name)).toContain("workspace-prose");
+      expect(entries.map((entry) => entry.skill.name)).not.toContain("bundled-prose");
+    } finally {
+      if (previousBundledDir === undefined) {
+        delete process.env.OPENCLAW_BUNDLED_PLUGINS_DIR;
+      } else {
+        process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = previousBundledDir;
+      }
+    }
+  });
+
+  it("excludes plugin-shipped skills when the plugin is unavailable", async () => {
+    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-"));
+    const managedDir = path.join(workspaceDir, ".managed");
+    const bundledDir = path.join(workspaceDir, ".bundled");
+    const pluginRoot = path.join(workspaceDir, ".openclaw", "extensions", "open-prose");
+
+    await fs.mkdir(path.join(pluginRoot, "skills", "prose"), { recursive: true });
+    await fs.writeFile(
+      path.join(pluginRoot, "openclaw.plugin.json"),
+      JSON.stringify(
+        {
+          id: "open-prose",
+          skills: ["./skills"],
+          configSchema: { type: "object", additionalProperties: false, properties: {} },
+        },
+        null,
+        2,
+      ),
+      "utf-8",
+    );
+    await fs.writeFile(
+      path.join(pluginRoot, "index.js"),
+      `export default {
+  id: "open-prose",
+  isAvailable() {
+    return { available: false, reason: "missing Feishu app credentials" };
+  },
+  register() {}
+};`,
+      "utf-8",
+    );
+    await fs.writeFile(
+      path.join(pluginRoot, "skills", "prose", "SKILL.md"),
+      `---\nname: prose\ndescription: test\n---\n`,
+      "utf-8",
+    );
+
+    const entries = loadWorkspaceSkillEntries(workspaceDir, {
+      config: {
+        plugins: {
+          entries: { "open-prose": { enabled: true } },
+        },
+      },
+      managedSkillsDir: managedDir,
+      bundledSkillsDir: bundledDir,
+    });
+
+    expect(entries.map((entry) => entry.skill.name)).not.toContain("prose");
+  });
+
+  it("deduplicates the same skill file when discovered through multiple directories", async () => {
+    const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-"));
+    const managedDir = path.join(workspaceDir, ".managed");
+    const bundledDir = path.join(workspaceDir, ".bundled");
+    const extraDir = path.join(workspaceDir, ".extra");
+    const workspaceSkillDir = path.join(workspaceDir, "skills", "demo-skill");
+
+    await _writeSkill({
+      dir: workspaceSkillDir,
+      name: "demo-skill",
+      description: "Demo skill",
+    });
+    await fs.mkdir(extraDir, { recursive: true });
+    await fs.symlink(workspaceSkillDir, path.join(extraDir, "demo-skill"));
+
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const entries = loadWorkspaceSkillEntries(workspaceDir, {
+        config: { skills: { load: { extraDirs: [extraDir] } } },
+        managedSkillsDir: managedDir,
+        bundledSkillsDir: bundledDir,
+      });
+
+      expect(entries.map((entry) => entry.skill.name)).toEqual(["demo-skill"]);
+      const collisionWarnings = warnSpy.mock.calls.filter((call) =>
+        call
+          .map((value) => String(value))
+          .join(" ")
+          .includes("skill name collision across sources"),
+      );
+      expect(collisionWarnings).toHaveLength(0);
+    } finally {
+      warnSpy.mockRestore();
+    }
   });
 });

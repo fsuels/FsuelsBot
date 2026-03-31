@@ -11,6 +11,17 @@ const SAFE_FRONTMATTER_KEYS = new Set([
   "homepage",
   "author",
   "version",
+  "alias",
+  "aliases",
+  "argument-hint",
+  "argument_hint",
+  "arguments",
+  "allowed-tools",
+  "allowed_tools",
+  "path",
+  "paths",
+  "path-filters",
+  "path_filters",
   "triggers",
   "metadata",
   "user-invocable",
@@ -91,6 +102,22 @@ function normalizeSkillLookup(value: string): string {
   return normalizeRequestedSkillName(value)
     .toLowerCase()
     .replace(/[\s_]+/g, "-");
+}
+
+function matchesSkillLookup(candidate: string | undefined, requestedName: string): boolean {
+  if (!candidate) {
+    return false;
+  }
+  return normalizeSkillLookup(candidate) === normalizeSkillLookup(requestedName);
+}
+
+function matchesSkillEntry(entry: SkillEntry, requestedName: string): boolean {
+  if (entry.skill.name === requestedName || matchesSkillLookup(entry.skill.name, requestedName)) {
+    return true;
+  }
+  return (entry.definition?.aliases ?? []).some((alias) =>
+    matchesSkillLookup(alias, requestedName),
+  );
 }
 
 function matchesSkillPattern(skillName: string, pattern: string): boolean {
@@ -302,10 +329,7 @@ export async function routeExplicitSkillInvocation(params: {
     config: params.config,
   });
   const entry = entries.find((candidate) => {
-    if (candidate.skill.name === requestedName) {
-      return true;
-    }
-    return normalizeSkillLookup(candidate.skill.name) === normalizeSkillLookup(requestedName);
+    return matchesSkillEntry(candidate, requestedName);
   });
   if (!entry) {
     return {
@@ -315,6 +339,30 @@ export async function routeExplicitSkillInvocation(params: {
     };
   }
   const canonicalName = entry.skill.name;
+  const canonicalExisting =
+    existing ??
+    params.state.invocations.get(canonicalName) ??
+    [...params.state.invocations.values()].find((candidate) =>
+      matchesSkillLookup(candidate.skillName, canonicalName),
+    );
+  if (canonicalExisting?.lifecycle === "running") {
+    return {
+      ok: false,
+      code: "already_running",
+      message: `Skill "${canonicalExisting.skillName}" is already running in this turn.`,
+    };
+  }
+  if (
+    (canonicalExisting?.lifecycle === "loaded" || canonicalExisting?.lifecycle === "completed") &&
+    canonicalExisting.loadedPrompt
+  ) {
+    return {
+      ok: true,
+      record: canonicalExisting,
+      reused: true,
+      permission: { behavior: "allow", matchedRule: "already_loaded" },
+    };
+  }
   if (entry.invocation?.userInvocable === false) {
     return {
       ok: false,
@@ -344,7 +392,7 @@ export async function routeExplicitSkillInvocation(params: {
   }
 
   const rawSkill = await fs.readFile(entry.skill.filePath, "utf-8");
-  const recordId = existing?.id ?? nowId();
+  const recordId = canonicalExisting?.id ?? nowId();
   const record: SkillInvocationRecord = {
     id: recordId,
     skillName: canonicalName,
