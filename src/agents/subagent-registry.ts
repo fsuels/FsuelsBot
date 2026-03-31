@@ -276,7 +276,8 @@ function stopSweeper() {
 
 async function sweepSubagentRuns() {
   const now = Date.now();
-  for (const [runId, entry] of [...subagentRuns.entries()]) {
+  const runsToSweep = Array.from(subagentRuns.entries());
+  for (const [runId, entry] of runsToSweep) {
     if (!entry.archiveAtMs || entry.archiveAtMs > now) {
       continue;
     }
