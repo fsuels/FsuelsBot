@@ -439,21 +439,6 @@ function isAllowedByPolicy(name: string, policy?: ToolPolicy) {
   return false;
 }
 
-function matchesList(name: string, list?: string[]) {
-  if (!Array.isArray(list) || list.length === 0) {
-    return false;
-  }
-  const normalized = normalizeToolName(name);
-  const patterns = compilePatterns(list);
-  if (matchesAny(normalized, patterns)) {
-    return true;
-  }
-  if (normalized === "apply_patch" && matchesAny("exec", patterns)) {
-    return true;
-  }
-  return false;
-}
-
 function mergeAllowIntoPolicy(policy: ToolPolicy | undefined, alsoAllow?: string[]) {
   if (!Array.isArray(alsoAllow) || alsoAllow.length === 0) {
     return policy;
