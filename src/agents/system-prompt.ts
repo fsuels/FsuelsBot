@@ -67,6 +67,20 @@ function buildMemorySection(params: {
   return lines;
 }
 
+function buildTaskTrackerSection(params: { isMinimal: boolean; availableTools: Set<string> }) {
+  if (params.isMinimal || !params.availableTools.has("task_tracker")) {
+    return [];
+  }
+  return [
+    "## Task Tracker",
+    "Use `task_tracker` for non-trivial execution work: 3+ distinct steps, multiple deliverables, mid-task scope changes, or when the user explicitly asks for tracking.",
+    "Do not use `task_tracker` for one-step trivial edits, pure Q&A, or single-command answers with immediate output.",
+    "When you use it: keep at most one task `in_progress`, mark work `in_progress` before you start it, mark tasks `completed` immediately after they fully succeed, and use `blocked` with a concrete unblock action when you are stuck.",
+    "Before a final completion summary, call `task_tracker` with `action=get` and make sure the session state is actually `done`. If it is `active` or `blocked`, report that honestly instead of pretending the work is finished.",
+    "",
+  ];
+}
+
 function buildUserIdentitySection(ownerLine: string | undefined, isMinimal: boolean) {
   if (!ownerLine || isMinimal) {
     return [];
@@ -254,6 +268,8 @@ export function buildAgentSystemPrompt(params: {
     sessions_spawn: "Spawn a sub-agent session",
     session_status:
       "Show a /status-equivalent status card (usage + time + Reasoning/Verbose/Elevated); use for model-use questions (📊 session_status); optional per-session model override",
+    task_tracker:
+      "Persist and validate structured multi-step task state for the current session before claiming work is finished",
     image: "Analyze an image with the configured image model",
   };
 
@@ -280,6 +296,7 @@ export function buildAgentSystemPrompt(params: {
     "sessions_history",
     "sessions_send",
     "session_status",
+    "task_tracker",
     "image",
   ];
 
@@ -377,6 +394,10 @@ export function buildAgentSystemPrompt(params: {
     availableTools,
     citationsMode: params.memoryCitationsMode,
   });
+  const taskTrackerSection = buildTaskTrackerSection({
+    isMinimal,
+    availableTools,
+  });
   const docsSection = buildDocsSection({
     docsPath: params.docsPath,
     isMinimal,
@@ -413,6 +434,7 @@ export function buildAgentSystemPrompt(params: {
           "- sessions_history: fetch session history",
           "- sessions_send: send to another session",
           '- session_status: show usage/time/model state and answer "what model are we using?"',
+          "- task_tracker: persist structured task state for multi-step execution work",
         ].join("\n"),
     "TOOLS.md does not control tool availability; it is user guidance for how to use external tools.",
     "If a task is more complex or takes longer, spawn a sub-agent. It will do the work for you and ping you when it's done. You can always check up on it.",
@@ -454,6 +476,7 @@ export function buildAgentSystemPrompt(params: {
     "",
     ...skillsSection,
     ...memorySection,
+    ...taskTrackerSection,
     // TaskClarity removed — upstream memory section handles this now
     // Skip self-update for subagent/none modes
     hasGateway && !isMinimal ? "## OpenClaw Self-Update" : "",

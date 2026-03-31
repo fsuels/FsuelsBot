@@ -92,6 +92,17 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain("memory_search");
   });
 
+  it("includes task tracker rules when the tool is available", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/clawd",
+      toolNames: ["task_tracker"],
+    });
+
+    expect(prompt).toContain("## Task Tracker");
+    expect(prompt).toContain("3+ distinct steps");
+    expect(prompt).toContain("call `task_tracker` with `action=get`");
+  });
+
   it("adds reasoning tag hint when enabled", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/openclaw",

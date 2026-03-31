@@ -25,5 +25,6 @@ describe("tool-policy", () => {
     expect(group).toContain("browser");
     expect(group).toContain("message");
     expect(group).toContain("session_status");
+    expect(group).toContain("task_tracker");
   });
 });
