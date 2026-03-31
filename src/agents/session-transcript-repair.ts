@@ -1,9 +1,8 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
-
-type ToolCallLike = {
-  id: string;
-  name?: string;
-};
+import {
+  extractAssistantToolCallRecords,
+  extractToolResultCorrelationId,
+} from "../utils/tool-call-correlation.js";
 
 const TOOL_CALL_TYPES = new Set(["toolCall", "toolUse", "functionCall"]);
 
@@ -14,34 +13,6 @@ type ToolCallBlock = {
   input?: unknown;
   arguments?: unknown;
 };
-
-function extractToolCallsFromAssistant(
-  msg: Extract<AgentMessage, { role: "assistant" }>,
-): ToolCallLike[] {
-  const content = msg.content;
-  if (!Array.isArray(content)) {
-    return [];
-  }
-
-  const toolCalls: ToolCallLike[] = [];
-  for (const block of content) {
-    if (!block || typeof block !== "object") {
-      continue;
-    }
-    const rec = block as { type?: unknown; id?: unknown; name?: unknown };
-    if (typeof rec.id !== "string" || !rec.id) {
-      continue;
-    }
-
-    if (rec.type === "toolCall" || rec.type === "toolUse" || rec.type === "functionCall") {
-      toolCalls.push({
-        id: rec.id,
-        name: typeof rec.name === "string" ? rec.name : undefined,
-      });
-    }
-  }
-  return toolCalls;
-}
 
 function isToolCallBlock(block: unknown): block is ToolCallBlock {
   if (!block || typeof block !== "object") {
@@ -56,18 +27,6 @@ function hasToolCallInput(block: ToolCallBlock): boolean {
   const hasArguments =
     "arguments" in block ? block.arguments !== undefined && block.arguments !== null : false;
   return hasInput || hasArguments;
-}
-
-function extractToolResultId(msg: Extract<AgentMessage, { role: "toolResult" }>): string | null {
-  const toolCallId = (msg as { toolCallId?: unknown }).toolCallId;
-  if (typeof toolCallId === "string" && toolCallId) {
-    return toolCallId;
-  }
-  const toolUseId = (msg as { toolUseId?: unknown }).toolUseId;
-  if (typeof toolUseId === "string" && toolUseId) {
-    return toolUseId;
-  }
-  return null;
 }
 
 function makeMissingToolResult(params: {
@@ -179,7 +138,7 @@ export function repairToolUseResultPairing(messages: AgentMessage[]): ToolUseRep
   let changed = false;
 
   const pushToolResult = (msg: Extract<AgentMessage, { role: "toolResult" }>) => {
-    const id = extractToolResultId(msg);
+    const id = extractToolResultCorrelationId(msg);
     if (id && seenToolResultIds.has(id)) {
       droppedDuplicateCount += 1;
       changed = true;
@@ -226,7 +185,10 @@ export function repairToolUseResultPairing(messages: AgentMessage[]): ToolUseRep
       continue;
     }
 
-    const toolCalls = extractToolCallsFromAssistant(assistant);
+    const toolCalls = extractAssistantToolCallRecords(assistant).map((record) => ({
+      id: record.toolCallId,
+      name: record.toolName,
+    }));
     if (toolCalls.length === 0) {
       out.push(msg);
       continue;
@@ -252,7 +214,7 @@ export function repairToolUseResultPairing(messages: AgentMessage[]): ToolUseRep
 
       if (nextRole === "toolResult") {
         const toolResult = next as Extract<AgentMessage, { role: "toolResult" }>;
-        const id = extractToolResultId(toolResult);
+        const id = extractToolResultCorrelationId(toolResult);
         if (id && toolCallIds.has(id)) {
           if (seenToolResultIds.has(id)) {
             droppedDuplicateCount += 1;

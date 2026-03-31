@@ -210,10 +210,12 @@ export function createEventHandlers(context: EventHandlerContext) {
         if (!allowToolOutput) {
           return;
         }
+        chatLog.startTool(toolCallId, toolName, data.args);
         chatLog.updateToolResult(toolCallId, data.partialResult, {
           partial: true,
         });
       } else if (phase === "result") {
+        chatLog.startTool(toolCallId, toolName, data.args);
         if (allowToolOutput) {
           chatLog.updateToolResult(toolCallId, data.result, {
             isError: Boolean(data.isError),

@@ -334,6 +334,40 @@ describe("tui-event-handlers: handleAgentEvent", () => {
     );
   });
 
+  it("creates a tool bubble when a result arrives before the start event", () => {
+    const state = makeState({
+      activeChatRunId: "run-123",
+      sessionInfo: { verboseLevel: "full" },
+    });
+    const { chatLog, tui, setActivityStatus } = makeContext(state);
+    const { handleAgentEvent } = createEventHandlers({
+      chatLog,
+      tui,
+      state,
+      setActivityStatus,
+    });
+
+    handleAgentEvent({
+      runId: "run-123",
+      stream: "tool",
+      data: {
+        phase: "result",
+        toolCallId: "tc-late",
+        name: "exec",
+        result: { content: [{ type: "text", text: "ok" }] },
+        isError: false,
+      },
+    });
+
+    expect(chatLog.startTool).toHaveBeenCalledWith("tc-late", "exec", undefined);
+    expect(chatLog.updateToolResult).toHaveBeenCalledWith(
+      "tc-late",
+      { content: [{ type: "text", text: "ok" }] },
+      { isError: false },
+    );
+    expect(tui.requestRender).toHaveBeenCalledTimes(1);
+  });
+
   it("refreshes history after a non-local chat final", () => {
     const state = makeState({ activeChatRunId: null });
     const { chatLog, tui, setActivityStatus, loadHistory, isLocalRunId, forgetLocalRunId } =
