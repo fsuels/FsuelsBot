@@ -113,10 +113,10 @@ describe("sleep registry", () => {
         deliver: false,
       }),
     });
-    expect(
-      (callGatewayMock.mock.calls[0]?.[0] as { params?: { extraSystemPrompt?: string } }).params
-        ?.extraSystemPrompt,
-    ).toContain("requested sleep duration has elapsed");
+    const wakeCall = callGatewayMock.mock.calls[0]?.[0] as {
+      params?: { extraSystemPrompt?: string };
+    };
+    expect(wakeCall?.params?.extraSystemPrompt).toContain("requested sleep duration has elapsed");
     expect(listPendingSleeps()).toHaveLength(0);
   });
 
