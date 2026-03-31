@@ -67,10 +67,13 @@ describe("createOpenClawCodingTools", () => {
 
       // Create tools with explicit workspaceDir
       const tools = createOpenClawCodingTools({ workspaceDir: tmpDir });
+      const readTool = tools.find((tool) => tool.name === "read");
       const editTool = tools.find((tool) => tool.name === "edit");
+      expect(readTool).toBeDefined();
       expect(editTool).toBeDefined();
 
       // Edit using relative path - should resolve against workspaceDir
+      await readTool?.execute("tool-ws-3-read", { path: testFile });
       await editTool?.execute("tool-ws-3", {
         path: testFile,
         oldText: "world",
@@ -119,5 +122,13 @@ describe("createOpenClawCodingTools", () => {
     } finally {
       await fs.rm(tmpDir, { recursive: true, force: true });
     }
+  });
+
+  it("exposes edit operator guidance for read-first transactional retries", () => {
+    const tools = createOpenClawCodingTools();
+    const editTool = tools.find((tool) => tool.name === "edit");
+    expect(editTool?.operatorManual?.()).toContain("Use the smallest clearly unique oldText");
+    expect(editTool?.operatorManual?.()).toContain("replaceAll only for intentional");
+    expect(editTool?.operatorManual?.()).toContain("Do not include line-number prefixes");
   });
 });
