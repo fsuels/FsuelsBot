@@ -4,7 +4,7 @@ import type { AnyAgentTool } from "./common.js";
 import { loadConfig } from "../../config/config.js";
 import { callGateway } from "../../gateway/call.js";
 import { isSubagentSessionKey, resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
-import { jsonResult, readStringArrayParam } from "./common.js";
+import { assertKnownParams, jsonResult, readStringArrayParam } from "./common.js";
 import {
   createAgentToAgentPolicy,
   classifySessionKind,
@@ -16,12 +16,37 @@ import {
   stripToolMessages,
 } from "./sessions-helpers.js";
 
-const SessionsListToolSchema = Type.Object({
-  kinds: Type.Optional(Type.Array(Type.String())),
-  limit: Type.Optional(Type.Number({ minimum: 1 })),
-  activeMinutes: Type.Optional(Type.Number({ minimum: 1 })),
-  messageLimit: Type.Optional(Type.Number({ minimum: 0 })),
-});
+const SessionsListToolSchema = Type.Object(
+  {
+    kinds: Type.Optional(
+      Type.Array(
+        Type.String({
+          description:
+            "Optional kind filter. Supported values: main, group, cron, hook, node, other.",
+        }),
+      ),
+    ),
+    limit: Type.Optional(
+      Type.Number({
+        minimum: 1,
+        description: "Maximum number of sessions to return.",
+      }),
+    ),
+    activeMinutes: Type.Optional(
+      Type.Number({
+        minimum: 1,
+        description: "Only include sessions active within the last N minutes.",
+      }),
+    ),
+    messageLimit: Type.Optional(
+      Type.Number({
+        minimum: 0,
+        description: "Include up to N recent non-tool messages per session.",
+      }),
+    ),
+  },
+  { additionalProperties: false },
+);
 
 function resolveSandboxSessionToolsVisibility(cfg: ReturnType<typeof loadConfig>) {
   return cfg.agents?.defaults?.sandbox?.sessionToolsVisibility ?? "spawned";
@@ -38,6 +63,20 @@ export function createSessionsListTool(opts?: {
     parameters: SessionsListToolSchema,
     execute: async (_toolCallId, args) => {
       const params = args as Record<string, unknown>;
+      try {
+        assertKnownParams(params, ["kinds", "limit", "activeMinutes", "messageLimit"], {
+          label: "sessions_list",
+        });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return jsonResult({
+          ok: false,
+          success: false,
+          status: "error",
+          code: "invalid_input",
+          error: message,
+        });
+      }
       const cfg = loadConfig();
       const { mainKey, alias } = resolveMainSessionAlias(cfg);
       const visibility = resolveSandboxSessionToolsVisibility(cfg);

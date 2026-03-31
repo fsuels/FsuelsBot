@@ -359,6 +359,36 @@ describe("sessions tools", () => {
     });
   });
 
+  it("sessions_history accepts deprecated sessionId parameter names", async () => {
+    callGatewayMock.mockReset();
+    const sessionId = "sess-group-alias";
+    const targetKey = "agent:main:discord:channel:1457165743010611293";
+    callGatewayMock.mockImplementation(async (opts: unknown) => {
+      const request = opts as {
+        method?: string;
+        params?: Record<string, unknown>;
+      };
+      if (request.method === "sessions.resolve") {
+        return { key: targetKey };
+      }
+      if (request.method === "chat.history") {
+        return {
+          messages: [{ role: "assistant", content: [{ type: "text", text: "ok" }] }],
+        };
+      }
+      return {};
+    });
+
+    const tool = createOpenClawTools().find((candidate) => candidate.name === "sessions_history");
+    if (!tool) {
+      throw new Error("missing sessions_history tool");
+    }
+
+    const result = await tool.execute("call5-alias", { sessionId });
+    const details = result.details as { messages?: unknown[] };
+    expect(details.messages).toHaveLength(1);
+  });
+
   it("sessions_history errors on missing sessionId", async () => {
     callGatewayMock.mockReset();
     const sessionId = "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa";
@@ -380,6 +410,24 @@ describe("sessions tools", () => {
     const details = result.details as { status?: string; error?: string };
     expect(details.status).toBe("error");
     expect(details.error).toMatch(/Session not found|No session found/);
+  });
+
+  it("rejects unknown input keys for sessions_history", async () => {
+    callGatewayMock.mockReset();
+    const tool = createOpenClawTools().find((candidate) => candidate.name === "sessions_history");
+    if (!tool) {
+      throw new Error("missing sessions_history tool");
+    }
+
+    const result = await tool.execute("call6-invalid", {
+      sessionKey: "main",
+      bogus: true,
+    });
+    expect(result.details).toMatchObject({
+      ok: false,
+      success: false,
+      code: "invalid_input",
+    });
   });
 
   it("sessions_send supports fire-and-forget and wait", async () => {
@@ -571,6 +619,69 @@ describe("sessions tools", () => {
     expect(agentCall?.[0]).toMatchObject({
       method: "agent",
       params: { sessionKey: targetKey },
+    });
+  });
+
+  it("sessions_send accepts deprecated sessionId parameter names", async () => {
+    callGatewayMock.mockReset();
+    const sessionId = "sess-send-alias";
+    const targetKey = "agent:main:discord:channel:123";
+    callGatewayMock.mockImplementation(async (opts: unknown) => {
+      const request = opts as {
+        method?: string;
+        params?: Record<string, unknown>;
+      };
+      if (request.method === "sessions.resolve") {
+        return { key: targetKey };
+      }
+      if (request.method === "agent") {
+        return { runId: "run-1", acceptedAt: 123 };
+      }
+      if (request.method === "agent.wait") {
+        return { status: "ok" };
+      }
+      if (request.method === "chat.history") {
+        return { messages: [] };
+      }
+      return {};
+    });
+
+    const tool = createOpenClawTools({
+      agentSessionKey: "main",
+      agentChannel: "discord",
+    }).find((candidate) => candidate.name === "sessions_send");
+    if (!tool) {
+      throw new Error("missing sessions_send tool");
+    }
+
+    const result = await tool.execute("call7-alias", {
+      sessionId,
+      message: "ping",
+      timeoutSeconds: 0,
+    });
+    const details = result.details as { status?: string };
+    expect(details.status).toBe("accepted");
+  });
+
+  it("rejects unknown input keys for sessions_send", async () => {
+    callGatewayMock.mockReset();
+    const tool = createOpenClawTools({
+      agentSessionKey: "main",
+      agentChannel: "discord",
+    }).find((candidate) => candidate.name === "sessions_send");
+    if (!tool) {
+      throw new Error("missing sessions_send tool");
+    }
+
+    const result = await tool.execute("call7-invalid", {
+      sessionKey: "main",
+      message: "ping",
+      bogus: true,
+    });
+    expect(result.details).toMatchObject({
+      ok: false,
+      success: false,
+      code: "invalid_input",
     });
   });
 

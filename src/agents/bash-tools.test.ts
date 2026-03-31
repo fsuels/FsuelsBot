@@ -130,6 +130,82 @@ describe("exec tool backgrounding", () => {
     expect(sessions.some((s) => s.sessionId === sessionId)).toBe(true);
   });
 
+  it("supports legacy shell_id for process kill", async () => {
+    const result = await execTool.execute("call-shell-id", {
+      command: longDelayCmd,
+      background: true,
+    });
+    const sessionId = (result.details as { sessionId: string }).sessionId;
+
+    const killed = await processTool.execute("call-shell-id-kill", {
+      action: "kill",
+      shell_id: sessionId,
+    });
+
+    expect(killed.details).toMatchObject({
+      status: "completed",
+      result: "killed",
+      sessionId,
+      command: longDelayCmd,
+    });
+  });
+
+  it("treats stop as an idempotent alias for kill", async () => {
+    const result = await execTool.execute("call-stop", {
+      command: echoAfterDelay("done"),
+      background: true,
+    });
+    const sessionId = (result.details as { sessionId: string }).sessionId;
+    await waitForCompletion(sessionId);
+
+    const stopped = await processTool.execute("call-stop-alias", {
+      action: "stop",
+      sessionId,
+    });
+
+    expect(stopped.details).toMatchObject({
+      status: "completed",
+      action: "kill",
+      requestedAction: "stop",
+      result: "noop",
+      errorCode: "already_stopped",
+      sessionId,
+      command: echoAfterDelay("done"),
+    });
+  });
+
+  it("returns structured validation failures for process management", async () => {
+    const missing = await processTool.execute("call-missing-session", {
+      action: "kill",
+    });
+    expect(missing.details).toMatchObject({
+      status: "failed",
+      action: "kill",
+      errorCode: "missing_session_id",
+    });
+
+    const unknown = await processTool.execute("call-unknown-session", {
+      action: "kill",
+      sessionId: "missing-session",
+    });
+    expect(unknown.details).toMatchObject({
+      status: "failed",
+      action: "kill",
+      sessionId: "missing-session",
+      errorCode: "session_not_found",
+    });
+
+    const extra = await processTool.execute("call-extra-param", {
+      action: "list",
+      bogus: true,
+    });
+    expect(extra.details).toMatchObject({
+      status: "failed",
+      action: "list",
+      errorCode: "unknown_parameter",
+    });
+  });
+
   it("derives a session name from the command", async () => {
     const result = await execTool.execute("call1", {
       command: "echo hello",

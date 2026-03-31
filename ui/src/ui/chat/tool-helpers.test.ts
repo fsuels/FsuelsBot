@@ -89,7 +89,7 @@ describe("tool-helpers", () => {
       const input = "a".repeat(150);
       const result = getTruncatedPreview(input);
 
-      expect(result.length).toBe(101); // 100 chars + ellipsis
+      expect(result.length).toBe(100); // 99 chars + ellipsis keeps the preview within the width budget
       expect(result.endsWith("…")).toBe(true);
     });
 
@@ -136,6 +136,14 @@ describe("tool-helpers", () => {
 
       expect(result.length).toBe(101); // 100 + ellipsis
       expect(result.endsWith("…")).toBe(true);
+    });
+
+    it("truncates by display width for wide characters", () => {
+      const input = "界".repeat(60);
+      const result = getTruncatedPreview(input);
+
+      expect(result.endsWith("…")).toBe(true);
+      expect(result.length).toBeLessThan(input.length);
     });
   });
 });

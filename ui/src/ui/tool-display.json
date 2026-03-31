@@ -33,7 +33,7 @@
     "process": {
       "icon": "wrench",
       "title": "Process",
-      "detailKeys": ["sessionId"]
+      "detailKeys": ["sessionId", "shell_id"]
     },
     "read": {
       "icon": "fileText",

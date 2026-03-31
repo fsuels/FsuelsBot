@@ -1,4 +1,4 @@
-import type { AgentTool } from "@mariozechner/pi-agent-core";
+import type { AgentTool, AgentToolResult } from "@mariozechner/pi-agent-core";
 import { Type } from "@sinclair/typebox";
 import { formatDurationCompact } from "../infra/format-time/format-duration.ts";
 import {
@@ -19,6 +19,7 @@ import {
   truncateMiddle,
 } from "./bash-tools.shared.js";
 import { encodeKeySequence, encodePaste } from "./pty-keys.js";
+import { assertKnownParams, readAliasedStringParam } from "./tools/common.js";
 
 export type ProcessToolDefaults = {
   cleanupMs?: number;
@@ -28,6 +29,11 @@ export type ProcessToolDefaults = {
 const processSchema = Type.Object({
   action: Type.String({ description: "Process action" }),
   sessionId: Type.Optional(Type.String({ description: "Session id for actions other than list" })),
+  shell_id: Type.Optional(
+    Type.String({
+      description: "Deprecated alias for sessionId. Kept for transcript replay compatibility.",
+    }),
+  ),
   data: Type.Optional(Type.String({ description: "Data to write for write" })),
   keys: Type.Optional(
     Type.Array(Type.String(), { description: "Key tokens to send for send-keys" }),
@@ -40,6 +46,111 @@ const processSchema = Type.Object({
   offset: Type.Optional(Type.Number({ description: "Log offset" })),
   limit: Type.Optional(Type.Number({ description: "Log length" })),
 });
+
+type ProcessAction =
+  | "list"
+  | "poll"
+  | "log"
+  | "write"
+  | "send-keys"
+  | "submit"
+  | "paste"
+  | "kill"
+  | "clear"
+  | "remove";
+
+const PROCESS_ACTION_ALIASES = {
+  stop: "kill",
+  cancel: "kill",
+} as const satisfies Record<string, ProcessAction>;
+
+const PROCESS_ALLOWED_KEYS: Record<ProcessAction, readonly string[]> = {
+  list: ["action"],
+  poll: ["action", "sessionId", "shell_id"],
+  log: ["action", "sessionId", "shell_id", "offset", "limit"],
+  write: ["action", "sessionId", "shell_id", "data", "eof"],
+  "send-keys": ["action", "sessionId", "shell_id", "keys", "hex", "literal"],
+  submit: ["action", "sessionId", "shell_id"],
+  paste: ["action", "sessionId", "shell_id", "text", "bracketed"],
+  kill: ["action", "sessionId", "shell_id"],
+  clear: ["action", "sessionId", "shell_id"],
+  remove: ["action", "sessionId", "shell_id"],
+};
+
+function normalizeProcessAction(value: unknown): {
+  action?: ProcessAction;
+  requestedAction?: string;
+  usedAlias: boolean;
+} {
+  if (typeof value !== "string") {
+    return { action: undefined, requestedAction: undefined, usedAlias: false };
+  }
+  const requestedAction = value.trim();
+  if (!requestedAction) {
+    return { action: undefined, requestedAction: undefined, usedAlias: false };
+  }
+  const lowered = requestedAction.toLowerCase();
+  const aliased = PROCESS_ACTION_ALIASES[lowered as keyof typeof PROCESS_ACTION_ALIASES];
+  if (aliased) {
+    return {
+      action: aliased,
+      requestedAction,
+      usedAlias: true,
+    };
+  }
+  if (lowered in PROCESS_ALLOWED_KEYS) {
+    return {
+      action: lowered as ProcessAction,
+      requestedAction,
+      usedAlias: false,
+    };
+  }
+  return {
+    action: undefined,
+    requestedAction,
+    usedAlias: false,
+  };
+}
+
+function buildProcessTextResult(
+  message: string,
+  details: Record<string, unknown>,
+): AgentToolResult<unknown> {
+  return {
+    content: [{ type: "text" as const, text: message }],
+    details,
+  };
+}
+
+function buildProcessValidationFailure(params: {
+  status?: "failed" | "completed";
+  action?: ProcessAction;
+  requestedAction?: string;
+  sessionId?: string;
+  code: string;
+  message: string;
+  extra?: Record<string, unknown>;
+}) {
+  return buildProcessTextResult(params.message, {
+    status: params.status ?? "failed",
+    action: params.action,
+    requestedAction: params.requestedAction,
+    sessionId: params.sessionId,
+    errorCode: params.code,
+    error: params.message,
+    message: params.message,
+    ...params.extra,
+  });
+}
+
+function resolveManagedSessionId(params: Record<string, unknown>) {
+  return readAliasedStringParam(params, {
+    primaryKey: "sessionId",
+    aliasKeys: ["shell_id"],
+    required: true,
+    label: "sessionId",
+  });
+}
 
 export function createProcessTool(
   defaults?: ProcessToolDefaults,
@@ -56,34 +167,33 @@ export function createProcessTool(
     name: "process",
     label: "process",
     description:
-      "Manage running exec sessions: list, poll, log, write, send-keys, submit, paste, kill.",
+      "Manage running exec sessions: list, poll, log, write, send-keys, submit, paste, and stop/kill background sessions. Deprecated aliases: action=stop|cancel and shell_id.",
     parameters: processSchema,
     execute: async (_toolCallId, args) => {
-      const params = args as {
-        action:
-          | "list"
-          | "poll"
-          | "log"
-          | "write"
-          | "send-keys"
-          | "submit"
-          | "paste"
-          | "kill"
-          | "clear"
-          | "remove";
-        sessionId?: string;
-        data?: string;
-        keys?: string[];
-        hex?: string[];
-        literal?: string;
-        text?: string;
-        bracketed?: boolean;
-        eof?: boolean;
-        offset?: number;
-        limit?: number;
-      };
+      const params = args && typeof args === "object" ? (args as Record<string, unknown>) : {};
+      const normalizedAction = normalizeProcessAction(params.action);
+      const action = normalizedAction.action;
 
-      if (params.action === "list") {
+      if (!action) {
+        return buildProcessValidationFailure({
+          code: "invalid_action",
+          requestedAction: normalizedAction.requestedAction,
+          message: `Unsupported process action: ${normalizedAction.requestedAction ?? "(missing)"}`,
+        });
+      }
+
+      try {
+        assertKnownParams(params, PROCESS_ALLOWED_KEYS[action], { label: "process" });
+      } catch (err) {
+        return buildProcessValidationFailure({
+          action,
+          requestedAction: normalizedAction.requestedAction,
+          code: "unknown_parameter",
+          message: err instanceof Error ? err.message : String(err),
+        });
+      }
+
+      if (action === "list") {
         const running = listRunningSessions()
           .filter((s) => isInScope(s))
           .map((s) => ({
@@ -131,19 +241,50 @@ export function createProcessTool(
         };
       }
 
-      if (!params.sessionId) {
-        return {
-          content: [{ type: "text", text: "sessionId is required for this action." }],
-          details: { status: "failed" },
-        };
+      let sessionId = "";
+      try {
+        sessionId = resolveManagedSessionId(params).value;
+      } catch (err) {
+        return buildProcessValidationFailure({
+          action,
+          requestedAction: normalizedAction.requestedAction,
+          code: "missing_session_id",
+          message: err instanceof Error ? err.message : String(err),
+        });
       }
 
-      const session = getSession(params.sessionId);
-      const finished = getFinishedSession(params.sessionId);
+      const session = getSession(sessionId);
+      const finished = getFinishedSession(sessionId);
       const scopedSession = isInScope(session) ? session : undefined;
       const scopedFinished = isInScope(finished) ? finished : undefined;
+      const offset = typeof params.offset === "number" ? params.offset : undefined;
+      const limit = typeof params.limit === "number" ? params.limit : undefined;
+      const stdinText = typeof params.data === "string" ? params.data : "";
+      const pasteText = typeof params.text === "string" ? params.text : "";
 
-      switch (params.action) {
+      const backgroundedValidationFailure = () => {
+        if (!scopedSession) {
+          return buildProcessValidationFailure({
+            action,
+            requestedAction: normalizedAction.requestedAction,
+            sessionId,
+            code: "session_not_found",
+            message: `No active session found for ${sessionId}`,
+          });
+        }
+        if (!scopedSession.backgrounded) {
+          return buildProcessValidationFailure({
+            action,
+            requestedAction: normalizedAction.requestedAction,
+            sessionId,
+            code: "session_not_backgrounded",
+            message: `Session ${sessionId} is not backgrounded.`,
+          });
+        }
+        return null;
+      };
+
+      switch (action) {
         case "poll": {
           if (!scopedSession) {
             if (scopedFinished) {
@@ -165,33 +306,29 @@ export function createProcessTool(
                 ],
                 details: {
                   status: scopedFinished.status === "completed" ? "completed" : "failed",
-                  sessionId: params.sessionId,
+                  sessionId,
                   exitCode: scopedFinished.exitCode ?? undefined,
                   aggregated: scopedFinished.aggregated,
                   name: deriveSessionName(scopedFinished.command),
                 },
               };
             }
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `No session found for ${params.sessionId}`,
-                },
-              ],
-              details: { status: "failed" },
-            };
+            return buildProcessValidationFailure({
+              action,
+              requestedAction: normalizedAction.requestedAction,
+              sessionId,
+              code: "session_not_found",
+              message: `No session found for ${sessionId}`,
+            });
           }
           if (!scopedSession.backgrounded) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `Session ${params.sessionId} is not backgrounded.`,
-                },
-              ],
-              details: { status: "failed" },
-            };
+            return buildProcessValidationFailure({
+              action,
+              requestedAction: normalizedAction.requestedAction,
+              sessionId,
+              code: "session_not_backgrounded",
+              message: `Session ${sessionId} is not backgrounded.`,
+            });
           }
           const { stdout, stderr } = drainSession(scopedSession);
           const exited = scopedSession.exited;
@@ -204,6 +341,14 @@ export function createProcessTool(
               scopedSession.exitCode ?? null,
               scopedSession.exitSignal ?? null,
               status,
+              {
+                terminalReason:
+                  exitCode === 0 && exitSignal == null
+                    ? "completed"
+                    : exitSignal != null
+                      ? "cancelled"
+                      : "error",
+              },
             );
           }
           const status = exited
@@ -227,7 +372,7 @@ export function createProcessTool(
             ],
             details: {
               status,
-              sessionId: params.sessionId,
+              sessionId,
               exitCode: exited ? exitCode : undefined,
               aggregated: scopedSession.aggregated,
               name: deriveSessionName(scopedSession.command),
@@ -238,26 +383,24 @@ export function createProcessTool(
         case "log": {
           if (scopedSession) {
             if (!scopedSession.backgrounded) {
-              return {
-                content: [
-                  {
-                    type: "text",
-                    text: `Session ${params.sessionId} is not backgrounded.`,
-                  },
-                ],
-                details: { status: "failed" },
-              };
+              return buildProcessValidationFailure({
+                action,
+                requestedAction: normalizedAction.requestedAction,
+                sessionId,
+                code: "session_not_backgrounded",
+                message: `Session ${sessionId} is not backgrounded.`,
+              });
             }
             const { slice, totalLines, totalChars } = sliceLogLines(
               scopedSession.aggregated,
-              params.offset,
-              params.limit,
+              offset,
+              limit,
             );
             return {
               content: [{ type: "text", text: slice || "(no output yet)" }],
               details: {
                 status: scopedSession.exited ? "completed" : "running",
-                sessionId: params.sessionId,
+                sessionId,
                 total: totalLines,
                 totalLines,
                 totalChars,
@@ -269,15 +412,15 @@ export function createProcessTool(
           if (scopedFinished) {
             const { slice, totalLines, totalChars } = sliceLogLines(
               scopedFinished.aggregated,
-              params.offset,
-              params.limit,
+              offset,
+              limit,
             );
             const status = scopedFinished.status === "completed" ? "completed" : "failed";
             return {
               content: [{ type: "text", text: slice || "(no output recorded)" }],
               details: {
                 status,
-                sessionId: params.sessionId,
+                sessionId,
                 total: totalLines,
                 totalLines,
                 totalChars,
@@ -288,54 +431,42 @@ export function createProcessTool(
               },
             };
           }
-          return {
-            content: [
-              {
-                type: "text",
-                text: `No session found for ${params.sessionId}`,
-              },
-            ],
-            details: { status: "failed" },
-          };
+          return buildProcessValidationFailure({
+            action,
+            requestedAction: normalizedAction.requestedAction,
+            sessionId,
+            code: "session_not_found",
+            message: `No session found for ${sessionId}`,
+          });
         }
 
         case "write": {
-          if (!scopedSession) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `No active session found for ${params.sessionId}`,
-                },
-              ],
-              details: { status: "failed" },
-            };
+          const validationFailure = backgroundedValidationFailure();
+          if (validationFailure) {
+            return validationFailure;
           }
-          if (!scopedSession.backgrounded) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `Session ${params.sessionId} is not backgrounded.`,
-                },
-              ],
-              details: { status: "failed" },
-            };
+          const activeSession = scopedSession;
+          if (!activeSession) {
+            return buildProcessValidationFailure({
+              action,
+              requestedAction: normalizedAction.requestedAction,
+              sessionId,
+              code: "session_not_found",
+              message: `No active session found for ${sessionId}`,
+            });
           }
-          const stdin = scopedSession.stdin ?? scopedSession.child?.stdin;
+          const stdin = activeSession.stdin ?? activeSession.child?.stdin;
           if (!stdin || stdin.destroyed) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `Session ${params.sessionId} stdin is not writable.`,
-                },
-              ],
-              details: { status: "failed" },
-            };
+            return buildProcessValidationFailure({
+              action,
+              requestedAction: normalizedAction.requestedAction,
+              sessionId,
+              code: "stdin_not_writable",
+              message: `Session ${sessionId} stdin is not writable.`,
+            });
           }
           await new Promise<void>((resolve, reject) => {
-            stdin.write(params.data ?? "", (err) => {
+            stdin.write(stdinText, (err) => {
               if (err) {
                 reject(err);
               } else {
@@ -343,76 +474,68 @@ export function createProcessTool(
               }
             });
           });
-          if (params.eof) {
+          if (params.eof === true) {
             stdin.end();
           }
           return {
             content: [
               {
                 type: "text",
-                text: `Wrote ${(params.data ?? "").length} bytes to session ${params.sessionId}${
-                  params.eof ? " (stdin closed)" : ""
+                text: `Wrote ${stdinText.length} bytes to session ${sessionId}${
+                  params.eof === true ? " (stdin closed)" : ""
                 }.`,
               },
             ],
             details: {
               status: "running",
-              sessionId: params.sessionId,
-              name: scopedSession ? deriveSessionName(scopedSession.command) : undefined,
+              sessionId,
+              name: deriveSessionName(activeSession.command),
             },
           };
         }
 
         case "send-keys": {
-          if (!scopedSession) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `No active session found for ${params.sessionId}`,
-                },
-              ],
-              details: { status: "failed" },
-            };
+          const validationFailure = backgroundedValidationFailure();
+          if (validationFailure) {
+            return validationFailure;
           }
-          if (!scopedSession.backgrounded) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `Session ${params.sessionId} is not backgrounded.`,
-                },
-              ],
-              details: { status: "failed" },
-            };
+          const activeSession = scopedSession;
+          if (!activeSession) {
+            return buildProcessValidationFailure({
+              action,
+              requestedAction: normalizedAction.requestedAction,
+              sessionId,
+              code: "session_not_found",
+              message: `No active session found for ${sessionId}`,
+            });
           }
-          const stdin = scopedSession.stdin ?? scopedSession.child?.stdin;
+          const stdin = activeSession.stdin ?? activeSession.child?.stdin;
           if (!stdin || stdin.destroyed) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `Session ${params.sessionId} stdin is not writable.`,
-                },
-              ],
-              details: { status: "failed" },
-            };
+            return buildProcessValidationFailure({
+              action,
+              requestedAction: normalizedAction.requestedAction,
+              sessionId,
+              code: "stdin_not_writable",
+              message: `Session ${sessionId} stdin is not writable.`,
+            });
           }
           const { data, warnings } = encodeKeySequence({
-            keys: params.keys,
-            hex: params.hex,
-            literal: params.literal,
+            keys: Array.isArray(params.keys)
+              ? params.keys.filter((entry): entry is string => typeof entry === "string")
+              : undefined,
+            hex: Array.isArray(params.hex)
+              ? params.hex.filter((entry): entry is string => typeof entry === "string")
+              : undefined,
+            literal: typeof params.literal === "string" ? params.literal : undefined,
           });
           if (!data) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: "No key data provided.",
-                },
-              ],
-              details: { status: "failed" },
-            };
+            return buildProcessValidationFailure({
+              action,
+              requestedAction: normalizedAction.requestedAction,
+              sessionId,
+              code: "missing_key_data",
+              message: "No key data provided.",
+            });
           }
           await new Promise<void>((resolve, reject) => {
             stdin.write(data, (err) => {
@@ -428,52 +551,42 @@ export function createProcessTool(
               {
                 type: "text",
                 text:
-                  `Sent ${data.length} bytes to session ${params.sessionId}.` +
+                  `Sent ${data.length} bytes to session ${sessionId}.` +
                   (warnings.length ? `\nWarnings:\n- ${warnings.join("\n- ")}` : ""),
               },
             ],
             details: {
               status: "running",
-              sessionId: params.sessionId,
-              name: scopedSession ? deriveSessionName(scopedSession.command) : undefined,
+              sessionId,
+              name: deriveSessionName(activeSession.command),
             },
           };
         }
 
         case "submit": {
-          if (!scopedSession) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `No active session found for ${params.sessionId}`,
-                },
-              ],
-              details: { status: "failed" },
-            };
+          const validationFailure = backgroundedValidationFailure();
+          if (validationFailure) {
+            return validationFailure;
           }
-          if (!scopedSession.backgrounded) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `Session ${params.sessionId} is not backgrounded.`,
-                },
-              ],
-              details: { status: "failed" },
-            };
+          const activeSession = scopedSession;
+          if (!activeSession) {
+            return buildProcessValidationFailure({
+              action,
+              requestedAction: normalizedAction.requestedAction,
+              sessionId,
+              code: "session_not_found",
+              message: `No active session found for ${sessionId}`,
+            });
           }
-          const stdin = scopedSession.stdin ?? scopedSession.child?.stdin;
+          const stdin = activeSession.stdin ?? activeSession.child?.stdin;
           if (!stdin || stdin.destroyed) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `Session ${params.sessionId} stdin is not writable.`,
-                },
-              ],
-              details: { status: "failed" },
-            };
+            return buildProcessValidationFailure({
+              action,
+              requestedAction: normalizedAction.requestedAction,
+              sessionId,
+              code: "stdin_not_writable",
+              message: `Session ${sessionId} stdin is not writable.`,
+            });
           }
           await new Promise<void>((resolve, reject) => {
             stdin.write("\r", (err) => {
@@ -488,63 +601,51 @@ export function createProcessTool(
             content: [
               {
                 type: "text",
-                text: `Submitted session ${params.sessionId} (sent CR).`,
+                text: `Submitted session ${sessionId} (sent CR).`,
               },
             ],
             details: {
               status: "running",
-              sessionId: params.sessionId,
-              name: scopedSession ? deriveSessionName(scopedSession.command) : undefined,
+              sessionId,
+              name: deriveSessionName(activeSession.command),
             },
           };
         }
 
         case "paste": {
-          if (!scopedSession) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `No active session found for ${params.sessionId}`,
-                },
-              ],
-              details: { status: "failed" },
-            };
+          const validationFailure = backgroundedValidationFailure();
+          if (validationFailure) {
+            return validationFailure;
           }
-          if (!scopedSession.backgrounded) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `Session ${params.sessionId} is not backgrounded.`,
-                },
-              ],
-              details: { status: "failed" },
-            };
+          const activeSession = scopedSession;
+          if (!activeSession) {
+            return buildProcessValidationFailure({
+              action,
+              requestedAction: normalizedAction.requestedAction,
+              sessionId,
+              code: "session_not_found",
+              message: `No active session found for ${sessionId}`,
+            });
           }
-          const stdin = scopedSession.stdin ?? scopedSession.child?.stdin;
+          const stdin = activeSession.stdin ?? activeSession.child?.stdin;
           if (!stdin || stdin.destroyed) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `Session ${params.sessionId} stdin is not writable.`,
-                },
-              ],
-              details: { status: "failed" },
-            };
+            return buildProcessValidationFailure({
+              action,
+              requestedAction: normalizedAction.requestedAction,
+              sessionId,
+              code: "stdin_not_writable",
+              message: `Session ${sessionId} stdin is not writable.`,
+            });
           }
-          const payload = encodePaste(params.text ?? "", params.bracketed !== false);
+          const payload = encodePaste(pasteText, params.bracketed !== false);
           if (!payload) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: "No paste text provided.",
-                },
-              ],
-              details: { status: "failed" },
-            };
+            return buildProcessValidationFailure({
+              action,
+              requestedAction: normalizedAction.requestedAction,
+              sessionId,
+              code: "missing_paste_text",
+              message: "No paste text provided.",
+            });
           }
           await new Promise<void>((resolve, reject) => {
             stdin.write(payload, (err) => {
@@ -559,105 +660,127 @@ export function createProcessTool(
             content: [
               {
                 type: "text",
-                text: `Pasted ${params.text?.length ?? 0} chars to session ${params.sessionId}.`,
+                text: `Pasted ${pasteText.length} chars to session ${sessionId}.`,
               },
             ],
             details: {
               status: "running",
-              sessionId: params.sessionId,
-              name: scopedSession ? deriveSessionName(scopedSession.command) : undefined,
+              sessionId,
+              name: deriveSessionName(activeSession.command),
             },
           };
         }
 
         case "kill": {
           if (!scopedSession) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `No active session found for ${params.sessionId}`,
-                },
-              ],
-              details: { status: "failed" },
-            };
+            if (scopedFinished) {
+              const message = `Session ${sessionId} is already stopped.`;
+              return buildProcessTextResult(message, {
+                status: "completed",
+                action,
+                requestedAction: normalizedAction.requestedAction,
+                sessionId,
+                result: "noop",
+                errorCode: "already_stopped",
+                previousStatus: scopedFinished.status,
+                command: scopedFinished.command,
+                name: deriveSessionName(scopedFinished.command),
+                message,
+              });
+            }
+            return buildProcessValidationFailure({
+              action,
+              requestedAction: normalizedAction.requestedAction,
+              sessionId,
+              code: "session_not_found",
+              message: `No active session found for ${sessionId}`,
+            });
           }
           if (!scopedSession.backgrounded) {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: `Session ${params.sessionId} is not backgrounded.`,
-                },
-              ],
-              details: { status: "failed" },
-            };
+            return buildProcessValidationFailure({
+              action,
+              requestedAction: normalizedAction.requestedAction,
+              sessionId,
+              code: "session_not_backgrounded",
+              message: `Session ${sessionId} is not backgrounded.`,
+            });
           }
+          const command = scopedSession.command;
+          const name = deriveSessionName(command);
           killSession(scopedSession);
-          markExited(scopedSession, null, "SIGKILL", "failed");
-          return {
-            content: [{ type: "text", text: `Killed session ${params.sessionId}.` }],
-            details: {
-              status: "failed",
-              name: scopedSession ? deriveSessionName(scopedSession.command) : undefined,
-            },
-          };
+          markExited(scopedSession, null, "SIGKILL", "failed", {
+            terminalReason: "cancelled",
+            error: "Process killed by user request.",
+          });
+          const message = `Stopped session ${sessionId}.`;
+          return buildProcessTextResult(message, {
+            status: "completed",
+            action,
+            requestedAction: normalizedAction.requestedAction,
+            sessionId,
+            result: "killed",
+            previousStatus: "running",
+            command,
+            name,
+            message,
+          });
         }
 
         case "clear": {
           if (scopedFinished) {
-            deleteSession(params.sessionId);
+            deleteSession(sessionId);
             return {
-              content: [{ type: "text", text: `Cleared session ${params.sessionId}.` }],
-              details: { status: "completed" },
+              content: [{ type: "text", text: `Cleared session ${sessionId}.` }],
+              details: { status: "completed", sessionId },
             };
           }
-          return {
-            content: [
-              {
-                type: "text",
-                text: `No finished session found for ${params.sessionId}`,
-              },
-            ],
-            details: { status: "failed" },
-          };
+          return buildProcessValidationFailure({
+            action,
+            requestedAction: normalizedAction.requestedAction,
+            sessionId,
+            code: "finished_session_not_found",
+            message: `No finished session found for ${sessionId}`,
+          });
         }
 
         case "remove": {
           if (scopedSession) {
             killSession(scopedSession);
-            markExited(scopedSession, null, "SIGKILL", "failed");
+            markExited(scopedSession, null, "SIGKILL", "failed", {
+              terminalReason: "cancelled",
+              error: "Process removed by user request.",
+            });
             return {
-              content: [{ type: "text", text: `Removed session ${params.sessionId}.` }],
+              content: [{ type: "text", text: `Removed session ${sessionId}.` }],
               details: {
                 status: "failed",
+                sessionId,
                 name: scopedSession ? deriveSessionName(scopedSession.command) : undefined,
               },
             };
           }
           if (scopedFinished) {
-            deleteSession(params.sessionId);
+            deleteSession(sessionId);
             return {
-              content: [{ type: "text", text: `Removed session ${params.sessionId}.` }],
-              details: { status: "completed" },
+              content: [{ type: "text", text: `Removed session ${sessionId}.` }],
+              details: { status: "completed", sessionId },
             };
           }
-          return {
-            content: [
-              {
-                type: "text",
-                text: `No session found for ${params.sessionId}`,
-              },
-            ],
-            details: { status: "failed" },
-          };
+          return buildProcessValidationFailure({
+            action,
+            requestedAction: normalizedAction.requestedAction,
+            sessionId,
+            code: "session_not_found",
+            message: `No session found for ${sessionId}`,
+          });
         }
       }
 
-      return {
-        content: [{ type: "text", text: `Unknown action ${params.action as string}` }],
-        details: { status: "failed" },
-      };
+      return buildProcessValidationFailure({
+        code: "invalid_action",
+        requestedAction: normalizedAction.requestedAction,
+        message: `Unsupported process action: ${normalizedAction.requestedAction ?? "(missing)"}`,
+      });
     },
   };
 }

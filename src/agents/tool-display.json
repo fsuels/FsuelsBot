@@ -33,7 +33,7 @@
     "process": {
       "emoji": "🧰",
       "title": "Process",
-      "detailKeys": ["sessionId"]
+      "detailKeys": ["sessionId", "shell_id"]
     },
     "read": {
       "emoji": "📖",
@@ -250,12 +250,12 @@
     "sessions_history": {
       "emoji": "🧾",
       "title": "Session History",
-      "detailKeys": ["sessionKey", "limit", "includeTools"]
+      "detailKeys": ["sessionKey", "sessionId", "limit", "includeTools"]
     },
     "sessions_send": {
       "emoji": "📨",
       "title": "Session Send",
-      "detailKeys": ["label", "sessionKey", "agentId", "timeoutSeconds"]
+      "detailKeys": ["label", "sessionKey", "sessionId", "agentId", "timeoutSeconds"]
     },
     "sessions_spawn": {
       "emoji": "🧑‍🔧",
@@ -274,7 +274,7 @@
     "session_status": {
       "emoji": "📊",
       "title": "Session Status",
-      "detailKeys": ["sessionKey", "model"]
+      "detailKeys": ["sessionKey", "sessionId", "model"]
     },
     "task_tracker": {
       "emoji": "🗃️",

@@ -3,7 +3,6 @@ import crypto from "node:crypto";
 import type { AnyAgentTool } from "./common.js";
 import { loadConfig } from "../../config/config.js";
 import { callGateway } from "../../gateway/call.js";
-import { loadSessionEntry } from "../../gateway/session-utils.js";
 import {
   isSubagentSessionKey,
   normalizeAgentId,
@@ -16,47 +15,63 @@ import {
 } from "../../utils/message-channel.js";
 import { AGENT_LANE_NESTED } from "../lanes.js";
 import {
-  isEmbeddedPiRunActive,
-  queueEmbeddedPiMessage,
-  waitForEmbeddedPiRunEnd,
-} from "../pi-embedded.js";
-import { jsonResult, readStringParam } from "./common.js";
-import { readLatestAssistantReply } from "./agent-step.js";
+  assertKnownParams,
+  jsonResult,
+  readAliasedStringParam,
+  readStringParam,
+} from "./common.js";
 import {
   createAgentToAgentPolicy,
+  extractAssistantText,
   resolveInternalSessionKey,
   resolveMainSessionAlias,
   resolveSessionReference,
+  stripToolMessages,
 } from "./sessions-helpers.js";
 import { buildAgentToAgentMessageContext, resolvePingPongTurns } from "./sessions-send-helpers.js";
 import { runSessionsSendA2AFlow } from "./sessions-send-tool.a2a.js";
 
-const SessionsSendToolSchema = Type.Object({
-  sessionKey: Type.Optional(Type.String()),
-  label: Type.Optional(Type.String({ minLength: 1, maxLength: SESSION_LABEL_MAX_LENGTH })),
-  agentId: Type.Optional(Type.String({ minLength: 1, maxLength: 64 })),
-  message: Type.String(),
-  timeoutSeconds: Type.Optional(Type.Number({ minimum: 0 })),
-});
-
-function resolveRuntimeTargetSession(sessionKey: string) {
-  try {
-    const { canonicalKey, entry } = loadSessionEntry(sessionKey);
-    const sessionId =
-      typeof entry?.sessionId === "string" && entry.sessionId.trim()
-        ? entry.sessionId.trim()
-        : undefined;
-    return {
-      sessionKey: canonicalKey,
-      sessionId,
-    };
-  } catch {
-    return {
-      sessionKey,
-      sessionId: undefined,
-    };
-  }
-}
+const SessionsSendToolSchema = Type.Object(
+  {
+    sessionKey: Type.Optional(
+      Type.String({
+        description:
+          "Canonical target session key. Prefer this over the deprecated sessionId field.",
+      }),
+    ),
+    sessionId: Type.Optional(
+      Type.String({
+        description:
+          "Deprecated alias for sessionKey. Kept for transcript replay/backward compatibility.",
+      }),
+    ),
+    label: Type.Optional(
+      Type.String({
+        minLength: 1,
+        maxLength: SESSION_LABEL_MAX_LENGTH,
+        description:
+          "Target session label. Use this instead of sessionKey when addressing by label.",
+      }),
+    ),
+    agentId: Type.Optional(
+      Type.String({
+        minLength: 1,
+        maxLength: 64,
+        description: "Optional agent id scope when resolving a label target.",
+      }),
+    ),
+    message: Type.String({
+      description: "Message to inject into the target session.",
+    }),
+    timeoutSeconds: Type.Optional(
+      Type.Number({
+        minimum: 0,
+        description: "Wait timeout in seconds. Use 0 for fire-and-forget behavior.",
+      }),
+    ),
+  },
+  { additionalProperties: false },
+);
 
 export function createSessionsSendTool(opts?: {
   agentSessionKey?: string;
@@ -67,11 +82,35 @@ export function createSessionsSendTool(opts?: {
     label: "Session Send",
     name: "sessions_send",
     description:
-      "Send a message into another session. Use sessionKey or label to identify the target. If the target session is already actively running in this runtime, OpenClaw will queue the message into that run instead of starting a duplicate run.",
+      "Send a message into another session. Use sessionKey or label to identify the target.",
     parameters: SessionsSendToolSchema,
     execute: async (_toolCallId, args) => {
       const params = args as Record<string, unknown>;
-      const message = readStringParam(params, "message", { required: true });
+      let message = "";
+      let sessionKeyParam: string | undefined;
+      try {
+        assertKnownParams(
+          params,
+          ["sessionKey", "sessionId", "label", "agentId", "message", "timeoutSeconds"],
+          { label: "sessions_send" },
+        );
+        message = readStringParam(params, "message", { required: true });
+        sessionKeyParam = readAliasedStringParam(params, {
+          primaryKey: "sessionKey",
+          aliasKeys: ["sessionId"],
+          label: "sessionKey",
+        }).value;
+      } catch (err) {
+        const error = err instanceof Error ? err.message : String(err);
+        return jsonResult({
+          runId: crypto.randomUUID(),
+          ok: false,
+          success: false,
+          status: "error",
+          code: "invalid_input",
+          error,
+        });
+      }
       const cfg = loadConfig();
       const { mainKey, alias } = resolveMainSessionAlias(cfg);
       const visibility = cfg.agents?.defaults?.sandbox?.sessionToolsVisibility ?? "spawned";
@@ -91,7 +130,6 @@ export function createSessionsSendTool(opts?: {
 
       const a2aPolicy = createAgentToAgentPolicy(cfg);
 
-      const sessionKeyParam = readStringParam(params, "sessionKey");
       const labelParam = readStringParam(params, "label")?.trim() || undefined;
       const labelAgentIdParam = readStringParam(params, "agentId")?.trim() || undefined;
       if (sessionKeyParam && labelParam) {
@@ -249,10 +287,7 @@ export function createSessionsSendTool(opts?: {
       const idempotencyKey = crypto.randomUUID();
       let runId: string = idempotencyKey;
       const requesterAgentId = resolveAgentIdFromSessionKey(requesterInternalKey);
-      const runtimeTarget = resolveRuntimeTargetSession(resolvedKey);
-      const targetSessionKey = runtimeTarget.sessionKey;
-      const targetSessionId = runtimeTarget.sessionId;
-      const targetAgentId = resolveAgentIdFromSessionKey(targetSessionKey);
+      const targetAgentId = resolveAgentIdFromSessionKey(resolvedKey);
       const isCrossAgent = requesterAgentId !== targetAgentId;
       if (isCrossAgent) {
         if (!a2aPolicy.enabled) {
@@ -281,7 +316,7 @@ export function createSessionsSendTool(opts?: {
       });
       const sendParams = {
         message,
-        sessionKey: targetSessionKey,
+        sessionKey: resolvedKey,
         idempotencyKey,
         deliver: false,
         channel: INTERNAL_MESSAGE_CHANNEL,
@@ -294,7 +329,7 @@ export function createSessionsSendTool(opts?: {
       const delivery = { status: "pending", mode: "announce" as const };
       const startA2AFlow = (roundOneReply?: string, waitRunId?: string) => {
         void runSessionsSendA2AFlow({
-          targetSessionKey,
+          targetSessionKey: resolvedKey,
           displayKey,
           message,
           announceTimeoutMs,
@@ -305,70 +340,6 @@ export function createSessionsSendTool(opts?: {
           waitRunId,
         });
       };
-      const resolveQueuedReply = async (previousReply?: string) => {
-        const latestReply = await readLatestAssistantReply({
-          sessionKey: targetSessionKey,
-        }).catch(() => undefined);
-        if (!latestReply || latestReply === previousReply) {
-          return undefined;
-        }
-        return latestReply;
-      };
-
-      if (targetSessionId && isEmbeddedPiRunActive(targetSessionId)) {
-        const previousReply = await readLatestAssistantReply({
-          sessionKey: targetSessionKey,
-        }).catch(() => undefined);
-        if (queueEmbeddedPiMessage(targetSessionId, message)) {
-          const queuedDelivery = { status: "queued", mode: "active-run" as const };
-          const awaitQueuedReply = async (waitMs: number) => {
-            const settled = await waitForEmbeddedPiRunEnd(targetSessionId, waitMs);
-            if (!settled) {
-              return { settled: false as const, reply: undefined };
-            }
-            return {
-              settled: true as const,
-              reply: await resolveQueuedReply(previousReply),
-            };
-          };
-
-          if (timeoutSeconds === 0) {
-            void (async () => {
-              const queued = await awaitQueuedReply(announceTimeoutMs);
-              if (queued.settled && queued.reply) {
-                startA2AFlow(queued.reply);
-              }
-            })();
-            return jsonResult({
-              runId,
-              status: "accepted",
-              sessionKey: displayKey,
-              delivery: queuedDelivery,
-            });
-          }
-
-          const queued = await awaitQueuedReply(timeoutMs);
-          if (!queued.settled) {
-            return jsonResult({
-              runId,
-              status: "timeout",
-              error: "Timed out waiting for the active target session to finish queued work.",
-              sessionKey: displayKey,
-              delivery: queuedDelivery,
-            });
-          }
-          if (queued.reply) {
-            startA2AFlow(queued.reply);
-          }
-          return jsonResult({
-            runId,
-            status: "ok",
-            reply: queued.reply,
-            sessionKey: displayKey,
-            delivery: queuedDelivery,
-          });
-        }
-      }
 
       if (timeoutSeconds === 0) {
         try {
@@ -460,9 +431,13 @@ export function createSessionsSendTool(opts?: {
         });
       }
 
-      const reply = await readLatestAssistantReply({
-        sessionKey: targetSessionKey,
-      }).catch(() => undefined);
+      const history = await callGateway<{ messages: Array<unknown> }>({
+        method: "chat.history",
+        params: { sessionKey: resolvedKey, limit: 50 },
+      });
+      const filtered = stripToolMessages(Array.isArray(history?.messages) ? history.messages : []);
+      const last = filtered.length > 0 ? filtered[filtered.length - 1] : undefined;
+      const reply = last ? extractAssistantText(last) : undefined;
       startA2AFlow(reply ?? undefined);
 
       return jsonResult({

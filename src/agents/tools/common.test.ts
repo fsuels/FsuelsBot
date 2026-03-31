@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  assertKnownParams,
   createActionGate,
+  readAliasedStringParam,
   readNumberParam,
   readReactionParams,
   readStringOrNumberParam,
@@ -58,6 +60,80 @@ describe("readNumberParam", () => {
     expect(() => readNumberParam({}, "messageId", { required: true })).toThrow(
       /messageId required/,
     );
+  });
+});
+
+describe("readAliasedStringParam", () => {
+  it("prefers the primary key when both forms match", () => {
+    const result = readAliasedStringParam(
+      {
+        sessionId: "new-id",
+        shell_id: "new-id",
+      },
+      {
+        primaryKey: "sessionId",
+        aliasKeys: ["shell_id"],
+        required: true,
+        label: "sessionId",
+      },
+    );
+
+    expect(result).toEqual({
+      value: "new-id",
+      sourceKey: "sessionId",
+      usedAlias: false,
+    });
+  });
+
+  it("falls back to a deprecated alias", () => {
+    const result = readAliasedStringParam(
+      {
+        shell_id: "legacy-id",
+      },
+      {
+        primaryKey: "sessionId",
+        aliasKeys: ["shell_id"],
+        required: true,
+        label: "sessionId",
+      },
+    );
+
+    expect(result).toEqual({
+      value: "legacy-id",
+      sourceKey: "shell_id",
+      usedAlias: true,
+    });
+  });
+
+  it("rejects conflicting alias values", () => {
+    expect(() =>
+      readAliasedStringParam(
+        {
+          sessionId: "new-id",
+          shell_id: "old-id",
+        },
+        {
+          primaryKey: "sessionId",
+          aliasKeys: ["shell_id"],
+          required: true,
+          label: "sessionId",
+        },
+      ),
+    ).toThrow(/conflicts with deprecated alias shell_id/);
+  });
+});
+
+describe("assertKnownParams", () => {
+  it("accepts known keys", () => {
+    expect(() =>
+      assertKnownParams({ action: "list", limit: 2 }, ["action", "limit"]),
+    ).not.toThrow();
+  });
+
+  it("rejects unknown keys", () => {
+    expect(() =>
+      assertKnownParams({ action: "list", bogus: true }, ["action"], { label: "tool" }),
+    ).toThrow(/Unknown tool parameter: bogus/);
   });
 });
 

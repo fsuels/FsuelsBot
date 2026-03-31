@@ -5,7 +5,7 @@ import { callGateway } from "../../gateway/call.js";
 import { capArrayByJsonBytes } from "../../gateway/session-utils.fs.js";
 import { isSubagentSessionKey, resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
 import { truncateUtf16Safe } from "../../utils.js";
-import { jsonResult, readStringParam } from "./common.js";
+import { assertKnownParams, jsonResult, readAliasedStringParam } from "./common.js";
 import {
   createAgentToAgentPolicy,
   resolveSessionReference,
@@ -15,11 +15,33 @@ import {
   stripToolMessages,
 } from "./sessions-helpers.js";
 
-const SessionsHistoryToolSchema = Type.Object({
-  sessionKey: Type.String(),
-  limit: Type.Optional(Type.Number({ minimum: 1 })),
-  includeTools: Type.Optional(Type.Boolean()),
-});
+const SessionsHistoryToolSchema = Type.Object(
+  {
+    sessionKey: Type.Optional(
+      Type.String({
+        description: "Canonical session key. Prefer this over the deprecated sessionId field.",
+      }),
+    ),
+    sessionId: Type.Optional(
+      Type.String({
+        description:
+          "Deprecated alias for sessionKey. Kept for transcript replay/backward compatibility.",
+      }),
+    ),
+    limit: Type.Optional(
+      Type.Number({
+        minimum: 1,
+        description: "Maximum number of history messages to fetch.",
+      }),
+    ),
+    includeTools: Type.Optional(
+      Type.Boolean({
+        description: "Include tool_result messages in the returned history.",
+      }),
+    ),
+  },
+  { additionalProperties: false },
+);
 
 const SESSIONS_HISTORY_MAX_BYTES = 80 * 1024;
 const SESSIONS_HISTORY_TEXT_MAX_CHARS = 4000;
@@ -182,9 +204,27 @@ export function createSessionsHistoryTool(opts?: {
     parameters: SessionsHistoryToolSchema,
     execute: async (_toolCallId, args) => {
       const params = args as Record<string, unknown>;
-      const sessionKeyParam = readStringParam(params, "sessionKey", {
-        required: true,
-      });
+      let sessionKeyParam = "";
+      try {
+        assertKnownParams(params, ["sessionKey", "sessionId", "limit", "includeTools"], {
+          label: "sessions_history",
+        });
+        sessionKeyParam = readAliasedStringParam(params, {
+          primaryKey: "sessionKey",
+          aliasKeys: ["sessionId"],
+          required: true,
+          label: "sessionKey",
+        }).value;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return jsonResult({
+          ok: false,
+          success: false,
+          status: "error",
+          code: "invalid_input",
+          error: message,
+        });
+      }
       const cfg = loadConfig();
       const { mainKey, alias } = resolveMainSessionAlias(cfg);
       const visibility = resolveSandboxSessionToolsVisibility(cfg);

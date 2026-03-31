@@ -16,24 +16,56 @@ import { AGENT_LANE_SUBAGENT } from "../lanes.js";
 import { optionalStringEnum } from "../schema/typebox.js";
 import { buildSubagentSystemPrompt } from "../subagent-announce.js";
 import { registerSubagentRun } from "../subagent-registry.js";
-import { jsonResult, readStringParam } from "./common.js";
+import { assertKnownParams, jsonResult, readStringParam } from "./common.js";
 import {
   resolveDisplaySessionKey,
   resolveInternalSessionKey,
   resolveMainSessionAlias,
 } from "./sessions-helpers.js";
 
-const SessionsSpawnToolSchema = Type.Object({
-  task: Type.String(),
-  label: Type.Optional(Type.String()),
-  agentId: Type.Optional(Type.String()),
-  model: Type.Optional(Type.String()),
-  thinking: Type.Optional(Type.String()),
-  runTimeoutSeconds: Type.Optional(Type.Number({ minimum: 0 })),
-  // Back-compat alias. Prefer runTimeoutSeconds.
-  timeoutSeconds: Type.Optional(Type.Number({ minimum: 0 })),
-  cleanup: optionalStringEnum(["delete", "keep"] as const),
-});
+const SessionsSpawnToolSchema = Type.Object(
+  {
+    task: Type.String({
+      description: "Prompt or task description for the spawned sub-agent run.",
+    }),
+    label: Type.Optional(
+      Type.String({
+        description: "Optional human-readable label for the spawned session.",
+      }),
+    ),
+    agentId: Type.Optional(
+      Type.String({
+        description: "Optional target agent id. Defaults to the requester agent.",
+      }),
+    ),
+    model: Type.Optional(
+      Type.String({
+        description: "Optional provider/model override for the child session.",
+      }),
+    ),
+    thinking: Type.Optional(
+      Type.String({
+        description: "Optional child-session thinking level override.",
+      }),
+    ),
+    runTimeoutSeconds: Type.Optional(
+      Type.Number({
+        minimum: 0,
+        description: "Preferred timeout override for waiting on the child run.",
+      }),
+    ),
+    // Back-compat alias. Prefer runTimeoutSeconds.
+    timeoutSeconds: Type.Optional(
+      Type.Number({
+        minimum: 0,
+        description:
+          "Deprecated alias for runTimeoutSeconds. Kept for transcript replay/backward compatibility.",
+      }),
+    ),
+    cleanup: optionalStringEnum(["delete", "keep"] as const),
+  },
+  { additionalProperties: false },
+);
 
 function splitModelRef(ref?: string) {
   if (!ref) {
@@ -86,7 +118,33 @@ export function createSessionsSpawnTool(opts?: {
     parameters: SessionsSpawnToolSchema,
     execute: async (_toolCallId, args) => {
       const params = args as Record<string, unknown>;
-      const task = readStringParam(params, "task", { required: true });
+      let task = "";
+      try {
+        assertKnownParams(
+          params,
+          [
+            "task",
+            "label",
+            "agentId",
+            "model",
+            "thinking",
+            "runTimeoutSeconds",
+            "timeoutSeconds",
+            "cleanup",
+          ],
+          { label: "sessions_spawn" },
+        );
+        task = readStringParam(params, "task", { required: true });
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        return jsonResult({
+          status: "error",
+          ok: false,
+          success: false,
+          code: "invalid_input",
+          error: message,
+        });
+      }
       const label = typeof params.label === "string" ? params.label.trim() : "";
       const requestedAgentId = readStringParam(params, "agentId");
       const modelOverride = readStringParam(params, "model");

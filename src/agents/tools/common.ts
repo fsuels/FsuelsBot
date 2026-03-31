@@ -13,6 +13,12 @@ export type StringParamOptions = {
   allowEmpty?: boolean;
 };
 
+export type AliasedStringParamOptions = StringParamOptions & {
+  primaryKey: string;
+  aliasKeys?: string[];
+  rejectConflicts?: boolean;
+};
+
 export type ActionGate<T extends Record<string, boolean | undefined>> = (
   key: keyof T,
   defaultValue?: boolean,
@@ -83,6 +89,116 @@ export function readStringOrNumberParam(
     throw new Error(`${label} required`);
   }
   return undefined;
+}
+
+export function readAliasedStringParam(
+  params: Record<string, unknown>,
+  options: AliasedStringParamOptions & { required: true },
+): {
+  value: string;
+  sourceKey: string;
+  usedAlias: boolean;
+};
+export function readAliasedStringParam(
+  params: Record<string, unknown>,
+  options: AliasedStringParamOptions,
+): {
+  value?: string;
+  sourceKey?: string;
+  usedAlias: boolean;
+};
+export function readAliasedStringParam(
+  params: Record<string, unknown>,
+  options: AliasedStringParamOptions,
+) {
+  const {
+    primaryKey,
+    aliasKeys = [],
+    required = false,
+    trim = true,
+    label = primaryKey,
+    allowEmpty = false,
+    rejectConflicts = true,
+  } = options;
+
+  const readValue = (key: string) => {
+    const raw = params[key];
+    if (typeof raw !== "string") {
+      return undefined;
+    }
+    const value = trim ? raw.trim() : raw;
+    if (!value && !allowEmpty) {
+      return undefined;
+    }
+    return value;
+  };
+
+  const primaryValue = readValue(primaryKey);
+  const aliasMatches = aliasKeys
+    .map((key) => {
+      const value = readValue(key);
+      return value ? { key, value } : null;
+    })
+    .filter((entry): entry is { key: string; value: string } => Boolean(entry));
+
+  if (rejectConflicts && primaryValue) {
+    const conflictingAlias = aliasMatches.find((entry) => entry.value !== primaryValue);
+    if (conflictingAlias) {
+      throw new Error(`${label} conflicts with deprecated alias ${conflictingAlias.key}`);
+    }
+  }
+
+  if (rejectConflicts && aliasMatches.length > 1) {
+    const first = aliasMatches[0];
+    const conflictingAlias = aliasMatches.find((entry) => entry.value !== first.value);
+    if (conflictingAlias) {
+      throw new Error(`${label} conflicts across deprecated aliases`);
+    }
+  }
+
+  if (primaryValue) {
+    return {
+      value: primaryValue,
+      sourceKey: primaryKey,
+      usedAlias: false,
+    };
+  }
+
+  const aliasMatch = aliasMatches[0];
+  if (aliasMatch) {
+    return {
+      value: aliasMatch.value,
+      sourceKey: aliasMatch.key,
+      usedAlias: true,
+    };
+  }
+
+  if (required) {
+    throw new Error(`${label} required`);
+  }
+
+  return {
+    value: undefined,
+    sourceKey: undefined,
+    usedAlias: false,
+  };
+}
+
+export function assertKnownParams(
+  params: Record<string, unknown>,
+  allowedKeys: Iterable<string>,
+  options: { label?: string } = {},
+): void {
+  const allowed = new Set(Array.from(allowedKeys).filter(Boolean));
+  const unknown = Object.keys(params)
+    .filter((key) => !allowed.has(key))
+    .toSorted((left, right) => left.localeCompare(right));
+  if (unknown.length === 0) {
+    return;
+  }
+  const label = options.label?.trim() || "parameters";
+  const noun = unknown.length === 1 ? "parameter" : "parameters";
+  throw new Error(`Unknown ${label} ${noun}: ${unknown.join(", ")}`);
 }
 
 export function readNumberParam(
