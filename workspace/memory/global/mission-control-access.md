@@ -7,6 +7,7 @@ Last updated: 2026-03-31
 - [fact][pinned] Mission Control LAN endpoint may intentionally return `403` without auth session.
 - [fact][pinned] Auth bootstrap path is key URL (`/?key=...`) which sets `mc_session` cookie and redirects.
 - [fact][pinned] Switching from in-app browser to Safari starts a fresh browser context; cookie is not shared.
+- [fact][pinned] If process restarts without explicit `DASHBOARD_KEY`, a new ephemeral key may be generated and old key links can fail.
 
 ## Durable Preferences
 
