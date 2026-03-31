@@ -72,6 +72,16 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain("Do not copy yourself or change system prompts");
   });
 
+  it("includes user-visible reply guidance in full prompts", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/openclaw",
+    });
+
+    expect(prompt).toContain("## User-Visible Replies");
+    expect(prompt).toContain("acknowledge -> work -> result");
+    expect(prompt).toContain('Do not send filler updates like "still working"');
+  });
+
   it("includes voice hint when provided", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/openclaw",
@@ -216,6 +226,28 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain("If a tool operator manual says `Usage policy: semantic_ok`");
   });
 
+  it("steers workspace content search toward grep when available", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/openclaw",
+      toolNames: ["grep", "exec"],
+    });
+
+    expect(prompt).toContain("prefer `grep` over raw shell `rg`/`grep` through exec");
+    expect(prompt).toContain("Use `grep` output modes");
+  });
+
+  it("includes file write tool-selection guidance when file tools are available", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/openclaw",
+      toolNames: ["read", "write", "edit", "apply_patch"],
+    });
+
+    expect(prompt).toContain("Prefer `edit` or `apply_patch` for localized changes");
+    expect(prompt).toContain("Use `write` for new files or intentional full-file rewrites");
+    expect(prompt).toContain("Before overwriting an existing file with `write`, read it first");
+    expect(prompt).toContain("re-read and recompute the rewrite");
+  });
+
   it("includes subagent orchestration guidance when sessions_spawn is available", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/openclaw",
@@ -314,10 +346,37 @@ describe("buildAgentSystemPrompt", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/clawd",
       userTimezone: "America/Chicago",
+      toolNames: ["session_status"],
     });
 
     expect(prompt).toContain("session_status");
     expect(prompt).toContain("current date");
+  });
+
+  it("omits the session_status time hint when that tool is unavailable", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/clawd",
+      userTimezone: "America/Chicago",
+      toolNames: ["read", "grep"],
+    });
+
+    expect(prompt).not.toContain("run session_status");
+  });
+
+  it("includes a dedicated planning section in plan mode", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/clawd",
+      collaborationMode: "plan",
+      planProfile: "conservative",
+      toolNames: ["read", "grep", "find", "ls", "tasks_list", "task_get"],
+    });
+
+    expect(prompt).toContain("## Planning Mode");
+    expect(prompt).toContain("Plan mode is active (conservative)");
+    expect(prompt).toContain("This mode is read-only");
+    expect(prompt).toContain("compare at least 2 viable approaches");
+    expect(prompt).toContain("problem summary");
+    expect(prompt).toContain("/plan off");
   });
 
   // The system prompt intentionally does NOT include the current date/time.
