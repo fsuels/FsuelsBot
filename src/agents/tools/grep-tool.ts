@@ -198,7 +198,7 @@ function isNetworkPath(filePath: string): boolean {
 }
 
 function cleanRelativePath(filePath: string): string {
-  const normalized = filePath.replace(/\0/g, "").trim().replace(/\\/g, "/");
+  const normalized = filePath.split("\u0000").join("").trim().replace(/\\/g, "/");
   if (normalized === "." || normalized === "./") {
     return ".";
   }

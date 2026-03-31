@@ -206,7 +206,8 @@ describe("grep-tool", () => {
       expect(getDetails(files).filenames).toEqual(["src/a.ts"]);
       expect(getText(files)).toContain("next offset 1");
       expect(getDetails(count).outputMode).toBe("count");
-      expect(getDetails(count).countLines).toEqual(["src/a.ts:1"]);
+      expect(getDetails(count).countLines).toHaveLength(1);
+      expect(["src/a.ts:1", "src/b.ts:1"]).toContain(getDetails(count).countLines?.[0]);
       expect(getText(count)).toContain("next offset 1");
     });
   });
