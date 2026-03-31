@@ -4,6 +4,7 @@ Serves dashboard + live activity feed from Clawdbot logs
 """
 import http.server
 import http.cookies
+import ipaddress
 import json
 import os
 import re
@@ -30,9 +31,18 @@ _generated_dashboard_key = False
 if not DASHBOARD_KEY:
     DASHBOARD_KEY = secrets.token_hex(32)
     _generated_dashboard_key = True
+MISSION_CONTROL_TRUST_LAN = os.environ.get("MISSION_CONTROL_TRUST_LAN", "1").strip().lower() in ("1", "true", "yes", "on")
 
 # Session tokens for wifi auth
 _valid_sessions = {}
+
+
+def _is_private_client_ip(ip_text: str) -> bool:
+    try:
+        ip = ipaddress.ip_address((ip_text or "").split("%", 1)[0])
+        return ip.is_private or ip.is_loopback
+    except Exception:
+        return False
 
 # Shared state
 activity_state = {
@@ -1230,6 +1240,10 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
         # Localhost always allowed
         client_ip = self.client_address[0]
         if client_ip in ("127.0.0.1", "::1"):
+            return True
+
+        # Allow trusted LAN clients without cookie/key to keep mobile access frictionless.
+        if MISSION_CONTROL_TRUST_LAN and _is_private_client_ip(client_ip):
             return True
 
         # Check query param for key
