@@ -68,6 +68,13 @@ function renderSteps(steps: TaskEntry["steps"], stepIndex?: number) {
 }
 
 function renderTaskCard(id: string, task: TaskEntry) {
+  const blockers = task.unresolved_blockers ?? task.blockers ?? [];
+  const showReady =
+    blockers.length === 0 &&
+    task.can_start === true &&
+    !["archived", "completed", "done", "trashed"].includes(task.status);
+  const showWaiting =
+    blockers.length === 0 && !showReady && task.next_recommended_action === "wait_for_blockers";
   return html`
     <div class="card" style="margin-bottom:8px;padding:12px 14px;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
@@ -94,11 +101,19 @@ function renderTaskCard(id: string, task: TaskEntry) {
           : nothing
       }
       ${
-        task.blockers && task.blockers.length > 0
+        blockers.length > 0
           ? html`<div style="margin-top:6px;font-size:11px;color:#e6a700;">
-            🚧 ${task.blockers.length} blocker${task.blockers.length > 1 ? "s" : ""}
+            🚧 ${blockers.length} blocker${blockers.length > 1 ? "s" : ""}
           </div>`
-          : nothing
+          : showReady
+            ? html`
+                <div style="margin-top: 6px; font-size: 11px; color: #22c55e">Ready to start</div>
+              `
+            : showWaiting
+              ? html`
+                  <div style="margin-top: 6px; font-size: 11px; color: var(--text-muted)">Waiting on blockers</div>
+                `
+              : nothing
       }
       ${
         task.updated_at

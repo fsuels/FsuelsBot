@@ -20,6 +20,14 @@ export type TaskEntry = {
   next_action?: string;
   progress?: string;
   blockers?: string[];
+  unresolved_blockers?: string[];
+  resolved_blockers?: string[];
+  can_start?: boolean;
+  next_recommended_action?:
+    | "start_task"
+    | "wait_for_blockers"
+    | "inspect_blockers"
+    | "task_not_found";
   file?: string;
   step_index?: number;
 };

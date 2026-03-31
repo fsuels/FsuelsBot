@@ -106,7 +106,7 @@ describe("session_status tool", () => {
     expect(details.statusText).not.toContain("OAuth/token status");
   });
 
-  it("errors for unknown session keys", async () => {
+  it("returns structured not_found results for unknown session keys", async () => {
     loadSessionStoreMock.mockReset();
     updateSessionStoreMock.mockReset();
     loadSessionStoreMock.mockReturnValue({
@@ -121,9 +121,15 @@ describe("session_status tool", () => {
       throw new Error("missing session_status tool");
     }
 
-    await expect(tool.execute("call2", { sessionKey: "nope" })).rejects.toThrow(
-      "Unknown sessionId",
-    );
+    const result = await tool.execute("call2", { sessionKey: "nope" });
+    expect(result.details).toMatchObject({
+      ok: false,
+      success: false,
+      found: false,
+      code: "not_found",
+      kind: "sessionId",
+      sessionKey: "nope",
+    });
     expect(updateSessionStoreMock).not.toHaveBeenCalled();
   });
 
@@ -147,6 +153,30 @@ describe("session_status tool", () => {
     }
 
     const result = await tool.execute("call3", { sessionKey: sessionId });
+    const details = result.details as { ok?: boolean; sessionKey?: string };
+    expect(details.ok).toBe(true);
+    expect(details.sessionKey).toBe("agent:main:main");
+  });
+
+  it("accepts deprecated sessionId parameter names", async () => {
+    loadSessionStoreMock.mockReset();
+    updateSessionStoreMock.mockReset();
+    const sessionId = "sess-main-alias";
+    loadSessionStoreMock.mockReturnValue({
+      "agent:main:main": {
+        sessionId,
+        updatedAt: 10,
+      },
+    });
+
+    const tool = createOpenClawTools({ agentSessionKey: "main" }).find(
+      (candidate) => candidate.name === "session_status",
+    );
+    if (!tool) {
+      throw new Error("missing session_status tool");
+    }
+
+    const result = await tool.execute("call3-alias", { sessionId });
     const details = result.details as { ok?: boolean; sessionKey?: string };
     expect(details.ok).toBe(true);
     expect(details.sessionKey).toBe("agent:main:main");
@@ -273,5 +303,30 @@ describe("session_status tool", () => {
     expect(saved.providerOverride).toBeUndefined();
     expect(saved.modelOverride).toBeUndefined();
     expect(saved.authProfileOverride).toBeUndefined();
+  });
+
+  it("rejects unknown keys with strict validation", async () => {
+    loadSessionStoreMock.mockReset();
+    updateSessionStoreMock.mockReset();
+    loadSessionStoreMock.mockReturnValue({
+      main: {
+        sessionId: "s1",
+        updatedAt: 10,
+      },
+    });
+
+    const tool = createOpenClawTools({ agentSessionKey: "main" }).find(
+      (candidate) => candidate.name === "session_status",
+    );
+    if (!tool) {
+      throw new Error("missing session_status tool");
+    }
+
+    const result = await tool.execute("call-extra", { bogus: true });
+    expect(result.details).toMatchObject({
+      ok: false,
+      code: "invalid_input",
+    });
+    expect((result.details as { error?: string }).error).toContain('unexpected property "bogus"');
   });
 });
