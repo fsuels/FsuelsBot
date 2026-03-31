@@ -35,6 +35,11 @@
       "title": "Process",
       "detailKeys": ["sessionId"]
     },
+    "verification_gate": {
+      "emoji": "✅",
+      "title": "Verification",
+      "detailKeys": ["changeSummary", "editedFilesCount", "spotCheckCount"]
+    },
     "read": {
       "emoji": "📖",
       "title": "Read",

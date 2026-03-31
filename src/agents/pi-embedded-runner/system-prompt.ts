@@ -6,9 +6,14 @@ import type { ResolvedTimeFormat } from "../date-time.js";
 import type { DriftPromptInjection } from "../drift-detection.js";
 import type { EmbeddedContextFile } from "../pi-embedded-helpers.js";
 import type { CollaborationMode, PlanModeProfile } from "../plan-mode.js";
+import type { PromptAssemblyArtifact } from "../system-prompt-sections.js";
 import type { EmbeddedSandboxInfo } from "./types.js";
 import type { ReasoningLevel, ThinkLevel } from "./utils.js";
-import { buildAgentSystemPrompt, type PromptMode } from "../system-prompt.js";
+import {
+  buildAgentSystemPrompt,
+  buildAgentSystemPromptArtifacts,
+  type PromptMode,
+} from "../system-prompt.js";
 import { buildToolOperatorManualMap, buildToolSummaryMap } from "../tool-summaries.js";
 
 export function buildEmbeddedSystemPrompt(params: {
@@ -65,6 +70,88 @@ export function buildEmbeddedSystemPrompt(params: {
   memoryCitationsMode?: MemoryCitationsMode;
 }): string {
   return buildAgentSystemPrompt({
+    workspaceDir: params.workspaceDir,
+    defaultThinkLevel: params.defaultThinkLevel,
+    reasoningLevel: params.reasoningLevel,
+    extraSystemPrompt: params.extraSystemPrompt,
+    ownerNumbers: params.ownerNumbers,
+    reasoningTagHint: params.reasoningTagHint,
+    heartbeatPrompt: params.heartbeatPrompt,
+    skillsPrompt: params.skillsPrompt,
+    docsPath: params.docsPath,
+    ttsHint: params.ttsHint,
+    collaborationMode: params.collaborationMode,
+    planProfile: params.planProfile,
+    workspaceNotes: params.workspaceNotes,
+    reactionGuidance: params.reactionGuidance,
+    promptMode: params.promptMode,
+    runtimeInfo: params.runtimeInfo,
+    messageToolHints: params.messageToolHints,
+    sandboxInfo: params.sandboxInfo,
+    toolNames: params.tools.map((tool) => tool.name),
+    toolSummaries: buildToolSummaryMap(params.tools),
+    toolManuals: buildToolOperatorManualMap(params.tools),
+    modelAliasLines: params.modelAliasLines,
+    userTimezone: params.userTimezone,
+    userTime: params.userTime,
+    userTimeFormat: params.userTimeFormat,
+    contextFiles: params.contextFiles,
+    contextPressure: params.contextPressure,
+    driftInjection: params.driftInjection,
+    coherenceIntervention: params.coherenceIntervention,
+    memoryCitationsMode: params.memoryCitationsMode,
+  });
+}
+
+export function buildEmbeddedSystemPromptArtifacts(params: {
+  workspaceDir: string;
+  defaultThinkLevel?: ThinkLevel;
+  reasoningLevel?: ReasoningLevel;
+  extraSystemPrompt?: string;
+  ownerNumbers?: string[];
+  reasoningTagHint: boolean;
+  heartbeatPrompt?: string;
+  skillsPrompt?: string;
+  docsPath?: string;
+  ttsHint?: string;
+  collaborationMode?: CollaborationMode;
+  planProfile?: PlanModeProfile;
+  reactionGuidance?: {
+    level: "minimal" | "extensive";
+    channel: string;
+  };
+  workspaceNotes?: string[];
+  promptMode?: PromptMode;
+  runtimeInfo: {
+    agentId?: string;
+    host: string;
+    os: string;
+    arch: string;
+    node: string;
+    model: string;
+    provider?: string;
+    capabilities?: string[];
+    channel?: string;
+    channelActions?: string[];
+  };
+  messageToolHints?: string[];
+  sandboxInfo?: EmbeddedSandboxInfo;
+  tools: AgentTool[];
+  modelAliasLines: string[];
+  userTimezone: string;
+  userTime?: string;
+  userTimeFormat?: ResolvedTimeFormat;
+  contextFiles?: EmbeddedContextFile[];
+  contextPressure?: {
+    turnsRemaining: number;
+    tokensBudget: number;
+    tokensUsed: number;
+  };
+  driftInjection?: DriftPromptInjection;
+  coherenceIntervention?: CoherenceIntervention;
+  memoryCitationsMode?: MemoryCitationsMode;
+}): PromptAssemblyArtifact {
+  return buildAgentSystemPromptArtifacts({
     workspaceDir: params.workspaceDir,
     defaultThinkLevel: params.defaultThinkLevel,
     reasoningLevel: params.reasoningLevel,

@@ -3,6 +3,11 @@ import type { GatewayMessageChannel } from "../utils/message-channel.js";
 import type { AnyAgentTool } from "./tools/common.js";
 import { resolvePluginTools } from "../plugins/tools.js";
 import { resolveSessionAgentId } from "./agent-scope.js";
+import {
+  filterToolsForPlanMode,
+  type CollaborationMode,
+  type PlanModeProfile,
+} from "./plan-mode.js";
 import { applyToolContracts } from "./tool-contracts.js";
 import { assertUniqueToolNames } from "./tool-policy.js";
 import { createAgentsListTool } from "./tools/agents-list-tool.js";
@@ -23,9 +28,11 @@ import { createSessionsSendTool } from "./tools/sessions-send-tool.js";
 import { createSessionsSpawnTool } from "./tools/sessions-spawn-tool.js";
 import { createSleepTool } from "./tools/sleep-tool.js";
 import { createTaskGetTool } from "./tools/task-get-tool.js";
+import { createTaskPlanTool } from "./tools/task-plan-tool.js";
 import { createTaskTrackerTool } from "./tools/task-tracker-tool.js";
 import { createTasksListTool } from "./tools/tasks-list-tool.js";
 import { createTtsTool } from "./tools/tts-tool.js";
+import { createVerificationGateTool } from "./tools/verification-gate-tool.js";
 import { createWebFetchTool, createWebSearchTool } from "./tools/web-tools.js";
 
 export function createOpenClawTools(options?: {
@@ -67,6 +74,8 @@ export function createOpenClawTools(options?: {
   requireExplicitMessageTarget?: boolean;
   /** If true, omit the message tool from the tool list. */
   disableMessageTool?: boolean;
+  collaborationMode?: CollaborationMode;
+  planProfile?: PlanModeProfile;
 }): AnyAgentTool[] {
   const imageTool = options?.agentDir?.trim()
     ? createImageTool({
@@ -146,6 +155,11 @@ export function createOpenClawTools(options?: {
       workspaceDir: options?.workspaceDir,
       config: options?.config,
     }),
+    createTaskPlanTool({
+      agentSessionKey: options?.agentSessionKey,
+      workspaceDir: options?.workspaceDir,
+      config: options?.config,
+    }),
     createAgentsListTool({
       agentSessionKey: options?.agentSessionKey,
       requesterAgentIdOverride: options?.requesterAgentIdOverride,
@@ -183,6 +197,18 @@ export function createOpenClawTools(options?: {
     createTaskTrackerTool({
       agentSessionKey: options?.agentSessionKey,
     }),
+    createVerificationGateTool({
+      agentSessionKey: options?.agentSessionKey,
+      agentChannel: options?.agentChannel,
+      agentAccountId: options?.agentAccountId,
+      agentTo: options?.agentTo,
+      agentThreadId: options?.agentThreadId,
+      agentGroupId: options?.agentGroupId,
+      agentGroupChannel: options?.agentGroupChannel,
+      agentGroupSpace: options?.agentGroupSpace,
+      sandboxed: options?.sandboxed,
+      requesterAgentIdOverride: options?.requesterAgentIdOverride,
+    }),
     createDelegateTool({
       config: options?.config,
       agentDir: options?.agentDir,
@@ -212,5 +238,6 @@ export function createOpenClawTools(options?: {
     toolAllowlist: options?.pluginToolAllowlist,
   });
 
-  return [...tools, ...pluginTools].map(applyToolContracts);
+  const combined = [...tools, ...pluginTools].map(applyToolContracts);
+  return options?.collaborationMode === "plan" ? filterToolsForPlanMode(combined) : combined;
 }

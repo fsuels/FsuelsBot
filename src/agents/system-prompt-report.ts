@@ -1,6 +1,7 @@
 import type { AgentTool } from "@mariozechner/pi-agent-core";
 import type { SessionSystemPromptReport } from "../config/sessions/types.js";
 import type { EmbeddedContextFile } from "./pi-embedded-helpers.js";
+import type { PromptAssemblyArtifact } from "./system-prompt-sections.js";
 import type { WorkspaceBootstrapFile } from "./workspace.js";
 
 function extractBetween(
@@ -109,17 +110,14 @@ export function buildSystemPromptReport(params: {
   bootstrapMaxChars: number;
   sandbox?: SessionSystemPromptReport["sandbox"];
   systemPrompt: string;
+  promptAssembly?: PromptAssemblyArtifact;
   bootstrapFiles: WorkspaceBootstrapFile[];
   injectedFiles: EmbeddedContextFile[];
   skillsPrompt: string;
   tools: AgentTool[];
 }): SessionSystemPromptReport {
   const systemPrompt = params.systemPrompt.trim();
-  const projectContext = extractBetween(
-    systemPrompt,
-    "\n# Project Context\n",
-    "\n## Silent Replies\n",
-  );
+  const projectContext = extractBetween(systemPrompt, "\n# Project Context\n", "\n## Runtime\n");
   const projectContextChars = projectContext.text.length;
   const toolListText = extractToolListText(systemPrompt);
   const toolListChars = toolListText.length;
@@ -142,6 +140,19 @@ export function buildSystemPromptReport(params: {
       projectContextChars,
       nonProjectContextChars: Math.max(0, systemPrompt.length - projectContextChars),
     },
+    cache: params.promptAssembly
+      ? {
+          boundaryMarker: params.promptAssembly.boundaryMarker,
+          staticPrefixHash: params.promptAssembly.staticPrefixHash,
+          staticPrefixChars: params.promptAssembly.staticPrefix.length,
+          dynamicTailChars: params.promptAssembly.dynamicTail.length,
+          staticPrefixCacheStatus: params.promptAssembly.staticPrefixCacheStatus,
+          staticPrefixSeenCount: params.promptAssembly.staticPrefixSeenCount,
+          recomputedSectionCount: params.promptAssembly.recomputedSectionCount,
+          staticSectionNames: params.promptAssembly.staticSectionNames,
+          dynamicSectionNames: params.promptAssembly.dynamicSectionNames,
+        }
+      : undefined,
     injectedWorkspaceFiles: buildInjectedWorkspaceFiles({
       bootstrapFiles: params.bootstrapFiles,
       injectedFiles: params.injectedFiles,

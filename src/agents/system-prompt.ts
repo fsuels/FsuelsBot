@@ -9,6 +9,12 @@ import { SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
 import { listDeliverableMessageChannels } from "../utils/message-channel.js";
 import { DEFAULT_PLAN_MODE_PROFILE } from "./plan-mode.js";
 import { buildSubagentOrchestrationSection } from "./subagent-policy.js";
+import {
+  assemblePromptSections,
+  promptSection,
+  uncachedPromptSection,
+  type PromptAssemblyArtifact,
+} from "./system-prompt-sections.js";
 
 /**
  * Controls which hardcoded sections are included in the system prompt.
@@ -56,6 +62,13 @@ function buildMemorySection(params: {
   const lines = [
     "## Memory Recall",
     "Before answering anything about prior work, decisions, dates, people, preferences, or todos: run memory_search on MEMORY.md + memory/*.md; then use memory_get to pull only the needed lines. If low confidence after search, say you checked.",
+    'If the user says "ignore memory" or "don\'t use memory", behave as if memory were empty: do not rely on remembered facts, do not call memory tools, and do not mention memory content.',
+    "Treat memory as historical context, not live truth.",
+    "Before recommending from memory:",
+    "- If memory names a file path, check that the file exists now.",
+    "- If memory names a function, symbol, or flag, search current code for it now.",
+    "- If the user asks about current or recent state, prefer current code, git, or resource state over memory snapshots.",
+    "- If current state conflicts with memory, trust current state and update or remove the stale memory.",
   ];
   if (params.citationsMode === "off") {
     lines.push(
@@ -137,6 +150,7 @@ function buildWaitingSection(params: {
     `Use \`${params.sleepToolName}\` for explicit waiting, idling, reminders-to-self, or when the user asks you to wait.`,
     `Prefer \`${params.sleepToolName}\` over shell \`sleep\`, \`timeout\`, or ad-hoc polling loops in \`exec\`.`,
     `If you are waiting on external work, background shells, or sub-agents, sleep cooperatively and check structured task state with \`${params.getTaskOutputToolName}\` when you wake.`,
+    `If \`${params.getTaskOutputToolName}\` reports \`awaiting_input\`, the task is probably blocked on an interactive prompt. Send input explicitly with the process tool, or kill it and rerun non-interactively.`,
     `Periodic sleep wakeups are check-ins, not automatic work. Reevaluate pending system events and useful follow-up before choosing to sleep again.`,
     "If there is genuinely no productive work to do right now, sleeping is better than burning tool/process slots with no-op polling.",
     "",
@@ -155,6 +169,43 @@ function buildTimeSection(params: { userTimezone?: string }) {
     return [];
   }
   return ["## Current Date & Time", `Time zone: ${params.userTimezone}`, ""];
+}
+
+function buildOperatingContractSection(params: { isMinimal: boolean; readToolName: string }) {
+  if (params.isMinimal) {
+    return [];
+  }
+  return [
+    "## Operating Contract",
+    `Read a file with \`${params.readToolName}\` before proposing a concrete edit to it or modifying it in the current run.`,
+    "Keep the scope tight: avoid unrelated refactors, speculative abstractions, or extra improvements beyond the user's request unless they are necessary to complete the task safely.",
+    "Prefer editing existing files over creating new ones unless a new file is clearly required by the request or the architecture.",
+    "When something fails, diagnose why before changing tactics. Do not blindly retry the same failing tool call or command.",
+    "Verify work before claiming completion whenever verification is feasible.",
+    "Report verification truthfully. Never say tests, lint, builds, or checks passed unless the output actually showed that.",
+    "If something could not be verified, say that explicitly and name the missing check.",
+    "If you notice an adjacent misconception or nearby bug that materially affects the requested work, mention it briefly instead of silently stepping around it.",
+    "Keep pre-tool notes and milestone updates brief. Prefer short, concrete progress updates over narration.",
+    "Keep final replies concise by default. Expand only when the task genuinely needs more detail.",
+    "",
+  ];
+}
+
+function buildVerificationSection(params: {
+  isMinimal: boolean;
+  availableTools: Set<string>;
+  verificationToolName: string;
+}) {
+  if (params.isMinimal || !params.availableTools.has("verification_gate")) {
+    return [];
+  }
+  return [
+    "## Verification Gate",
+    `Use \`${params.verificationToolName}\` for non-trivial changes: 3+ edited files, backend/API work, infra/config work, schema/migration work, or auth/security-sensitive changes.`,
+    `Do not send the final completion summary until \`${params.verificationToolName}\` returns PASS, or it returns PARTIAL and you explicitly list what remains unverified.`,
+    "If verification returns FAIL, fix the issues and rerun verification instead of reporting completion.",
+    "",
+  ];
 }
 
 function buildPlanModeSection(params: {
@@ -268,7 +319,7 @@ function buildDocsSection(params: { docsPath?: string; isMinimal: boolean; readT
   ];
 }
 
-export function buildAgentSystemPrompt(params: {
+export type BuildAgentSystemPromptParams = {
   workspaceDir: string;
   defaultThinkLevel?: ThinkLevel;
   reasoningLevel?: ReasoningLevel;
@@ -335,7 +386,11 @@ export function buildAgentSystemPrompt(params: {
   driftInjection?: DriftPromptInjection;
   /** Coherence intervention (RSC v2.1 — recent decisions + tool avoidance). */
   coherenceIntervention?: CoherenceIntervention;
-}) {
+};
+
+export function buildAgentSystemPromptArtifacts(
+  params: BuildAgentSystemPromptParams,
+): PromptAssemblyArtifact {
   const coreToolSummaries: Record<string, string> = {
     read: "Read file contents",
     write: "Create new files or deliberate full-file rewrites",
@@ -371,6 +426,8 @@ export function buildAgentSystemPrompt(params: {
     sessions_spawn: "Spawn a sub-agent session",
     session_status:
       "Show a /status-equivalent status card (usage + time + Reasoning/Verbose/Elevated); use for model-use questions (📊 session_status); optional per-session model override",
+    verification_gate:
+      "Run an independent verification pass for non-trivial changes and return PASS, FAIL, or PARTIAL with evidence",
     task_tracker:
       "Create, update, and validate structured multi-step task state for the current session before claiming work is finished",
     image: "Analyze an image with the configured image model",
@@ -404,6 +461,7 @@ export function buildAgentSystemPrompt(params: {
     "sessions_history",
     "sessions_send",
     "session_status",
+    "verification_gate",
     "task_tracker",
     "image",
   ];
@@ -468,6 +526,7 @@ export function buildAgentSystemPrompt(params: {
   const processToolName = resolveToolName("process");
   const getTaskOutputToolName = resolveToolName("get_task_output");
   const sleepToolName = resolveToolName("sleep");
+  const verificationToolName = resolveToolName("verification_gate");
   const searchToolNames = [
     availableTools.has("read") ? readToolName : null,
     availableTools.has("grep") ? resolveToolName("grep") : null,
@@ -565,12 +624,11 @@ export function buildAgentSystemPrompt(params: {
 
   // For "none" mode, return just the basic identity line
   if (promptMode === "none") {
-    return "You are a personal assistant running inside OpenClaw.";
+    return assemblePromptSections([
+      promptSection("identity", () => "You are a personal assistant running inside OpenClaw."),
+    ]);
   }
-
-  const lines = [
-    "You are a personal assistant running inside OpenClaw.",
-    "",
+  const toolingSectionLines = [
     "## Tooling",
     "Tool availability (filtered by policy):",
     "Tool names are case-sensitive. Call tools exactly as listed.",
@@ -600,7 +658,9 @@ export function buildAgentSystemPrompt(params: {
         ].join("\n"),
     "TOOLS.md does not control tool availability; it is user guidance for how to use external tools.",
     "If a task is more complex or takes longer, spawn a sub-agent. It will do the work for you and ping you when it's done. You can always check up on it.",
-    "",
+  ];
+
+  const toolCallStyleSection = [
     "## Tool Call Style",
     "Default: do not narrate routine, low-risk tool calls (just call the tool).",
     "Narrate only when it helps: multi-step work, complex/challenging problems, sensitive actions (e.g., deletions), or when the user explicitly asks.",
@@ -623,49 +683,29 @@ export function buildAgentSystemPrompt(params: {
         ]
       : []),
     "",
-    ...(!isMinimal
-      ? [
-          "## User-Visible Replies",
-          "The user-visible reply stream is the real answer surface; tool chatter and internal events are not the answer.",
-          "If the task needs tools/files/commands or will take longer than a quick direct answer, send a short acknowledgment before working.",
-          "Use the pattern: acknowledge -> work -> result.",
-          "Only send progress updates when they add new information: a decision, blocker, phase boundary, or important surprise.",
-          'Do not send filler updates like "still working" or restate the same plan without new facts.',
-          "Keep user-visible updates concrete and brief; mention files, commands, sessions, or artifacts when that makes the update more useful.",
-          "",
-        ]
-      : []),
-    ...(!isMinimal && toolManualLines.length > 0
-      ? ["## Tool Operator Manuals", ...toolManualLines]
-      : []),
-    ...(availableTools.has("delegate")
-      ? [
-          "## Delegate Routing (MANDATORY)",
-          "You have a `delegate` tool that calls a faster, cheaper model. You MUST use it instead of answering directly for these task types:",
-          "- Translation (any language pair)",
-          "- Summarization of provided text",
-          "- Formatting, reformatting, or converting between formats",
-          "- Data extraction from text",
-          "- Simple factual Q&A (definitions, explanations of well-known concepts)",
-          "- List generation (pros/cons, bullet points, comparisons)",
-          "- Code explanation or documentation",
-          "- Grammar/spelling correction",
-          "- Boilerplate generation (emails, templates, standard replies)",
-          "",
-          "Answer YOURSELF only when: the task needs your judgment/opinion, multi-step reasoning, your other tools, conversation context, or creative work in your voice.",
-          "When delegating: include ALL context in the task field (the delegate has no history). Relay the result naturally without mentioning delegation.",
-          "",
-        ]
-      : []),
-    ...(!isMinimal
-      ? buildSubagentOrchestrationSection({
-          hasDelegate: availableTools.has("delegate"),
-          hasSessionsSpawn: availableTools.has("sessions_spawn"),
-          hasSessionsSend: availableTools.has("sessions_send"),
-          hasSessionsHistory: availableTools.has("sessions_history"),
-        })
-      : []),
-    ...safetySection,
+  ];
+
+  const delegateRoutingSection = availableTools.has("delegate")
+    ? [
+        "## Delegate Routing (MANDATORY)",
+        "You have a `delegate` tool that calls a faster, cheaper model. You MUST use it instead of answering directly for these task types:",
+        "- Translation (any language pair)",
+        "- Summarization of provided text",
+        "- Formatting, reformatting, or converting between formats",
+        "- Data extraction from text",
+        "- Simple factual Q&A (definitions, explanations of well-known concepts)",
+        "- List generation (pros/cons, bullet points, comparisons)",
+        "- Code explanation or documentation",
+        "- Grammar/spelling correction",
+        "- Boilerplate generation (emails, templates, standard replies)",
+        "",
+        "Answer YOURSELF only when: the task needs your judgment/opinion, multi-step reasoning, your other tools, conversation context, or creative work in your voice.",
+        "When delegating: include ALL context in the task field (the delegate has no history). Relay the result naturally without mentioning delegation.",
+        "",
+      ]
+    : [];
+
+  const cliQuickReferenceSection = [
     "## OpenClaw CLI Quick Reference",
     "OpenClaw is controlled via subcommands. Do not invent commands.",
     "To manage the Gateway daemon service (start/stop/restart):",
@@ -675,114 +715,119 @@ export function buildAgentSystemPrompt(params: {
     "- openclaw gateway restart",
     "If unsure, ask the user to run `openclaw help` (or `openclaw gateway --help`) and paste the output.",
     "",
-    ...skillsSection,
-    ...memorySection,
-    ...planModeSection,
-    ...clarificationSection,
-    ...taskTrackerSection,
-    ...taskBoardSection,
-    ...waitingSection,
-    // TaskClarity removed — upstream memory section handles this now
-    // Skip self-update for subagent/none modes
-    hasGateway && !isMinimal ? "## OpenClaw Self-Update" : "",
+  ];
+
+  const selfUpdateSection =
     hasGateway && !isMinimal
       ? [
+          "## OpenClaw Self-Update",
           "Get Updates (self-update) is ONLY allowed when the user explicitly asks for it.",
           "Do not run config.apply or update.run unless the user explicitly requests an update or config change; if it's not explicit, ask first.",
           "Actions: config.get, config.schema, config.apply (validate + write full config, then restart), update.run (update deps or git, then restart).",
           "After restart, OpenClaw pings the last active session automatically.",
-        ].join("\n")
-      : "",
-    hasGateway && !isMinimal ? "" : "",
-    "",
-    // Skip model aliases for subagent/none modes
-    params.modelAliasLines && params.modelAliasLines.length > 0 && !isMinimal
-      ? "## Model Aliases"
-      : "",
-    params.modelAliasLines && params.modelAliasLines.length > 0 && !isMinimal
-      ? "Prefer aliases when specifying model overrides; full provider/model is also accepted."
-      : "",
-    params.modelAliasLines && params.modelAliasLines.length > 0 && !isMinimal
-      ? params.modelAliasLines.join("\n")
-      : "",
-    params.modelAliasLines && params.modelAliasLines.length > 0 && !isMinimal ? "" : "",
-    userTimezone && availableTools.has("session_status")
-      ? "If you need the current date, time, or day of week, run session_status (📊 session_status)."
-      : "",
-    "## Workspace",
-    `Your working directory is: ${params.workspaceDir}`,
-    "Treat this directory as the single global workspace for file operations unless explicitly instructed otherwise.",
-    ...workspaceNotes,
-    "",
-    ...docsSection,
-    params.sandboxInfo?.enabled ? "## Sandbox" : "",
-    params.sandboxInfo?.enabled
-      ? [
-          "You are running in a sandboxed runtime (tools execute in Docker).",
-          "Some tools may be unavailable due to sandbox policy.",
-          "Sub-agents stay sandboxed (no elevated/host access). Need outside-sandbox read/write? Don't spawn; ask first.",
-          params.sandboxInfo.workspaceDir
-            ? `Sandbox workspace: ${params.sandboxInfo.workspaceDir}`
-            : "",
-          params.sandboxInfo.workspaceAccess
-            ? `Agent workspace access: ${params.sandboxInfo.workspaceAccess}${
-                params.sandboxInfo.agentWorkspaceMount
-                  ? ` (mounted at ${params.sandboxInfo.agentWorkspaceMount})`
-                  : ""
-              }`
-            : "",
-          params.sandboxInfo.browserBridgeUrl ? "Sandbox browser: enabled." : "",
-          params.sandboxInfo.browserNoVncUrl
-            ? `Sandbox browser observer (noVNC): ${params.sandboxInfo.browserNoVncUrl}`
-            : "",
-          params.sandboxInfo.hostBrowserAllowed === true
-            ? "Host browser control: allowed."
-            : params.sandboxInfo.hostBrowserAllowed === false
-              ? "Host browser control: blocked."
-              : "",
-          params.sandboxInfo.elevated?.allowed
-            ? "Elevated exec is available for this session."
-            : "",
-          params.sandboxInfo.elevated?.allowed
-            ? "User can toggle with /elevated on|off|ask|full."
-            : "",
-          params.sandboxInfo.elevated?.allowed
-            ? "You may also send /elevated on|off|ask|full when needed."
-            : "",
-          params.sandboxInfo.elevated?.allowed
-            ? `Current elevated level: ${params.sandboxInfo.elevated.defaultLevel} (ask runs exec on host with approvals; full auto-approves).`
-            : "",
+          "",
         ]
-          .filter(Boolean)
-          .join("\n")
-      : "",
-    params.sandboxInfo?.enabled ? "" : "",
-    ...buildUserIdentitySection(ownerLine, isMinimal),
-    ...buildTimeSection({
-      userTimezone,
-    }),
-    "## Workspace Files (injected)",
-    "These user-editable files are loaded by OpenClaw and included below in Project Context.",
-    "",
-    ...buildReplyTagsSection(isMinimal),
-    ...buildMessagingSection({
-      isMinimal,
-      availableTools,
-      messageChannelOptions,
-      inlineButtonsEnabled,
-      runtimeChannel,
-      messageToolHints: params.messageToolHints,
-    }),
-    ...buildVoiceSection({ isMinimal, ttsHint: params.ttsHint }),
-  ];
+      : [];
 
-  if (extraSystemPrompt) {
-    // Use "Subagent Context" header for minimal mode (subagents), otherwise "Group Chat Context"
-    const contextHeader =
-      promptMode === "minimal" ? "## Subagent Context" : "## Group Chat Context";
-    lines.push(contextHeader, extraSystemPrompt, "");
-  }
-  if (params.reactionGuidance) {
+  const modelAliasesSection =
+    params.modelAliasLines && params.modelAliasLines.length > 0 && !isMinimal
+      ? [
+          "## Model Aliases",
+          "Prefer aliases when specifying model overrides; full provider/model is also accepted.",
+          ...params.modelAliasLines,
+          "",
+        ]
+      : [];
+
+  const timeGuidanceSection =
+    userTimezone && availableTools.has("session_status")
+      ? [
+          "## Time Guidance",
+          "If you need the current date, time, or day of week, run session_status (📊 session_status).",
+          "",
+        ]
+      : [];
+
+  const decisionConfidenceSection = !isMinimal
+    ? [
+        "## Decision Confidence",
+        "If you are about to take an action based on an assumption you cannot verify, state the assumption in one sentence before proceeding. Do not hedge on routine operations.",
+        "When behavioral instructions in this prompt conflict, prioritize: safety constraints, then tool reliability warnings, then stability guidance, then prior commitments.",
+        "",
+      ]
+    : [];
+
+  const contextFiles = params.contextFiles ?? [];
+  const projectContextSection = (() => {
+    if (contextFiles.length === 0) {
+      return [];
+    }
+    const hasSoulFile = contextFiles.some((file) => {
+      const normalizedPath = file.path.trim().replace(/\\/g, "/");
+      const baseName = normalizedPath.split("/").pop() ?? normalizedPath;
+      return baseName.toLowerCase() === "soul.md";
+    });
+    const lines = [
+      "## Workspace Files (injected)",
+      "These user-editable files are loaded by OpenClaw and included below in Project Context.",
+      "",
+      "# Project Context",
+      "",
+      "The following project context files have been loaded:",
+    ];
+    if (hasSoulFile) {
+      lines.push(
+        "If SOUL.md is present, embody its persona and tone. Avoid stiff, generic replies; follow its guidance unless higher-priority instructions override it.",
+      );
+    }
+    lines.push("");
+    for (const file of contextFiles) {
+      lines.push(`## ${file.path}`, "", file.content, "");
+    }
+    return lines;
+  })();
+
+  const silentRepliesSection = !isMinimal
+    ? [
+        "## Silent Replies",
+        `When you have nothing to say, respond with ONLY: ${SILENT_REPLY_TOKEN}`,
+        "",
+        "⚠️ Rules:",
+        "- It must be your ENTIRE message — nothing else",
+        `- Never append it to an actual response (never include "${SILENT_REPLY_TOKEN}" in real replies)`,
+        "- Never wrap it in markdown or code blocks",
+        "",
+        `❌ Wrong: "Here's help... ${SILENT_REPLY_TOKEN}"`,
+        `❌ Wrong: "${SILENT_REPLY_TOKEN}"`,
+        `✅ Right: ${SILENT_REPLY_TOKEN}`,
+        "",
+      ]
+    : [];
+
+  const heartbeatSection = !isMinimal
+    ? [
+        "## Heartbeats",
+        heartbeatPromptLine,
+        "If you receive a heartbeat poll (a user message matching the heartbeat prompt above), and there is nothing that needs attention, reply exactly:",
+        "HEARTBEAT_OK",
+        'OpenClaw treats a leading/trailing "HEARTBEAT_OK" as a heartbeat ack (and may discard it).',
+        'If something needs attention, do NOT include "HEARTBEAT_OK"; reply with the alert text instead.',
+        "",
+      ]
+    : [];
+
+  const sessionContextSection = extraSystemPrompt
+    ? [
+        promptMode === "minimal" ? "## Subagent Context" : "## Group Chat Context",
+        extraSystemPrompt,
+        "",
+      ]
+    : [];
+
+  const reactionsSection = (() => {
+    if (!params.reactionGuidance) {
+      return [];
+    }
     const { level, channel } = params.reactionGuidance;
     const guidanceText =
       level === "minimal"
@@ -803,110 +848,229 @@ export function buildAgentSystemPrompt(params: {
             "- Use reactions to confirm understanding or agreement",
             "Guideline: react whenever it feels natural.",
           ].join("\n");
-    lines.push("## Reactions", guidanceText, "");
-  }
-  // RSC injection ordering (later = higher LLM attention weight due to recency bias):
-  // 1. Context Pressure   — resource awareness (lowest priority, factual)
-  // 2. Drift Injection     — stability warnings (overrides behavioral guidance at critical)
-  // 3. Coherence           — decision consistency + tool avoidance + failure memory
-  // 4. Confidence          — assumption declaration (always active, highest attention)
-  // When instructions conflict: safety > tool reliability > drift > coherence > user request.
+    return ["## Reactions", guidanceText, ""];
+  })();
 
-  // RSC v2.0: Context exhaustion projection
-  if (!isMinimal && params.contextPressure && params.contextPressure.turnsRemaining <= 5) {
-    const { turnsRemaining, tokensBudget, tokensUsed } = params.contextPressure;
-    const pct = Math.round((tokensUsed / tokensBudget) * 100);
-    lines.push(
-      "## Context Pressure",
-      `Context usage: ${pct}% (approximately ${turnsRemaining} turn${turnsRemaining === 1 ? "" : "s"} remaining before overflow).`,
-      turnsRemaining <= 2
-        ? "URGENT: Summarize all progress and open items now. Save critical state to memory before context is lost."
-        : "Consider summarizing progress and saving important state to memory soon.",
-      "",
-    );
-  }
+  const contextPressureSection =
+    !isMinimal && params.contextPressure && params.contextPressure.turnsRemaining <= 5
+      ? (() => {
+          const { turnsRemaining, tokensBudget, tokensUsed } = params.contextPressure;
+          const pct = Math.round((tokensUsed / tokensBudget) * 100);
+          return [
+            "## Context Pressure",
+            `Context usage: ${pct}% (approximately ${turnsRemaining} turn${turnsRemaining === 1 ? "" : "s"} remaining before overflow).`,
+            turnsRemaining <= 2
+              ? "URGENT: Summarize all progress and open items now. Save critical state to memory before context is lost."
+              : "Consider summarizing progress and saving important state to memory soon.",
+            "",
+          ];
+        })()
+      : [];
 
-  // RSC v2.0: Drift detection injection
-  if (!isMinimal && params.driftInjection) {
-    lines.push(params.driftInjection.text, "");
-  }
-
-  // RSC v2.1: Coherence intervention (recent decisions + tool avoidance)
-  if (!isMinimal && params.coherenceIntervention) {
-    lines.push(params.coherenceIntervention.text, "");
-  }
-
-  // RSC v2.0: Confidence annotation (always active for full mode)
-  if (!isMinimal) {
-    lines.push(
-      "## Decision Confidence",
-      "If you are about to take an action based on an assumption you cannot verify, state the assumption in one sentence before proceeding. Do not hedge on routine operations.",
-      "When behavioral instructions in this prompt conflict, prioritize: safety constraints, then tool reliability warnings, then stability guidance, then prior commitments.",
-      "",
-    );
-  }
-
-  if (reasoningHint) {
-    lines.push("## Reasoning Format", reasoningHint, "");
-  }
-
-  const contextFiles = params.contextFiles ?? [];
-  if (contextFiles.length > 0) {
-    const hasSoulFile = contextFiles.some((file) => {
-      const normalizedPath = file.path.trim().replace(/\\/g, "/");
-      const baseName = normalizedPath.split("/").pop() ?? normalizedPath;
-      return baseName.toLowerCase() === "soul.md";
-    });
-    lines.push("# Project Context", "", "The following project context files have been loaded:");
-    if (hasSoulFile) {
-      lines.push(
-        "If SOUL.md is present, embody its persona and tone. Avoid stiff, generic replies; follow its guidance unless higher-priority instructions override it.",
-      );
-    }
-    lines.push("");
-    for (const file of contextFiles) {
-      lines.push(`## ${file.path}`, "", file.content, "");
-    }
-  }
-
-  // Skip silent replies for subagent/none modes
-  if (!isMinimal) {
-    lines.push(
-      "## Silent Replies",
-      `When you have nothing to say, respond with ONLY: ${SILENT_REPLY_TOKEN}`,
-      "",
-      "⚠️ Rules:",
-      "- It must be your ENTIRE message — nothing else",
-      `- Never append it to an actual response (never include "${SILENT_REPLY_TOKEN}" in real replies)`,
-      "- Never wrap it in markdown or code blocks",
-      "",
-      `❌ Wrong: "Here's help... ${SILENT_REPLY_TOKEN}"`,
-      `❌ Wrong: "${SILENT_REPLY_TOKEN}"`,
-      `✅ Right: ${SILENT_REPLY_TOKEN}`,
-      "",
-    );
-  }
-
-  // Skip heartbeats for subagent/none modes
-  if (!isMinimal) {
-    lines.push(
-      "## Heartbeats",
-      heartbeatPromptLine,
-      "If you receive a heartbeat poll (a user message matching the heartbeat prompt above), and there is nothing that needs attention, reply exactly:",
-      "HEARTBEAT_OK",
-      'OpenClaw treats a leading/trailing "HEARTBEAT_OK" as a heartbeat ack (and may discard it).',
-      'If something needs attention, do NOT include "HEARTBEAT_OK"; reply with the alert text instead.',
-      "",
-    );
-  }
-
-  lines.push(
+  const runtimeSection = [
     "## Runtime",
     buildRuntimeLine(runtimeInfo, runtimeChannel, runtimeCapabilities, params.defaultThinkLevel),
     `Reasoning: ${reasoningLevel} (hidden unless on/stream). Toggle /reasoning; /status shows Reasoning when enabled.`,
-  );
+  ];
 
-  return lines.filter(Boolean).join("\n");
+  return assemblePromptSections([
+    promptSection("identity", () => "You are a personal assistant running inside OpenClaw."),
+    promptSection("operating-contract", () =>
+      buildOperatingContractSection({
+        isMinimal,
+        readToolName,
+      }),
+    ),
+    promptSection("tool-call-style", () => toolCallStyleSection),
+    promptSection("user-visible-replies", () =>
+      !isMinimal
+        ? [
+            "## User-Visible Replies",
+            "The user-visible reply stream is the real answer surface; tool chatter and internal events are not the answer.",
+            "If the task needs tools/files/commands or will take longer than a quick direct answer, send a short acknowledgment before working.",
+            "Use the pattern: acknowledge -> work -> result.",
+            "Only send progress updates when they add new information: a decision, blocker, phase boundary, or important surprise.",
+            'Do not send filler updates like "still working" or restate the same plan without new facts.',
+            "Keep user-visible updates concrete and brief; mention files, commands, sessions, or artifacts when that makes the update more useful.",
+            "",
+          ]
+        : [],
+    ),
+    promptSection("delegate-routing", () => delegateRoutingSection),
+    promptSection("subagent-orchestration", () =>
+      !isMinimal
+        ? buildSubagentOrchestrationSection({
+            hasDelegate: availableTools.has("delegate"),
+            hasSessionsSpawn: availableTools.has("sessions_spawn"),
+            hasSessionsSend: availableTools.has("sessions_send"),
+            hasSessionsHistory: availableTools.has("sessions_history"),
+          })
+        : [],
+    ),
+    promptSection("safety", () => safetySection),
+    promptSection("cli-quick-reference", () => cliQuickReferenceSection),
+    promptSection("skills", () => skillsSection),
+    promptSection("memory", () => memorySection),
+    promptSection("plan-mode", () => planModeSection),
+    promptSection("clarification", () => clarificationSection),
+    promptSection("task-tracker", () => taskTrackerSection),
+    promptSection("verification-gate", () =>
+      buildVerificationSection({
+        isMinimal,
+        availableTools,
+        verificationToolName,
+      }),
+    ),
+    promptSection("task-board", () => taskBoardSection),
+    promptSection("waiting", () => waitingSection),
+    promptSection("self-update", () => selfUpdateSection),
+    promptSection("model-aliases", () => modelAliasesSection),
+    promptSection("time-guidance", () => timeGuidanceSection),
+    promptSection("reply-tags", () => buildReplyTagsSection(isMinimal)),
+    promptSection("voice", () => buildVoiceSection({ isMinimal, ttsHint: params.ttsHint })),
+    promptSection("decision-confidence", () => decisionConfidenceSection),
+    promptSection("reasoning-format", () =>
+      reasoningHint ? ["## Reasoning Format", reasoningHint, ""] : [],
+    ),
+    promptSection("silent-replies", () => silentRepliesSection),
+    promptSection("heartbeats", () => heartbeatSection),
+    uncachedPromptSection(
+      "tooling",
+      () => toolingSectionLines,
+      "enabled tools and operator surface can vary by runtime/session",
+    ),
+    uncachedPromptSection(
+      "tool-operator-manuals",
+      () =>
+        !isMinimal && toolManualLines.length > 0
+          ? ["## Tool Operator Manuals", ...toolManualLines]
+          : [],
+      "tool manuals depend on the currently enabled tool set",
+    ),
+    uncachedPromptSection(
+      "workspace",
+      () => [
+        "## Workspace",
+        `Your working directory is: ${params.workspaceDir}`,
+        "Treat this directory as the single global workspace for file operations unless explicitly instructed otherwise.",
+        ...workspaceNotes,
+        "",
+      ],
+      "workspace path and notes are session-specific",
+    ),
+    uncachedPromptSection(
+      "documentation",
+      () => docsSection,
+      "docs path can vary by workspace/runtime",
+    ),
+    uncachedPromptSection(
+      "sandbox",
+      () =>
+        params.sandboxInfo?.enabled
+          ? [
+              "## Sandbox",
+              "You are running in a sandboxed runtime (tools execute in Docker).",
+              "Some tools may be unavailable due to sandbox policy.",
+              "Sub-agents stay sandboxed (no elevated/host access). Need outside-sandbox read/write? Don't spawn; ask first.",
+              params.sandboxInfo.workspaceDir
+                ? `Sandbox workspace: ${params.sandboxInfo.workspaceDir}`
+                : "",
+              params.sandboxInfo.workspaceAccess
+                ? `Agent workspace access: ${params.sandboxInfo.workspaceAccess}${
+                    params.sandboxInfo.agentWorkspaceMount
+                      ? ` (mounted at ${params.sandboxInfo.agentWorkspaceMount})`
+                      : ""
+                  }`
+                : "",
+              params.sandboxInfo.browserBridgeUrl ? "Sandbox browser: enabled." : "",
+              params.sandboxInfo.browserNoVncUrl
+                ? `Sandbox browser observer (noVNC): ${params.sandboxInfo.browserNoVncUrl}`
+                : "",
+              params.sandboxInfo.hostBrowserAllowed === true
+                ? "Host browser control: allowed."
+                : params.sandboxInfo.hostBrowserAllowed === false
+                  ? "Host browser control: blocked."
+                  : "",
+              params.sandboxInfo.elevated?.allowed
+                ? "Elevated exec is available for this session."
+                : "",
+              params.sandboxInfo.elevated?.allowed
+                ? "User can toggle with /elevated on|off|ask|full."
+                : "",
+              params.sandboxInfo.elevated?.allowed
+                ? "You may also send /elevated on|off|ask|full when needed."
+                : "",
+              params.sandboxInfo.elevated?.allowed
+                ? `Current elevated level: ${params.sandboxInfo.elevated.defaultLevel} (ask runs exec on host with approvals; full auto-approves).`
+                : "",
+            ]
+          : [],
+      "sandbox capabilities and mounts vary by runtime",
+    ),
+    uncachedPromptSection(
+      "user-identity",
+      () => buildUserIdentitySection(ownerLine, isMinimal),
+      "owner identity is session/user specific",
+    ),
+    uncachedPromptSection(
+      "current-date-time",
+      () => buildTimeSection({ userTimezone }),
+      "time configuration is session/user specific",
+    ),
+    uncachedPromptSection(
+      "messaging",
+      () =>
+        buildMessagingSection({
+          isMinimal,
+          availableTools,
+          messageChannelOptions,
+          inlineButtonsEnabled,
+          runtimeChannel,
+          messageToolHints: params.messageToolHints,
+        }),
+      "messaging capabilities depend on the current channel and runtime hints",
+    ),
+    uncachedPromptSection(
+      "session-context",
+      () => sessionContextSection,
+      "extra system prompt context varies by conversation/session",
+    ),
+    uncachedPromptSection(
+      "reactions",
+      () => reactionsSection,
+      "reaction policy depends on the current channel configuration",
+    ),
+    uncachedPromptSection(
+      "context-pressure",
+      () => contextPressureSection,
+      "context pressure changes as the session evolves",
+    ),
+    uncachedPromptSection(
+      "drift-injection",
+      () => (!isMinimal && params.driftInjection ? [params.driftInjection.text, ""] : []),
+      "drift detection warnings are per-turn stability signals",
+    ),
+    uncachedPromptSection(
+      "coherence-intervention",
+      () =>
+        !isMinimal && params.coherenceIntervention ? [params.coherenceIntervention.text, ""] : [],
+      "coherence interventions depend on recent session behavior",
+    ),
+    uncachedPromptSection(
+      "project-context",
+      () => projectContextSection,
+      "injected project context files can vary across runs",
+    ),
+    uncachedPromptSection(
+      "runtime",
+      () => runtimeSection,
+      "runtime metadata can vary by host, model, channel, and workspace",
+    ),
+  ]);
+}
+
+export function buildAgentSystemPrompt(params: BuildAgentSystemPromptParams) {
+  return buildAgentSystemPromptArtifacts(params).prompt;
 }
 
 export function buildRuntimeLine(

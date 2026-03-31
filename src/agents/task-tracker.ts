@@ -738,6 +738,87 @@ export async function createTaskTrackerTask(params: {
   };
 }
 
+export async function ensureActiveVerificationTask(params: {
+  context: TaskTrackerContext;
+  description?: string;
+  metadata?: Record<string, unknown>;
+  now?: number;
+}): Promise<TaskTrackerTask> {
+  const existing = await loadTaskTrackerState(params.context);
+  const activeVerification = existing.activeTasks.find((task) => task.type === "verification");
+  if (activeVerification) {
+    return activeVerification;
+  }
+
+  const nowIso = toIsoString(params.now);
+  const existingIds = new Set<string>();
+  for (const task of [
+    ...existing.activeTasks,
+    ...existing.archivedTasks,
+    ...existing.submittedTasks,
+  ]) {
+    existingIds.add(task.id);
+  }
+  const description = params.description?.trim() || "Run verification before final summary";
+  const nextTask = TaskTrackerTaskSchema.parse({
+    id: makeUniqueTaskId("verification", existingIds, nowIso),
+    content: description,
+    subject: description,
+    description,
+    activeForm: "Running verification before final summary",
+    status: "pending",
+    type: "verification",
+    ownerAgentId: params.context.agentId,
+    sessionId: params.context.sessionId,
+    createdAt: nowIso,
+    updatedAt: nowIso,
+    metadata: params.metadata,
+  });
+
+  const result = applyTaskTrackerUpdate({
+    existing,
+    tasks: [...existing.activeTasks, nextTask],
+    context: params.context,
+    now: params.now,
+  });
+  const createdTask = findTaskById(result.state, nextTask.id);
+  if (!createdTask) {
+    throw new Error(`Verification task creation failed to persist task ${nextTask.id}`);
+  }
+
+  await saveTaskTrackerState(params.context, result.state);
+  return createdTask;
+}
+
+export async function completeActiveVerificationTask(params: {
+  context: TaskTrackerContext;
+  metadata?: Record<string, unknown>;
+  now?: number;
+}): Promise<TaskTrackerTask | null> {
+  const existing = await loadTaskTrackerState(params.context);
+  const activeVerification = existing.activeTasks.find((task) => task.type === "verification");
+  if (!activeVerification) {
+    return null;
+  }
+
+  const mergedMetadata =
+    params.metadata === undefined
+      ? activeVerification.metadata
+      : {
+          ...activeVerification.metadata,
+          ...params.metadata,
+        };
+
+  const result = await updateTaskTrackerTask({
+    context: params.context,
+    taskId: activeVerification.id,
+    status: "completed",
+    metadata: mergedMetadata,
+    now: params.now,
+  });
+  return result.task;
+}
+
 export async function updateTaskTrackerTask(params: {
   context: TaskTrackerContext;
   taskId: string;

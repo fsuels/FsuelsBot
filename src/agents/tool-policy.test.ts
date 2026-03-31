@@ -34,6 +34,7 @@ describe("tool-policy", () => {
     expect(group).toContain("delegate");
     expect(group).toContain("message");
     expect(group).toContain("session_status");
+    expect(group).toContain("verification_gate");
     expect(group).toContain("task_tracker");
     expect(group).toContain("tts");
   });

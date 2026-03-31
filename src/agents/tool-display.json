@@ -306,6 +306,11 @@
       "title": "Task Tracker",
       "detailKeys": ["action"]
     },
+    "verification_gate": {
+      "emoji": "✅",
+      "title": "Verification Gate",
+      "detailKeys": ["changeSummary", "editedFilesCount", "spotCheckCount"]
+    },
     "task_tracker": {
       "emoji": "🗃️",
       "title": "Task Tracker",

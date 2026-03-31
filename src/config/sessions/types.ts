@@ -74,6 +74,68 @@ export type SessionTaskSwitchAudit = {
   source?: string;
 };
 
+export type SessionClarificationPreviewFormat = "markdown";
+
+export type SessionClarificationOption = {
+  id: string;
+  label: string;
+  description: string;
+  preview?: string;
+  previewFormat?: SessionClarificationPreviewFormat;
+};
+
+export type SessionClarificationQuestion = {
+  id: string;
+  header: string;
+  question: string;
+  multiSelect: boolean;
+  allowOther: boolean;
+  recommendedOptionId?: string;
+  metadata?: {
+    source?: string;
+    reason?: string;
+  };
+  options: SessionClarificationOption[];
+};
+
+export type SessionClarificationDelivery = {
+  transport: "telegram_buttons" | "plain_text" | "tool_result" | "assumption";
+  channel?: string;
+  target?: string;
+  interactiveUi: boolean;
+  fallbackUsed: boolean;
+};
+
+export type SessionClarificationAnswer = {
+  questionId: string;
+  selectedOptionIds: string[];
+  otherText?: string;
+  notes?: string;
+  selectedPreview?: string;
+};
+
+export type SessionClarificationPending = {
+  promptId: string;
+  askedAt: number;
+  promptText: string;
+  delivery: SessionClarificationDelivery;
+  questions: SessionClarificationQuestion[];
+};
+
+export type SessionClarificationTelemetry = {
+  promptId: string;
+  status: "asked" | "answered" | "declined" | "assumed" | "timed_out";
+  recordedAt: number;
+  source?: string;
+  reason?: string;
+  channel?: string;
+  transport?: SessionClarificationDelivery["transport"];
+  interactiveUi?: boolean;
+  fallbackUsed?: boolean;
+  timeToAnswerMs?: number;
+  changedExecutionPath?: boolean;
+};
+
 export type SessionEntry = {
   /**
    * Last delivered heartbeat payload (used to suppress duplicate heartbeat notifications).
@@ -124,6 +186,8 @@ export type SessionEntry = {
   groupActivation?: "mention" | "always";
   groupActivationNeedsSystemIntro?: boolean;
   sendPolicy?: "allow" | "deny";
+  collaborationMode?: "plan";
+  planProfile?: "proactive" | "conservative";
   queueMode?:
     | "steer"
     | "followup"
@@ -182,6 +246,8 @@ export type SessionEntry = {
   // -- Task Checkpoint (auto-save cadence) --
   /** Counts completed reply turns in this session; used to trigger periodic task checkpoints. */
   replyCount?: number;
+  pendingClarification?: SessionClarificationPending;
+  clarificationTelemetry?: SessionClarificationTelemetry[];
 };
 
 export function mergeSessionEntry(
@@ -227,6 +293,17 @@ export type SessionSystemPromptReport = {
     chars: number;
     projectContextChars: number;
     nonProjectContextChars: number;
+  };
+  cache?: {
+    boundaryMarker: string;
+    staticPrefixHash: string;
+    staticPrefixChars: number;
+    dynamicTailChars: number;
+    staticPrefixCacheStatus: "hit" | "miss";
+    staticPrefixSeenCount: number;
+    recomputedSectionCount: number;
+    staticSectionNames: string[];
+    dynamicSectionNames: string[];
   };
   injectedWorkspaceFiles: Array<{
     name: string;

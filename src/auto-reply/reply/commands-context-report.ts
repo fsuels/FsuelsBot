@@ -11,7 +11,7 @@ import { buildWorkspaceSkillSnapshot } from "../../agents/skills.js";
 import { getSkillsSnapshotVersion } from "../../agents/skills/refresh.js";
 import { buildSystemPromptParams } from "../../agents/system-prompt-params.js";
 import { buildSystemPromptReport } from "../../agents/system-prompt-report.js";
-import { buildAgentSystemPrompt } from "../../agents/system-prompt.js";
+import { buildAgentSystemPromptArtifacts } from "../../agents/system-prompt.js";
 import { buildToolOperatorManualMap, buildToolSummaryMap } from "../../agents/tool-summaries.js";
 import { getRemoteSkillEligibility } from "../../infra/skills-remote.js";
 import { buildTtsSystemPromptHint } from "../../tts/tts.js";
@@ -139,7 +139,7 @@ async function resolveContextReport(
     : { enabled: false };
   const ttsHint = params.cfg ? buildTtsSystemPromptHint(params.cfg) : undefined;
 
-  const systemPrompt = buildAgentSystemPrompt({
+  const promptArtifacts = buildAgentSystemPromptArtifacts({
     workspaceDir,
     defaultThinkLevel: params.resolvedThinkLevel,
     reasoningLevel: params.resolvedReasoningLevel,
@@ -161,6 +161,7 @@ async function resolveContextReport(
     memoryCitationsMode: params.cfg?.memory?.citations,
     toolManuals: buildToolOperatorManualMap(tools),
   });
+  const systemPrompt = promptArtifacts.prompt;
 
   return buildSystemPromptReport({
     source: "estimate",
@@ -173,6 +174,7 @@ async function resolveContextReport(
     bootstrapMaxChars,
     sandbox: { mode: sandboxRuntime.mode, sandboxed: sandboxRuntime.sandboxed },
     systemPrompt,
+    promptAssembly: promptArtifacts,
     bootstrapFiles,
     injectedFiles,
     skillsPrompt,

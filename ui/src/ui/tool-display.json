@@ -40,6 +40,11 @@
       "title": "Task Output",
       "detailKeys": ["task_id", "taskId", "block", "timeout_ms", "timeoutMs"]
     },
+    "verification_gate": {
+      "icon": "badgeCheck",
+      "title": "Verification",
+      "detailKeys": ["changeSummary", "editedFilesCount", "spotCheckCount"]
+    },
     "ask_user_question": {
       "icon": "circleHelp",
       "title": "Clarify",
