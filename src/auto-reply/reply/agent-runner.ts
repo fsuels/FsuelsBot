@@ -12,6 +12,7 @@ import { isCliProvider } from "../../agents/model-selection.js";
 import { queueEmbeddedPiMessage } from "../../agents/pi-embedded.js";
 import { hasNonzeroUsage } from "../../agents/usage.js";
 import {
+  loadSessionStore,
   resolveAgentIdFromSessionKey,
   resolveSessionFilePath,
   resolveSessionTranscriptPath,
@@ -437,6 +438,21 @@ export async function runReplyAgent(params: {
       workspaceDir: followupRun.run.workspaceDir,
       taskId: followupRun.run.taskId,
     });
+
+    const askedForClarification = (runResult.toolMetas ?? []).some(
+      (entry) => entry.toolName?.trim().toLowerCase() === "ask_user_question",
+    );
+    if (askedForClarification && sessionKey && storePath) {
+      const refreshedStore = loadSessionStore(storePath);
+      const refreshedEntry = refreshedStore[sessionKey];
+      if (refreshedEntry?.pendingClarification) {
+        activeSessionEntry = refreshedEntry;
+        if (activeSessionStore) {
+          activeSessionStore[sessionKey] = refreshedEntry;
+        }
+        return finalizeWithFollowup(undefined, queueKey, runFollowupTurn);
+      }
+    }
 
     // Drain any late tool/block deliveries before deciding there's "nothing to send".
     // Otherwise, a late typing trigger (e.g. from a tool callback) can outlive the run and

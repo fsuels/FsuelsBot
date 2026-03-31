@@ -6,6 +6,7 @@ import { resolveSessionAgentId } from "./agent-scope.js";
 import { applyToolContracts } from "./tool-contracts.js";
 import { assertUniqueToolNames } from "./tool-policy.js";
 import { createAgentsListTool } from "./tools/agents-list-tool.js";
+import { createAskUserQuestionTool } from "./tools/ask-user-question-tool.js";
 import { createBrowserTool } from "./tools/browser-tool.js";
 import { createCanvasTool } from "./tools/canvas-tool.js";
 import { createCronTool } from "./tools/cron-tool.js";
@@ -121,6 +122,18 @@ export function createOpenClawTools(options?: {
     }),
     createSleepTool({
       agentSessionKey: options?.agentSessionKey,
+      config: options?.config,
+    }),
+    createAskUserQuestionTool({
+      agentSessionKey: options?.agentSessionKey,
+      agentChannel: options?.agentChannel,
+      agentAccountId: options?.agentAccountId,
+      agentTo: options?.agentTo,
+      agentThreadId: options?.agentThreadId,
+      currentChannelId: options?.currentChannelId,
+      currentThreadTs: options?.currentThreadTs,
+      replyToMode: options?.replyToMode,
+      hasRepliedRef: options?.hasRepliedRef,
       config: options?.config,
     }),
     createTasksListTool({

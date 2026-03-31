@@ -54,6 +54,7 @@ import {
 import { SILENT_REPLY_TOKEN } from "../tokens.js";
 import { runReplyAgent } from "./agent-runner.js";
 import { applySessionHints } from "./body.js";
+import { resolveInboundClarification } from "./clarification.js";
 import { buildGroupIntro } from "./groups.js";
 import { resolveQueueSettings } from "./queue.js";
 import { routeReply } from "./route-reply.js";
@@ -208,7 +209,17 @@ export async function runPreparedReply(
   const extraSystemPrompt = [groupIntro, groupSystemPrompt, injectedSystemPrompt]
     .filter(Boolean)
     .join("\n\n");
-  const baseBody = sessionCtx.BodyStripped ?? sessionCtx.Body ?? "";
+  const clarification = await resolveInboundClarification({
+    sessionEntry,
+    sessionStore,
+    sessionKey,
+    storePath,
+    sessionCtx,
+  });
+  if (clarification.sessionEntry) {
+    sessionEntry = clarification.sessionEntry;
+  }
+  const baseBody = clarification.injectedBody ?? sessionCtx.BodyStripped ?? sessionCtx.Body ?? "";
   // Use CommandBody/RawBody for bare reset detection (clean message without structural context).
   const rawBodyTrimmed = (ctx.CommandBody ?? ctx.RawBody ?? ctx.Body ?? "").trim();
   const baseBodyTrimmedRaw = baseBody.trim();

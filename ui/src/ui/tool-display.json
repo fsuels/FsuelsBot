@@ -40,6 +40,11 @@
       "title": "Task Output",
       "detailKeys": ["task_id", "taskId", "block", "timeout_ms", "timeoutMs"]
     },
+    "ask_user_question": {
+      "icon": "circleHelp",
+      "title": "Clarify",
+      "detailKeys": ["questions.0.header", "questions.0.question"]
+    },
     "task_output": {
       "icon": "fileSearch",
       "title": "Task Output",

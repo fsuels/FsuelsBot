@@ -45,6 +45,11 @@
       "title": "Sleep",
       "detailKeys": ["durationMs", "until", "reason"]
     },
+    "ask_user_question": {
+      "emoji": "❓",
+      "title": "Clarify",
+      "detailKeys": ["questions.0.header", "questions.0.question"]
+    },
     "task_output": {
       "emoji": "📦",
       "title": "Task Output",

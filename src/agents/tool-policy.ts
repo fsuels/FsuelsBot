@@ -24,6 +24,7 @@ export const CORE_TOOL_IDS = [
   "process",
   "get_task_output",
   "sleep",
+  "ask_user_question",
   "browser",
   "canvas",
   "nodes",
@@ -63,6 +64,7 @@ export const TOOL_GROUPS = {
   "group:sessions": [
     "tasks_list",
     "task_get",
+    "ask_user_question",
     "sessions_list",
     "sessions_history",
     "sessions_send",
@@ -89,6 +91,7 @@ export const TOOL_GROUPS = {
     "tts",
     "gateway",
     "sleep",
+    "ask_user_question",
     "tasks_list",
     "task_get",
     "agents_list",
