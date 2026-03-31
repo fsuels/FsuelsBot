@@ -607,6 +607,8 @@ export type ExecCommandSegment = {
   raw: string;
   argv: string[];
   resolution: CommandResolution | null;
+  canonicalArgv?: string[];
+  canonicalResolution?: CommandResolution | null;
 };
 
 export type ExecCommandAnalysis = {
@@ -631,9 +633,208 @@ const WINDOWS_UNSUPPORTED_TOKENS = new Set([
   "\n",
   "\r",
 ]);
+const MAX_EXEC_ANALYSIS_SEGMENTS = 32;
+const MAX_EXEC_CANONICALIZATION_PASSES = 8;
+
+function hasTooManyExecSegments(count: number): boolean {
+  return count > MAX_EXEC_ANALYSIS_SEGMENTS;
+}
+
+function normalizeExecutableBasename(value: string): string {
+  const base = path.basename(value).toLowerCase();
+  return base.replace(/\.(exe|cmd|bat|com)$/i, "");
+}
+
+function isLeadingEnvAssignment(token: string): boolean {
+  return /^[A-Za-z_][A-Za-z0-9_]*=.*/.test(token);
+}
+
+function stripLeadingEnvAssignments(argv: string[]): string[] {
+  let index = 0;
+  while (index < argv.length && isLeadingEnvAssignment(argv[index] ?? "")) {
+    index += 1;
+  }
+  return index > 0 ? argv.slice(index) : argv;
+}
+
+function stripTimeoutWrapper(argv: string[]): string[] | null {
+  let index = 1;
+  while (index < argv.length) {
+    const token = argv[index] ?? "";
+    if (!token) {
+      break;
+    }
+    if (token === "--") {
+      index += 1;
+      break;
+    }
+    if (!token.startsWith("-") || token === "-") {
+      break;
+    }
+    if (
+      token === "--foreground" ||
+      token === "--preserve-status" ||
+      token.startsWith("--kill-after=") ||
+      token.startsWith("--signal=")
+    ) {
+      index += 1;
+      continue;
+    }
+    if (token === "-k" || token === "-s" || token === "--kill-after" || token === "--signal") {
+      if (index + 1 >= argv.length) {
+        return null;
+      }
+      index += 2;
+      continue;
+    }
+    return null;
+  }
+
+  if (index >= argv.length) {
+    return null;
+  }
+  index += 1; // DURATION
+  if (argv[index] === "--") {
+    index += 1;
+  }
+  return index < argv.length ? argv.slice(index) : null;
+}
+
+function stripNiceWrapper(argv: string[]): string[] | null {
+  let index = 1;
+  while (index < argv.length) {
+    const token = argv[index] ?? "";
+    if (!token) {
+      break;
+    }
+    if (token === "--") {
+      index += 1;
+      break;
+    }
+    if (!token.startsWith("-") || token === "-") {
+      break;
+    }
+    if (token === "-n" || token === "--adjustment") {
+      if (index + 1 >= argv.length) {
+        return null;
+      }
+      index += 2;
+      continue;
+    }
+    if (token.startsWith("-n") || token.startsWith("--adjustment=")) {
+      index += 1;
+      continue;
+    }
+    return null;
+  }
+  return index < argv.length ? argv.slice(index) : null;
+}
+
+function stripKnownAllowlistWrapper(argv: string[], platform?: string | null): string[] | null {
+  if (argv.length === 0 || isWindowsPlatform(platform)) {
+    return null;
+  }
+  const raw = argv[0] ?? "";
+  if (raw.includes("/") || raw.includes("\\")) {
+    return null;
+  }
+  const command = normalizeExecutableBasename(argv[0] ?? "");
+  if (command === "nohup") {
+    const next = argv[1];
+    const start = next === "--" ? 2 : 1;
+    return start < argv.length ? argv.slice(start) : null;
+  }
+  if (command === "nice") {
+    return stripNiceWrapper(argv);
+  }
+  if (command === "timeout") {
+    return stripTimeoutWrapper(argv);
+  }
+  return null;
+}
+
+function canonicalizeCommandSegment(params: {
+  argv: string[];
+  cwd?: string;
+  env?: NodeJS.ProcessEnv;
+  platform?: string | null;
+}): { argv: string[]; resolution: CommandResolution | null } {
+  const original = params.argv.filter((entry) => entry.trim().length > 0);
+  if (original.length === 0) {
+    return { argv: [], resolution: null };
+  }
+  if (isWindowsPlatform(params.platform)) {
+    return {
+      argv: original,
+      resolution: resolveCommandResolutionFromArgv(original, params.cwd, params.env),
+    };
+  }
+
+  let current = original;
+  for (let pass = 0; pass < MAX_EXEC_CANONICALIZATION_PASSES; pass += 1) {
+    let changed = false;
+    const strippedEnv = stripLeadingEnvAssignments(current);
+    if (strippedEnv.length !== current.length) {
+      current = strippedEnv;
+      changed = true;
+      if (current.length === 0) {
+        break;
+      }
+    }
+
+    const strippedWrapper = stripKnownAllowlistWrapper(current, params.platform);
+    if (
+      strippedWrapper &&
+      strippedWrapper.length > 0 &&
+      strippedWrapper.length !== current.length
+    ) {
+      current = strippedWrapper;
+      changed = true;
+      continue;
+    }
+
+    if (!changed) {
+      break;
+    }
+  }
+
+  return {
+    argv: current,
+    resolution:
+      current.length > 0 ? resolveCommandResolutionFromArgv(current, params.cwd, params.env) : null,
+  };
+}
 
 function isDoubleQuoteEscape(next: string | undefined): next is string {
   return Boolean(next && DOUBLE_QUOTE_ESCAPES.has(next));
+}
+
+function getUnsupportedDollarExpansionReason(next: string | undefined): string | null {
+  if (!next) {
+    return null;
+  }
+  if (next === "(") {
+    return "unsupported shell token: $()";
+  }
+  if (next === "{") {
+    return "unsupported shell token: ${}";
+  }
+  if (
+    /[A-Za-z0-9_]/.test(next) ||
+    next === "@" ||
+    next === "*" ||
+    next === "#" ||
+    next === "?" ||
+    next === "!" ||
+    next === "-" ||
+    next === "$" ||
+    next === "'" ||
+    next === '"' ||
+    next === "["
+  ) {
+    return "unsupported shell token: variable expansion";
+  }
+  return null;
 }
 
 type IteratorAction = "split" | "skip" | "include" | { reject: string };
@@ -693,8 +894,11 @@ function iterateQuoteAware(
         i += 1;
         continue;
       }
-      if (ch === "$" && next === "(") {
-        return { ok: false, reason: "unsupported shell token: $()" };
+      if (ch === "$") {
+        const reason = getUnsupportedDollarExpansionReason(next);
+        if (reason) {
+          return { ok: false, reason };
+        }
       }
       if (ch === "`") {
         return { ok: false, reason: "unsupported shell token: `" };
@@ -760,8 +964,11 @@ function splitShellPipeline(command: string): { ok: boolean; reason?: string; se
     if (DISALLOWED_PIPELINE_TOKENS.has(ch)) {
       return { reject: `unsupported shell token: ${ch}` };
     }
-    if (ch === "$" && next === "(") {
-      return { reject: "unsupported shell token: $()" };
+    if (ch === "$") {
+      const reason = getUnsupportedDollarExpansionReason(next);
+      if (reason) {
+        return { reject: reason };
+      }
     }
     emptySegment = false;
     return "include";
@@ -933,6 +1140,7 @@ function parseSegmentsFromParts(
   parts: string[],
   cwd?: string,
   env?: NodeJS.ProcessEnv,
+  platform?: string | null,
 ): ExecCommandSegment[] | null {
   const segments: ExecCommandSegment[] = [];
   for (const raw of parts) {
@@ -940,10 +1148,13 @@ function parseSegmentsFromParts(
     if (!argv || argv.length === 0) {
       return null;
     }
+    const canonical = canonicalizeCommandSegment({ argv, cwd, env, platform });
     segments.push({
       raw,
       argv,
       resolution: resolveCommandResolutionFromArgv(argv, cwd, env),
+      canonicalArgv: canonical.argv,
+      canonicalResolution: canonical.resolution,
     });
   }
   return segments;
@@ -960,6 +1171,13 @@ export function analyzeShellCommand(params: {
   }
   // First try splitting by chain operators (&&, ||, ;)
   const chainParts = splitCommandChain(params.command);
+  if (chainParts && hasTooManyExecSegments(chainParts.length)) {
+    return {
+      ok: false,
+      reason: `too many shell segments (max ${MAX_EXEC_ANALYSIS_SEGMENTS})`,
+      segments: [],
+    };
+  }
   if (chainParts) {
     const chains: ExecCommandSegment[][] = [];
     const allSegments: ExecCommandSegment[] = [];
@@ -969,7 +1187,19 @@ export function analyzeShellCommand(params: {
       if (!pipelineSplit.ok) {
         return { ok: false, reason: pipelineSplit.reason, segments: [] };
       }
-      const segments = parseSegmentsFromParts(pipelineSplit.segments, params.cwd, params.env);
+      if (hasTooManyExecSegments(allSegments.length + pipelineSplit.segments.length)) {
+        return {
+          ok: false,
+          reason: `too many shell segments (max ${MAX_EXEC_ANALYSIS_SEGMENTS})`,
+          segments: [],
+        };
+      }
+      const segments = parseSegmentsFromParts(
+        pipelineSplit.segments,
+        params.cwd,
+        params.env,
+        params.platform,
+      );
       if (!segments) {
         return { ok: false, reason: "unable to parse shell segment", segments: [] };
       }
@@ -985,7 +1215,14 @@ export function analyzeShellCommand(params: {
   if (!split.ok) {
     return { ok: false, reason: split.reason, segments: [] };
   }
-  const segments = parseSegmentsFromParts(split.segments, params.cwd, params.env);
+  if (hasTooManyExecSegments(split.segments.length)) {
+    return {
+      ok: false,
+      reason: `too many shell segments (max ${MAX_EXEC_ANALYSIS_SEGMENTS})`,
+      segments: [],
+    };
+  }
+  const segments = parseSegmentsFromParts(split.segments, params.cwd, params.env, params.platform);
   if (!segments) {
     return { ok: false, reason: "unable to parse shell segment", segments: [] };
   }
@@ -996,11 +1233,18 @@ export function analyzeArgvCommand(params: {
   argv: string[];
   cwd?: string;
   env?: NodeJS.ProcessEnv;
+  platform?: string | null;
 }): ExecCommandAnalysis {
   const argv = params.argv.filter((entry) => entry.trim().length > 0);
   if (argv.length === 0) {
     return { ok: false, reason: "empty argv", segments: [] };
   }
+  const canonical = canonicalizeCommandSegment({
+    argv,
+    cwd: params.cwd,
+    env: params.env,
+    platform: params.platform,
+  });
   return {
     ok: true,
     segments: [
@@ -1008,6 +1252,8 @@ export function analyzeArgvCommand(params: {
         raw: argv.join(" "),
         argv,
         resolution: resolveCommandResolutionFromArgv(argv, params.cwd, params.env),
+        canonicalArgv: canonical.argv,
+        canonicalResolution: canonical.resolution,
       },
     ],
   };
@@ -1129,24 +1375,29 @@ function evaluateSegments(
   const allowSkills = params.autoAllowSkills === true && (params.skillBins?.size ?? 0) > 0;
 
   const satisfied = segments.every((segment) => {
-    const candidatePath = resolveAllowlistCandidatePath(segment.resolution, params.cwd);
+    const effectiveArgv =
+      Array.isArray(segment.canonicalArgv) && segment.canonicalArgv.length > 0
+        ? segment.canonicalArgv
+        : segment.argv;
+    const effectiveResolution = segment.canonicalResolution ?? segment.resolution;
+    const candidatePath = resolveAllowlistCandidatePath(effectiveResolution, params.cwd);
     const candidateResolution =
-      candidatePath && segment.resolution
-        ? { ...segment.resolution, resolvedPath: candidatePath }
-        : segment.resolution;
+      candidatePath && effectiveResolution
+        ? { ...effectiveResolution, resolvedPath: candidatePath }
+        : effectiveResolution;
     const match = matchAllowlist(params.allowlist, candidateResolution);
     if (match) {
       matches.push(match);
     }
     const safe = isSafeBinUsage({
-      argv: segment.argv,
-      resolution: segment.resolution,
+      argv: effectiveArgv,
+      resolution: effectiveResolution,
       safeBins: params.safeBins,
       cwd: params.cwd,
     });
     const skillAllow =
-      allowSkills && segment.resolution?.executableName
-        ? params.skillBins?.has(segment.resolution.executableName)
+      allowSkills && effectiveResolution?.executableName
+        ? params.skillBins?.has(effectiveResolution.executableName)
         : false;
     return Boolean(match || safe || skillAllow);
   });
@@ -1303,6 +1554,7 @@ function splitCommandChain(command: string): string[] | null {
 
 export type ExecAllowlistAnalysis = {
   analysisOk: boolean;
+  analysisReason?: string;
   allowlistSatisfied: boolean;
   allowlistMatches: ExecAllowlistEntry[];
   segments: ExecCommandSegment[];
@@ -1322,81 +1574,44 @@ export function evaluateShellAllowlist(params: {
   platform?: string | null;
 }): ExecAllowlistAnalysis {
   const chainParts = isWindowsPlatform(params.platform) ? null : splitCommandChain(params.command);
-  if (!chainParts) {
-    const analysis = analyzeShellCommand({
-      command: params.command,
-      cwd: params.cwd,
-      env: params.env,
-      platform: params.platform,
-    });
-    if (!analysis.ok) {
-      return {
-        analysisOk: false,
-        allowlistSatisfied: false,
-        allowlistMatches: [],
-        segments: [],
-      };
-    }
-    const evaluation = evaluateExecAllowlist({
-      analysis,
-      allowlist: params.allowlist,
-      safeBins: params.safeBins,
-      cwd: params.cwd,
-      skillBins: params.skillBins,
-      autoAllowSkills: params.autoAllowSkills,
-    });
+  if (chainParts) {
     return {
-      analysisOk: true,
-      allowlistSatisfied: evaluation.allowlistSatisfied,
-      allowlistMatches: evaluation.allowlistMatches,
-      segments: analysis.segments,
+      analysisOk: false,
+      analysisReason: "command chaining requires approval in allowlist mode",
+      allowlistSatisfied: false,
+      allowlistMatches: [],
+      segments: [],
     };
   }
 
-  const allowlistMatches: ExecAllowlistEntry[] = [];
-  const segments: ExecCommandSegment[] = [];
-
-  for (const part of chainParts) {
-    const analysis = analyzeShellCommand({
-      command: part,
-      cwd: params.cwd,
-      env: params.env,
-      platform: params.platform,
-    });
-    if (!analysis.ok) {
-      return {
-        analysisOk: false,
-        allowlistSatisfied: false,
-        allowlistMatches: [],
-        segments: [],
-      };
-    }
-
-    segments.push(...analysis.segments);
-    const evaluation = evaluateExecAllowlist({
-      analysis,
-      allowlist: params.allowlist,
-      safeBins: params.safeBins,
-      cwd: params.cwd,
-      skillBins: params.skillBins,
-      autoAllowSkills: params.autoAllowSkills,
-    });
-    allowlistMatches.push(...evaluation.allowlistMatches);
-    if (!evaluation.allowlistSatisfied) {
-      return {
-        analysisOk: true,
-        allowlistSatisfied: false,
-        allowlistMatches,
-        segments,
-      };
-    }
+  const analysis = analyzeShellCommand({
+    command: params.command,
+    cwd: params.cwd,
+    env: params.env,
+    platform: params.platform,
+  });
+  if (!analysis.ok) {
+    return {
+      analysisOk: false,
+      analysisReason: analysis.reason,
+      allowlistSatisfied: false,
+      allowlistMatches: [],
+      segments: [],
+    };
   }
-
+  const evaluation = evaluateExecAllowlist({
+    analysis,
+    allowlist: params.allowlist,
+    safeBins: params.safeBins,
+    cwd: params.cwd,
+    skillBins: params.skillBins,
+    autoAllowSkills: params.autoAllowSkills,
+  });
   return {
     analysisOk: true,
-    allowlistSatisfied: true,
-    allowlistMatches,
-    segments,
+    allowlistSatisfied: evaluation.allowlistSatisfied,
+    allowlistMatches: evaluation.allowlistMatches,
+    segments: analysis.segments,
   };
 }
 

@@ -903,6 +903,7 @@ async function handleInvoke(
   const safeBins = resolveSafeBins(agentExec?.safeBins ?? cfg.tools?.exec?.safeBins);
   const bins = autoAllowSkills ? await skillBins.current() : new Set<string>();
   let analysisOk = false;
+  let analysisReason: string | undefined;
   let allowlistMatches: ExecAllowlistEntry[] = [];
   let allowlistSatisfied = false;
   let segments: ExecCommandSegment[] = [];
@@ -918,12 +919,18 @@ async function handleInvoke(
       platform: process.platform,
     });
     analysisOk = allowlistEval.analysisOk;
+    analysisReason = allowlistEval.analysisReason;
     allowlistMatches = allowlistEval.allowlistMatches;
     allowlistSatisfied =
       security === "allowlist" && analysisOk ? allowlistEval.allowlistSatisfied : false;
     segments = allowlistEval.segments;
   } else {
-    const analysis = analyzeArgvCommand({ argv, cwd: params.cwd ?? undefined, env });
+    const analysis = analyzeArgvCommand({
+      argv,
+      cwd: params.cwd ?? undefined,
+      env,
+      platform: process.platform,
+    });
     const allowlistEval = evaluateExecAllowlist({
       analysis,
       allowlist: approvals.allowlist,
@@ -937,6 +944,13 @@ async function handleInvoke(
     allowlistSatisfied =
       security === "allowlist" && analysisOk ? allowlistEval.allowlistSatisfied : false;
     segments = analysis.segments;
+    if (security === "allowlist" && process.platform === "win32" && isCmdExeInvocation(argv)) {
+      analysisOk = false;
+      analysisReason = "cmd.exe requires approval in allowlist mode";
+      allowlistSatisfied = false;
+      allowlistMatches = [];
+      segments = [];
+    }
   }
   const isWindows = process.platform === "win32";
   const cmdInvocation = rawCommand
@@ -1104,7 +1118,10 @@ async function handleInvoke(
     );
     await sendInvokeResult(client, frame, {
       ok: false,
-      error: { code: "UNAVAILABLE", message: "SYSTEM_RUN_DENIED: allowlist miss" },
+      error: {
+        code: "UNAVAILABLE",
+        message: `SYSTEM_RUN_DENIED: ${!analysisOk && analysisReason ? analysisReason : "allowlist miss"}`,
+      },
     });
     return;
   }

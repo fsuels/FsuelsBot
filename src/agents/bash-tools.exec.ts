@@ -53,6 +53,7 @@ import {
 } from "./bash-tools.shared.js";
 import { buildCursorPositionResponse, stripDsrRequests } from "./pty-dsr.js";
 import { getShellConfig, sanitizeBinaryOutput } from "./shell-utils.js";
+import { resolveTaskOutputPath, resolveTaskTranscriptPath } from "./task-output-artifacts.js";
 import { callGatewayTool } from "./tools/gateway.js";
 import { listNodes, resolveNodeIdFromList } from "./tools/nodes-utils.js";
 
@@ -262,17 +263,29 @@ export type ExecToolDetails =
   | {
       status: "running";
       sessionId: string;
+      task_id: string;
+      task_type: "shell";
       pid?: number;
       startedAt: number;
       cwd?: string;
       tail?: string;
+      output_path?: string;
+      transcript_path?: string;
+      notified?: boolean;
     }
   | {
       status: "completed" | "failed";
       exitCode: number | null;
       durationMs: number;
       aggregated: string;
+      stdout?: string;
+      stderr?: string;
       cwd?: string;
+      task_id?: string;
+      task_type?: "shell";
+      output_path?: string;
+      transcript_path?: string;
+      notified?: boolean;
     }
   | {
       status: "approval-pending";
@@ -590,6 +603,7 @@ async function runExecProcess(opts: {
   const session = {
     id: sessionId,
     command: opts.command,
+    description: opts.command,
     scopeKey: opts.scopeKey,
     sessionKey: opts.sessionKey,
     notifyOnExit: opts.notifyOnExit,
@@ -606,11 +620,18 @@ async function runExecProcess(opts: {
     pendingStderr: [],
     pendingStdoutChars: 0,
     pendingStderrChars: 0,
+    stdout: "",
+    stderr: "",
     aggregated: "",
     tail: "",
     exited: false,
     exitCode: undefined as number | null | undefined,
     exitSignal: undefined as NodeJS.Signals | number | null | undefined,
+    terminalReason: undefined,
+    error: undefined,
+    outputPath: resolveTaskOutputPath({ taskId: sessionId, taskType: "shell" }),
+    transcriptPath: resolveTaskTranscriptPath({ taskId: sessionId, taskType: "shell" }),
+    notified: false,
     truncated: false,
     backgrounded: false,
   } satisfies ProcessSession;
@@ -635,10 +656,13 @@ async function runExecProcess(opts: {
     if (session.exited) {
       return;
     }
-    markExited(session, null, "SIGKILL", "failed");
+    const reason = `Command timed out after ${opts.timeoutSec} seconds`;
+    markExited(session, null, "SIGKILL", "failed", {
+      terminalReason: "timeout",
+      error: reason,
+    });
     maybeNotifyOnExit(session, "failed");
     const aggregated = session.aggregated.trim();
-    const reason = `Command timed out after ${opts.timeoutSec} seconds`;
     settle({
       status: "failed",
       exitCode: null,
@@ -677,10 +701,15 @@ async function runExecProcess(opts: {
       details: {
         status: "running",
         sessionId,
+        task_id: sessionId,
+        task_type: "shell",
         pid: session.pid ?? undefined,
         startedAt,
         cwd: session.cwd,
         tail: session.tail,
+        output_path: session.outputPath,
+        transcript_path: session.transcriptPath,
+        notified: session.notified ?? false,
       },
     });
   };
@@ -731,7 +760,24 @@ async function runExecProcess(opts: {
       const wasSignal = exitSignal != null;
       const isSuccess = code === 0 && !wasSignal && !timedOut;
       const status: "completed" | "failed" = isSuccess ? "completed" : "failed";
-      markExited(session, code, exitSignal, status);
+      const aggregated = session.aggregated.trim();
+      const reason = timedOut
+        ? `Command timed out after ${opts.timeoutSec} seconds`
+        : wasSignal && exitSignal
+          ? `Command aborted by signal ${exitSignal}`
+          : code === null
+            ? "Command aborted before exit code was captured"
+            : `Command exited with code ${code}`;
+      markExited(session, code, exitSignal, status, {
+        terminalReason: isSuccess
+          ? "completed"
+          : timedOut
+            ? "timeout"
+            : wasSignal
+              ? "cancelled"
+              : "error",
+        error: isSuccess ? undefined : reason,
+      });
       maybeNotifyOnExit(session, status);
       if (!session.child && session.stdin) {
         session.stdin.destroyed = true;
@@ -740,15 +786,7 @@ async function runExecProcess(opts: {
       if (settled) {
         return;
       }
-      const aggregated = session.aggregated.trim();
       if (!isSuccess) {
-        const reason = timedOut
-          ? `Command timed out after ${opts.timeoutSec} seconds`
-          : wasSignal && exitSignal
-            ? `Command aborted by signal ${exitSignal}`
-            : code === null
-              ? "Command aborted before exit code was captured"
-              : `Command exited with code ${code}`;
         const message = aggregated ? `${aggregated}\n\n${reason}` : reason;
         settle({
           status: "failed",
@@ -789,7 +827,10 @@ async function runExecProcess(opts: {
         if (timeoutFinalizeTimer) {
           clearTimeout(timeoutFinalizeTimer);
         }
-        markExited(session, null, null, "failed");
+        markExited(session, null, null, "failed", {
+          terminalReason: timedOut ? "timeout" : "error",
+          error: String(err),
+        });
         maybeNotifyOnExit(session, "failed");
         const aggregated = session.aggregated.trim();
         const message = aggregated ? `${aggregated}\n\n${String(err)}` : String(err);
@@ -1076,6 +1117,7 @@ export function createExecTool(
           platform: nodeInfo?.platform,
         });
         let analysisOk = baseAllowlistEval.analysisOk;
+        let analysisReason = baseAllowlistEval.analysisReason;
         let allowlistSatisfied = false;
         if (hostAsk === "on-miss" && hostSecurity === "allowlist" && analysisOk) {
           try {
@@ -1105,6 +1147,7 @@ export function createExecTool(
               });
               allowlistSatisfied = allowlistEval.allowlistSatisfied;
               analysisOk = allowlistEval.analysisOk;
+              analysisReason = allowlistEval.analysisReason;
             }
           } catch {
             // Fall back to requiring approval if node approvals cannot be fetched.
@@ -1292,6 +1335,8 @@ export function createExecTool(
             exitCode,
             durationMs: Date.now() - startedAt,
             aggregated: [stdout, stderr, errorText].filter(Boolean).join("\n"),
+            stdout,
+            stderr,
             cwd: workdir,
           } satisfies ExecToolDetails,
         };
@@ -1315,6 +1360,7 @@ export function createExecTool(
         });
         const allowlistMatches = allowlistEval.allowlistMatches;
         const analysisOk = allowlistEval.analysisOk;
+        const analysisReason = allowlistEval.analysisReason;
         const allowlistSatisfied =
           hostSecurity === "allowlist" && analysisOk ? allowlistEval.allowlistSatisfied : false;
         const requiresAsk = requiresExecApproval({
@@ -1329,7 +1375,9 @@ export function createExecTool(
           const approvalSlug = createApprovalSlug(approvalId);
           const expiresAtMs = Date.now() + DEFAULT_APPROVAL_TIMEOUT_MS;
           const contextKey = `exec:${approvalId}`;
-          const resolvedPath = allowlistEval.segments[0]?.resolution?.resolvedPath;
+          const resolvedPath =
+            allowlistEval.segments[0]?.canonicalResolution?.resolvedPath ??
+            allowlistEval.segments[0]?.resolution?.resolvedPath;
           const noticeSeconds = Math.max(1, Math.round(approvalRunningNoticeMs / 1000));
           const commandText = params.command;
           const effectiveTimeout =
@@ -1391,7 +1439,10 @@ export function createExecTool(
               approvedByAsk = true;
               if (hostSecurity === "allowlist") {
                 for (const segment of allowlistEval.segments) {
-                  const pattern = segment.resolution?.resolvedPath ?? "";
+                  const pattern =
+                    segment.canonicalResolution?.resolvedPath ??
+                    segment.resolution?.resolvedPath ??
+                    "";
                   if (pattern) {
                     addAllowlistEntry(approvals.file, agentId, pattern);
                   }
@@ -1505,7 +1556,11 @@ export function createExecTool(
         }
 
         if (hostSecurity === "allowlist" && (!analysisOk || !allowlistSatisfied)) {
-          throw new Error("exec denied: allowlist miss");
+          throw new Error(
+            !analysisOk && analysisReason
+              ? `exec denied: ${analysisReason}`
+              : "exec denied: allowlist miss",
+          );
         }
 
         if (allowlistMatches.length > 0) {
@@ -1520,7 +1575,8 @@ export function createExecTool(
               agentId,
               match,
               params.command,
-              allowlistEval.segments[0]?.resolution?.resolvedPath,
+              allowlistEval.segments[0]?.canonicalResolution?.resolvedPath ??
+                allowlistEval.segments[0]?.resolution?.resolvedPath,
             );
           }
         }
@@ -1578,10 +1634,15 @@ export function createExecTool(
             details: {
               status: "running",
               sessionId: run.session.id,
+              task_id: run.session.id,
+              task_type: "shell",
               pid: run.session.pid ?? undefined,
               startedAt: run.startedAt,
               cwd: run.session.cwd,
               tail: run.session.tail,
+              output_path: run.session.outputPath,
+              transcript_path: run.session.transcriptPath,
+              notified: run.session.notified ?? false,
             },
           });
 
@@ -1636,7 +1697,14 @@ export function createExecTool(
                 exitCode: outcome.exitCode ?? 0,
                 durationMs: outcome.durationMs,
                 aggregated: outcome.aggregated,
+                stdout: run.session.stdout ?? "",
+                stderr: run.session.stderr ?? "",
                 cwd: run.session.cwd,
+                task_id: run.session.id,
+                task_type: "shell",
+                output_path: run.session.outputPath,
+                transcript_path: run.session.transcriptPath,
+                notified: run.session.notified ?? false,
               },
             });
           })
