@@ -152,14 +152,38 @@ describe("exec approvals shell parsing", () => {
     expect(res.reason).toBe("unsupported shell token: $()");
   });
 
+  it("rejects variable expansion outside quotes", () => {
+    const res = analyzeShellCommand({ command: "echo $HOME" });
+    expect(res.ok).toBe(false);
+    expect(res.reason).toBe("unsupported shell token: variable expansion");
+  });
+
+  it("rejects parameter expansion inside double quotes", () => {
+    const res = analyzeShellCommand({ command: 'echo "${HOME}"' });
+    expect(res.ok).toBe(false);
+    expect(res.reason).toBe("unsupported shell token: ${}");
+  });
+
   it("allows escaped command substitution inside double quotes", () => {
     const res = analyzeShellCommand({ command: 'echo "output: \\$(whoami)"' });
     expect(res.ok).toBe(true);
     expect(res.segments[0]?.argv[0]).toBe("echo");
   });
 
+  it("allows escaped variable expansion inside double quotes", () => {
+    const res = analyzeShellCommand({ command: 'echo "\\$HOME"' });
+    expect(res.ok).toBe(true);
+    expect(res.segments[0]?.argv[0]).toBe("echo");
+  });
+
   it("allows command substitution syntax inside single quotes", () => {
     const res = analyzeShellCommand({ command: "echo 'output: $(whoami)'" });
+    expect(res.ok).toBe(true);
+    expect(res.segments[0]?.argv[0]).toBe("echo");
+  });
+
+  it("allows variable expansion syntax inside single quotes", () => {
+    const res = analyzeShellCommand({ command: "echo '$HOME'" });
     expect(res.ok).toBe(true);
     expect(res.segments[0]?.argv[0]).toBe("echo");
   });
@@ -184,7 +208,7 @@ describe("exec approvals shell parsing", () => {
 });
 
 describe("exec approvals shell allowlist (chained commands)", () => {
-  it("allows chained commands when all parts are allowlisted", () => {
+  it("rejects chained commands even when all parts are allowlisted", () => {
     const allowlist: ExecAllowlistEntry[] = [
       { pattern: "/usr/bin/obsidian-cli" },
       { pattern: "/usr/bin/head" },
@@ -196,8 +220,9 @@ describe("exec approvals shell allowlist (chained commands)", () => {
       safeBins: new Set(),
       cwd: "/tmp",
     });
-    expect(result.analysisOk).toBe(true);
-    expect(result.allowlistSatisfied).toBe(true);
+    expect(result.analysisOk).toBe(false);
+    expect(result.analysisReason).toBe("command chaining requires approval in allowlist mode");
+    expect(result.allowlistSatisfied).toBe(false);
   });
 
   it("rejects chained commands when any part is not allowlisted", () => {
@@ -208,7 +233,7 @@ describe("exec approvals shell allowlist (chained commands)", () => {
       safeBins: new Set(),
       cwd: "/tmp",
     });
-    expect(result.analysisOk).toBe(true);
+    expect(result.analysisOk).toBe(false);
     expect(result.allowlistSatisfied).toBe(false);
   });
 
@@ -259,6 +284,72 @@ describe("exec approvals shell allowlist (chained commands)", () => {
     });
     expect(result.analysisOk).toBe(false);
     expect(result.allowlistSatisfied).toBe(false);
+  });
+
+  it("rejects allowlist analysis when shell variables are expanded", () => {
+    const allowlist: ExecAllowlistEntry[] = [{ pattern: "/usr/bin/echo" }];
+    const result = evaluateShellAllowlist({
+      command: "/usr/bin/echo $HOME",
+      allowlist,
+      safeBins: new Set(),
+      cwd: "/tmp",
+    });
+    expect(result.analysisOk).toBe(false);
+    expect(result.analysisReason).toBe("unsupported shell token: variable expansion");
+    expect(result.allowlistSatisfied).toBe(false);
+  });
+
+  it("canonicalizes harmless env prefixes before allowlist matching", () => {
+    if (process.platform === "win32") {
+      return;
+    }
+    const dir = makeTempDir();
+    const tool = path.join(dir, "bin", "tool");
+    fs.mkdirSync(path.dirname(tool), { recursive: true });
+    fs.writeFileSync(tool, "");
+    fs.chmodSync(tool, 0o755);
+
+    const result = evaluateShellAllowlist({
+      command: `FOO=bar BAR=baz "${tool}" --help`,
+      allowlist: [{ pattern: tool }],
+      safeBins: new Set(),
+      cwd: dir,
+    });
+
+    expect(result.analysisOk).toBe(true);
+    expect(result.allowlistSatisfied).toBe(true);
+  });
+
+  it("canonicalizes harmless wrappers before allowlist matching", () => {
+    if (process.platform === "win32") {
+      return;
+    }
+    const dir = makeTempDir();
+    const tool = path.join(dir, "bin", "tool");
+    fs.mkdirSync(path.dirname(tool), { recursive: true });
+    fs.writeFileSync(tool, "");
+    fs.chmodSync(tool, 0o755);
+
+    const result = evaluateShellAllowlist({
+      command: `nohup nice -n 5 timeout 10 "${tool}" --help`,
+      allowlist: [{ pattern: tool }],
+      safeBins: new Set(),
+      cwd: dir,
+    });
+
+    expect(result.analysisOk).toBe(true);
+    expect(result.allowlistSatisfied).toBe(true);
+  });
+
+  it("fails closed when a shell command fans out into too many segments", () => {
+    if (process.platform === "win32") {
+      return;
+    }
+    const command = Array.from({ length: 33 }, (_, index) => `/bin/echo ${index}`).join(" | ");
+    const result = analyzeShellCommand({ command });
+
+    expect(result.ok).toBe(false);
+    expect(result.reason).toBe("too many shell segments (max 32)");
   });
 });
 

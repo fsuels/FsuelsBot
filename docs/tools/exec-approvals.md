@@ -125,11 +125,10 @@ are treated as allowlisted on nodes (macOS node or headless node host). This use
 that can run in allowlist mode **without** explicit allowlist entries. Safe bins reject
 positional file args and path-like tokens, so they can only operate on the incoming stream.
 Shell chaining and redirections are not auto-allowed in allowlist mode.
-
-Shell chaining (`&&`, `||`, `;`) is allowed when every top-level segment satisfies the allowlist
-(including safe bins or skill auto-allow). Redirections remain unsupported in allowlist mode.
-Command substitution (`$()` / backticks) is rejected during allowlist parsing, including inside
-double quotes; use single quotes if you need literal `$()` text.
+Shell chaining (`&&`, `||`, `;`) now requires approval in allowlist mode, even when every segment
+would otherwise satisfy the allowlist. Redirections and unescaped shell expansion
+(`$VAR`, `${VAR}`, `$()`, backticks) remain unsupported during allowlist parsing; use single quotes
+or escapes when you need literal `$...` text.
 
 Default safe bins: `jq`, `grep`, `cut`, `sort`, `uniq`, `head`, `tail`, `tr`, `wc`.
 

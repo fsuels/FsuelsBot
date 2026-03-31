@@ -1,11 +1,38 @@
 import { Type } from "@sinclair/typebox";
 import type { ChannelAgentTool } from "../types.js";
 
+type WhatsAppAuthPayload = {
+  ok: boolean;
+  status: "qr_code" | "waiting" | "completed" | "error";
+  channel: "whatsapp";
+  message: string;
+  qrDataUrl?: string;
+};
+
+function buildAuthResult(payload: WhatsAppAuthPayload) {
+  const text =
+    payload.status === "qr_code" && payload.qrDataUrl
+      ? [
+          payload.message,
+          "",
+          "Open WhatsApp -> Linked Devices and scan:",
+          "",
+          `![whatsapp-qr](${payload.qrDataUrl})`,
+        ].join("\n")
+      : payload.message;
+  return {
+    content: [{ type: "text" as const, text }],
+    details: payload,
+  };
+}
+
 export function createWhatsAppLoginTool(): ChannelAgentTool {
   return {
     label: "WhatsApp Login",
     name: "whatsapp_login",
-    description: "Generate a WhatsApp QR code for linking, or wait for the scan to complete.",
+    description:
+      "The WhatsApp connector requires an authenticated WhatsApp Web session before it can send or receive. " +
+      "Call this tool to generate a QR code or wait for the scan to complete.",
     // NOTE: Using Type.Unsafe for action enum instead of Type.Union([Type.Literal(...)]
     // because Claude API on Vertex AI rejects nested anyOf schemas as invalid JSON Schema.
     parameters: Type.Object({
@@ -16,6 +43,7 @@ export function createWhatsAppLoginTool(): ChannelAgentTool {
       timeoutMs: Type.Optional(Type.Number()),
       force: Type.Optional(Type.Boolean()),
     }),
+    isConcurrencySafe: () => false,
     execute: async (_toolCallId, args) => {
       const { startWebLoginWithQr, waitForWebLogin } = await import("../../../web/login-qr.js");
       const action = (args as { action?: string })?.action ?? "start";
@@ -26,10 +54,12 @@ export function createWhatsAppLoginTool(): ChannelAgentTool {
               ? (args as { timeoutMs?: number }).timeoutMs
               : undefined,
         });
-        return {
-          content: [{ type: "text", text: result.message }],
-          details: { connected: result.connected },
-        };
+        return buildAuthResult({
+          ok: result.connected,
+          status: result.connected ? "completed" : "waiting",
+          channel: "whatsapp",
+          message: result.message,
+        });
       }
 
       const result = await startWebLoginWithQr({
@@ -44,28 +74,22 @@ export function createWhatsAppLoginTool(): ChannelAgentTool {
       });
 
       if (!result.qrDataUrl) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: result.message,
-            },
-          ],
-          details: { qr: false },
-        };
+        const completed = !/^Failed\b/i.test(result.message);
+        return buildAuthResult({
+          ok: completed,
+          status: completed ? "completed" : "error",
+          channel: "whatsapp",
+          message: result.message,
+        });
       }
 
-      const text = [
-        result.message,
-        "",
-        "Open WhatsApp → Linked Devices and scan:",
-        "",
-        `![whatsapp-qr](${result.qrDataUrl})`,
-      ].join("\n");
-      return {
-        content: [{ type: "text", text }],
-        details: { qr: true },
-      };
+      return buildAuthResult({
+        ok: true,
+        status: "qr_code",
+        channel: "whatsapp",
+        message: result.message,
+        qrDataUrl: result.qrDataUrl,
+      });
     },
   };
 }

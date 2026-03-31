@@ -27,6 +27,7 @@ import {
   type ResolvedZalouserAccount,
 } from "./accounts.js";
 import { ZalouserConfigSchema } from "./config-schema.js";
+import { startZalouserLoginWithQr, waitForZalouserLogin } from "./login-qr.js";
 import { zalouserOnboardingAdapter } from "./onboarding.js";
 import { probeZalouser } from "./probe.js";
 import { sendMessageZalouser } from "./send.js";
@@ -44,14 +45,6 @@ const meta = {
   order: 85,
   quickstartAllowFrom: true,
 };
-
-function resolveZalouserQrProfile(accountId?: string | null): string {
-  const normalized = normalizeAccountId(accountId);
-  if (!normalized || normalized === DEFAULT_ACCOUNT_ID) {
-    return process.env.ZCA_PROFILE?.trim() || "default";
-  }
-  return normalized;
-}
 
 function mapUser(params: {
   id: string;
@@ -640,35 +633,17 @@ export const zalouserPlugin: ChannelPlugin<ResolvedZalouserAccount> = {
         statusSink: (patch) => ctx.setStatus({ accountId: ctx.accountId, ...patch }),
       });
     },
-    loginWithQrStart: async (params) => {
-      const profile = resolveZalouserQrProfile(params.accountId);
-      // Start login and get QR code
-      const result = await runZca(["auth", "login", "--qr-base64"], {
-        profile,
-        timeout: params.timeoutMs ?? 30000,
-      });
-      if (!result.ok) {
-        return { message: result.stderr || "Failed to start QR login" };
-      }
-      // The stdout should contain the base64 QR data URL
-      const qrMatch = result.stdout.match(/data:image\/png;base64,[A-Za-z0-9+/=]+/);
-      if (qrMatch) {
-        return { qrDataUrl: qrMatch[0], message: "Scan QR code with Zalo app" };
-      }
-      return { message: result.stdout || "QR login started" };
-    },
-    loginWithQrWait: async (params) => {
-      const profile = resolveZalouserQrProfile(params.accountId);
-      // Check if already authenticated
-      const statusResult = await runZca(["auth", "status"], {
-        profile,
-        timeout: params.timeoutMs ?? 60000,
-      });
-      return {
-        connected: statusResult.ok,
-        message: statusResult.ok ? "Login successful" : statusResult.stderr || "Login pending",
-      };
-    },
+    loginWithQrStart: async ({ accountId, force, timeoutMs }) =>
+      await startZalouserLoginWithQr({
+        accountId,
+        force,
+        timeoutMs,
+      }),
+    loginWithQrWait: async ({ accountId, timeoutMs }) =>
+      await waitForZalouserLogin({
+        accountId,
+        timeoutMs,
+      }),
     logoutAccount: async (ctx) => {
       const result = await runZca(["auth", "logout"], {
         profile: ctx.account.profile,

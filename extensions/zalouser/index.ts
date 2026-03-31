@@ -1,5 +1,6 @@
 import type { AnyAgentTool, OpenClawPluginApi } from "openclaw/plugin-sdk";
 import { emptyPluginConfigSchema } from "openclaw/plugin-sdk";
+import { createZalouserAuthTool } from "./src/auth-tool.js";
 import { zalouserDock, zalouserPlugin } from "./src/channel.js";
 import { setZalouserRuntime } from "./src/runtime.js";
 import { ZalouserToolSchema, executeZalouserTool } from "./src/tool.js";
@@ -14,6 +15,8 @@ const plugin = {
     // Register channel plugin (for onboarding & gateway)
     api.registerChannel({ plugin: zalouserPlugin, dock: zalouserDock });
 
+    api.registerTool(createZalouserAuthTool());
+
     // Register agent tool
     api.registerTool({
       name: "zalouser",
@@ -21,7 +24,8 @@ const plugin = {
       description:
         "Send messages and access data via Zalo personal account. " +
         "Actions: send (text message), image (send image URL), link (send link), " +
-        "friends (list/search friends), groups (list groups), me (profile info), status (auth check).",
+        "friends (list/search friends), groups (list groups), me (profile info), status (auth check). " +
+        "If authentication is missing, call zalouser_authenticate first.",
       parameters: ZalouserToolSchema,
       execute: executeZalouserTool,
     } as AnyAgentTool);

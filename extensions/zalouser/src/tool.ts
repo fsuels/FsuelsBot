@@ -1,4 +1,5 @@
 import { Type } from "@sinclair/typebox";
+import { checkZcaAuthenticated } from "./accounts.js";
 import { runZca, parseJsonOutput } from "./zca.js";
 
 const ACTIONS = ["send", "image", "link", "friends", "groups", "me", "status"] as const;
@@ -50,6 +51,10 @@ function json(payload: unknown): AgentToolResult {
   };
 }
 
+function resolveProfile(profile?: string): string {
+  return profile?.trim() || process.env.ZCA_PROFILE?.trim() || "default";
+}
+
 export async function executeZalouserTool(
   _toolCallId: string,
   params: ToolParams,
@@ -57,6 +62,18 @@ export async function executeZalouserTool(
   _onUpdate?: unknown,
 ): Promise<AgentToolResult> {
   try {
+    const profile = resolveProfile(params.profile);
+    if (params.action !== "status" && !(await checkZcaAuthenticated(profile))) {
+      return json({
+        ok: false,
+        success: false,
+        code: "authentication_required",
+        message:
+          "Zalo Personal is not authenticated. Call zalouser_authenticate to start the QR login flow.",
+        authTool: "zalouser_authenticate",
+        profile,
+      });
+    }
     switch (params.action) {
       case "send": {
         if (!params.threadId || !params.message) {
@@ -66,7 +83,7 @@ export async function executeZalouserTool(
         if (params.isGroup) {
           args.push("-g");
         }
-        const result = await runZca(args, { profile: params.profile });
+        const result = await runZca(args, { profile });
         if (!result.ok) {
           throw new Error(result.stderr || "Failed to send message");
         }
@@ -87,7 +104,7 @@ export async function executeZalouserTool(
         if (params.isGroup) {
           args.push("-g");
         }
-        const result = await runZca(args, { profile: params.profile });
+        const result = await runZca(args, { profile });
         if (!result.ok) {
           throw new Error(result.stderr || "Failed to send image");
         }
@@ -102,7 +119,7 @@ export async function executeZalouserTool(
         if (params.isGroup) {
           args.push("-g");
         }
-        const result = await runZca(args, { profile: params.profile });
+        const result = await runZca(args, { profile });
         if (!result.ok) {
           throw new Error(result.stderr || "Failed to send link");
         }
@@ -111,7 +128,7 @@ export async function executeZalouserTool(
 
       case "friends": {
         const args = params.query ? ["friend", "find", params.query] : ["friend", "list", "-j"];
-        const result = await runZca(args, { profile: params.profile });
+        const result = await runZca(args, { profile });
         if (!result.ok) {
           throw new Error(result.stderr || "Failed to get friends");
         }
@@ -121,7 +138,7 @@ export async function executeZalouserTool(
 
       case "groups": {
         const result = await runZca(["group", "list", "-j"], {
-          profile: params.profile,
+          profile,
         });
         if (!result.ok) {
           throw new Error(result.stderr || "Failed to get groups");
@@ -132,7 +149,7 @@ export async function executeZalouserTool(
 
       case "me": {
         const result = await runZca(["me", "info", "-j"], {
-          profile: params.profile,
+          profile,
         });
         if (!result.ok) {
           throw new Error(result.stderr || "Failed to get profile");
@@ -143,10 +160,11 @@ export async function executeZalouserTool(
 
       case "status": {
         const result = await runZca(["auth", "status"], {
-          profile: params.profile,
+          profile,
         });
         return json({
           authenticated: result.ok,
+          profile,
           output: result.stdout || result.stderr,
         });
       }
