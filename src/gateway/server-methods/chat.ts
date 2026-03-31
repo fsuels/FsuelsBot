@@ -7,6 +7,7 @@ import type { GatewayRequestContext, GatewayRequestHandlers } from "./types.js";
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import { resolveThinkingDefault } from "../../agents/model-selection.js";
 import { resolveAgentTimeoutMs } from "../../agents/timeout.js";
+import { sanitizeTranscriptMessagesForReplay } from "../../agents/tool-result-replay.js";
 import { dispatchInboundMessage } from "../../auto-reply/dispatch.js";
 import { createReplyDispatcher } from "../../auto-reply/reply/reply-dispatcher.js";
 import { createReplyPrefixOptions } from "../../channels/reply-prefix.js";
@@ -246,9 +247,14 @@ export const chatHandlers: GatewayRequestHandlers = {
             firstCursor: null,
             hasMore: false,
           };
-    const sanitizedItems = page.items.map((item) => ({
+    const replaySanitized = sanitizeTranscriptMessagesForReplay({
+      cfg,
+      sessionKey,
+      messages: page.items.map((item) => item.message),
+    });
+    const sanitizedItems = page.items.map((item, index) => ({
       cursor: item.cursor,
-      message: stripEnvelopeFromMessage(item.message),
+      message: stripEnvelopeFromMessage(replaySanitized.messages[index]),
     }));
     const cappedMessages = capArrayByJsonBytes(
       sanitizedItems.map((item) => item.message),

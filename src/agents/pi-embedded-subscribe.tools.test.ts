@@ -6,6 +6,7 @@ import {
   extractMessagingToolSend,
   extractToolErrorMessage,
   extractToolErrorPresentation,
+  isToolResultError,
 } from "./pi-embedded-subscribe.tools.js";
 
 describe("extractMessagingToolSend", () => {
@@ -61,5 +62,17 @@ describe("extractToolErrorPresentation", () => {
     });
 
     expect(message).toBe("connection timeout\nretry later");
+  });
+});
+
+describe("isToolResultError", () => {
+  it("treats rejected, cancelled, and interrupted results as non-success outcomes", () => {
+    expect(isToolResultError({ details: { status: "rejected" } })).toBe(true);
+    expect(isToolResultError({ details: { status: "cancelled" } })).toBe(true);
+    expect(isToolResultError({ details: { status: "interrupted" } })).toBe(true);
+  });
+
+  it("does not treat accepted results as errors", () => {
+    expect(isToolResultError({ details: { status: "accepted" } })).toBe(false);
   });
 });

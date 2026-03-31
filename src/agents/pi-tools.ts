@@ -44,6 +44,7 @@ import {
 import { cleanToolSchemaForGemini, normalizeToolParameters } from "./pi-tools.schema.js";
 import { filterToolsForPlanMode } from "./plan-mode.js";
 import { applyToolContracts } from "./tool-contracts.js";
+import { applyToolDiscoveryMetadata } from "./tool-discovery.js";
 import {
   assertUniqueToolNames,
   applyOwnerOnlyToolPolicy,
@@ -424,12 +425,17 @@ export function createOpenClawCodingTools(options?: {
       requesterAgentIdOverride: agentId,
     }),
   ];
+  const discoveryAnnotated = tools.map((tool) =>
+    applyToolDiscoveryMetadata(tool, {
+      isPluginTool: Boolean(getPluginToolMeta(tool)),
+    }),
+  );
   // Hard execution-policy guarantee: tool visibility/policy logic assumes canonical tool ids.
   // Fail fast on duplicate names instead of silently dispatching an ambiguous tool surface.
-  assertUniqueToolNames(tools, "createOpenClawCodingTools");
+  assertUniqueToolNames(discoveryAnnotated, "createOpenClawCodingTools");
   // Security: treat unknown/undefined as unauthorized (opt-in, not opt-out)
   const senderIsOwner = options?.senderIsOwner === true;
-  const toolsByAuthorization = applyOwnerOnlyToolPolicy(tools, senderIsOwner);
+  const toolsByAuthorization = applyOwnerOnlyToolPolicy(discoveryAnnotated, senderIsOwner);
   const coreToolNames = new Set(
     toolsByAuthorization
       .filter((tool) => !getPluginToolMeta(tool))

@@ -1117,7 +1117,6 @@ export function createExecTool(
           platform: nodeInfo?.platform,
         });
         let analysisOk = baseAllowlistEval.analysisOk;
-        let analysisReason = baseAllowlistEval.analysisReason;
         let allowlistSatisfied = false;
         if (hostAsk === "on-miss" && hostSecurity === "allowlist" && analysisOk) {
           try {
@@ -1147,7 +1146,6 @@ export function createExecTool(
               });
               allowlistSatisfied = allowlistEval.allowlistSatisfied;
               analysisOk = allowlistEval.analysisOk;
-              analysisReason = allowlistEval.analysisReason;
             }
           } catch {
             // Fall back to requiring approval if node approvals cannot be fetched.

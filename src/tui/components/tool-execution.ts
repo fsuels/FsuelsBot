@@ -51,6 +51,8 @@ const ERROR_STATUSES = new Set([
   "canceled",
   "error",
   "failed",
+  "interrupted",
+  "rejected",
   "timed_out",
   "timeout",
 ]);
@@ -110,9 +112,13 @@ export function resolveToolExecutionState(opts: ToolResultStateOptions): ToolExe
       titleSuffix:
         normalizedStatus === "timeout" || normalizedStatus === "timed_out"
           ? "timed out"
-          : normalizedStatus === "canceled" || normalizedStatus === "cancelled"
-            ? "cancelled"
-            : "failed",
+          : normalizedStatus === "interrupted"
+            ? "interrupted"
+            : normalizedStatus === "rejected"
+              ? "rejected"
+              : normalizedStatus === "canceled" || normalizedStatus === "cancelled"
+                ? "cancelled"
+                : "failed",
       statusLabel: humanizeStatus(normalizedStatus),
     };
   }

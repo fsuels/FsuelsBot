@@ -148,4 +148,71 @@ describe("gateway chat.history pagination", () => {
     expect(payload.hasMore).toBe(true);
     expect(typeof payload.firstCursor).toBe("number");
   });
+
+  it("keeps chat.history loading when persisted typed tool details are invalid", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-chat-history-replay-"));
+    const transcriptPath = path.join(tmpDir, "sess-main.jsonl");
+    fs.writeFileSync(
+      transcriptPath,
+      [
+        JSON.stringify({
+          type: "message",
+          id: "m-0",
+          message: {
+            role: "assistant",
+            content: [{ type: "toolCall", id: "call_1", name: "agents_list", arguments: {} }],
+            timestamp: 0,
+          },
+        }),
+        JSON.stringify({
+          type: "message",
+          id: "m-1",
+          message: {
+            role: "toolResult",
+            toolCallId: "call_1",
+            content: [{ type: "text", text: "raw output" }],
+            details: { requester: "main", allowAny: "invalid", agents: [] },
+            timestamp: 1,
+          },
+        }),
+      ].join("\n"),
+      "utf-8",
+    );
+
+    vi.doMock("../session-utils.js", async (importOriginal) => {
+      const original = await importOriginal<typeof import("../session-utils.js")>();
+      return {
+        ...original,
+        loadSessionEntry: () => ({
+          cfg: {},
+          storePath: path.join(tmpDir as string, "sessions.json"),
+          entry: {
+            sessionId: "sess-main",
+            sessionFile: transcriptPath,
+            thinkingLevel: "off",
+          },
+        }),
+      };
+    });
+
+    const { chatHandlers } = await import("./chat.js");
+    const respond = vi.fn();
+
+    await chatHandlers["chat.history"]({
+      params: { sessionKey: "main", limit: 5 },
+      respond,
+      context: {} as GatewayRequestContext,
+    });
+
+    const payload = respond.mock.calls[0]?.[1] as {
+      messages?: Array<Record<string, unknown>>;
+    };
+    const toolResult = payload.messages?.[1];
+    expect(toolResult?.toolName).toBe("agents_list");
+    expect(toolResult?.details).toMatchObject({
+      status: "replay_warning",
+      replayWarning: true,
+      tool: "agents_list",
+    });
+  });
 });

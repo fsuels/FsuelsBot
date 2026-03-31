@@ -10,6 +10,7 @@ import type { DriftPromptInjection } from "../../drift-detection.js";
 import type { MessagingToolSend } from "../../pi-embedded-messaging.js";
 import type { BlockReplyChunking, ToolResultFormat } from "../../pi-embedded-subscribe.js";
 import type { AuthStorage, ModelRegistry } from "../../pi-model-discovery.js";
+import type { CollaborationMode, PlanModeProfile } from "../../plan-mode.js";
 import type { SkillSnapshot } from "../../skills.js";
 import type { WebSearchSource } from "../../tools/web-search-shared.js";
 import type { NormalizedUsage } from "../../usage.js";
@@ -96,6 +97,8 @@ export type EmbeddedRunAttemptParams = {
   requireExplicitMessageTarget?: boolean;
   /** If true, omit the message tool from the tool list. */
   disableMessageTool?: boolean;
+  collaborationMode?: CollaborationMode;
+  planProfile?: PlanModeProfile;
   extraSystemPrompt?: string;
   cacheSafeFork?: boolean;
   forkRequestContext?: SavedRequestContextEntry;

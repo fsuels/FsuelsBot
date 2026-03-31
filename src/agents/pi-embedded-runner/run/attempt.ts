@@ -65,6 +65,12 @@ import {
 import { createStructuredOutputTool } from "../../structured-output-tool.js";
 import { buildSystemPromptParams } from "../../system-prompt-params.js";
 import { buildSystemPromptReport } from "../../system-prompt-report.js";
+import {
+  createToolDiscoveryActivationRuntime,
+  partitionToolDiscoverySurface,
+  type ToolDiscoveryActivationRuntime,
+} from "../../tool-discovery.js";
+import { createToolDiscoveryTool } from "../../tools/tool-discovery-tool.js";
 import { resolveTranscriptPolicy } from "../../transcript-policy.js";
 import { DEFAULT_BOOTSTRAP_FILENAME } from "../../workspace.js";
 import { isAbortError } from "../abort.js";
@@ -217,48 +223,69 @@ export async function runEmbeddedAttempt(
     // Check if the model supports native image input
     const modelHasVision = params.model.input?.includes("image") ?? false;
     const planModeActive = params.collaborationMode === "plan";
+    const toolDiscoveryRuntimeRef: { current: ToolDiscoveryActivationRuntime | null } = {
+      current: null,
+    };
     const toolsRaw = params.disableTools
       ? []
-      : createOpenClawCodingTools({
-          exec: {
-            ...params.execOverrides,
-            elevated: params.bashElevated,
-          },
-          sandbox,
-          messageProvider: params.messageChannel ?? params.messageProvider,
-          agentAccountId: params.agentAccountId,
-          messageTo: params.messageTo,
-          messageThreadId: params.messageThreadId,
-          groupId: params.groupId,
-          groupChannel: params.groupChannel,
-          groupSpace: params.groupSpace,
-          spawnedBy: params.spawnedBy,
-          senderId: params.senderId,
-          senderName: params.senderName,
-          senderUsername: params.senderUsername,
-          senderE164: params.senderE164,
-          senderIsOwner: params.senderIsOwner,
-          sessionKey: params.sessionKey ?? params.sessionId,
-          taskId: params.taskId,
-          agentDir,
-          workspaceDir: effectiveWorkspace,
-          config: params.config,
-          abortSignal: runAbortController.signal,
-          modelProvider: params.model.provider,
-          modelId: params.modelId,
-          modelAuthMode: resolveModelAuthMode(params.model.provider, params.config),
-          currentChannelId: params.currentChannelId,
-          currentThreadTs: params.currentThreadTs,
-          replyToMode: params.replyToMode,
-          hasRepliedRef: params.hasRepliedRef,
-          modelHasVision,
-          requireExplicitMessageTarget:
-            params.requireExplicitMessageTarget ?? isSubagentSessionKey(params.sessionKey),
-          disableMessageTool: params.disableMessageTool,
-          collaborationMode: params.collaborationMode,
-          planProfile: params.planProfile,
-        });
+      : (() => {
+          const baseTools = createOpenClawCodingTools({
+            exec: {
+              ...params.execOverrides,
+              elevated: params.bashElevated,
+            },
+            sandbox,
+            messageProvider: params.messageChannel ?? params.messageProvider,
+            agentAccountId: params.agentAccountId,
+            messageTo: params.messageTo,
+            messageThreadId: params.messageThreadId,
+            groupId: params.groupId,
+            groupChannel: params.groupChannel,
+            groupSpace: params.groupSpace,
+            spawnedBy: params.spawnedBy,
+            senderId: params.senderId,
+            senderName: params.senderName,
+            senderUsername: params.senderUsername,
+            senderE164: params.senderE164,
+            senderIsOwner: params.senderIsOwner,
+            sessionKey: params.sessionKey ?? params.sessionId,
+            taskId: params.taskId,
+            agentDir,
+            workspaceDir: effectiveWorkspace,
+            config: params.config,
+            abortSignal: runAbortController.signal,
+            modelProvider: params.model.provider,
+            modelId: params.modelId,
+            modelAuthMode: resolveModelAuthMode(params.model.provider, params.config),
+            currentChannelId: params.currentChannelId,
+            currentThreadTs: params.currentThreadTs,
+            replyToMode: params.replyToMode,
+            hasRepliedRef: params.hasRepliedRef,
+            modelHasVision,
+            requireExplicitMessageTarget:
+              params.requireExplicitMessageTarget ?? isSubagentSessionKey(params.sessionKey),
+            disableMessageTool: params.disableMessageTool,
+            collaborationMode: params.collaborationMode,
+            planProfile: params.planProfile,
+          });
+          return [
+            ...baseTools,
+            createToolDiscoveryTool({
+              getDeferredTools: () => partitionToolDiscoverySurface(baseTools).deferredTools,
+              getActiveTools: () => {
+                const runtime = toolDiscoveryRuntimeRef.current;
+                if (!runtime) {
+                  return partitionToolDiscoverySurface(baseTools).bootstrapTools;
+                }
+                const activeToolNameSet = new Set(runtime.getActiveToolNames());
+                return baseTools.filter((tool) => activeToolNameSet.has(tool.name));
+              },
+              runtimeRef: toolDiscoveryRuntimeRef,
+            }),
+          ];
+        })();
     const tools = sanitizeToolsForGoogle({ tools: toolsRaw, provider: params.provider });
+    const { bootstrapTools } = partitionToolDiscoverySurface(tools);
     logToolSchemasForGoogle({ tools, provider: params.provider });
 
     const machineName = await getMachineDisplayName();
@@ -380,38 +407,44 @@ export async function runEmbeddedAttempt(
       return { text: `${base.text}\n\n${hint}` };
     })();
 
-    const promptArtifacts = buildEmbeddedSystemPromptArtifacts({
-      workspaceDir: effectiveWorkspace,
-      defaultThinkLevel: params.thinkLevel,
-      reasoningLevel: params.reasoningLevel ?? "off",
-      extraSystemPrompt: params.extraSystemPrompt,
-      ownerNumbers: params.ownerNumbers,
-      reasoningTagHint,
-      heartbeatPrompt: isDefaultAgent
-        ? resolveHeartbeatPrompt(params.config?.agents?.defaults?.heartbeat?.prompt)
-        : undefined,
-      skillsPrompt,
-      docsPath: docsPath ?? undefined,
-      ttsHint,
-      collaborationMode: params.collaborationMode,
-      planProfile: params.planProfile,
-      workspaceNotes,
-      reactionGuidance,
-      promptMode,
-      runtimeInfo,
-      messageToolHints,
-      sandboxInfo,
-      tools,
-      modelAliasLines: buildModelAliasLines(params.config),
-      userTimezone,
-      userTime,
-      userTimeFormat,
-      contextFiles,
-      memoryCitationsMode: params.config?.memory?.citations,
-      contextPressure: params.contextPressure,
-      driftInjection: params.driftInjection,
-      coherenceIntervention: effectiveCoherenceIntervention,
-    });
+    const openClawToolsByName = new Map(tools.map((tool) => [tool.name, tool] as const));
+    const buildPromptArtifactsForToolNames = (toolNames: string[]) =>
+      buildEmbeddedSystemPromptArtifacts({
+        workspaceDir: effectiveWorkspace,
+        defaultThinkLevel: params.thinkLevel,
+        reasoningLevel: params.reasoningLevel ?? "off",
+        extraSystemPrompt: params.extraSystemPrompt,
+        ownerNumbers: params.ownerNumbers,
+        reasoningTagHint,
+        heartbeatPrompt: isDefaultAgent
+          ? resolveHeartbeatPrompt(params.config?.agents?.defaults?.heartbeat?.prompt)
+          : undefined,
+        skillsPrompt,
+        docsPath: docsPath ?? undefined,
+        ttsHint,
+        collaborationMode: params.collaborationMode,
+        planProfile: params.planProfile,
+        workspaceNotes,
+        reactionGuidance,
+        promptMode,
+        runtimeInfo,
+        messageToolHints,
+        sandboxInfo,
+        tools: toolNames
+          .map((toolName) => openClawToolsByName.get(toolName))
+          .filter((tool): tool is NonNullable<typeof tool> => Boolean(tool)),
+        modelAliasLines: buildModelAliasLines(params.config),
+        userTimezone,
+        userTime,
+        userTimeFormat,
+        contextFiles,
+        memoryCitationsMode: params.config?.memory?.citations,
+        contextPressure: params.contextPressure,
+        driftInjection: params.driftInjection,
+        coherenceIntervention: effectiveCoherenceIntervention,
+      });
+    const bootstrapToolNames = bootstrapTools.map((tool) => tool.name);
+    const promptArtifacts = buildPromptArtifactsForToolNames(bootstrapToolNames);
     const appendPrompt = promptArtifacts.prompt;
     const systemPromptReport = buildSystemPromptReport({
       source: "run",
@@ -434,7 +467,7 @@ export async function runEmbeddedAttempt(
       bootstrapFiles: hookAdjustedBootstrapFiles,
       injectedFiles: contextFiles,
       skillsPrompt,
-      tools,
+      tools: bootstrapTools,
     });
     const systemPromptOverride = createSystemPromptOverride(appendPrompt);
     const systemPromptText = systemPromptOverride();
@@ -584,11 +617,23 @@ export async function runEmbeddedAttempt(
         sessionManager,
         settingsManager,
       }));
-      applySystemPromptOverrideToSession(session, systemPromptText);
+      applySystemPromptOverrideToSession(
+        session,
+        (toolNames) => buildPromptArtifactsForToolNames(toolNames).prompt,
+      );
       if (!session) {
         throw new Error("Embedded agent session missing");
       }
       const activeSession = session;
+      toolDiscoveryRuntimeRef.current = createToolDiscoveryActivationRuntime({
+        session: activeSession,
+        buildSystemPrompt: (toolNames) => buildPromptArtifactsForToolNames(toolNames).prompt,
+      });
+      toolDiscoveryRuntimeRef.current.replaceActiveToolNames([
+        ...bootstrapToolNames,
+        ...structuredOutputToolDefs.map((tool) => tool.name),
+        ...clientToolDefs.map((tool) => tool.name),
+      ]);
       const cacheTrace = createCacheTrace({
         cfg: params.config,
         env: process.env,

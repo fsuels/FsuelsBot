@@ -42,6 +42,34 @@ describe("tool execution progress helpers", () => {
     });
   });
 
+  it("renders rejected as an explicit failure state", () => {
+    expect(
+      resolveToolExecutionState({
+        isPartial: false,
+        isError: false,
+        status: "rejected",
+      }),
+    ).toEqual({
+      tone: "error",
+      titleSuffix: "rejected",
+      statusLabel: "rejected",
+    });
+  });
+
+  it("renders interrupted as an explicit failure state", () => {
+    expect(
+      resolveToolExecutionState({
+        isPartial: false,
+        isError: false,
+        status: "interrupted",
+      }),
+    ).toEqual({
+      tone: "error",
+      titleSuffix: "interrupted",
+      statusLabel: "interrupted",
+    });
+  });
+
   it("preserves non-terminal success metadata like accepted", () => {
     expect(
       resolveToolExecutionState({

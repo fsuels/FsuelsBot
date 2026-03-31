@@ -218,6 +218,15 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain("sessions_send");
   });
 
+  it("teaches the model to use tool_discovery when it is available", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/openclaw",
+      toolNames: ["read", "tool_discovery"],
+    });
+
+    expect(prompt).toContain("call `tool_discovery` to load matching deferred tools");
+  });
+
   it("includes tool operator manuals when provided", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/openclaw",

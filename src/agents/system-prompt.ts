@@ -658,6 +658,11 @@ export function buildAgentSystemPromptArtifacts(
           "- task_tracker: persist structured task state for multi-step execution work",
         ].join("\n"),
     "TOOLS.md does not control tool availability; it is user guidance for how to use external tools.",
+    ...(availableTools.has("tool_discovery")
+      ? [
+          "If a needed capability is not listed, call `tool_discovery` to load matching deferred tools by exact name, prefix, or keyword search.",
+        ]
+      : []),
     "If a task is more complex or takes longer, spawn a sub-agent. It will do the work for you and ping you when it's done. You can always check up on it.",
   ];
 

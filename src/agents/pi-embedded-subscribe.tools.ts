@@ -114,11 +114,22 @@ export function extractToolResultText(
 }
 
 export function isToolResultError(result: unknown): boolean {
-  const normalized = extractToolResultStatus(result)?.toLowerCase();
+  const normalized = extractToolResultStatus(result)
+    ?.toLowerCase()
+    .replace(/[\s-]+/g, "_");
   if (!normalized) {
     return false;
   }
-  return normalized === "error" || normalized === "timeout";
+  return (
+    normalized === "error" ||
+    normalized === "timeout" ||
+    normalized === "timed_out" ||
+    normalized === "cancelled" ||
+    normalized === "canceled" ||
+    normalized === "interrupted" ||
+    normalized === "rejected" ||
+    normalized === "denied"
+  );
 }
 
 export function extractToolErrorMessage(result: unknown): string | undefined {

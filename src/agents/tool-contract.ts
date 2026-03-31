@@ -93,6 +93,10 @@ export type OpenClawTool<TParameters extends TSchema = TSchema, TDetails = unkno
   TParameters,
   TDetails
 > & {
+  alwaysLoad?: boolean;
+  shouldDefer?: boolean;
+  isProviderTool?: boolean;
+  searchSummary?: string;
   userFacingName?: () => string;
   requiresUserInteraction?: boolean;
   prompt?: () => string | Promise<string>;
@@ -424,16 +428,30 @@ function validateToolOutputSchema<TDetails>(
   tool: OpenClawTool<TSchema, TDetails>,
   result: AgentToolResult<TDetails>,
 ): void {
+  const validated = validateToolOutputDetails(tool, result.details ?? null);
+  if (validated.ok) {
+    return;
+  }
+  throw new Error(validated.error);
+}
+
+export function validateToolOutputDetails<TDetails>(
+  tool: Pick<OpenClawTool<TSchema, TDetails>, "name" | "outputSchema">,
+  details: unknown,
+): { ok: true; value: TDetails } | { ok: false; error: string } {
   const schema = tool.outputSchema;
   if (!schema || typeof schema !== "object") {
-    return;
+    return { ok: true, value: details as TDetails };
   }
   const validate = getValidator(schema);
-  const cloned = structuredClone(result.details ?? null);
+  const cloned = structuredClone(details);
   if (validate(cloned)) {
-    return;
+    return { ok: true, value: cloned as TDetails };
   }
-  throw new Error(formatValidationErrors(`${tool.name || "tool"} output`, validate.errors));
+  return {
+    ok: false,
+    error: formatValidationErrors(`${tool.name || "tool"} output`, validate.errors),
+  };
 }
 
 async function finalizeToolResult<TDetails>(

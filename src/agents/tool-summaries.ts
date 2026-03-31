@@ -4,7 +4,11 @@ import type { ToolInvocationContract } from "./tool-contract.js";
 export function buildToolSummaryMap(tools: AgentTool[]): Record<string, string> {
   const summaries: Record<string, string> = {};
   for (const tool of tools) {
-    const summary = tool.description?.trim() || tool.label?.trim();
+    const searchSummary =
+      "searchSummary" in tool && typeof tool.searchSummary === "string"
+        ? tool.searchSummary.trim()
+        : "";
+    const summary = searchSummary || tool.description?.trim() || tool.label?.trim();
     if (!summary) {
       continue;
     }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import "./test-helpers/fast-core-tools.js";
 import { createOpenClawTools } from "./openclaw-tools.js";
-import { buildToolOperatorManualMap } from "./tool-summaries.js";
+import { buildToolOperatorManualMap, buildToolSummaryMap } from "./tool-summaries.js";
 
 describe("tool summaries", () => {
   it("renders invocation contracts as operator manuals", () => {
@@ -78,5 +78,22 @@ describe("tool summaries", () => {
       "Do not use for local work you can do in the current session.",
     );
     expect(manuals.sessions_spawn).toContain("task: required worker instruction.");
+  });
+
+  it("prefers searchSummary over description when building summaries", () => {
+    const summaries = buildToolSummaryMap([
+      {
+        name: "tool_discovery",
+        label: "Tool Discovery",
+        description: "generic description",
+        searchSummary: "Find and activate deferred tools.",
+        parameters: {},
+        execute: async () => ({
+          content: [{ type: "text" as const, text: "ok" }],
+        }),
+      },
+    ]);
+
+    expect(summaries.tool_discovery).toBe("Find and activate deferred tools.");
   });
 });
