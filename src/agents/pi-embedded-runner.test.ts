@@ -114,6 +114,8 @@ afterAll(async () => {
   tempRoot = undefined;
 });
 
+const TEST_CONTEXT_WINDOW = 128_000;
+
 const makeOpenAiConfig = (modelIds: string[]) =>
   ({
     models: {
@@ -128,7 +130,7 @@ const makeOpenAiConfig = (modelIds: string[]) =>
             reasoning: false,
             input: ["text"],
             cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-            contextWindow: 16_000,
+            contextWindow: TEST_CONTEXT_WINDOW,
             maxTokens: 2048,
           })),
         },
