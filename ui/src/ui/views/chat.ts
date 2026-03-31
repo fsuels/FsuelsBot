@@ -1,6 +1,7 @@
 import { html, nothing } from "lit";
 import { ref } from "lit/directives/ref.js";
 import { repeat } from "lit/directives/repeat.js";
+import type { AgentReaction } from "../app-tool-stream.ts";
 import type { SessionsListResult } from "../types.ts";
 import type { ChatItem, MessageGroup } from "../types/chat-types.ts";
 import type { ChatAttachment, ChatQueueItem } from "../ui-types.ts";
@@ -14,12 +15,6 @@ import { icons } from "../icons.ts";
 import { renderMarkdownSidebar } from "./markdown-sidebar.ts";
 import "../components/resizable-divider.ts";
 
-export type CompactionIndicatorStatus = {
-  active: boolean;
-  startedAt: number | null;
-  completedAt: number | null;
-};
-
 export type ChatProps = {
   sessionKey: string;
   onSessionKeyChange: (next: string) => void;
@@ -28,7 +23,7 @@ export type ChatProps = {
   loading: boolean;
   sending: boolean;
   canAbort?: boolean;
-  compactionStatus?: CompactionIndicatorStatus | null;
+  chatReaction?: AgentReaction | null;
   messages: unknown[];
   toolMessages: unknown[];
   stream: string | null;
@@ -70,40 +65,61 @@ export type ChatProps = {
   onChatScroll?: (event: Event) => void;
 };
 
-const COMPACTION_TOAST_DURATION_MS = 5000;
+const REACTION_FADE_MS = 700;
 
 function adjustTextareaHeight(el: HTMLTextAreaElement) {
   el.style.height = "auto";
   el.style.height = `${el.scrollHeight}px`;
 }
 
-function renderCompactionIndicator(status: CompactionIndicatorStatus | null | undefined) {
-  if (!status) {
-    return nothing;
+function reactionIcon(style: AgentReaction["style"]) {
+  switch (style) {
+    case "success":
+      return icons.check;
+    case "warning":
+      return icons.zap;
+    case "error":
+      return icons.x;
+    default:
+      return icons.loader;
   }
+}
 
-  // Show "compacting..." while active
-  if (status.active) {
+function renderChatReaction(reaction: AgentReaction | null | undefined) {
+  if (!reaction) {
     return html`
-      <div class="compaction-indicator compaction-indicator--active" role="status" aria-live="polite">
-        ${icons.loader} Compacting context...
-      </div>
+      <div class="chat-reaction-lane" aria-hidden="true"></div>
     `;
   }
 
-  // Show "compaction complete" briefly after completion
-  if (status.completedAt) {
-    const elapsed = Date.now() - status.completedAt;
-    if (elapsed < COMPACTION_TOAST_DURATION_MS) {
-      return html`
-        <div class="compaction-indicator compaction-indicator--complete" role="status" aria-live="polite">
-          ${icons.check} Context compacted
-        </div>
-      `;
-    }
+  const age = Math.max(0, Date.now() - reaction.createdAt);
+  if (age >= reaction.ttlMs) {
+    return html`
+      <div class="chat-reaction-lane" aria-hidden="true"></div>
+    `;
   }
 
-  return nothing;
+  const fading = reaction.ttlMs - age <= REACTION_FADE_MS;
+  const classes = [
+    "chat-reaction",
+    `chat-reaction--${reaction.style}`,
+    fading ? "chat-reaction--fading" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  return html`
+    <div class="chat-reaction-lane" role="status" aria-live="polite">
+      <div class=${classes} data-channel=${reaction.channel}>
+        ${reactionIcon(reaction.style)}
+        <span class="chat-reaction__text">${reaction.text}</span>
+      </div>
+    </div>
+  `;
+}
+
+function renderChatStatus(reaction: AgentReaction | null | undefined) {
+  return renderChatReaction(reaction);
 }
 
 function generateAttachmentId(): string {
@@ -351,7 +367,7 @@ export function renderChat(props: ChatProps) {
           : nothing
       }
 
-      ${renderCompactionIndicator(props.compactionStatus)}
+      ${renderChatStatus(props.chatReaction)}
 
       ${
         props.showNewMessages

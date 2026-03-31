@@ -1091,7 +1091,7 @@ export function renderApp(state: AppViewState) {
                 showThinking,
                 loading: state.chatLoading,
                 sending: state.chatSending,
-                compactionStatus: state.compactionStatus,
+                chatReaction: state.chatReaction,
                 assistantAvatarUrl: chatAvatarUrl,
                 messages: state.chatMessages,
                 toolMessages: state.chatToolMessages,

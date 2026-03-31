@@ -76,7 +76,7 @@ import {
 import {
   resetToolStream as resetToolStreamInternal,
   type ToolStreamEntry,
-  type CompactionStatus,
+  type AgentReaction,
 } from "./app-tool-stream.ts";
 import { resolveInjectedAssistantIdentity } from "./assistant-identity.ts";
 import { loadAssistantIdentity as loadAssistantIdentityInternal } from "./controllers/assistant-identity.ts";
@@ -118,6 +118,7 @@ export class OpenClawApp extends LitElement {
   @state() eventLog: EventLogEntry[] = [];
   private eventLogBuffer: EventLogEntry[] = [];
   private toolStreamSyncTimer: number | null = null;
+  private chatReactionClearTimer: number | null = null;
   private sidebarCloseTimer: number | null = null;
 
   @state() assistantName = injectedAssistantIdentity.name;
@@ -133,7 +134,7 @@ export class OpenClawApp extends LitElement {
   @state() chatStream: string | null = null;
   @state() chatStreamStartedAt: number | null = null;
   @state() chatRunId: string | null = null;
-  @state() compactionStatus: CompactionStatus | null = null;
+  @state() chatReaction: AgentReaction | null = null;
   @state() chatAvatarUrl: string | null = null;
   @state() chatThinkingLevel: string | null = null;
   @state() chatQueue: ChatQueueItem[] = [];

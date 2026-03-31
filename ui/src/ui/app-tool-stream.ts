@@ -26,6 +26,14 @@ export type ToolStreamEntry = {
   message: Record<string, unknown>;
 };
 
+export type AgentReaction = {
+  text: string;
+  createdAt: number;
+  ttlMs: number;
+  channel: "observer" | "system" | "tool";
+  style: "idle" | "success" | "warning" | "error";
+};
+
 type ToolStreamHost = {
   sessionKey: string;
   chatRunId: string | null;
@@ -123,50 +131,113 @@ export function resetToolStream(host: ToolStreamHost) {
   host.toolStreamById.clear();
   host.toolStreamOrder = [];
   host.chatToolMessages = [];
+  setAgentReaction(host as CompactionHost, null);
   flushToolStreamSync(host);
 }
 
-export type CompactionStatus = {
-  active: boolean;
-  startedAt: number | null;
-  completedAt: number | null;
-};
-
 type CompactionHost = ToolStreamHost & {
-  compactionStatus?: CompactionStatus | null;
-  compactionClearTimer?: number | null;
+  chatReaction?: AgentReaction | null;
+  chatReactionClearTimer?: number | null;
 };
 
-const COMPACTION_TOAST_DURATION_MS = 5000;
+const REACTION_TTL_MS = 5000;
+const ACTIVE_REACTION_TTL_MS = 60_000;
+
+function clearReactionTimer(host: CompactionHost) {
+  if (host.chatReactionClearTimer != null) {
+    window.clearTimeout(host.chatReactionClearTimer);
+    host.chatReactionClearTimer = null;
+  }
+}
+
+function scheduleReactionClear(host: CompactionHost, reaction: AgentReaction) {
+  clearReactionTimer(host);
+  if (!Number.isFinite(reaction.ttlMs) || reaction.ttlMs <= 0) {
+    return;
+  }
+  host.chatReactionClearTimer = window.setTimeout(() => {
+    if (host.chatReaction?.createdAt === reaction.createdAt) {
+      host.chatReaction = null;
+    }
+    host.chatReactionClearTimer = null;
+  }, reaction.ttlMs);
+}
+
+function setAgentReaction(host: CompactionHost, reaction: AgentReaction | null) {
+  clearReactionTimer(host);
+  host.chatReaction = reaction;
+  if (reaction) {
+    scheduleReactionClear(host, reaction);
+  }
+}
+
+function startToolLabel(name: string): string {
+  return name.replace(/[_-]+/g, " ").trim() || "tool";
+}
+
+function isRelevantAgentPayload(host: ToolStreamHost, payload: AgentEventPayload): boolean {
+  const sessionKey = typeof payload.sessionKey === "string" ? payload.sessionKey : undefined;
+  if (sessionKey && sessionKey !== host.sessionKey) {
+    return false;
+  }
+  if (!sessionKey && host.chatRunId && payload.runId !== host.chatRunId) {
+    return false;
+  }
+  if (host.chatRunId && payload.runId !== host.chatRunId) {
+    return false;
+  }
+  if (!host.chatRunId && !sessionKey) {
+    return false;
+  }
+  return true;
+}
 
 export function handleCompactionEvent(host: CompactionHost, payload: AgentEventPayload) {
+  if (!isRelevantAgentPayload(host, payload)) {
+    return;
+  }
   const data = payload.data ?? {};
   const phase = typeof data.phase === "string" ? data.phase : "";
-
-  // Clear any existing timer
-  if (host.compactionClearTimer != null) {
-    window.clearTimeout(host.compactionClearTimer);
-    host.compactionClearTimer = null;
-  }
+  const ts = typeof payload.ts === "number" ? payload.ts : Date.now();
 
   if (phase === "start") {
-    host.compactionStatus = {
-      active: true,
-      startedAt: Date.now(),
-      completedAt: null,
-    };
+    setAgentReaction(host, {
+      text: "Compacting context...",
+      createdAt: ts,
+      ttlMs: ACTIVE_REACTION_TTL_MS,
+      channel: "system",
+      style: "idle",
+    });
   } else if (phase === "end") {
-    host.compactionStatus = {
-      active: false,
-      startedAt: host.compactionStatus?.startedAt ?? null,
-      completedAt: Date.now(),
-    };
-    // Auto-clear the toast after duration
-    host.compactionClearTimer = window.setTimeout(() => {
-      host.compactionStatus = null;
-      host.compactionClearTimer = null;
-    }, COMPACTION_TOAST_DURATION_MS);
+    const willRetry = data.willRetry === true;
+    setAgentReaction(host, {
+      text: willRetry ? "Retrying compaction..." : "Context compacted",
+      createdAt: ts,
+      ttlMs: REACTION_TTL_MS,
+      channel: "system",
+      style: willRetry ? "warning" : "success",
+    });
   }
+}
+
+function handleToolReactionEvent(host: CompactionHost, payload: AgentEventPayload) {
+  if (!isRelevantAgentPayload(host, payload)) {
+    return;
+  }
+  const data = payload.data ?? {};
+  const phase = typeof data.phase === "string" ? data.phase : "";
+  if (phase !== "result" || data.isError !== true) {
+    return;
+  }
+  const name = typeof data.name === "string" ? data.name : "tool";
+  const ts = typeof payload.ts === "number" ? payload.ts : Date.now();
+  setAgentReaction(host, {
+    text: `${startToolLabel(name)} failed`,
+    createdAt: ts,
+    ttlMs: REACTION_TTL_MS,
+    channel: "tool",
+    style: "error",
+  });
 }
 
 export function handleAgentEvent(host: ToolStreamHost, payload?: AgentEventPayload) {
@@ -180,23 +251,17 @@ export function handleAgentEvent(host: ToolStreamHost, payload?: AgentEventPaylo
     return;
   }
 
+  if (payload.stream === "tool") {
+    handleToolReactionEvent(host as CompactionHost, payload);
+  }
+
   if (payload.stream !== "tool") {
     return;
   }
+  if (!isRelevantAgentPayload(host, payload)) {
+    return;
+  }
   const sessionKey = typeof payload.sessionKey === "string" ? payload.sessionKey : undefined;
-  if (sessionKey && sessionKey !== host.sessionKey) {
-    return;
-  }
-  // Fallback: only accept session-less events for the active run.
-  if (!sessionKey && host.chatRunId && payload.runId !== host.chatRunId) {
-    return;
-  }
-  if (host.chatRunId && payload.runId !== host.chatRunId) {
-    return;
-  }
-  if (!host.chatRunId) {
-    return;
-  }
 
   const data = payload.data ?? {};
   const toolCallId = typeof data.toolCallId === "string" ? data.toolCallId : "";

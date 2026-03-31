@@ -1,5 +1,6 @@
 import { render } from "lit";
 import { describe, expect, it, vi } from "vitest";
+import type { AgentReaction } from "../app-tool-stream.ts";
 import type { SessionsListResult } from "../types.ts";
 import { renderChat, type ChatProps } from "./chat.ts";
 
@@ -22,7 +23,7 @@ function createProps(overrides: Partial<ChatProps> = {}): ChatProps {
     loading: false,
     sending: false,
     canAbort: false,
-    compactionStatus: null,
+    chatReaction: null,
     messages: [],
     toolMessages: [],
     stream: null,
@@ -48,66 +49,79 @@ function createProps(overrides: Partial<ChatProps> = {}): ChatProps {
   };
 }
 
+function createReaction(overrides: Partial<AgentReaction> = {}): AgentReaction {
+  return {
+    text: "Compacting context...",
+    createdAt: 1_000,
+    ttlMs: 5_000,
+    channel: "system",
+    style: "idle",
+    ...overrides,
+  };
+}
+
 describe("chat view", () => {
-  it("renders compacting indicator as a badge", () => {
+  it("renders active reactions in the dedicated lane", () => {
     const container = document.createElement("div");
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(1_500);
     render(
       renderChat(
         createProps({
-          compactionStatus: {
-            active: true,
-            startedAt: Date.now(),
-            completedAt: null,
-          },
+          chatReaction: createReaction(),
         }),
       ),
       container,
     );
 
-    const indicator = container.querySelector(".compaction-indicator--active");
+    const indicator = container.querySelector(".chat-reaction--idle");
     expect(indicator).not.toBeNull();
     expect(indicator?.textContent).toContain("Compacting context...");
+    nowSpy.mockRestore();
   });
 
-  it("renders completion indicator shortly after compaction", () => {
+  it("renders fading reactions near expiry", () => {
     const container = document.createElement("div");
-    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(1_000);
+    const nowSpy = vi.spyOn(Date, "now").mockReturnValue(5_400);
     render(
       renderChat(
         createProps({
-          compactionStatus: {
-            active: false,
-            startedAt: 900,
-            completedAt: 900,
-          },
+          chatReaction: createReaction({
+            text: "Context compacted",
+            createdAt: 1_000,
+            ttlMs: 5_000,
+            style: "success",
+          }),
         }),
       ),
       container,
     );
 
-    const indicator = container.querySelector(".compaction-indicator--complete");
+    const indicator = container.querySelector(".chat-reaction--success.chat-reaction--fading");
     expect(indicator).not.toBeNull();
     expect(indicator?.textContent).toContain("Context compacted");
     nowSpy.mockRestore();
   });
 
-  it("hides stale compaction completion indicator", () => {
+  it("hides stale reactions after expiry", () => {
     const container = document.createElement("div");
     const nowSpy = vi.spyOn(Date, "now").mockReturnValue(10_000);
     render(
       renderChat(
         createProps({
-          compactionStatus: {
-            active: false,
-            startedAt: 0,
-            completedAt: 0,
-          },
+          chatReaction: createReaction({
+            text: "Tool failed",
+            createdAt: 0,
+            ttlMs: 2_000,
+            style: "error",
+            channel: "tool",
+          }),
         }),
       ),
       container,
     );
 
-    expect(container.querySelector(".compaction-indicator")).toBeNull();
+    expect(container.querySelector(".chat-reaction")).toBeNull();
+    expect(container.querySelector(".chat-reaction-lane")).not.toBeNull();
     nowSpy.mockRestore();
   });
 
