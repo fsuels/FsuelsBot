@@ -366,7 +366,22 @@ export type SubagentRunOutcome = {
 
 export type SubagentAnnounceType = "subagent task" | "cron job";
 
-export async function runSubagentAnnounceFlow(params: {
+export type SubagentCleanupTransitionResult = {
+  status: "completed" | "blocked" | "failed";
+  reason:
+    | "announcement_sent"
+    | "announcement_queued"
+    | "announcement_steered"
+    | "active_run_still_processing"
+    | "announcement_failed"
+    | "session_delete_failed";
+  didAnnounce: boolean;
+  announcement: "sent" | "queued" | "steered" | "deferred" | "failed";
+  childSessionCleanup: "deleted" | "not_requested" | "blocked" | "kept" | "failed";
+  error?: string;
+};
+
+export async function runSubagentAnnounceFlowDetailed(params: {
   childSessionKey: string;
   childRunId: string;
   requesterSessionKey: string;
@@ -382,9 +397,15 @@ export async function runSubagentAnnounceFlow(params: {
   label?: string;
   outcome?: SubagentRunOutcome;
   announceType?: SubagentAnnounceType;
-}): Promise<boolean> {
-  let didAnnounce = false;
+}): Promise<SubagentCleanupTransitionResult> {
   let shouldDeleteChildSession = params.cleanup === "delete";
+  const result: SubagentCleanupTransitionResult = {
+    status: "failed",
+    reason: "announcement_failed",
+    didAnnounce: false,
+    announcement: "failed",
+    childSessionCleanup: params.cleanup === "delete" ? "kept" : "not_requested",
+  };
   try {
     const requesterOrigin = normalizeDeliveryContext(params.requesterOrigin);
     const childSessionId = (() => {
@@ -405,7 +426,11 @@ export async function runSubagentAnnounceFlow(params: {
         // Defer announcement so we don't report stale/partial output.
         // Keep the child session so output is not lost while the run is still active.
         shouldDeleteChildSession = false;
-        return false;
+        result.status = "blocked";
+        result.reason = "active_run_still_processing";
+        result.announcement = "deferred";
+        result.childSessionCleanup = params.cleanup === "delete" ? "blocked" : "not_requested";
+        return result;
       }
     }
 
@@ -461,7 +486,11 @@ export async function runSubagentAnnounceFlow(params: {
     if (!reply?.trim() && childSessionId && isEmbeddedPiRunActive(childSessionId)) {
       // Avoid announcing "(no output)" while the child run is still producing output.
       shouldDeleteChildSession = false;
-      return false;
+      result.status = "blocked";
+      result.reason = "active_run_still_processing";
+      result.announcement = "deferred";
+      result.childSessionCleanup = params.cleanup === "delete" ? "blocked" : "not_requested";
+      return result;
     }
 
     if (!outcome) {
@@ -514,12 +543,18 @@ export async function runSubagentAnnounceFlow(params: {
       requesterOrigin,
     });
     if (queued === "steered") {
-      didAnnounce = true;
-      return true;
+      result.status = "completed";
+      result.reason = "announcement_steered";
+      result.didAnnounce = true;
+      result.announcement = "steered";
+      return result;
     }
     if (queued === "queued") {
-      didAnnounce = true;
-      return true;
+      result.status = "completed";
+      result.reason = "announcement_queued";
+      result.didAnnounce = true;
+      result.announcement = "queued";
+      return result;
     }
 
     // Send to main agent - it will respond in its own voice
@@ -547,10 +582,17 @@ export async function runSubagentAnnounceFlow(params: {
       timeoutMs: 60_000,
     });
 
-    didAnnounce = true;
+    result.status = "completed";
+    result.reason = "announcement_sent";
+    result.didAnnounce = true;
+    result.announcement = "sent";
   } catch (err) {
+    result.status = "failed";
+    result.reason = "announcement_failed";
+    result.didAnnounce = false;
+    result.announcement = "failed";
+    result.error = err instanceof Error ? err.message : String(err);
     defaultRuntime.error?.(`Subagent announce failed: ${String(err)}`);
-    // Best-effort follow-ups; ignore failures to avoid breaking the caller response.
   } finally {
     // Patch label after all writes complete
     if (params.label) {
@@ -564,17 +606,47 @@ export async function runSubagentAnnounceFlow(params: {
         // Best-effort
       }
     }
-    if (shouldDeleteChildSession) {
+    if (shouldDeleteChildSession && result.didAnnounce) {
       try {
         await callGateway({
           method: "sessions.delete",
           params: { key: params.childSessionKey, deleteTranscript: true },
           timeoutMs: 10_000,
         });
-      } catch {
-        // ignore
+        result.childSessionCleanup = "deleted";
+      } catch (err) {
+        result.status = "failed";
+        result.reason = "session_delete_failed";
+        result.childSessionCleanup = "failed";
+        result.error = err instanceof Error ? err.message : String(err);
       }
+    } else if (params.cleanup !== "delete") {
+      result.childSessionCleanup = "not_requested";
+    } else if (result.status === "blocked") {
+      result.childSessionCleanup = "blocked";
+    } else if (result.childSessionCleanup !== "failed") {
+      result.childSessionCleanup = "kept";
     }
   }
-  return didAnnounce;
+  return result;
+}
+
+export async function runSubagentAnnounceFlow(params: {
+  childSessionKey: string;
+  childRunId: string;
+  requesterSessionKey: string;
+  requesterOrigin?: DeliveryContext;
+  requesterDisplayKey: string;
+  task: string;
+  timeoutMs: number;
+  cleanup: "delete" | "keep";
+  roundOneReply?: string;
+  waitForCompletion?: boolean;
+  startedAt?: number;
+  endedAt?: number;
+  label?: string;
+  outcome?: SubagentRunOutcome;
+  announceType?: SubagentAnnounceType;
+}): Promise<boolean> {
+  return (await runSubagentAnnounceFlowDetailed(params)).didAnnounce;
 }

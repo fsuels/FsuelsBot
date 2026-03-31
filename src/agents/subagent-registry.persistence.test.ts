@@ -4,22 +4,53 @@ import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const noop = () => {};
+const callGatewayMock = vi.fn(async () => ({
+  status: "ok",
+  startedAt: 111,
+  endedAt: 222,
+}));
+
+function makeCleanupResult(
+  overrides: Partial<{
+    status: "completed" | "blocked" | "failed";
+    reason:
+      | "announcement_sent"
+      | "announcement_queued"
+      | "announcement_steered"
+      | "active_run_still_processing"
+      | "announcement_failed"
+      | "session_delete_failed";
+    didAnnounce: boolean;
+    announcement: "sent" | "queued" | "steered" | "deferred" | "failed";
+    childSessionCleanup: "deleted" | "not_requested" | "blocked" | "kept" | "failed";
+    error?: string;
+  }> = {},
+) {
+  return {
+    status: "completed" as const,
+    reason: "announcement_sent" as const,
+    didAnnounce: true,
+    announcement: "sent" as const,
+    childSessionCleanup: "not_requested" as const,
+    ...overrides,
+  };
+}
 
 vi.mock("../gateway/call.js", () => ({
-  callGateway: vi.fn(async () => ({
-    status: "ok",
-    startedAt: 111,
-    endedAt: 222,
-  })),
+  callGateway: (opts: unknown) => callGatewayMock(opts),
 }));
 
 vi.mock("../infra/agent-events.js", () => ({
   onAgentEvent: vi.fn(() => noop),
 }));
 
-const announceSpy = vi.fn(async () => true);
+const announceSpy = vi.fn(async () => makeCleanupResult());
 vi.mock("./subagent-announce.js", () => ({
-  runSubagentAnnounceFlow: (...args: unknown[]) => announceSpy(...args),
+  runSubagentAnnounceFlowDetailed: (...args: unknown[]) => announceSpy(...args),
+  runSubagentAnnounceFlow: async (...args: unknown[]) => {
+    const result = await announceSpy(...args);
+    return typeof result === "boolean" ? result : Boolean(result?.didAnnounce);
+  },
 }));
 
 describe("subagent registry persistence", () => {
@@ -28,6 +59,12 @@ describe("subagent registry persistence", () => {
 
   afterEach(async () => {
     announceSpy.mockClear();
+    callGatewayMock.mockReset();
+    callGatewayMock.mockImplementation(async () => ({
+      status: "ok",
+      startedAt: 111,
+      endedAt: 222,
+    }));
     vi.resetModules();
     if (tempStateDir) {
       await fs.rm(tempStateDir, { recursive: true, force: true });
@@ -100,7 +137,7 @@ describe("subagent registry persistence", () => {
     expect(first.requesterOrigin?.accountId).toBe("acct-main");
   });
 
-  it("skips cleanup when cleanupHandled was persisted", async () => {
+  it("retries stale cleanup when cleanupHandled was persisted", async () => {
     tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-subagent-"));
     process.env.OPENCLAW_STATE_DIR = tempStateDir;
 
@@ -118,7 +155,7 @@ describe("subagent registry persistence", () => {
           createdAt: 1,
           startedAt: 1,
           endedAt: 2,
-          cleanupHandled: true, // Already handled - should be skipped
+          cleanupHandled: true,
         },
       },
     };
@@ -131,13 +168,12 @@ describe("subagent registry persistence", () => {
 
     await new Promise((r) => setTimeout(r, 0));
 
-    // announce should NOT be called since cleanupHandled was true
     const calls = announceSpy.mock.calls.map((call) => call[0]);
     const match = calls.find(
       (params) =>
         (params as { childSessionKey?: string }).childSessionKey === "agent:main:subagent:two",
     );
-    expect(match).toBeFalsy();
+    expect(match).toBeTruthy();
   });
 
   it("maps legacy announce fields into cleanup state", async () => {
@@ -205,7 +241,15 @@ describe("subagent registry persistence", () => {
     await fs.mkdir(path.dirname(registryPath), { recursive: true });
     await fs.writeFile(registryPath, `${JSON.stringify(persisted)}\n`, "utf8");
 
-    announceSpy.mockResolvedValueOnce(false);
+    announceSpy.mockResolvedValueOnce(
+      makeCleanupResult({
+        status: "failed",
+        reason: "announcement_failed",
+        didAnnounce: false,
+        announcement: "failed",
+        childSessionCleanup: "kept",
+      }),
+    );
     vi.resetModules();
     const mod1 = await import("./subagent-registry.js");
     mod1.initSubagentRegistry();
@@ -213,12 +257,22 @@ describe("subagent registry persistence", () => {
 
     expect(announceSpy).toHaveBeenCalledTimes(1);
     const afterFirst = JSON.parse(await fs.readFile(registryPath, "utf8")) as {
-      runs: Record<string, { cleanupHandled?: boolean; cleanupCompletedAt?: number }>;
+      runs: Record<
+        string,
+        {
+          cleanupHandled?: boolean;
+          cleanupCompletedAt?: number;
+          cleanupState?: string;
+          cleanupReason?: string;
+        }
+      >;
     };
     expect(afterFirst.runs["run-3"].cleanupHandled).toBe(false);
     expect(afterFirst.runs["run-3"].cleanupCompletedAt).toBeUndefined();
+    expect(afterFirst.runs["run-3"].cleanupState).toBe("failed");
+    expect(afterFirst.runs["run-3"].cleanupReason).toBe("announcement_failed");
 
-    announceSpy.mockResolvedValueOnce(true);
+    announceSpy.mockResolvedValueOnce(makeCleanupResult());
     vi.resetModules();
     const mod2 = await import("./subagent-registry.js");
     mod2.initSubagentRegistry();
@@ -255,7 +309,15 @@ describe("subagent registry persistence", () => {
     await fs.mkdir(path.dirname(registryPath), { recursive: true });
     await fs.writeFile(registryPath, `${JSON.stringify(persisted)}\n`, "utf8");
 
-    announceSpy.mockResolvedValueOnce(false);
+    announceSpy.mockResolvedValueOnce(
+      makeCleanupResult({
+        status: "blocked",
+        reason: "active_run_still_processing",
+        didAnnounce: false,
+        announcement: "deferred",
+        childSessionCleanup: "blocked",
+      }),
+    );
     vi.resetModules();
     const mod1 = await import("./subagent-registry.js");
     mod1.initSubagentRegistry();
@@ -263,11 +325,20 @@ describe("subagent registry persistence", () => {
 
     expect(announceSpy).toHaveBeenCalledTimes(1);
     const afterFirst = JSON.parse(await fs.readFile(registryPath, "utf8")) as {
-      runs: Record<string, { cleanupHandled?: boolean }>;
+      runs: Record<
+        string,
+        { cleanupHandled?: boolean; cleanupState?: string; cleanupReason?: string }
+      >;
     };
     expect(afterFirst.runs["run-4"]?.cleanupHandled).toBe(false);
+    expect(afterFirst.runs["run-4"]?.cleanupState).toBe("blocked");
+    expect(afterFirst.runs["run-4"]?.cleanupReason).toBe("active_run_still_processing");
 
-    announceSpy.mockResolvedValueOnce(true);
+    announceSpy.mockResolvedValueOnce(
+      makeCleanupResult({
+        childSessionCleanup: "deleted",
+      }),
+    );
     vi.resetModules();
     const mod2 = await import("./subagent-registry.js");
     mod2.initSubagentRegistry();
@@ -278,5 +349,83 @@ describe("subagent registry persistence", () => {
       runs?: Record<string, unknown>;
     };
     expect(afterSecond.runs?.["run-4"]).toBeUndefined();
+  });
+
+  it("blocks archive cleanup until post-run cleanup completed", async () => {
+    tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-subagent-"));
+    process.env.OPENCLAW_STATE_DIR = tempStateDir;
+
+    vi.resetModules();
+    const mod = await import("./subagent-registry.js");
+    mod.addSubagentRunForTests({
+      runId: "run-archive-blocked",
+      childSessionKey: "agent:main:subagent:blocked",
+      requesterSessionKey: "agent:main:main",
+      requesterDisplayKey: "main",
+      task: "archive blocked",
+      cleanup: "keep",
+      createdAt: 1,
+      startedAt: 1,
+      archiveAtMs: 1,
+      cleanupHandled: false,
+      cleanupState: "pending",
+    });
+
+    await mod.sweepSubagentRunsForTests();
+
+    expect(callGatewayMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ method: "sessions.delete" }),
+    );
+    const registryPath = path.join(tempStateDir, "subagents", "runs.json");
+    const after = JSON.parse(await fs.readFile(registryPath, "utf8")) as {
+      runs: Record<string, { cleanupState?: string; cleanupReason?: string }>;
+    };
+    expect(after.runs["run-archive-blocked"]?.cleanupState).toBe("blocked");
+    expect(after.runs["run-archive-blocked"]?.cleanupReason).toBe("archive_waiting_for_cleanup");
+  });
+
+  it("keeps archive cleanup retryable when session deletion fails", async () => {
+    tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-subagent-"));
+    process.env.OPENCLAW_STATE_DIR = tempStateDir;
+
+    callGatewayMock.mockRejectedValueOnce(new Error("delete failed"));
+    vi.resetModules();
+    const mod = await import("./subagent-registry.js");
+    mod.addSubagentRunForTests({
+      runId: "run-archive-retry",
+      childSessionKey: "agent:main:subagent:retry",
+      requesterSessionKey: "agent:main:main",
+      requesterDisplayKey: "main",
+      task: "archive retry",
+      cleanup: "keep",
+      createdAt: 1,
+      startedAt: 1,
+      endedAt: 2,
+      archiveAtMs: 1,
+      cleanupHandled: true,
+      cleanupCompletedAt: 3,
+      cleanupState: "completed",
+    });
+
+    await mod.sweepSubagentRunsForTests();
+
+    const registryPath = path.join(tempStateDir, "subagents", "runs.json");
+    const afterFirst = JSON.parse(await fs.readFile(registryPath, "utf8")) as {
+      runs: Record<
+        string,
+        { cleanupState?: string; cleanupReason?: string; cleanupError?: string }
+      >;
+    };
+    expect(afterFirst.runs["run-archive-retry"]?.cleanupState).toBe("failed");
+    expect(afterFirst.runs["run-archive-retry"]?.cleanupReason).toBe("archive_delete_failed");
+    expect(afterFirst.runs["run-archive-retry"]?.cleanupError).toContain("delete failed");
+
+    callGatewayMock.mockResolvedValueOnce({ ok: true });
+    await mod.sweepSubagentRunsForTests();
+
+    const afterSecond = JSON.parse(await fs.readFile(registryPath, "utf8")) as {
+      runs?: Record<string, unknown>;
+    };
+    expect(afterSecond.runs?.["run-archive-retry"]).toBeUndefined();
   });
 });

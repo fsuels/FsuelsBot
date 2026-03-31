@@ -19,6 +19,12 @@ export function formatRunStatus(entry: SubagentRunRecord) {
   if (!entry.endedAt) {
     return "running";
   }
+  if (entry.cleanupState === "blocked") {
+    return "cleanup-blocked";
+  }
+  if (entry.cleanupState === "failed") {
+    return "cleanup-failed";
+  }
   const status = entry.outcome?.status ?? "done";
   return status === "ok" ? "done" : status;
 }

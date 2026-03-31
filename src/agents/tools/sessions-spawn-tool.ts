@@ -114,7 +114,7 @@ export function createSessionsSpawnTool(opts?: {
     label: "Sessions",
     name: "sessions_spawn",
     description:
-      "Spawn a background sub-agent run in an isolated session and announce the result back to the requester chat.",
+      "Spawn a background sub-agent run in a new isolated child session. The current requester session/agent are inferred from runtime context; omit agentId unless you need an allowlisted cross-agent handoff. cleanup=delete removes the child session only after the run finishes and its result is safely announced.",
     parameters: SessionsSpawnToolSchema,
     execute: async (_toolCallId, args) => {
       const params = args as Record<string, unknown>;
