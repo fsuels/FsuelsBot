@@ -903,7 +903,6 @@ async function handleInvoke(
   const safeBins = resolveSafeBins(agentExec?.safeBins ?? cfg.tools?.exec?.safeBins);
   const bins = autoAllowSkills ? await skillBins.current() : new Set<string>();
   let analysisOk = false;
-  let analysisReason: string | undefined;
   let allowlistMatches: ExecAllowlistEntry[] = [];
   let allowlistSatisfied = false;
   let segments: ExecCommandSegment[] = [];
@@ -919,7 +918,6 @@ async function handleInvoke(
       platform: process.platform,
     });
     analysisOk = allowlistEval.analysisOk;
-    analysisReason = allowlistEval.analysisReason;
     allowlistMatches = allowlistEval.allowlistMatches;
     allowlistSatisfied =
       security === "allowlist" && analysisOk ? allowlistEval.allowlistSatisfied : false;
@@ -935,7 +933,6 @@ async function handleInvoke(
       autoAllowSkills,
     });
     analysisOk = analysis.ok;
-    analysisReason = analysis.reason;
     allowlistMatches = allowlistEval.allowlistMatches;
     allowlistSatisfied =
       security === "allowlist" && analysisOk ? allowlistEval.allowlistSatisfied : false;
@@ -947,7 +944,6 @@ async function handleInvoke(
     : isCmdExeInvocation(argv);
   if (security === "allowlist" && isWindows && cmdInvocation) {
     analysisOk = false;
-    analysisReason = "cmd.exe requires approval in allowlist mode";
     allowlistSatisfied = false;
   }
 
@@ -1086,8 +1082,7 @@ async function handleInvoke(
   if (approvalDecision === "allow-always" && security === "allowlist") {
     if (analysisOk) {
       for (const segment of segments) {
-        const pattern =
-          segment.canonicalResolution?.resolvedPath ?? segment.resolution?.resolvedPath ?? "";
+        const pattern = segment.resolution?.resolvedPath ?? "";
         if (pattern) {
           addAllowlistEntry(approvals.file, agentId, pattern);
         }
@@ -1109,13 +1104,7 @@ async function handleInvoke(
     );
     await sendInvokeResult(client, frame, {
       ok: false,
-      error: {
-        code: "UNAVAILABLE",
-        message:
-          !analysisOk && analysisReason
-            ? `SYSTEM_RUN_DENIED: ${analysisReason}`
-            : "SYSTEM_RUN_DENIED: allowlist miss",
-      },
+      error: { code: "UNAVAILABLE", message: "SYSTEM_RUN_DENIED: allowlist miss" },
     });
     return;
   }
@@ -1132,7 +1121,7 @@ async function handleInvoke(
         agentId,
         match,
         cmdText,
-        segments[0]?.canonicalResolution?.resolvedPath ?? segments[0]?.resolution?.resolvedPath,
+        segments[0]?.resolution?.resolvedPath,
       );
     }
   }
