@@ -61,6 +61,11 @@ import { log } from "./logger.js";
 import { resolveModel } from "./model.js";
 import { hashPromptState } from "./prompt-dedup-cache.js";
 import { runEmbeddedAttempt } from "./run/attempt.js";
+import {
+  createEmbeddedRunRecoveryState,
+  transitionEmbeddedRunRecovery,
+  type EmbeddedRunRecoveryEffect,
+} from "./run/recovery-state.js";
 import { buildEmbeddedRunPayloads } from "./run/payloads.js";
 import {
   truncateOversizedToolResultsInSession,
@@ -394,9 +399,7 @@ export async function runEmbeddedPiAgent(
         }
       }
 
-      const MAX_OVERFLOW_COMPACTION_ATTEMPTS = 3;
-      let overflowCompactionAttempts = 0;
-      let toolResultTruncationAttempted = false;
+      let recoveryState = createEmbeddedRunRecoveryState();
       const usageAccumulator = createUsageAccumulator();
       let autoCompactionCount = 0;
       // Tool call loop detector state (Sustained Reasoning P1)
@@ -409,6 +412,82 @@ export async function runEmbeddedPiAgent(
       // allowing us to skip redundant API calls during overflow retry loops.
       const attemptedPromptHashes = new Set<string>();
       let runTurnCounter = 0; // incremented per loop iteration
+      const attemptRecoveryCompaction = async (
+        effect: Extract<EmbeddedRunRecoveryEffect, { kind: "attempt_compaction" }>,
+      ) => {
+        if (effect.reason === "proactive") {
+          log.info(
+            `[proactive-compaction] Pre-API compaction triggered ` +
+              `(attempt ${effect.attemptNumber}/${effect.maxAttempts})`,
+          );
+        } else {
+          log.warn(
+            `context overflow detected (attempt ${effect.attemptNumber}/${effect.maxAttempts}); attempting auto-compaction for ${provider}/${modelId}`,
+          );
+        }
+
+        const compactResult = await compactEmbeddedPiSessionDirect({
+          sessionId: params.sessionId,
+          sessionKey: params.sessionKey,
+          messageChannel: params.messageChannel,
+          messageProvider: params.messageProvider,
+          agentAccountId: params.agentAccountId,
+          authProfileId: lastProfileId,
+          sessionFile: params.sessionFile,
+          workspaceDir: resolvedWorkspace,
+          agentDir,
+          config: params.config,
+          skillsSnapshot: params.skillsSnapshot,
+          senderIsOwner: params.senderIsOwner,
+          provider,
+          model: modelId,
+          thinkLevel,
+          reasoningLevel: params.reasoningLevel,
+          bashElevated: params.bashElevated,
+          extraSystemPrompt: params.extraSystemPrompt,
+          ownerNumbers: params.ownerNumbers,
+        });
+
+        if (compactResult.compacted) {
+          autoCompactionCount += 1;
+          if (effect.reason === "proactive") {
+            log.info(`[proactive-compaction] Succeeded; retrying prompt`);
+          } else {
+            log.info(`auto-compaction succeeded for ${provider}/${modelId}; retrying prompt`);
+          }
+        } else if (effect.reason === "proactive") {
+          log.warn(`[proactive-compaction] Failed: ${compactResult.reason ?? "nothing to compact"}`);
+        } else {
+          log.warn(
+            `auto-compaction failed for ${provider}/${modelId}: ${compactResult.reason ?? "nothing to compact"}`,
+          );
+        }
+
+        return compactResult.compacted;
+      };
+
+      const attemptToolResultTruncation = async (contextWindowTokens: number) => {
+        log.warn(
+          `[context-overflow-recovery] Attempting tool result truncation for ${provider}/${modelId} ` +
+            `(contextWindow=${contextWindowTokens} tokens)`,
+        );
+        const truncResult = await truncateOversizedToolResultsInSession({
+          sessionFile: params.sessionFile,
+          contextWindowTokens,
+          sessionId: params.sessionId,
+          sessionKey: params.sessionKey,
+        });
+        if (truncResult.truncated) {
+          log.info(
+            `[context-overflow-recovery] Truncated ${truncResult.truncatedCount} tool result(s); retrying prompt`,
+          );
+        } else {
+          log.warn(
+            `[context-overflow-recovery] Tool result truncation did not help: ${truncResult.reason ?? "unknown"}`,
+          );
+        }
+        return truncResult.truncated;
+      };
       try {
         while (true) {
           runTurnCounter++;
@@ -525,41 +604,20 @@ export async function runEmbeddedPiAgent(
           // If the attempt detected >80% context usage before calling the API,
           // it returns early with proactiveCompactionNeeded=true. Compact and retry.
           if (attempt.proactiveCompactionNeeded) {
-            if (overflowCompactionAttempts < MAX_OVERFLOW_COMPACTION_ATTEMPTS) {
-              overflowCompactionAttempts++;
-              log.info(
-                `[proactive-compaction] Pre-API compaction triggered ` +
-                  `(attempt ${overflowCompactionAttempts}/${MAX_OVERFLOW_COMPACTION_ATTEMPTS})`,
-              );
-              const compactResult = await compactEmbeddedPiSessionDirect({
-                sessionId: params.sessionId,
-                sessionKey: params.sessionKey,
-                messageChannel: params.messageChannel,
-                messageProvider: params.messageProvider,
-                agentAccountId: params.agentAccountId,
-                authProfileId: lastProfileId,
-                sessionFile: params.sessionFile,
-                workspaceDir: resolvedWorkspace,
-                agentDir,
-                config: params.config,
-                skillsSnapshot: params.skillsSnapshot,
-                senderIsOwner: params.senderIsOwner,
-                provider,
-                model: modelId,
-                thinkLevel,
-                reasoningLevel: params.reasoningLevel,
-                bashElevated: params.bashElevated,
-                extraSystemPrompt: params.extraSystemPrompt,
-                ownerNumbers: params.ownerNumbers,
+            const proactiveDecision = transitionEmbeddedRunRecovery(recoveryState, {
+              kind: "proactive_compaction_requested",
+            });
+            recoveryState = proactiveDecision.nextState;
+            if (proactiveDecision.effect.kind === "attempt_compaction") {
+              const compacted = await attemptRecoveryCompaction(proactiveDecision.effect);
+              const completionDecision = transitionEmbeddedRunRecovery(recoveryState, {
+                kind: "proactive_compaction_completed",
+                compacted,
               });
-              if (compactResult.compacted) {
-                autoCompactionCount += 1;
-                log.info(`[proactive-compaction] Succeeded; retrying prompt`);
+              recoveryState = completionDecision.nextState;
+              if (completionDecision.effect.kind === "retry") {
                 continue;
               }
-              log.warn(
-                `[proactive-compaction] Failed: ${compactResult.reason ?? "nothing to compact"}`,
-              );
             }
             // Fall through to normal attempt if compaction attempts exhausted
           }
@@ -637,88 +695,51 @@ export async function runEmbeddedPiAgent(
               `[context-overflow-diag] sessionKey=${params.sessionKey ?? params.sessionId} ` +
                 `provider=${provider}/${modelId} source=${contextOverflowError.source} ` +
                 `messages=${msgCount} sessionFile=${params.sessionFile} ` +
-                `compactionAttempts=${overflowCompactionAttempts} error=${errorText.slice(0, 200)}`,
+                `compactionAttempts=${recoveryState.overflowCompactionAttempts} error=${errorText.slice(0, 200)}`,
             );
             const isCompactionFailure = isCompactionFailureError(errorText);
-            // Attempt auto-compaction on context overflow (not compaction_failure)
-            // Skip if prompt is duplicate — compaction didn't change message content (Processing Efficiency P1)
-            if (
-              !isCompactionFailure &&
-              !promptIsDuplicate &&
-              overflowCompactionAttempts < MAX_OVERFLOW_COMPACTION_ATTEMPTS
-            ) {
-              overflowCompactionAttempts++;
-              log.warn(
-                `context overflow detected (attempt ${overflowCompactionAttempts}/${MAX_OVERFLOW_COMPACTION_ATTEMPTS}); attempting auto-compaction for ${provider}/${modelId}`,
-              );
-              const compactResult = await compactEmbeddedPiSessionDirect({
-                sessionId: params.sessionId,
-                sessionKey: params.sessionKey,
-                messageChannel: params.messageChannel,
-                messageProvider: params.messageProvider,
-                agentAccountId: params.agentAccountId,
-                authProfileId: lastProfileId,
-                sessionFile: params.sessionFile,
-                workspaceDir: resolvedWorkspace,
-                agentDir,
-                config: params.config,
-                skillsSnapshot: params.skillsSnapshot,
-                senderIsOwner: params.senderIsOwner,
-                provider,
-                model: modelId,
-                thinkLevel,
-                reasoningLevel: params.reasoningLevel,
-                bashElevated: params.bashElevated,
-                extraSystemPrompt: params.extraSystemPrompt,
-                ownerNumbers: params.ownerNumbers,
-              });
-              if (compactResult.compacted) {
-                autoCompactionCount += 1;
-                log.info(`auto-compaction succeeded for ${provider}/${modelId}; retrying prompt`);
-                continue;
-              }
-              log.warn(
-                `auto-compaction failed for ${provider}/${modelId}: ${compactResult.reason ?? "nothing to compact"}`,
-              );
-            }
-            // Fallback: try truncating oversized tool results in the session.
-            // This handles the case where a single tool result exceeds the
-            // context window and compaction cannot reduce it further.
-            if (!toolResultTruncationAttempted) {
-              const contextWindowTokens = ctxInfo.tokens;
-              const hasOversized = attempt.messagesSnapshot
-                ? sessionLikelyHasOversizedToolResults({
-                    messages: attempt.messagesSnapshot,
-                    contextWindowTokens,
-                  })
-                : false;
-
-              if (hasOversized) {
-                toolResultTruncationAttempted = true;
-                log.warn(
-                  `[context-overflow-recovery] Attempting tool result truncation for ${provider}/${modelId} ` +
-                    `(contextWindow=${contextWindowTokens} tokens)`,
-                );
-                const truncResult = await truncateOversizedToolResultsInSession({
-                  sessionFile: params.sessionFile,
+            const contextWindowTokens = ctxInfo.tokens;
+            const hasOversizedToolResults = attempt.messagesSnapshot
+              ? sessionLikelyHasOversizedToolResults({
+                  messages: attempt.messagesSnapshot,
                   contextWindowTokens,
-                  sessionId: params.sessionId,
-                  sessionKey: params.sessionKey,
-                });
-                if (truncResult.truncated) {
-                  log.info(
-                    `[context-overflow-recovery] Truncated ${truncResult.truncatedCount} tool result(s); retrying prompt`,
-                  );
-                  // Session is now smaller; allow compaction retries again.
-                  overflowCompactionAttempts = 0;
-                  continue;
-                }
-                log.warn(
-                  `[context-overflow-recovery] Tool result truncation did not help: ${truncResult.reason ?? "unknown"}`,
-                );
-              }
+                })
+              : false;
+            let overflowDecision = transitionEmbeddedRunRecovery(recoveryState, {
+              kind: "context_overflow_detected",
+              promptIsDuplicate,
+              isCompactionFailure,
+              hasOversizedToolResults,
+            });
+            recoveryState = overflowDecision.nextState;
+
+            if (overflowDecision.effect.kind === "attempt_compaction") {
+              const compacted = await attemptRecoveryCompaction(overflowDecision.effect);
+              overflowDecision = transitionEmbeddedRunRecovery(recoveryState, {
+                kind: "overflow_compaction_completed",
+                compacted,
+                hasOversizedToolResults,
+              });
+              recoveryState = overflowDecision.nextState;
             }
-            const kind = isCompactionFailure ? "compaction_failure" : "context_overflow";
+
+            if (overflowDecision.effect.kind === "attempt_tool_result_truncation") {
+              const truncated = await attemptToolResultTruncation(contextWindowTokens);
+              overflowDecision = transitionEmbeddedRunRecovery(recoveryState, {
+                kind: "tool_result_truncation_completed",
+                truncated,
+              });
+              recoveryState = overflowDecision.nextState;
+            }
+
+            if (overflowDecision.effect.kind === "retry") {
+              continue;
+            }
+
+            const kind =
+              overflowDecision.effect.kind === "return_error"
+                ? overflowDecision.effect.errorKind
+                : "context_overflow";
             return {
               payloads: [
                 {

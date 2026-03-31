@@ -8,6 +8,7 @@ import {
   FileToolError,
   resolveFileToolPath,
 } from "./file-edit-safety.js";
+import { assertTextEditRangeIsSafe } from "./text-edit-guards.js";
 
 const UNICODE_SPACES = /[\u00A0\u2000-\u200A\u202F\u205F\u3000]/g;
 const CONTEXT_LINES = 2;
@@ -35,6 +36,11 @@ const transactionalEditSchema = Type.Object({
 type DiffPreview = {
   diff: string;
   firstChangedLine: number;
+};
+
+type NormalizedFuzzyProjection = {
+  normalized: string;
+  boundaryMap: number[];
 };
 
 function normalizeUnicodeSpaces(value: string): string {
@@ -70,6 +76,69 @@ function normalizeForFuzzyMatch(text: string): string {
     .replace(/[\u201C\u201D\u201E\u201F]/g, '"')
     .replace(/[\u2010\u2011\u2012\u2013\u2014\u2015\u2212]/g, "-")
     .replace(/[\u00A0\u2002-\u200A\u202F\u205F\u3000]/g, " ");
+}
+
+function normalizeFuzzyChar(char: string): string {
+  switch (char) {
+    case "\u2018":
+    case "\u2019":
+    case "\u201A":
+    case "\u201B":
+      return "'";
+    case "\u201C":
+    case "\u201D":
+    case "\u201E":
+    case "\u201F":
+      return '"';
+    case "\u2010":
+    case "\u2011":
+    case "\u2012":
+    case "\u2013":
+    case "\u2014":
+    case "\u2015":
+    case "\u2212":
+      return "-";
+    case "\u00A0":
+    case "\u2002":
+    case "\u2003":
+    case "\u2004":
+    case "\u2005":
+    case "\u2006":
+    case "\u2007":
+    case "\u2008":
+    case "\u2009":
+    case "\u200A":
+    case "\u202F":
+    case "\u205F":
+    case "\u3000":
+      return " ";
+    default:
+      return char;
+  }
+}
+
+function projectFuzzyText(text: string): NormalizedFuzzyProjection {
+  const normalizedText = normalizeToLF(text);
+  const lines = normalizedText.split("\n");
+  const boundaryMap: number[] = [0];
+  let normalized = "";
+  let originalOffset = 0;
+
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+    const line = lines[lineIndex] ?? "";
+    const trimmedLine = line.trimEnd();
+    for (let charIndex = 0; charIndex < trimmedLine.length; charIndex += 1) {
+      normalized += normalizeFuzzyChar(trimmedLine[charIndex] ?? "");
+      boundaryMap.push(originalOffset + charIndex + 1);
+    }
+    if (lineIndex < lines.length - 1) {
+      normalized += "\n";
+      boundaryMap.push(originalOffset + line.length + 1);
+    }
+    originalOffset += line.length + 1;
+  }
+
+  return { normalized, boundaryMap };
 }
 
 function findAllLiteralIndices(haystack: string, needle: string): number[] {
@@ -325,11 +394,21 @@ export function createTransactionalEditTool(
       let usedFuzzyMatch = false;
 
       if (exactMatchCount > 0) {
+        for (const exactIndex of replaceAll ? exactIndices : [matchIndex]) {
+          assertTextEditRangeIsSafe({
+            toolName: "edit",
+            filePath: input.path,
+            text: normalizedContent,
+            start: exactIndex,
+            end: exactIndex + normalizedOldText.length,
+          });
+        }
         contentForWrite = replaceAll
           ? replaceAllExact(normalizedContent, normalizedOldText, normalizedNewText)
           : replaceAt(normalizedContent, matchIndex, normalizedOldText.length, normalizedNewText);
       } else {
-        const fuzzyContent = normalizeForFuzzyMatch(normalizedContent);
+        const fuzzyProjection = projectFuzzyText(normalizedContent);
+        const fuzzyContent = fuzzyProjection.normalized;
         const fuzzyOldText = normalizeForFuzzyMatch(normalizedOldText);
         const fuzzyIndices = findAllLiteralIndices(fuzzyContent, fuzzyOldText);
         const fuzzyMatchCount = fuzzyIndices.length;
@@ -366,10 +445,22 @@ export function createTransactionalEditTool(
         }
 
         usedFuzzyMatch = true;
-        matchIndex = fuzzyIndices[0] ?? -1;
-        matchLength = fuzzyOldText.length;
+        const fuzzyMatchIndex = fuzzyIndices[0] ?? -1;
+        const originalStart = fuzzyProjection.boundaryMap[fuzzyMatchIndex] ?? -1;
+        const originalEnd =
+          fuzzyProjection.boundaryMap[fuzzyMatchIndex + fuzzyOldText.length] ??
+          normalizedContent.length;
+        matchIndex = originalStart;
+        matchLength = Math.max(0, originalEnd - originalStart);
         replacements = 1;
-        contentForWrite = replaceAt(fuzzyContent, matchIndex, matchLength, normalizedNewText);
+        assertTextEditRangeIsSafe({
+          toolName: "edit",
+          filePath: input.path,
+          text: normalizedContent,
+          start: matchIndex,
+          end: matchIndex + matchLength,
+        });
+        contentForWrite = replaceAt(normalizedContent, matchIndex, matchLength, normalizedNewText);
       }
 
       if (contentForWrite === normalizedContent) {
@@ -382,11 +473,14 @@ export function createTransactionalEditTool(
         });
       }
 
+      const previewOldText = usedFuzzyMatch
+        ? normalizedContent.slice(matchIndex, matchIndex + matchLength)
+        : normalizedOldText;
       const preview = buildSyntheticDiffPreview({
-        content: usedFuzzyMatch ? normalizeForFuzzyMatch(normalizedContent) : normalizedContent,
+        content: normalizedContent,
         index: matchIndex,
         matchLength,
-        oldText: usedFuzzyMatch ? normalizeForFuzzyMatch(normalizedOldText) : normalizedOldText,
+        oldText: previewOldText,
         newText: normalizedNewText,
       });
 

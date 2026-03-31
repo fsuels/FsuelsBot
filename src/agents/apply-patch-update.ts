@@ -1,3 +1,5 @@
+import { assertTextEditRangeIsSafe } from "./text-edit-guards.js";
+
 type UpdateFileChunk = {
   changeContext?: string;
   oldLines: string[];
@@ -20,11 +22,42 @@ export function applyUpdateChunks(
   }
 
   const replacements = computeReplacements(originalLines, filePath, chunks);
+  assertReplacementRangesAreSafe(filePath, originalLines, replacements);
   let newLines = applyReplacements(originalLines, replacements);
   if (newLines.length === 0 || newLines[newLines.length - 1] !== "") {
     newLines = [...newLines, ""];
   }
   return newLines.join("\n");
+}
+
+function assertReplacementRangesAreSafe(
+  filePath: string,
+  originalLines: string[],
+  replacements: Array<[number, number, string[]]>,
+) {
+  const originalText = originalLines.join("\n");
+  const lineStartOffsets: number[] = [];
+  let nextOffset = 0;
+  for (const line of originalLines) {
+    lineStartOffsets.push(nextOffset);
+    nextOffset += line.length + 1;
+  }
+
+  for (const [startLineIndex, oldLength] of replacements) {
+    const start = lineStartOffsets[startLineIndex] ?? originalText.length;
+    const endLineIndex = startLineIndex + oldLength;
+    const end =
+      oldLength === 0
+        ? start
+        : (lineStartOffsets[endLineIndex] ?? originalText.length);
+    assertTextEditRangeIsSafe({
+      toolName: "apply_patch",
+      filePath,
+      text: originalText,
+      start,
+      end,
+    });
+  }
 }
 
 function computeReplacements(

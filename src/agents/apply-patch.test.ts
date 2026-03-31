@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { applyPatch, createApplyPatchTool } from "./apply-patch.js";
-import { createFileEditStateTracker } from "./file-edit-safety.js";
+import { createFileEditStateTracker, FileToolError } from "./file-edit-safety.js";
 
 async function withTempDir<T>(fn: (dir: string) => Promise<T>) {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-patch-"));
@@ -124,6 +124,24 @@ describe("applyPatch", () => {
         success?.details && typeof success.details === "object" && "summary" in success.details,
       ).toBe(true);
       expect(contents).toBe("after\n");
+    });
+  });
+
+  it("rejects partial updates inside multiline protected placeholders", async () => {
+    await withTempDir(async (dir) => {
+      const target = path.join(dir, "template.txt");
+      await fs.writeFile(target, "before\n{{User\nName}}\nafter\n", "utf8");
+
+      const patch = `*** Begin Patch
+*** Update File: template.txt
+@@ {{User
+-Name}}
++FullName}}
+*** End Patch`;
+
+      await expect(applyPatch(patch, { cwd: dir })).rejects.toMatchObject<FileToolError>({
+        errorCode: "invalid_edit_request",
+      });
     });
   });
 });
