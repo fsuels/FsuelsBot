@@ -53,6 +53,7 @@ export function createWebOnMessageHandler(params: {
       replyLogger: params.replyLogger,
       backgroundTasks: params.backgroundTasks,
       rememberSentText: params.echoTracker.rememberText,
+      rememberSentMessageIds: params.echoTracker.rememberMessageIds,
       echoHas: params.echoTracker.has,
       echoForget: params.echoTracker.forget,
       buildCombinedEchoKey: params.echoTracker.buildCombinedKey,
@@ -86,6 +87,11 @@ export function createWebOnMessageHandler(params: {
     // Same-phone mode logging retained
     if (msg.from === msg.to) {
       logVerbose(`📱 Same-phone mode detected (from === to: ${msg.from})`);
+    }
+
+    if (params.echoTracker.hasMessageId(msg.id)) {
+      logVerbose("Skipping auto-reply: detected echo (message id matches recently sent reply)");
+      return;
     }
 
     // Skip if this is a message we just sent (echo detection)

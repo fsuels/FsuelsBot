@@ -7,7 +7,9 @@ export type EchoTracker = {
       logVerboseMessage?: boolean;
     },
   ) => void;
+  rememberMessageIds: (messageIds: Array<string | undefined>) => void;
   has: (key: string) => boolean;
+  hasMessageId: (messageId: string | undefined) => boolean;
   forget: (key: string) => void;
   buildCombinedKey: (params: { sessionKey: string; combinedBody: string }) => string;
 };
@@ -17,18 +19,19 @@ export function createEchoTracker(params: {
   logVerbose?: (msg: string) => void;
 }): EchoTracker {
   const recentlySent = new Set<string>();
+  const recentMessageIds = new Set<string>();
   const maxItems = Math.max(1, params.maxItems ?? 100);
 
   const buildCombinedKey = (p: { sessionKey: string; combinedBody: string }) =>
     `combined:${p.sessionKey}:${p.combinedBody}`;
 
-  const trim = () => {
-    while (recentlySent.size > maxItems) {
-      const firstKey = recentlySent.values().next().value;
+  const trim = (entries: Set<string>) => {
+    while (entries.size > maxItems) {
+      const firstKey = entries.values().next().value;
       if (!firstKey) {
         break;
       }
-      recentlySent.delete(firstKey);
+      entries.delete(firstKey);
     }
   };
 
@@ -50,12 +53,29 @@ export function createEchoTracker(params: {
         `Added to echo detection set (size now: ${recentlySent.size}): ${text.substring(0, 50)}...`,
       );
     }
-    trim();
+    trim(recentlySent);
   };
 
   return {
     rememberText,
+    rememberMessageIds: (messageIds) => {
+      for (const rawMessageId of messageIds) {
+        const messageId = rawMessageId?.trim();
+        if (!messageId) {
+          continue;
+        }
+        recentMessageIds.add(messageId);
+      }
+      trim(recentMessageIds);
+    },
     has: (key) => recentlySent.has(key),
+    hasMessageId: (messageId) => {
+      const trimmed = messageId?.trim();
+      if (!trimmed) {
+        return false;
+      }
+      return recentMessageIds.has(trimmed);
+    },
     forget: (key) => {
       recentlySent.delete(key);
     },

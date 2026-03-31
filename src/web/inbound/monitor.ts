@@ -22,6 +22,12 @@ import {
 import { downloadInboundMedia } from "./media.js";
 import { createWebSendApi } from "./send-api.js";
 
+function extractMessageId(result: unknown): string {
+  return typeof result === "object" && result && "key" in result
+    ? String((result as { key?: { id?: string } }).key?.id ?? "unknown")
+    : "unknown";
+}
+
 export async function monitorWebInbox(options: {
   verbose: boolean;
   accountId: string;
@@ -283,10 +289,12 @@ export async function monitorWebInbox(options: {
         }
       };
       const reply = async (text: string) => {
-        await sock.sendMessage(chatJid, { text });
+        const result = await sock.sendMessage(chatJid, { text });
+        return { messageId: extractMessageId(result) };
       };
       const sendMedia = async (payload: AnyMessageContent) => {
-        await sock.sendMessage(chatJid, payload);
+        const result = await sock.sendMessage(chatJid, payload);
+        return { messageId: extractMessageId(result) };
       };
       const timestamp = messageTimestampMs;
       const mentionedJids = extractMentionedJids(msg.message as proto.IMessage | undefined);

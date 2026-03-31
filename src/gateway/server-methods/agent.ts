@@ -27,7 +27,7 @@ import {
   normalizeMessageChannel,
 } from "../../utils/message-channel.js";
 import { resolveAssistantIdentity } from "../assistant-identity.js";
-import { parseMessageWithAttachments } from "../chat-attachments.js";
+import { normalizeChatAttachmentInput, parseMessageWithAttachments } from "../chat-attachments.js";
 import { resolveAssistantAvatarUrl } from "../control-ui-shared.js";
 import { GATEWAY_CLIENT_CAPS, hasGatewayClientCap } from "../protocol/client-info.js";
 import {
@@ -107,22 +107,10 @@ export const agentHandlers: GatewayRequestHandlers = {
     }
     const normalizedAttachments =
       request.attachments
-        ?.map((a) => ({
-          type: typeof a?.type === "string" ? a.type : undefined,
-          mimeType: typeof a?.mimeType === "string" ? a.mimeType : undefined,
-          fileName: typeof a?.fileName === "string" ? a.fileName : undefined,
-          content:
-            typeof a?.content === "string"
-              ? a.content
-              : ArrayBuffer.isView(a?.content)
-                ? Buffer.from(
-                    a.content.buffer,
-                    a.content.byteOffset,
-                    a.content.byteLength,
-                  ).toString("base64")
-                : undefined,
-        }))
-        .filter((a) => a.content) ?? [];
+        ?.map((attachment) => normalizeChatAttachmentInput(attachment))
+        .filter((attachment): attachment is NonNullable<typeof attachment> =>
+          Boolean(attachment?.content),
+        ) ?? [];
 
     let message = request.message.trim();
     let images: Array<{ type: "image"; data: string; mimeType: string }> = [];

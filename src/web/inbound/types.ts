@@ -33,8 +33,8 @@ export type WebInboundMessage = {
   selfE164?: string | null;
   location?: NormalizedLocation;
   sendComposing: () => Promise<void>;
-  reply: (text: string) => Promise<void>;
-  sendMedia: (payload: AnyMessageContent) => Promise<void>;
+  reply: (text: string) => Promise<{ messageId: string } | void>;
+  sendMedia: (payload: AnyMessageContent) => Promise<{ messageId: string } | void>;
   mediaPath?: string;
   mediaType?: string;
   mediaUrl?: string;

@@ -24,7 +24,7 @@ export async function deliverWebReply(params: {
   connectionId?: string;
   skipLog?: boolean;
   tableMode?: MarkdownTableMode;
-}) {
+}): Promise<{ messageIds: string[] }> {
   const { replyResult, msg, maxMediaBytes, textLimit, replyLogger, connectionId, skipLog } = params;
   const replyStarted = Date.now();
   const tableMode = params.tableMode ?? "code";
@@ -36,6 +36,17 @@ export async function deliverWebReply(params: {
     : replyResult.mediaUrl
       ? [replyResult.mediaUrl]
       : [];
+  const messageIds: string[] = [];
+
+  const collectMessageId = (result: unknown) => {
+    const messageId =
+      typeof result === "object" && result && "messageId" in result
+        ? String((result as { messageId?: unknown }).messageId ?? "").trim()
+        : "";
+    if (messageId) {
+      messageIds.push(messageId);
+    }
+  };
 
   const sendWithRetry = async (fn: () => Promise<unknown>, label: string, maxAttempts = 3) => {
     let lastErr: unknown;
@@ -65,7 +76,8 @@ export async function deliverWebReply(params: {
     const totalChunks = textChunks.length;
     for (const [index, chunk] of textChunks.entries()) {
       const chunkStarted = Date.now();
-      await sendWithRetry(() => msg.reply(chunk), "text");
+      const result = await sendWithRetry(() => msg.reply(chunk), "text");
+      collectMessageId(result);
       if (!skipLog) {
         const durationMs = Date.now() - chunkStarted;
         whatsappOutboundLog.debug(
@@ -87,7 +99,7 @@ export async function deliverWebReply(params: {
       },
       "auto-reply sent (text)",
     );
-    return;
+    return { messageIds };
   }
 
   const remainingText = [...textChunks];
@@ -104,7 +116,7 @@ export async function deliverWebReply(params: {
         logVerbose(`Web auto-reply media source: ${mediaUrl} (kind ${media.kind})`);
       }
       if (media.kind === "image") {
-        await sendWithRetry(
+        const result = await sendWithRetry(
           () =>
             msg.sendMedia({
               image: media.buffer,
@@ -113,8 +125,9 @@ export async function deliverWebReply(params: {
             }),
           "media:image",
         );
+        collectMessageId(result);
       } else if (media.kind === "audio") {
-        await sendWithRetry(
+        const result = await sendWithRetry(
           () =>
             msg.sendMedia({
               audio: media.buffer,
@@ -124,8 +137,9 @@ export async function deliverWebReply(params: {
             }),
           "media:audio",
         );
+        collectMessageId(result);
       } else if (media.kind === "video") {
-        await sendWithRetry(
+        const result = await sendWithRetry(
           () =>
             msg.sendMedia({
               video: media.buffer,
@@ -134,10 +148,11 @@ export async function deliverWebReply(params: {
             }),
           "media:video",
         );
+        collectMessageId(result);
       } else {
         const fileName = media.fileName ?? mediaUrl.split("/").pop() ?? "file";
         const mimetype = media.contentType ?? "application/octet-stream";
-        await sendWithRetry(
+        const result = await sendWithRetry(
           () =>
             msg.sendMedia({
               document: media.buffer,
@@ -147,6 +162,7 @@ export async function deliverWebReply(params: {
             }),
           "media:document",
         );
+        collectMessageId(result);
       }
       whatsappOutboundLog.info(
         `Sent media reply to ${msg.from} (${(media.buffer.length / (1024 * 1024)).toFixed(2)}MB)`,
@@ -175,7 +191,7 @@ export async function deliverWebReply(params: {
         const fallbackText = fallbackTextParts.join("\n");
         if (fallbackText) {
           whatsappOutboundLog.warn(`Media skipped; sent text-only to ${msg.from}`);
-          await msg.reply(fallbackText);
+          collectMessageId(await msg.reply(fallbackText));
         }
       }
     }
@@ -183,6 +199,8 @@ export async function deliverWebReply(params: {
 
   // Remaining text chunks after media
   for (const chunk of remainingText) {
-    await msg.reply(chunk);
+    collectMessageId(await msg.reply(chunk));
   }
+
+  return { messageIds };
 }

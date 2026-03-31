@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildMessageWithAttachments,
   type ChatAttachment,
+  normalizeChatAttachmentInput,
   parseMessageWithAttachments,
 } from "./chat-attachments.js";
 
@@ -76,39 +77,43 @@ describe("parseMessageWithAttachments", () => {
     expect(parsed.images[0]?.data).toBe(PNG_1x1);
   });
 
-  it("rejects invalid base64 content", async () => {
-    await expect(
-      parseMessageWithAttachments(
-        "x",
-        [
-          {
-            type: "image",
-            mimeType: "image/png",
-            fileName: "dot.png",
-            content: "%not-base64%",
-          },
-        ],
-        { log: { warn: () => {} } },
-      ),
-    ).rejects.toThrow(/base64/i);
+  it("drops invalid base64 content instead of failing the whole request", async () => {
+    const logs: string[] = [];
+    const parsed = await parseMessageWithAttachments(
+      "x",
+      [
+        {
+          type: "image",
+          mimeType: "image/png",
+          fileName: "dot.png",
+          content: "%not-base64%",
+        },
+      ],
+      { log: { warn: (message) => logs.push(message) } },
+    );
+    expect(parsed.images).toHaveLength(0);
+    expect(logs).toHaveLength(1);
+    expect(logs[0]).toMatch(/invalid base64 content/i);
   });
 
-  it("rejects images over limit", async () => {
+  it("drops oversized images instead of failing the whole request", async () => {
     const big = Buffer.alloc(6_000_000, 0).toString("base64");
-    await expect(
-      parseMessageWithAttachments(
-        "x",
-        [
-          {
-            type: "image",
-            mimeType: "image/png",
-            fileName: "big.png",
-            content: big,
-          },
-        ],
-        { maxBytes: 5_000_000, log: { warn: () => {} } },
-      ),
-    ).rejects.toThrow(/exceeds size limit/i);
+    const logs: string[] = [];
+    const parsed = await parseMessageWithAttachments(
+      "x",
+      [
+        {
+          type: "image",
+          mimeType: "image/png",
+          fileName: "big.png",
+          content: big,
+        },
+      ],
+      { maxBytes: 5_000_000, log: { warn: (message) => logs.push(message) } },
+    );
+    expect(parsed.images).toHaveLength(0);
+    expect(logs).toHaveLength(1);
+    expect(logs[0]).toMatch(/exceeds size limit/i);
   });
 
   it("sniffs mime when missing", async () => {
@@ -187,6 +192,7 @@ describe("parseMessageWithAttachments", () => {
   it("keeps valid images and drops invalid ones", async () => {
     const logs: string[] = [];
     const pdf = Buffer.from("%PDF-1.4\n").toString("base64");
+    const invalid = "%not-base64%";
     const parsed = await parseMessageWithAttachments(
       "x",
       [
@@ -202,6 +208,12 @@ describe("parseMessageWithAttachments", () => {
           fileName: "not-image.pdf",
           content: pdf,
         },
+        {
+          type: "image",
+          mimeType: "image/png",
+          fileName: "broken.png",
+          content: invalid,
+        },
       ],
       { log: { warn: (message) => logs.push(message) } },
     );
@@ -209,5 +221,24 @@ describe("parseMessageWithAttachments", () => {
     expect(parsed.images[0]?.mimeType).toBe("image/png");
     expect(parsed.images[0]?.data).toBe(PNG_1x1);
     expect(logs.some((l) => /non-image/i.test(l))).toBe(true);
+    expect(logs.some((l) => /invalid base64 content/i.test(l))).toBe(true);
+  });
+});
+
+describe("normalizeChatAttachmentInput", () => {
+  it("accepts snake_case attachment fields", () => {
+    expect(
+      normalizeChatAttachmentInput({
+        type: "image",
+        mime_type: "image/png",
+        file_name: "dot.png",
+        data: PNG_1x1,
+      }),
+    ).toEqual({
+      type: "image",
+      mimeType: "image/png",
+      fileName: "dot.png",
+      content: PNG_1x1,
+    });
   });
 });

@@ -54,6 +54,47 @@ function isImageMime(mime?: string): boolean {
   return typeof mime === "string" && mime.startsWith("image/");
 }
 
+function coerceAttachmentString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function coerceAttachmentContent(value: unknown): string | undefined {
+  if (typeof value === "string") {
+    return value;
+  }
+  if (ArrayBuffer.isView(value)) {
+    return Buffer.from(value.buffer, value.byteOffset, value.byteLength).toString("base64");
+  }
+  return undefined;
+}
+
+export function normalizeChatAttachmentInput(input: unknown): ChatAttachment | null {
+  if (!input || typeof input !== "object") {
+    return null;
+  }
+  const raw = input as Record<string, unknown>;
+  return {
+    type:
+      coerceAttachmentString(raw.type) ??
+      coerceAttachmentString(raw.kind) ??
+      coerceAttachmentString(raw.media_type),
+    mimeType:
+      coerceAttachmentString(raw.mimeType) ??
+      coerceAttachmentString(raw.mime_type) ??
+      coerceAttachmentString(raw.contentType) ??
+      coerceAttachmentString(raw.content_type),
+    fileName:
+      coerceAttachmentString(raw.fileName) ??
+      coerceAttachmentString(raw.file_name) ??
+      coerceAttachmentString(raw.filename) ??
+      coerceAttachmentString(raw.name),
+    content:
+      coerceAttachmentContent(raw.content) ??
+      coerceAttachmentContent(raw.data) ??
+      coerceAttachmentContent(raw.base64),
+  };
+}
+
 /**
  * Parse attachments and extract images as structured content blocks.
  * Returns the message text and an array of image content blocks
@@ -81,7 +122,8 @@ export async function parseMessageWithAttachments(
     const label = att.fileName || att.type || `attachment-${idx + 1}`;
 
     if (typeof content !== "string") {
-      throw new Error(`attachment ${label}: content must be base64 string`);
+      log?.warn(`attachment ${label}: content must be base64 string, dropping`);
+      continue;
     }
 
     let sizeBytes = 0;
@@ -93,15 +135,20 @@ export async function parseMessageWithAttachments(
     }
     // Basic base64 sanity: length multiple of 4 and charset check.
     if (b64.length % 4 !== 0 || /[^A-Za-z0-9+/=]/.test(b64)) {
-      throw new Error(`attachment ${label}: invalid base64 content`);
+      log?.warn(`attachment ${label}: invalid base64 content, dropping`);
+      continue;
     }
     try {
       sizeBytes = Buffer.from(b64, "base64").byteLength;
     } catch {
-      throw new Error(`attachment ${label}: invalid base64 content`);
+      log?.warn(`attachment ${label}: invalid base64 content, dropping`);
+      continue;
     }
     if (sizeBytes <= 0 || sizeBytes > maxBytes) {
-      throw new Error(`attachment ${label}: exceeds size limit (${sizeBytes} > ${maxBytes} bytes)`);
+      log?.warn(
+        `attachment ${label}: exceeds size limit (${sizeBytes} > ${maxBytes} bytes), dropping`,
+      );
+      continue;
     }
 
     const providedMime = normalizeMime(mime);

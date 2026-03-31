@@ -50,6 +50,7 @@ describe("web processMessage inbound contract", () => {
       replyLogger: { info: () => {}, warn: () => {}, error: () => {}, debug: () => {} } as any,
       backgroundTasks: new Set(),
       rememberSentText: (_text: string | undefined, _opts: unknown) => {},
+      rememberSentMessageIds: (_messageIds: Array<string | undefined>) => {},
       echoHas: () => false,
       echoForget: () => {},
       buildCombinedEchoKey: () => "echo",

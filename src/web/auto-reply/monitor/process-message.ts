@@ -124,6 +124,7 @@ export async function processMessage(params: {
       logVerboseMessage?: boolean;
     },
   ) => void;
+  rememberSentMessageIds: (messageIds: Array<string | undefined>) => void;
   echoHas: (key: string) => boolean;
   echoForget: (key: string) => void;
   buildCombinedEchoKey: (p: { sessionKey: string; combinedBody: string }) => string;
@@ -350,7 +351,7 @@ export async function processMessage(params: {
         }
       },
       deliver: async (payload: ReplyPayload, info) => {
-        await deliverWebReply({
+        const delivery = await deliverWebReply({
           replyResult: payload,
           msg: params.msg,
           maxMediaBytes: params.maxMediaBytes,
@@ -362,6 +363,7 @@ export async function processMessage(params: {
           skipLog: info.kind !== "final",
           tableMode,
         });
+        params.rememberSentMessageIds(delivery.messageIds);
         didSendReply = true;
         if (info.kind === "tool") {
           params.rememberSentText(payload.text, {});
