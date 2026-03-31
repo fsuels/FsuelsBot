@@ -1,5 +1,6 @@
 import { Type } from "@sinclair/typebox";
 import type { OpenClawConfig } from "../../config/config.js";
+import type { ToolInvocationContract } from "../tool-contract.js";
 import type { AnyAgentTool } from "./common.js";
 import { BLUEBUBBLES_GROUP_ACTIONS } from "../../channels/plugins/bluebubbles-actions.js";
 import {
@@ -290,6 +291,32 @@ const MessageToolSchema = buildMessageToolSchemaFromActions(AllMessageActions, {
   includeCards: true,
 });
 
+const MESSAGE_TOOL_INVOCATION_CONTRACT: ToolInvocationContract = {
+  usagePolicy: "explicit_only",
+  sideEffectLevel: "high",
+  whenToUse: [
+    "The user explicitly asks for a proactive outbound message or channel action such as react, poll, pin, or thread management.",
+    "You intentionally need to send a message outside the current implicit reply path.",
+  ],
+  whenNotToUse: [
+    "Do not use for the normal reply to the current session when OpenClaw can deliver that reply directly.",
+    "Do not infer proactive outreach from a generic request to inspect, plan, or edit code.",
+  ],
+  preconditions: [
+    "For send-like actions, include an explicit target when the runtime requires one.",
+    "Pick an action supported by the current or requested channel.",
+  ],
+  behaviorSummary:
+    "Runs channel message actions through the gateway, including proactive sends, reactions, polls, edits, deletes, pins, and thread operations.",
+  parametersSummary: [
+    "action: the channel operation to perform.",
+    "target/targets/channelId: routing target for send-like or scoped actions.",
+    "message/media/buttons/card: outbound message payload fields.",
+    "messageId/replyTo/threadId: existing-message or thread references when the action needs them.",
+    "gatewayUrl, gatewayToken, timeoutMs: optional explicit gateway connection overrides.",
+  ],
+};
+
 type MessageToolOptions = {
   agentAccountId?: string;
   agentSessionKey?: string;
@@ -398,6 +425,7 @@ export function createMessageTool(options?: MessageToolOptions): AnyAgentTool {
     name: "message",
     description,
     parameters: schema,
+    invocationContract: MESSAGE_TOOL_INVOCATION_CONTRACT,
     execute: async (_toolCallId, args, signal) => {
       // Check if already aborted before doing any work
       if (signal?.aborted) {

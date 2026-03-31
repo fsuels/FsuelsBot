@@ -9,17 +9,18 @@ import { resolveSessionAgentId } from "../agent-scope.js";
 import { optionalStringEnum, stringEnum } from "../schema/typebox.js";
 import {
   defineOpenClawTool,
+  type ToolInvocationContract,
   toolValidationError,
   toolValidationOk,
 } from "../tool-contract.js";
-import { type AnyAgentTool, jsonResult, readStringParam } from "./common.js";
-import { callGatewayTool, type GatewayCallOptions } from "./gateway.js";
-import { resolveInternalSessionKey, resolveMainSessionAlias } from "./sessions-helpers.js";
 import {
   hasActionField,
   validateFlatActionInput,
   type ActionValidationRule,
 } from "./action-validation.js";
+import { type AnyAgentTool, jsonResult, readStringParam } from "./common.js";
+import { callGatewayTool, type GatewayCallOptions } from "./gateway.js";
+import { resolveInternalSessionKey, resolveMainSessionAlias } from "./sessions-helpers.js";
 
 // NOTE: We use Type.Object({}, { additionalProperties: true }) for job/patch
 // instead of CronAddParamsSchema/CronJobPatchSchema because the gateway schemas
@@ -118,6 +119,34 @@ const CronToolOutputSchema = Type.Object(
   },
   { additionalProperties: false },
 );
+
+const CRON_TOOL_INVOCATION_CONTRACT: ToolInvocationContract = {
+  usagePolicy: "explicit_only",
+  sideEffectLevel: "high",
+  whenToUse: [
+    "The user explicitly asks for a reminder, scheduled follow-up, recurring automation, or cron job management.",
+    "You need durable work that must survive process restarts.",
+  ],
+  whenNotToUse: [
+    "Do not use cron for work that should happen right now in the current turn.",
+    "Do not infer scheduling from a generic request to fix or investigate something.",
+    "Do not use wake/add as a substitute for replying directly to the current user.",
+  ],
+  preconditions: [
+    "Choose the correct action first: add/update/remove/run/runs/wake/status/list.",
+    "If a future run must reach a specific chat, include the delivery target explicitly.",
+  ],
+  behaviorSummary:
+    "Creates, updates, removes, or triggers Gateway scheduler jobs. Jobs are durable; wake requests are immediate and non-persistent.",
+  parametersSummary: [
+    "action: the scheduler operation to perform.",
+    "job or flattened add fields: full job payload when action=add.",
+    "jobId or id: existing cron job identifier for update/remove/run/runs.",
+    "patch: partial job update payload for action=update.",
+    "text: wake/reminder text for action=wake.",
+    "contextMessages: optional recent-session context to append to reminder-style systemEvent text.",
+  ],
+};
 
 type CronToolOptions = {
   agentSessionKey?: string;
@@ -284,10 +313,7 @@ function buildGatewayOptions(params: Record<string, unknown>): GatewayCallOption
 }
 
 function maybeRecoverFlatAddJob(params: Record<string, unknown>) {
-  if (
-    params.job &&
-    (!isRecord(params.job) || Object.keys(params.job).length > 0)
-  ) {
+  if (params.job && (!isRecord(params.job) || Object.keys(params.job).length > 0)) {
     return params;
   }
 
@@ -328,10 +354,7 @@ function resolveActionOrThrow(input: unknown) {
   return readStringParam(input, "action", { required: true }) as CronToolAction;
 }
 
-function normalizeCronToolInput(
-  input: unknown,
-  opts?: CronToolOptions,
-): Record<string, unknown> {
+function normalizeCronToolInput(input: unknown, opts?: CronToolOptions): Record<string, unknown> {
   const action = resolveActionOrThrow(input);
   const params: Record<string, unknown> = isRecord(input) ? { ...input, action } : { action };
   const gatewayFields = {
@@ -384,7 +407,9 @@ function normalizeCronToolInput(
         ...params,
         action,
         jobId: resolveCanonicalJobId(params),
-        patch: isRecord(params.patch) ? (normalizeCronJobPatch(params.patch) ?? params.patch) : params.patch,
+        patch: isRecord(params.patch)
+          ? (normalizeCronJobPatch(params.patch) ?? params.patch)
+          : params.patch,
       };
     case "remove":
       return {
@@ -438,7 +463,8 @@ function formatScheduleSummary(schedule: unknown) {
     return `every ${formatDurationHuman(schedule.everyMs)}`;
   }
   if (schedule.kind === "cron" && typeof schedule.expr === "string") {
-    const tz = typeof schedule.tz === "string" && schedule.tz.trim() ? ` (${schedule.tz.trim()})` : "";
+    const tz =
+      typeof schedule.tz === "string" && schedule.tz.trim() ? ` (${schedule.tz.trim()})` : "";
     return `cron ${schedule.expr}${tz}`;
   }
   return "unknown schedule";
@@ -447,8 +473,7 @@ function formatScheduleSummary(schedule: unknown) {
 function formatJobLifecycle(job: Record<string, unknown>) {
   const recurring = isRecord(job.schedule) && job.schedule.kind !== "at";
   const cadence = recurring ? "recurring" : "one-shot";
-  const target =
-    typeof job.sessionTarget === "string" ? job.sessionTarget : "unknown-target";
+  const target = typeof job.sessionTarget === "string" ? job.sessionTarget : "unknown-target";
   const payloadKind =
     isRecord(job.payload) && typeof job.payload.kind === "string"
       ? job.payload.kind
@@ -597,7 +622,9 @@ function inferDeliveryFromSessionKey(agentSessionKey?: string): CronDelivery | n
 }
 
 export function createCronTool(opts?: CronToolOptions): AnyAgentTool {
-  const executeAction = async (normalizedInput: Record<string, unknown>): Promise<CronToolPayload> => {
+  const executeAction = async (
+    normalizedInput: Record<string, unknown>,
+  ): Promise<CronToolPayload> => {
     const action = normalizedInput.action as CronToolAction;
     const gatewayOpts = buildGatewayOptions(normalizedInput);
 
@@ -615,16 +642,14 @@ export function createCronTool(opts?: CronToolOptions): AnyAgentTool {
           }),
         };
       case "add": {
-        const job = isRecord(normalizedInput.job) ? { ...normalizedInput.job } : normalizedInput.job;
+        const job = isRecord(normalizedInput.job)
+          ? { ...normalizedInput.job }
+          : normalizedInput.job;
         if (!isRecord(job)) {
           throw new Error("job required");
         }
 
-        if (
-          opts?.agentSessionKey &&
-          isRecord(job.payload) &&
-          job.payload.kind === "agentTurn"
-        ) {
+        if (opts?.agentSessionKey && isRecord(job.payload) && job.payload.kind === "agentTurn") {
           const deliveryValue = job.delivery;
           const delivery = isRecord(deliveryValue) ? deliveryValue : undefined;
           const modeRaw = typeof delivery?.mode === "string" ? delivery.mode : "";
@@ -725,7 +750,8 @@ export function createCronTool(opts?: CronToolOptions): AnyAgentTool {
     parameters: CronToolSchema,
     outputSchema: CronToolOutputSchema,
     operatorManual: buildCronToolOperatorManual,
-    validateInput: async (input) => {
+    invocationContract: CRON_TOOL_INVOCATION_CONTRACT,
+    validateInput: async (input, _context) => {
       try {
         return toolValidationOk({
           params: normalizeCronToolInput(input, opts),

@@ -3,16 +3,16 @@ import type {
   AgentToolResult,
   AgentToolUpdateCallback,
 } from "@mariozechner/pi-agent-core";
-import { Buffer } from "node:buffer";
 import type { Static, TSchema } from "@sinclair/typebox";
 import { Type } from "@sinclair/typebox";
 import AjvPkg, { type ErrorObject, type ValidateFunction } from "ajv";
+import { Buffer } from "node:buffer";
+import { truncateUtf16Safe } from "../utils.js";
+import { sanitizeToolResultImages } from "./tool-images.js";
 import {
   persistToolResultBinaryArtifact,
   persistToolResultTextArtifact,
 } from "./tool-result-artifacts.js";
-import { truncateUtf16Safe } from "../utils.js";
-import { sanitizeToolResultImages } from "./tool-images.js";
 
 const Ajv = AjvPkg as unknown as new (opts?: object) => import("ajv").default;
 
@@ -37,6 +37,20 @@ export type ToolPermissionDecision = {
 };
 
 export type ToolFailureCode = "invalid_input" | "not_found" | "precondition_failed";
+
+export type ToolUsagePolicy = "explicit_only" | "semantic_ok";
+
+export type ToolSideEffectLevel = "low" | "medium" | "high";
+
+export type ToolInvocationContract = {
+  usagePolicy: ToolUsagePolicy;
+  whenToUse: string[];
+  whenNotToUse?: string[];
+  preconditions?: string[];
+  behaviorSummary: string;
+  parametersSummary?: string[];
+  sideEffectLevel: ToolSideEffectLevel;
+};
 
 export type ToolValidationResult<TParams = unknown> =
   | { result: true; params?: TParams }
@@ -80,8 +94,10 @@ export type OpenClawTool<TParameters extends TSchema = TSchema, TDetails = unkno
   TDetails
 > & {
   userFacingName?: () => string;
+  requiresUserInteraction?: boolean;
   prompt?: () => string | Promise<string>;
   operatorManual?: () => string;
+  invocationContract?: ToolInvocationContract;
   inputSchema?: TParameters;
   outputSchema?: TSchema;
   isEnabled?: (context: ToolAvailabilityContext) => boolean;
@@ -256,9 +272,7 @@ function normalizeToolTextBlockText(text: unknown): string {
     : normalized;
 }
 
-function parseBase64DataUrl(
-  text: string,
-): {
+function parseBase64DataUrl(text: string): {
   mimeType: string;
   buffer: Buffer;
 } | null {
@@ -449,7 +463,9 @@ async function finalizeToolResult<TDetails>(
             type: "text" as const,
             text: deterministicText,
           },
-          ...(Array.isArray(mapped.content) ? mapped.content.filter((block) => isImageBlock(block)) : []),
+          ...(Array.isArray(mapped.content)
+            ? mapped.content.filter((block) => isImageBlock(block))
+            : []),
         ];
   const normalized = {
     ...mapped,

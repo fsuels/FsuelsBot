@@ -1,5 +1,6 @@
 import { Type } from "@sinclair/typebox";
 import type { OpenClawConfig } from "../../config/config.js";
+import type { ToolInvocationContract } from "../tool-contract.js";
 import { loadConfig, resolveConfigSnapshotHash } from "../../config/io.js";
 import { loadSessionStore, resolveStorePath } from "../../config/sessions.js";
 import {
@@ -9,6 +10,7 @@ import {
 } from "../../infra/restart-sentinel.js";
 import { scheduleGatewaySigusr1Restart } from "../../infra/restart.js";
 import { stringEnum } from "../schema/typebox.js";
+import { validateFlatActionInput, type ActionValidationRule } from "./action-validation.js";
 import { type AnyAgentTool, jsonResult, readStringParam } from "./common.js";
 import { callGatewayTool } from "./gateway.js";
 
@@ -61,6 +63,47 @@ const GatewayToolSchema = Type.Object({
 // - Claude/Vertex has other JSON Schema quirks.
 // Conditional requirements (like `raw` for config.apply) are enforced at runtime.
 
+const GATEWAY_ACTION_RULES: Record<string, ActionValidationRule> = {
+  restart: {},
+  "config.get": {},
+  "config.schema": {},
+  "config.apply": {
+    required: ["raw"],
+  },
+  "config.patch": {
+    required: ["raw"],
+  },
+  "update.run": {},
+};
+
+const GATEWAY_TOOL_INVOCATION_CONTRACT: ToolInvocationContract = {
+  usagePolicy: "explicit_only",
+  sideEffectLevel: "high",
+  whenToUse: [
+    "The user explicitly asks to restart OpenClaw, inspect/apply config, or run a self-update.",
+    "You need the gateway config schema or current config as part of an explicit config task.",
+  ],
+  whenNotToUse: [
+    "Do not use gateway actions for ordinary coding or debugging inside the workspace.",
+    "Do not infer restart/config/update actions from a generic request to fix a bug.",
+    "Do not use config.apply for a partial config change when config.patch is sufficient.",
+  ],
+  preconditions: [
+    "restart requires commands.restart=true.",
+    "config.apply and config.patch require raw config text.",
+    "Be clear whether you are reading config, patching part of it, replacing all of it, or updating the running gateway.",
+  ],
+  behaviorSummary:
+    "Calls gateway control endpoints to restart the process, inspect schema/config, apply config writes, or run in-place updates.",
+  parametersSummary: [
+    "action: restart, config.get, config.schema, config.apply, config.patch, or update.run.",
+    "raw: required config payload for config.apply/config.patch.",
+    "note and sessionKey: optional restart/update context for follow-up delivery.",
+    "delayMs or restartDelayMs: optional restart timing controls.",
+    "gatewayUrl, gatewayToken, timeoutMs: optional explicit gateway connection overrides.",
+  ],
+};
+
 export function createGatewayTool(opts?: {
   agentSessionKey?: string;
   config?: OpenClawConfig;
@@ -71,6 +114,14 @@ export function createGatewayTool(opts?: {
     description:
       "Restart, apply config, or update the gateway in-place (SIGUSR1). Use config.patch for safe partial config updates (merges with existing). Use config.apply only when replacing entire config. Both trigger restart after writing.",
     parameters: GatewayToolSchema,
+    invocationContract: GATEWAY_TOOL_INVOCATION_CONTRACT,
+    validateInput: async (input, _context) =>
+      validateFlatActionInput({
+        toolName: "gateway",
+        action: typeof input.action === "string" ? input.action : "",
+        input: input as Record<string, unknown>,
+        rules: GATEWAY_ACTION_RULES,
+      }),
     execute: async (_toolCallId, args) => {
       const params = args as Record<string, unknown>;
       const action = readStringParam(params, "action", { required: true });

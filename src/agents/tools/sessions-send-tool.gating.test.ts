@@ -17,6 +17,7 @@ vi.mock("../../config/config.js", async (importOriginal) => {
   };
 });
 
+import { applyToolContracts } from "../tool-contracts.js";
 import { createSessionsSendTool } from "./sessions-send-tool.js";
 
 describe("sessions_send gating", () => {
@@ -24,11 +25,37 @@ describe("sessions_send gating", () => {
     callGatewayMock.mockReset();
   });
 
-  it("blocks cross-agent sends when tools.agentToAgent.enabled is false", async () => {
-    const tool = createSessionsSendTool({
-      agentSessionKey: "agent:main:main",
-      agentChannel: "whatsapp",
+  it("rejects invalid whitespace-only labels before execution", async () => {
+    const tool = applyToolContracts(
+      createSessionsSendTool({
+        agentSessionKey: "agent:main:main",
+        agentChannel: "whatsapp",
+      }),
+    );
+
+    const result = await tool.execute("call-invalid-label", {
+      label: "   ",
+      message: "hi",
+      timeoutSeconds: 0,
     });
+
+    expect(callGatewayMock).not.toHaveBeenCalled();
+    expect(result.details).toMatchObject({
+      ok: false,
+      success: false,
+      code: "invalid_input",
+      tool: "sessions_send",
+      message: "invalid label: empty",
+    });
+  });
+
+  it("blocks cross-agent sends when tools.agentToAgent.enabled is false", async () => {
+    const tool = applyToolContracts(
+      createSessionsSendTool({
+        agentSessionKey: "agent:main:main",
+        agentChannel: "whatsapp",
+      }),
+    );
 
     const result = await tool.execute("call1", {
       sessionKey: "agent:other:main",

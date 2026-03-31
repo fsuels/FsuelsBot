@@ -96,6 +96,54 @@ describe("tool contracts", () => {
     expect(result.details).toEqual({ value: "HELLO" });
   });
 
+  it("uses call for direct execution when available so runtime paths stay aligned", async () => {
+    const execute = vi.fn(async () => ({
+      content: [{ type: "text" as const, text: "execute" }],
+      details: { via: "execute" },
+    }));
+    const call = vi.fn(async (input: { value: string }) => ({
+      data: {
+        via: "call",
+        input,
+      },
+    }));
+
+    const tool = applyToolContracts(
+      defineOpenClawTool({
+        name: "call_first",
+        label: "Call First",
+        description: "call parity",
+        parameters: Type.Object({
+          value: Type.String(),
+        }),
+        validateInput: async (input, _context) => ({
+          result: true,
+          params: {
+            value: input.value.trim(),
+          },
+        }),
+        call,
+        execute,
+      }),
+    );
+
+    const result = await tool.execute("call-direct", { value: "  hello  " });
+
+    expect(call).toHaveBeenCalledOnce();
+    expect(call).toHaveBeenCalledWith(
+      { value: "hello" },
+      expect.objectContaining({
+        toolCallId: "call-direct",
+        source: "direct",
+      }),
+    );
+    expect(execute).not.toHaveBeenCalled();
+    expect(result.details).toEqual({
+      via: "call",
+      input: { value: "hello" },
+    });
+  });
+
   it("returns structured invalid_input results for real runtime tools", async () => {
     const tool = applyToolContracts(createAgentsListTool());
 

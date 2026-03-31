@@ -7,7 +7,7 @@ import type {
   ToolValidationResult,
 } from "./tool-contract.js";
 import type { AnyAgentTool } from "./tools/common.js";
-import { finalizeToolExecutionResult } from "./tool-contract.js";
+import { coerceToolDataToResult, finalizeToolExecutionResult } from "./tool-contract.js";
 import { normalizeToolName } from "./tool-policy.js";
 import { jsonResult } from "./tools/common.js";
 
@@ -261,7 +261,8 @@ export function applyToolContracts<T extends ContractAwareTool>(tool: T): T {
     return tool;
   }
   const execute = tool.execute;
-  if (typeof execute !== "function") {
+  const call = tool.call;
+  if (typeof execute !== "function" && typeof call !== "function") {
     return tool;
   }
 
@@ -306,12 +307,12 @@ export function applyToolContracts<T extends ContractAwareTool>(tool: T): T {
         }
       }
 
-      const result = await execute(
-        toolCallId,
-        nextInput as Parameters<T["execute"]>[1],
-        signal,
-        onUpdate,
-      );
+      const result =
+        typeof call === "function"
+          ? coerceToolDataToResult(
+              (await call(nextInput as Parameters<T["execute"]>[1], context)).data,
+            )
+          : await execute(toolCallId, nextInput as Parameters<T["execute"]>[1], signal, onUpdate);
       return await finalizeToolExecutionResult({
         tool: tool as unknown as AnyOpenClawTool,
         result,
