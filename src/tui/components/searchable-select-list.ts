@@ -1,15 +1,22 @@
 import {
   type Component,
-  getEditorKeybindings,
   Input,
   isKeyRelease,
-  matchesKey,
   type SelectItem,
   type SelectListTheme,
-  truncateToWidth,
 } from "@mariozechner/pi-tui";
 import { visibleWidth } from "../../terminal/ansi.js";
 import { findWordBoundaryIndex, fuzzyFilterLower, prepareSearchItems } from "./fuzzy-filter.js";
+import { routeSelectInput } from "./select-input-routing.js";
+import { renderSelectListItemLine } from "./select-list-render.js";
+import {
+  createSelectNavigationState,
+  getSelectNavigationFocusedIndex,
+  moveSelectNavigation,
+  setSelectNavigationFocus,
+  syncSelectNavigation,
+  type SelectNavigationState,
+} from "./select-navigation.js";
 
 export interface SearchableSelectListTheme extends SelectListTheme {
   searchPrompt: (text: string) => string;
@@ -23,11 +30,11 @@ export interface SearchableSelectListTheme extends SelectListTheme {
 export class SearchableSelectList implements Component {
   private items: SelectItem[];
   private filteredItems: SelectItem[];
-  private selectedIndex = 0;
   private maxVisible: number;
   private theme: SearchableSelectListTheme;
   private searchInput: Input;
   private regexCache = new Map<string, RegExp>();
+  private navigation: SelectNavigationState;
 
   onSelect?: (item: SelectItem) => void;
   onCancel?: () => void;
@@ -39,6 +46,11 @@ export class SearchableSelectList implements Component {
     this.maxVisible = maxVisible;
     this.theme = theme;
     this.searchInput = new Input();
+    this.navigation = createSelectNavigationState({
+      itemIds: this.getFilteredItemIds(),
+      maxVisible,
+      wraparound: true,
+    });
   }
 
   private getCachedRegex(pattern: string): RegExp {
@@ -50,8 +62,9 @@ export class SearchableSelectList implements Component {
     return regex;
   }
 
-  private updateFilter() {
+  private updateFilter(options: { preserveFocus?: boolean } = {}) {
     const query = this.searchInput.getValue().trim();
+    const currentFocusedItemId = options.preserveFocus ? this.navigation.focusedItemId : null;
 
     if (!query) {
       this.filteredItems = this.items;
@@ -59,9 +72,14 @@ export class SearchableSelectList implements Component {
       this.filteredItems = this.smartFilter(query);
     }
 
-    // Reset selection when filter changes
-    this.selectedIndex = 0;
-    this.notifySelectionChange();
+    this.updateNavigation(
+      syncSelectNavigation(this.navigation, {
+        itemIds: this.getFilteredItemIds(),
+        focusedItemId: currentFocusedItemId,
+        maxVisible: this.maxVisible,
+        wraparound: true,
+      }),
+    );
   }
 
   /**
@@ -151,8 +169,31 @@ export class SearchableSelectList implements Component {
     return result;
   }
 
+  private getFilteredItemIds(): string[] {
+    return this.filteredItems.map((item) => item.value);
+  }
+
+  private updateNavigation(next: SelectNavigationState) {
+    const previousFocusedItemId = this.navigation.focusedItemId;
+    this.navigation = next;
+    if (previousFocusedItemId !== this.navigation.focusedItemId) {
+      this.notifySelectionChange();
+    }
+  }
+
   setSelectedIndex(index: number) {
-    this.selectedIndex = Math.max(0, Math.min(index, this.filteredItems.length - 1));
+    const item = this.filteredItems[Math.max(0, Math.min(index, this.filteredItems.length - 1))];
+    this.updateNavigation(
+      setSelectNavigationFocus(this.navigation, {
+        itemIds: this.getFilteredItemIds(),
+        itemId: item?.value ?? null,
+      }),
+    );
+  }
+
+  setItems(items: SelectItem[]) {
+    this.items = items;
+    this.updateFilter({ preserveFocus: true });
   }
 
   invalidate() {
@@ -179,29 +220,27 @@ export class SearchableSelectList implements Component {
       return lines;
     }
 
-    // Calculate visible range with scrolling
-    const startIndex = Math.max(
-      0,
-      Math.min(
-        this.selectedIndex - Math.floor(this.maxVisible / 2),
-        this.filteredItems.length - this.maxVisible,
-      ),
-    );
-    const endIndex = Math.min(startIndex + this.maxVisible, this.filteredItems.length);
+    const navigation = syncSelectNavigation(this.navigation, {
+      itemIds: this.getFilteredItemIds(),
+      maxVisible: this.maxVisible,
+      wraparound: true,
+    });
+    this.navigation = navigation;
+    const focusedIndex = getSelectNavigationFocusedIndex(navigation, this.getFilteredItemIds());
 
     // Render visible items
-    for (let i = startIndex; i < endIndex; i++) {
+    for (let i = navigation.visibleFromIndex; i <= navigation.visibleToIndex; i++) {
       const item = this.filteredItems[i];
       if (!item) {
         continue;
       }
-      const isSelected = i === this.selectedIndex;
+      const isSelected = i === focusedIndex;
       lines.push(this.renderItemLine(item, isSelected, width, query));
     }
 
     // Show scroll indicator if needed
     if (this.filteredItems.length > this.maxVisible) {
-      const scrollInfo = `${this.selectedIndex + 1}/${this.filteredItems.length}`;
+      const scrollInfo = `${focusedIndex + 1}/${this.filteredItems.length}`;
       lines.push(this.theme.scrollInfo(`  ${scrollInfo}`));
     }
 
@@ -214,33 +253,13 @@ export class SearchableSelectList implements Component {
     width: number,
     query: string,
   ): string {
-    const prefix = isSelected ? "→ " : "  ";
-    const prefixWidth = prefix.length;
-    const displayValue = this.getItemLabel(item);
-
-    if (item.description && width > 40) {
-      const maxValueWidth = Math.min(30, width - prefixWidth - 4);
-      const truncatedValue = truncateToWidth(displayValue, maxValueWidth, "");
-      const valueText = this.highlightMatch(truncatedValue, query);
-      const spacingWidth = Math.max(1, 32 - visibleWidth(valueText));
-      const spacing = " ".repeat(spacingWidth);
-      const descriptionStart = prefixWidth + visibleWidth(valueText) + spacing.length;
-      const remainingWidth = width - descriptionStart - 2;
-      if (remainingWidth > 10) {
-        const truncatedDesc = truncateToWidth(item.description, remainingWidth, "");
-        // Highlight plain text first, then apply theme styling to avoid corrupting ANSI codes
-        const highlightedDesc = this.highlightMatch(truncatedDesc, query);
-        const descText = isSelected ? highlightedDesc : this.theme.description(highlightedDesc);
-        const line = `${prefix}${valueText}${spacing}${descText}`;
-        return isSelected ? this.theme.selectedText(line) : line;
-      }
-    }
-
-    const maxWidth = width - prefixWidth - 2;
-    const truncatedValue = truncateToWidth(displayValue, maxWidth, "");
-    const valueText = this.highlightMatch(truncatedValue, query);
-    const line = `${prefix}${valueText}`;
-    return isSelected ? this.theme.selectedText(line) : line;
+    return renderSelectListItemLine({
+      item,
+      isSelected,
+      width,
+      theme: this.theme,
+      highlight: (text) => this.highlightMatch(text, query),
+    });
   }
 
   handleInput(keyData: string): void {
@@ -248,39 +267,60 @@ export class SearchableSelectList implements Component {
       return;
     }
 
-    const allowVimNav = !this.searchInput.getValue().trim();
-
-    // Navigation keys
-    if (
-      matchesKey(keyData, "up") ||
-      matchesKey(keyData, "ctrl+p") ||
-      (allowVimNav && keyData === "k")
-    ) {
-      this.selectedIndex = Math.max(0, this.selectedIndex - 1);
-      this.notifySelectionChange();
+    const action = routeSelectInput(keyData);
+    if (action === "focusPrevious") {
+      this.updateNavigation(
+        moveSelectNavigation(this.navigation, {
+          itemIds: this.getFilteredItemIds(),
+          direction: "previous",
+        }),
+      );
       return;
     }
 
-    if (
-      matchesKey(keyData, "down") ||
-      matchesKey(keyData, "ctrl+n") ||
-      (allowVimNav && keyData === "j")
-    ) {
-      this.selectedIndex = Math.min(this.filteredItems.length - 1, this.selectedIndex + 1);
-      this.notifySelectionChange();
+    if (action === "focusNext") {
+      this.updateNavigation(
+        moveSelectNavigation(this.navigation, {
+          itemIds: this.getFilteredItemIds(),
+          direction: "next",
+        }),
+      );
       return;
     }
 
-    if (matchesKey(keyData, "enter")) {
-      const item = this.filteredItems[this.selectedIndex];
+    if (action === "pageUp") {
+      this.updateNavigation(
+        moveSelectNavigation(this.navigation, {
+          itemIds: this.getFilteredItemIds(),
+          direction: "pageUp",
+        }),
+      );
+      return;
+    }
+
+    if (action === "pageDown") {
+      this.updateNavigation(
+        moveSelectNavigation(this.navigation, {
+          itemIds: this.getFilteredItemIds(),
+          direction: "pageDown",
+        }),
+      );
+      return;
+    }
+
+    if (action === "confirm") {
+      const focusedIndex = getSelectNavigationFocusedIndex(
+        this.navigation,
+        this.getFilteredItemIds(),
+      );
+      const item = this.filteredItems[focusedIndex];
       if (item && this.onSelect) {
         this.onSelect(item);
       }
       return;
     }
 
-    const kb = getEditorKeybindings();
-    if (kb.matches(keyData, "selectCancel")) {
+    if (action === "cancel") {
       if (this.onCancel) {
         this.onCancel();
       }
@@ -298,13 +338,21 @@ export class SearchableSelectList implements Component {
   }
 
   private notifySelectionChange() {
-    const item = this.filteredItems[this.selectedIndex];
+    const focusedIndex = getSelectNavigationFocusedIndex(
+      this.navigation,
+      this.getFilteredItemIds(),
+    );
+    const item = this.filteredItems[focusedIndex];
     if (item && this.onSelectionChange) {
       this.onSelectionChange(item);
     }
   }
 
   getSelectedItem(): SelectItem | null {
-    return this.filteredItems[this.selectedIndex] ?? null;
+    const focusedIndex = getSelectNavigationFocusedIndex(
+      this.navigation,
+      this.getFilteredItemIds(),
+    );
+    return this.filteredItems[focusedIndex] ?? null;
   }
 }

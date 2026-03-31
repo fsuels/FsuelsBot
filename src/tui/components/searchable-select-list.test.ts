@@ -189,6 +189,50 @@ describe("SearchableSelectList", () => {
     expect(list.getSelectedItem()?.value).toBe("anthropic/claude-3-sonnet");
   });
 
+  it("supports page down navigation", () => {
+    const list = new SearchableSelectList(testItems, 2, mockTheme);
+
+    list.handleInput("\x1b[6~");
+
+    expect(list.getSelectedItem()?.value).toBe("openai/gpt-4");
+  });
+
+  it("routes printable keys to the search input instead of vim-style navigation", () => {
+    const list = new SearchableSelectList(testItems, 5, mockTheme);
+
+    list.handleInput("j");
+
+    expect(list.render(80)[0]).toContain("j");
+    expect(list.getSelectedItem()).toBeNull();
+  });
+
+  it("preserves focus across item refreshes when the value still exists", () => {
+    const list = new SearchableSelectList(testItems, 3, mockTheme);
+    list.handleInput("\x1b[B");
+    list.handleInput("\x1b[B");
+    expect(list.getSelectedItem()?.value).toBe("openai/gpt-4");
+
+    list.setItems([
+      { value: "other/model", label: "other/model", description: "Other" },
+      testItems[1]!,
+      testItems[2]!,
+      testItems[3]!,
+    ]);
+
+    expect(list.getSelectedItem()?.value).toBe("openai/gpt-4");
+  });
+
+  it("falls back to the first item when refreshed items remove the focus", () => {
+    const list = new SearchableSelectList(testItems, 3, mockTheme);
+    list.handleInput("\x1b[B");
+    list.handleInput("\x1b[B");
+    expect(list.getSelectedItem()?.value).toBe("openai/gpt-4");
+
+    list.setItems([{ value: "replacement", label: "replacement", description: "Replacement" }]);
+
+    expect(list.getSelectedItem()?.value).toBe("replacement");
+  });
+
   it("calls onSelect when enter is pressed", () => {
     const list = new SearchableSelectList(testItems, 5, mockTheme);
     let selectedValue: string | undefined;
