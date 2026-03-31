@@ -1,8 +1,6 @@
 import { Type } from "@sinclair/typebox";
-import crypto from "node:crypto";
 import type { GatewayMessageChannel } from "../../utils/message-channel.js";
 import type { AnyAgentTool } from "./common.js";
-import { formatThinkingLevels, normalizeThinkLevel } from "../../auto-reply/thinking.js";
 import { loadConfig } from "../../config/config.js";
 import { callGateway } from "../../gateway/call.js";
 import {
@@ -15,6 +13,10 @@ import { resolveAgentConfig } from "../agent-scope.js";
 import { AGENT_LANE_SUBAGENT } from "../lanes.js";
 import { optionalStringEnum } from "../schema/typebox.js";
 import { buildSubagentSystemPrompt } from "../subagent-announce.js";
+import {
+  reserveSubagentSessionSettings,
+  resolveSubagentLaunchConfig,
+} from "../subagent-launch-config.js";
 import { registerSubagentRun } from "../subagent-registry.js";
 import { jsonResult, readStringParam } from "./common.js";
 import {
@@ -27,43 +29,23 @@ const SessionsSpawnToolSchema = Type.Object({
   task: Type.String(),
   label: Type.Optional(Type.String()),
   agentId: Type.Optional(Type.String()),
-  model: Type.Optional(Type.String()),
-  thinking: Type.Optional(Type.String()),
+  model: Type.Optional(
+    Type.String({
+      description:
+        'Optional provider/model override for the child session. Use "inherit" to force the caller\'s effective model.',
+    }),
+  ),
+  thinking: Type.Optional(
+    Type.String({
+      description:
+        'Optional child-session thinking level override. Use "inherit" to reuse the caller\'s effective thinking level.',
+    }),
+  ),
   runTimeoutSeconds: Type.Optional(Type.Number({ minimum: 0 })),
   // Back-compat alias. Prefer runTimeoutSeconds.
   timeoutSeconds: Type.Optional(Type.Number({ minimum: 0 })),
   cleanup: optionalStringEnum(["delete", "keep"] as const),
 });
-
-function splitModelRef(ref?: string) {
-  if (!ref) {
-    return { provider: undefined, model: undefined };
-  }
-  const trimmed = ref.trim();
-  if (!trimmed) {
-    return { provider: undefined, model: undefined };
-  }
-  const [provider, model] = trimmed.split("/", 2);
-  if (model) {
-    return { provider, model };
-  }
-  return { provider: undefined, model: trimmed };
-}
-
-function normalizeModelSelection(value: unknown): string | undefined {
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    return trimmed || undefined;
-  }
-  if (!value || typeof value !== "object") {
-    return undefined;
-  }
-  const primary = (value as { primary?: unknown }).primary;
-  if (typeof primary === "string" && primary.trim()) {
-    return primary.trim();
-  }
-  return undefined;
-}
 
 export function createSessionsSpawnTool(opts?: {
   agentSessionKey?: string;
@@ -165,85 +147,56 @@ export function createSessionsSpawnTool(opts?: {
           });
         }
       }
-      const childSessionKey = `agent:${targetAgentId}:subagent:${crypto.randomUUID()}`;
       const spawnedByKey = requesterInternalKey;
-      const targetAgentConfig = resolveAgentConfig(cfg, targetAgentId);
-      const resolvedModel =
-        normalizeModelSelection(modelOverride) ??
-        normalizeModelSelection(targetAgentConfig?.subagents?.model) ??
-        normalizeModelSelection(cfg.agents?.defaults?.subagents?.model);
-
-      const resolvedThinkingDefaultRaw =
-        readStringParam(targetAgentConfig?.subagents ?? {}, "thinking") ??
-        readStringParam(cfg.agents?.defaults?.subagents ?? {}, "thinking");
-
-      let thinkingOverride: string | undefined;
-      const thinkingCandidateRaw = thinkingOverrideRaw || resolvedThinkingDefaultRaw;
-      if (thinkingCandidateRaw) {
-        const normalized = normalizeThinkLevel(thinkingCandidateRaw);
-        if (!normalized) {
-          const { provider, model } = splitModelRef(resolvedModel);
-          const hint = formatThinkingLevels(provider, model);
-          return jsonResult({
-            status: "error",
-            error: `Invalid thinking level "${thinkingCandidateRaw}". Use one of: ${hint}.`,
-          });
-        }
-        thinkingOverride = normalized;
+      const launch = resolveSubagentLaunchConfig({
+        cfg,
+        requesterSessionKey: requesterInternalKey,
+        requesterAgentId,
+        targetAgentId,
+        task,
+        label: label || undefined,
+        toolCallId: _toolCallId,
+        requestedModel: modelOverride,
+        requestedThinking: thinkingOverrideRaw,
+      });
+      if (!launch.ok) {
+        return jsonResult({
+          status: "error",
+          error: launch.error,
+        });
       }
-      if (resolvedModel) {
-        try {
-          await callGateway({
-            method: "sessions.patch",
-            params: { key: childSessionKey, model: resolvedModel },
-            timeoutMs: 10_000,
-          });
-          modelApplied = true;
-        } catch (err) {
-          const messageText =
-            err instanceof Error ? err.message : typeof err === "string" ? err : "error";
-          const recoverable =
-            messageText.includes("invalid model") || messageText.includes("model not allowed");
-          if (!recoverable) {
-            return jsonResult({
-              status: "error",
-              error: messageText,
-              childSessionKey,
-            });
-          }
-          modelWarning = messageText;
-        }
-      }
-      if (thinkingOverride !== undefined) {
-        try {
-          await callGateway({
-            method: "sessions.patch",
-            params: {
-              key: childSessionKey,
-              thinkingLevel: thinkingOverride === "off" ? null : thinkingOverride,
-            },
-            timeoutMs: 10_000,
-          });
-        } catch (err) {
-          const messageText =
-            err instanceof Error ? err.message : typeof err === "string" ? err : "error";
-          return jsonResult({
-            status: "error",
-            error: messageText,
-            childSessionKey,
-          });
-        }
+      const { childSessionKey, childIdempotencyKey, resolvedModel, resolvedThinking } =
+        launch.value;
+
+      let appliedLabel = label || undefined;
+      try {
+        const reserved = await reserveSubagentSessionSettings({
+          childSessionKey,
+          label: label || undefined,
+          resolvedModel,
+          resolvedThinking,
+        });
+        appliedLabel = reserved.appliedLabel ?? appliedLabel;
+        modelApplied = reserved.modelApplied ?? false;
+        modelWarning = reserved.modelWarning;
+      } catch (err) {
+        const messageText =
+          err instanceof Error ? err.message : typeof err === "string" ? err : "error";
+        return jsonResult({
+          status: "error",
+          error: messageText,
+          childSessionKey,
+        });
       }
       const childSystemPrompt = buildSubagentSystemPrompt({
         requesterSessionKey,
         requesterOrigin,
         childSessionKey,
-        label: label || undefined,
+        label: appliedLabel,
         task,
       });
 
-      const childIdem = crypto.randomUUID();
-      let childRunId: string = childIdem;
+      let childRunId: string = childIdempotencyKey;
       try {
         const response = await callGateway<{ runId: string }>({
           method: "agent",
@@ -255,13 +208,12 @@ export function createSessionsSpawnTool(opts?: {
             accountId: requesterOrigin?.accountId ?? undefined,
             threadId:
               requesterOrigin?.threadId != null ? String(requesterOrigin.threadId) : undefined,
-            idempotencyKey: childIdem,
+            idempotencyKey: childIdempotencyKey,
             deliver: false,
             lane: AGENT_LANE_SUBAGENT,
             extraSystemPrompt: childSystemPrompt,
-            thinking: thinkingOverride,
+            thinking: resolvedThinking,
             timeout: runTimeoutSeconds > 0 ? runTimeoutSeconds : undefined,
-            label: label || undefined,
             spawnedBy: spawnedByKey,
             groupId: opts?.agentGroupId ?? undefined,
             groupChannel: opts?.agentGroupChannel ?? undefined,
@@ -291,7 +243,7 @@ export function createSessionsSpawnTool(opts?: {
         requesterDisplayKey,
         task,
         cleanup,
-        label: label || undefined,
+        label: appliedLabel,
         runTimeoutSeconds,
       });
 
@@ -299,7 +251,10 @@ export function createSessionsSpawnTool(opts?: {
         status: "accepted",
         childSessionKey,
         runId: childRunId,
+        labelApplied: appliedLabel,
         modelApplied: resolvedModel ? modelApplied : undefined,
+        modelResolved: resolvedModel,
+        thinkingResolved: resolvedThinking,
         warning: modelWarning,
       });
     },
