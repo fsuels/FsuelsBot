@@ -58,6 +58,42 @@ describe("extractTextFromMessage", () => {
 
     expect(text).toBe("[thinking]\nponder\n\nhello");
   });
+
+  it("appends visible attachment summaries to assistant text", () => {
+    const text = extractTextFromMessage({
+      role: "assistant",
+      content: [{ type: "text", text: "Here you go" }],
+      openclawVisible: {
+        attachments: [
+          {
+            kind: "image",
+            name: "chart.png",
+            source: "https://example.com/chart.png",
+          },
+        ],
+      },
+    });
+
+    expect(text).toBe("Here you go\n[image] chart.png");
+  });
+
+  it("renders visible attachment summaries even when text is empty", () => {
+    const text = extractTextFromMessage({
+      role: "assistant",
+      content: [],
+      openclawVisible: {
+        attachments: [
+          {
+            kind: "file",
+            name: "report.pdf",
+            source: "https://example.com/report.pdf",
+          },
+        ],
+      },
+    });
+
+    expect(text).toBe("[file] report.pdf");
+  });
 });
 
 describe("extractThinkingFromMessage", () => {

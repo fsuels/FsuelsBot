@@ -352,7 +352,10 @@ describe("deliverOutboundPayloads", () => {
     });
 
     expect(mocks.appendAssistantMessageToSessionTranscript).toHaveBeenCalledWith(
-      expect.objectContaining({ text: "report.pdf" }),
+      expect.objectContaining({
+        text: "caption",
+        mediaUrls: ["https://example.com/files/report.pdf?sig=1"],
+      }),
     );
   });
 });

@@ -2,6 +2,10 @@ import { html, nothing } from "lit";
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
 import type { AssistantIdentity } from "../assistant-identity.ts";
 import type { MessageGroup } from "../types/chat-types.ts";
+import {
+  extractVisibleMessageMeta,
+  formatVisibleAttachmentSize,
+} from "../../../../src/utils/visible-message.ts";
 import { toSanitizedMarkdownHtml } from "../markdown.ts";
 import { renderCopyAsMarkdownButton } from "./copy-as-markdown.ts";
 import {
@@ -16,6 +20,10 @@ type ImageBlock = {
   url: string;
   alt?: string;
 };
+
+function isLinkableAttachmentSource(source: string): boolean {
+  return /^https?:\/\//i.test(source) || /^data:/i.test(source) || source.startsWith("/");
+}
 
 function extractImages(message: unknown): ImageBlock[] {
   const m = message as Record<string, unknown>;
@@ -215,6 +223,66 @@ function renderMessageImages(images: ImageBlock[]) {
   `;
 }
 
+function renderVisibleMetadata(message: unknown) {
+  const visible = extractVisibleMessageMeta(message);
+  const attachments = visible?.attachments ?? [];
+  const proactive = visible?.status === "proactive";
+  if (!proactive && attachments.length === 0) {
+    return nothing;
+  }
+
+  return html`
+    <div class="chat-visible-meta">
+      ${
+        proactive
+          ? html`
+              <span class="chat-visible-badge" title="Sent outside the active reply flow"> Proactive </span>
+            `
+          : nothing
+      }
+      ${
+        attachments.length > 0
+          ? html`
+              <div class="chat-visible-attachments">
+                ${attachments.map((attachment) => {
+                  const size = formatVisibleAttachmentSize(attachment.sizeBytes);
+                  const body = html`
+                    <span class="chat-visible-attachment__kind"
+                      >${attachment.kind === "image" ? "[image]" : "[file]"}</span
+                    >
+                    <span class="chat-visible-attachment__name">${attachment.name}</span>
+                    ${
+                      size
+                        ? html`<span class="chat-visible-attachment__size">(${size})</span>`
+                        : nothing
+                    }
+                  `;
+                  return isLinkableAttachmentSource(attachment.source)
+                    ? html`
+                        <a
+                          class="chat-visible-attachment"
+                          href=${attachment.source}
+                          target="_blank"
+                          rel="noreferrer"
+                          title=${attachment.source}
+                        >
+                          ${body}
+                        </a>
+                      `
+                    : html`
+                        <span class="chat-visible-attachment" title=${attachment.source}>
+                          ${body}
+                        </span>
+                      `;
+                })}
+              </div>
+            `
+          : nothing
+      }
+    </div>
+  `;
+}
+
 function renderGroupedMessage(
   message: unknown,
   opts: { isStreaming: boolean; showReasoning: boolean },
@@ -233,6 +301,7 @@ function renderGroupedMessage(
   const hasToolCards = toolCards.length > 0;
   const images = extractImages(message);
   const hasImages = images.length > 0;
+  const visible = extractVisibleMessageMeta(message);
 
   const extractedText = extractTextCached(message);
   const extractedThinking =
@@ -255,7 +324,7 @@ function renderGroupedMessage(
     return html`${toolCards.map((card) => renderToolCardSidebar(card, onOpenSidebar))}`;
   }
 
-  if (!markdown && !hasToolCards && !hasImages) {
+  if (!markdown && !hasToolCards && !hasImages && !visible) {
     return nothing;
   }
 
@@ -275,6 +344,7 @@ function renderGroupedMessage(
           ? html`<div class="chat-text">${unsafeHTML(toSanitizedMarkdownHtml(markdown))}</div>`
           : nothing
       }
+      ${renderVisibleMetadata(message)}
       ${toolCards.map((card) => renderToolCardSidebar(card, onOpenSidebar))}
     </div>
   `;

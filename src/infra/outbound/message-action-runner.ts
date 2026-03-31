@@ -865,6 +865,7 @@ async function handleSendAction(ctx: ResolvedActionContext): Promise<MessageActi
               agentId,
               text: message,
               mediaUrls: mirrorMediaUrls,
+              status: "proactive",
             }
           : undefined,
       abortSignal,

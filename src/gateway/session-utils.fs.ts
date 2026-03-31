@@ -5,6 +5,10 @@ import type { SessionPreviewItem } from "./session-utils.types.js";
 import { resolveSessionTranscriptPath } from "../config/sessions.js";
 import { resolveRequiredHomeDir } from "../infra/home-dir.js";
 import { extractToolCallNames, hasToolCall } from "../utils/transcript-tools.js";
+import {
+  extractVisibleMessageMeta,
+  formatVisibleAttachmentLabel,
+} from "../utils/visible-message.js";
 import { stripEnvelope } from "./chat-sanitize.js";
 
 export function readSessionMessages(
@@ -260,6 +264,7 @@ type TranscriptPreviewMessage = {
   text?: string;
   toolName?: string;
   tool_name?: string;
+  openclawVisible?: unknown;
 };
 
 function normalizeRole(role: string | undefined, isTool: boolean): SessionPreviewItem["role"] {
@@ -319,6 +324,18 @@ function extractToolNames(message: TranscriptPreviewMessage): string[] {
 }
 
 function extractMediaSummary(message: TranscriptPreviewMessage): string | null {
+  const visible = extractVisibleMessageMeta(message);
+  if (visible?.attachments?.length) {
+    const shown = visible.attachments
+      .slice(0, 2)
+      .map((attachment) => formatVisibleAttachmentLabel(attachment));
+    const overflow = visible.attachments.length - shown.length;
+    let summary = shown.join(", ");
+    if (overflow > 0) {
+      summary += ` +${overflow}`;
+    }
+    return summary;
+  }
   if (!Array.isArray(message.content)) {
     return null;
   }

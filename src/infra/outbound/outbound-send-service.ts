@@ -2,6 +2,7 @@ import type { AgentToolResult } from "@mariozechner/pi-agent-core";
 import type { ChannelId, ChannelThreadingToolContext } from "../../channels/plugins/types.js";
 import type { OpenClawConfig } from "../../config/config.js";
 import type { GatewayClientMode, GatewayClientName } from "../../utils/message-channel.js";
+import type { VisibleMessageStatus } from "../../utils/visible-message.js";
 import type { OutboundSendDeps } from "./deliver.js";
 import type { MessagePollResult, MessageSendResult } from "./message.js";
 import { dispatchChannelMessageAction } from "../../channels/plugins/message-actions.js";
@@ -32,6 +33,7 @@ export type OutboundSendContext = {
     agentId?: string;
     text?: string;
     mediaUrls?: string[];
+    status?: VisibleMessageStatus;
   };
   abortSignal?: AbortSignal;
 };
@@ -98,6 +100,7 @@ export async function executeSendAction(params: {
           sessionKey: params.ctx.mirror.sessionKey,
           text: mirrorText,
           mediaUrls: mirrorMediaUrls,
+          status: params.ctx.mirror.status,
         });
       }
       return {

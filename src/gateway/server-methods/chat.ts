@@ -2,6 +2,7 @@ import { CURRENT_SESSION_VERSION, SessionManager } from "@mariozechner/pi-coding
 import fs from "node:fs";
 import path from "node:path";
 import type { MsgContext } from "../../auto-reply/templating.js";
+import type { VisibleMessageStatus } from "../../utils/visible-message.js";
 import type { GatewayRequestContext, GatewayRequestHandlers } from "./types.js";
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import { resolveThinkingDefault } from "../../agents/model-selection.js";
@@ -89,6 +90,7 @@ function ensureTranscriptFile(params: { transcriptPath: string; sessionId: strin
 function appendAssistantTranscriptMessage(params: {
   message: string;
   label?: string;
+  status?: VisibleMessageStatus;
   sessionId: string;
   storePath: string | undefined;
   sessionFile?: string;
@@ -144,6 +146,10 @@ function appendAssistantTranscriptMessage(params: {
     api: "openai-responses",
     provider: "openclaw",
     model: "gateway-injected",
+    openclawVisible: {
+      status: params.status,
+      sentAt: new Date(now).toISOString(),
+    },
   };
 
   try {
@@ -554,6 +560,7 @@ export const chatHandlers: GatewayRequestHandlers = {
               const sessionId = latestEntry?.sessionId ?? entry?.sessionId ?? clientRunId;
               const appended = appendAssistantTranscriptMessage({
                 message: combinedReply,
+                status: "normal",
                 sessionId,
                 storePath: latestStorePath,
                 sessionFile: latestEntry?.sessionFile,
@@ -574,6 +581,10 @@ export const chatHandlers: GatewayRequestHandlers = {
                   // persisted to the transcript due to the append failure.
                   stopReason: "stop",
                   usage: { input: 0, output: 0, totalTokens: 0 },
+                  openclawVisible: {
+                    status: "normal" as const,
+                    sentAt: new Date(now).toISOString(),
+                  },
                 };
               }
             }
@@ -661,6 +672,7 @@ export const chatHandlers: GatewayRequestHandlers = {
     const appended = appendAssistantTranscriptMessage({
       message: p.message,
       label: p.label,
+      status: "proactive",
       sessionId,
       storePath,
       sessionFile: entry?.sessionFile,
