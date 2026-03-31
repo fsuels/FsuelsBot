@@ -11,6 +11,7 @@ import type { OpenClawConfig } from "../config/config.js";
 import type { InternalHookHandler } from "./internal-hooks.js";
 import { resolveHookConfig } from "./config.js";
 import { shouldIncludeHook } from "./config.js";
+import { assertKnownInternalHookEventKey } from "./event-registry.js";
 import { registerInternalHook } from "./internal-hooks.js";
 import { loadWorkspaceHookEntries } from "./workspace.js";
 
@@ -84,7 +85,10 @@ export async function loadInternalHooks(
         }
 
         for (const event of events) {
-          registerInternalHook(event, handler as InternalHookHandler);
+          registerInternalHook(
+            assertKnownInternalHookEventKey(event),
+            handler as InternalHookHandler,
+          );
         }
 
         console.log(
@@ -129,7 +133,10 @@ export async function loadInternalHooks(
       }
 
       // Register the handler
-      registerInternalHook(handlerConfig.event, handler as InternalHookHandler);
+      registerInternalHook(
+        assertKnownInternalHookEventKey(handlerConfig.event),
+        handler as InternalHookHandler,
+      );
       console.log(
         `Registered hook (legacy): ${handlerConfig.event} -> ${modulePath}${exportName !== "default" ? `#${exportName}` : ""}`,
       );

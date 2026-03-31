@@ -16,6 +16,7 @@ import type {
   OpenClawPluginHttpHandler,
   OpenClawPluginHttpRouteHandler,
   OpenClawPluginHookOptions,
+  OpenClawPluginTypedHookOptions,
   ProviderPlugin,
   OpenClawPluginService,
   OpenClawPluginToolContext,
@@ -446,14 +447,23 @@ export function createPluginRegistry(registryParams: PluginRegistryParams) {
     record: PluginRecord,
     hookName: K,
     handler: PluginHookHandlerMap[K],
-    opts?: { priority?: number },
+    opts?: OpenClawPluginTypedHookOptions,
   ) => {
+    const matcher = Array.isArray(opts?.matcher)
+      ? opts.matcher.map((value) => value.trim()).filter(Boolean)
+      : typeof opts?.matcher === "string"
+        ? opts.matcher
+            .split(",")
+            .map((value) => value.trim())
+            .filter(Boolean)
+        : undefined;
     record.hookCount += 1;
     registry.typedHooks.push({
       pluginId: record.id,
       hookName,
       handler,
       priority: opts?.priority,
+      matcher: matcher && matcher.length > 0 ? matcher : undefined,
       source: record.source,
     } as TypedPluginHookRegistration);
   };

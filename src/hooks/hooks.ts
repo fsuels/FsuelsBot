@@ -1,6 +1,7 @@
 export * from "./internal-hooks.js";
+export * from "./event-registry.js";
 
-export type HookEventType = import("./internal-hooks.js").InternalHookEventType;
+export type HookEventType = import("./event-registry.js").InternalHookEventType;
 export type HookEvent = import("./internal-hooks.js").InternalHookEvent;
 export type HookHandler = import("./internal-hooks.js").InternalHookHandler;
 

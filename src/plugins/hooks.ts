@@ -34,6 +34,7 @@ import type {
   PluginHookToolResultPersistEvent,
   PluginHookToolResultPersistResult,
 } from "./types.js";
+import { normalizeToolName } from "../agents/tool-policy.js";
 
 // Re-export types for consumers
 export type {
@@ -75,6 +76,65 @@ export type HookRunnerOptions = {
   catchErrors?: boolean;
 };
 
+type CompiledToolMatcher =
+  | { kind: "all" }
+  | { kind: "exact"; value: string }
+  | { kind: "regex"; value: RegExp };
+
+function compileToolMatcher(pattern: string): CompiledToolMatcher | null {
+  const normalized = normalizeToolName(pattern);
+  if (!normalized) {
+    return null;
+  }
+  if (normalized === "*") {
+    return { kind: "all" };
+  }
+  if (!normalized.includes("*")) {
+    return { kind: "exact", value: normalized };
+  }
+  const escaped = normalized.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return {
+    kind: "regex",
+    value: new RegExp(`^${escaped.replaceAll("\\*", ".*")}$`),
+  };
+}
+
+function matchesToolMatchers(toolName: string | undefined, matcher?: readonly string[]): boolean {
+  if (!matcher || matcher.length === 0) {
+    return true;
+  }
+  const normalizedToolName = normalizeToolName(toolName || "");
+  if (!normalizedToolName) {
+    return false;
+  }
+  for (const rawPattern of matcher) {
+    const pattern = compileToolMatcher(rawPattern);
+    if (!pattern) {
+      continue;
+    }
+    if (pattern.kind === "all") {
+      return true;
+    }
+    if (pattern.kind === "exact" && pattern.value === normalizedToolName) {
+      return true;
+    }
+    if (pattern.kind === "regex" && pattern.value.test(normalizedToolName)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function filterToolHooks<K extends PluginHookName>(
+  registry: PluginRegistry,
+  hookName: K,
+  toolName: string | undefined,
+): PluginHookRegistration<K>[] {
+  return getHooksForName(registry, hookName).filter((hook) =>
+    matchesToolMatchers(toolName, hook.matcher),
+  );
+}
+
 /**
  * Get hooks for a specific hook name, sorted by priority (higher first).
  */
@@ -102,8 +162,9 @@ export function createHookRunner(registry: PluginRegistry, options: HookRunnerOp
     hookName: K,
     event: Parameters<NonNullable<PluginHookRegistration<K>["handler"]>>[0],
     ctx: Parameters<NonNullable<PluginHookRegistration<K>["handler"]>>[1],
+    hooksOverride?: PluginHookRegistration<K>[],
   ): Promise<void> {
-    const hooks = getHooksForName(registry, hookName);
+    const hooks = hooksOverride ?? getHooksForName(registry, hookName);
     if (hooks.length === 0) {
       return;
     }
@@ -135,8 +196,9 @@ export function createHookRunner(registry: PluginRegistry, options: HookRunnerOp
     event: Parameters<NonNullable<PluginHookRegistration<K>["handler"]>>[0],
     ctx: Parameters<NonNullable<PluginHookRegistration<K>["handler"]>>[1],
     mergeResults?: (accumulated: TResult | undefined, next: TResult) => TResult,
+    hooksOverride?: PluginHookRegistration<K>[],
   ): Promise<TResult | undefined> {
-    const hooks = getHooksForName(registry, hookName);
+    const hooks = hooksOverride ?? getHooksForName(registry, hookName);
     if (hooks.length === 0) {
       return undefined;
     }
@@ -289,6 +351,7 @@ export function createHookRunner(registry: PluginRegistry, options: HookRunnerOp
     event: PluginHookBeforeToolCallEvent,
     ctx: PluginHookToolContext,
   ): Promise<PluginHookBeforeToolCallResult | undefined> {
+    const hooks = filterToolHooks(registry, "before_tool_call", event.toolName);
     return runModifyingHook<"before_tool_call", PluginHookBeforeToolCallResult>(
       "before_tool_call",
       event,
@@ -298,6 +361,7 @@ export function createHookRunner(registry: PluginRegistry, options: HookRunnerOp
         block: next.block ?? acc?.block,
         blockReason: next.blockReason ?? acc?.blockReason,
       }),
+      hooks,
     );
   }
 
@@ -309,7 +373,8 @@ export function createHookRunner(registry: PluginRegistry, options: HookRunnerOp
     event: PluginHookAfterToolCallEvent,
     ctx: PluginHookToolContext,
   ): Promise<void> {
-    return runVoidHook("after_tool_call", event, ctx);
+    const hooks = filterToolHooks(registry, "after_tool_call", event.toolName);
+    return runVoidHook("after_tool_call", event, ctx, hooks);
   }
 
   /**
@@ -326,7 +391,7 @@ export function createHookRunner(registry: PluginRegistry, options: HookRunnerOp
     event: PluginHookToolResultPersistEvent,
     ctx: PluginHookToolResultPersistContext,
   ): PluginHookToolResultPersistResult | undefined {
-    const hooks = getHooksForName(registry, "tool_result_persist");
+    const hooks = filterToolHooks(registry, "tool_result_persist", event.toolName ?? ctx.toolName);
     if (hooks.length === 0) {
       return undefined;
     }

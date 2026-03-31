@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  isKnownInternalHookEventKey,
+  listKnownInternalHookEventKeys,
+} from "../hooks/event-registry.js";
 
 export const HookMappingSchema = z
   .object({
@@ -44,9 +48,21 @@ export const HookMappingSchema = z
   .strict()
   .optional();
 
+const knownInternalHookEvents = listKnownInternalHookEventKeys();
+
+const InternalHookEventKeySchema = z.string().superRefine((value, ctx) => {
+  if (isKnownInternalHookEventKey(value)) {
+    return;
+  }
+  ctx.addIssue({
+    code: z.ZodIssueCode.custom,
+    message: `Unknown internal hook event "${value}". Known events: ${knownInternalHookEvents.join(", ")}`,
+  });
+});
+
 export const InternalHookHandlerSchema = z
   .object({
-    event: z.string(),
+    event: InternalHookEventKeySchema,
     module: z.string(),
     export: z.string().optional(),
   })

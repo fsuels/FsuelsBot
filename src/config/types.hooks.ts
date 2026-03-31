@@ -1,3 +1,5 @@
+import type { InternalHookEventKey } from "../hooks/event-registry.js";
+
 export type HookMappingMatch = {
   path?: string;
   source?: string;
@@ -71,7 +73,7 @@ export type HooksGmailConfig = {
 
 export type InternalHookHandlerConfig = {
   /** Event key to listen for (e.g., 'command:new', 'session:start') */
-  event: string;
+  event: InternalHookEventKey;
   /** Path to handler module (absolute or relative to cwd) */
   module: string;
   /** Export name from module (default: 'default') */

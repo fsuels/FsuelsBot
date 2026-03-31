@@ -7,8 +7,12 @@
 
 import type { WorkspaceBootstrapFile } from "../agents/workspace.js";
 import type { OpenClawConfig } from "../config/config.js";
-
-export type InternalHookEventType = "command" | "session" | "agent" | "gateway";
+import {
+  assertKnownInternalHookEventKey,
+  isKnownInternalHookEventKey,
+  type InternalHookEventKey,
+  type InternalHookEventType,
+} from "./event-registry.js";
 
 export type AgentBootstrapHookContext = {
   workspaceDir: string;
@@ -43,7 +47,7 @@ export interface InternalHookEvent {
 export type InternalHookHandler = (event: InternalHookEvent) => Promise<void> | void;
 
 /** Registry of hook handlers by event key */
-const handlers = new Map<string, InternalHookHandler[]>();
+const handlers = new Map<InternalHookEventKey, InternalHookHandler[]>();
 
 /**
  * Register a hook handler for a specific event type or event:action combination
@@ -65,10 +69,11 @@ const handlers = new Map<string, InternalHookHandler[]>();
  * ```
  */
 export function registerInternalHook(eventKey: string, handler: InternalHookHandler): void {
-  if (!handlers.has(eventKey)) {
-    handlers.set(eventKey, []);
+  const normalizedEventKey = assertKnownInternalHookEventKey(eventKey);
+  if (!handlers.has(normalizedEventKey)) {
+    handlers.set(normalizedEventKey, []);
   }
-  handlers.get(eventKey)!.push(handler);
+  handlers.get(normalizedEventKey)!.push(handler);
 }
 
 /**
@@ -78,7 +83,8 @@ export function registerInternalHook(eventKey: string, handler: InternalHookHand
  * @param handler - The handler function to remove
  */
 export function unregisterInternalHook(eventKey: string, handler: InternalHookHandler): void {
-  const eventHandlers = handlers.get(eventKey);
+  const normalizedEventKey = assertKnownInternalHookEventKey(eventKey);
+  const eventHandlers = handlers.get(normalizedEventKey);
   if (!eventHandlers) {
     return;
   }
@@ -90,7 +96,7 @@ export function unregisterInternalHook(eventKey: string, handler: InternalHookHa
 
   // Clean up empty handler arrays
   if (eventHandlers.length === 0) {
-    handlers.delete(eventKey);
+    handlers.delete(normalizedEventKey);
   }
 }
 
@@ -104,7 +110,7 @@ export function clearInternalHooks(): void {
 /**
  * Get all registered event keys (useful for debugging)
  */
-export function getRegisteredEventKeys(): string[] {
+export function getRegisteredEventKeys(): InternalHookEventKey[] {
   return Array.from(handlers.keys());
 }
 
@@ -122,7 +128,10 @@ export function getRegisteredEventKeys(): string[] {
  */
 export async function triggerInternalHook(event: InternalHookEvent): Promise<void> {
   const typeHandlers = handlers.get(event.type) ?? [];
-  const specificHandlers = handlers.get(`${event.type}:${event.action}`) ?? [];
+  const specificEventKey = `${event.type}:${event.action}`;
+  const specificHandlers = isKnownInternalHookEventKey(specificEventKey)
+    ? (handlers.get(specificEventKey) ?? [])
+    : [];
 
   const allHandlers = [...typeHandlers, ...specificHandlers];
 

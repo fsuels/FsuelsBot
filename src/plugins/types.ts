@@ -83,6 +83,15 @@ export type OpenClawPluginHookOptions = {
   register?: boolean;
 };
 
+export type OpenClawPluginTypedHookOptions = {
+  priority?: number;
+  /**
+   * Optional tool-name matcher for tool lifecycle hooks.
+   * Uses the same wildcard syntax as tool policy entries (e.g. "read", "exec*", "*").
+   */
+  matcher?: string | string[];
+};
+
 export type ProviderAuthKind = "oauth" | "api_key" | "token" | "device_code" | "custom";
 
 export type ProviderAuthResult = {
@@ -279,7 +288,7 @@ export type OpenClawPluginApi = {
   on: <K extends PluginHookName>(
     hookName: K,
     handler: PluginHookHandlerMap[K],
-    opts?: { priority?: number },
+    opts?: OpenClawPluginTypedHookOptions,
   ) => void;
 };
 
@@ -534,5 +543,6 @@ export type PluginHookRegistration<K extends PluginHookName = PluginHookName> = 
   hookName: K;
   handler: PluginHookHandlerMap[K];
   priority?: number;
+  matcher?: string[];
   source: string;
 };

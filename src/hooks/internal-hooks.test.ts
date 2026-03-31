@@ -29,6 +29,19 @@ describe("hooks", () => {
       expect(keys).toContain("command:new");
     });
 
+    it("normalizes event keys before registration", () => {
+      const handler = vi.fn();
+      registerInternalHook(" Command:NEW ", handler);
+
+      expect(getRegisteredEventKeys()).toContain("command:new");
+    });
+
+    it("rejects unknown event keys", () => {
+      expect(() => registerInternalHook("command:launch", vi.fn())).toThrow(
+        /Unknown internal hook event key "command:launch"/,
+      );
+    });
+
     it("should allow multiple handlers for the same event", () => {
       const handler1 = vi.fn();
       const handler2 = vi.fn();

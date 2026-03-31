@@ -177,6 +177,35 @@ describe("loader", () => {
       consoleError.mockRestore();
     });
 
+    it("skips handlers with unknown events", async () => {
+      const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+      const handlerPath = path.join(tmpDir, "unknown-event.js");
+      await fs.writeFile(handlerPath, "export default async function() {}", "utf-8");
+
+      const cfg: OpenClawConfig = {
+        hooks: {
+          internal: {
+            enabled: true,
+            handlers: [
+              {
+                event: "command:launch",
+                module: handlerPath,
+              },
+            ],
+          },
+        },
+      };
+
+      const count = await loadInternalHooks(cfg, tmpDir);
+      expect(count).toBe(0);
+      expect(consoleError).toHaveBeenCalledWith(
+        expect.stringContaining(`Failed to load hook handler from ${handlerPath}:`),
+        expect.stringContaining('Unknown internal hook event key "command:launch"'),
+      );
+
+      consoleError.mockRestore();
+    });
+
     it("should handle non-function exports", async () => {
       const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
 
