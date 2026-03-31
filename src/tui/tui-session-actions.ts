@@ -8,6 +8,7 @@ import {
   normalizeMainKey,
   parseAgentSessionKey,
 } from "../routing/session-key.js";
+import { extractToolResultCorrelationId } from "../utils/tool-call-correlation.js";
 import { asString, extractTextFromMessage, isCommandMessage } from "./tui-formatters.js";
 
 type SessionActionContext = {
@@ -311,7 +312,7 @@ export function createSessionActions(context: SessionActionContext) {
       const showTools = (state.sessionInfo.verboseLevel ?? "off") !== "off";
       chatLog.clearAll();
       chatLog.addSystem(`session ${state.currentSessionKey}`);
-      for (const entry of record.messages ?? []) {
+      for (const [index, entry] of (record.messages ?? []).entries()) {
         if (!entry || typeof entry !== "object") {
           continue;
         }
@@ -343,7 +344,11 @@ export function createSessionActions(context: SessionActionContext) {
           if (!showTools) {
             continue;
           }
-          const toolCallId = asString(message.toolCallId, "");
+          const toolCallId =
+            extractToolResultCorrelationId(message) ??
+            // Legacy transcripts without an emitted correlation id still need stable
+            // rendering keys during history hydration so separate results don't collapse.
+            `history-tool-${index}`;
           const toolName = asString(message.toolName, "tool");
           const component = chatLog.startTool(toolCallId, toolName, {});
           component.setResult(

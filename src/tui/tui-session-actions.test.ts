@@ -3,6 +3,28 @@ import type { TuiStateAccess } from "./tui-types.js";
 import { createSessionActions } from "./tui-session-actions.js";
 
 describe("tui session actions", () => {
+  const makeState = (): TuiStateAccess => ({
+    agentDefaultId: "main",
+    sessionMainKey: "agent:main:main",
+    sessionScope: "global",
+    agents: [],
+    currentAgentId: "main",
+    currentSessionKey: "agent:main:main",
+    currentSessionId: null,
+    activeChatRunId: null,
+    historyLoaded: false,
+    sessionInfo: {},
+    initialSessionApplied: true,
+    isConnected: true,
+    autoMessageSent: false,
+    toolsExpanded: false,
+    showThinking: false,
+    connectionStatus: "connected",
+    activityStatus: "idle",
+    statusTimeout: null,
+    lastCtrlCAt: 0,
+  });
+
   it("queues session refreshes and applies the latest result", async () => {
     let resolveFirst: ((value: unknown) => void) | undefined;
     let resolveSecond: ((value: unknown) => void) | undefined;
@@ -22,27 +44,7 @@ describe("tui session actions", () => {
           }),
       );
 
-    const state: TuiStateAccess = {
-      agentDefaultId: "main",
-      sessionMainKey: "agent:main:main",
-      sessionScope: "global",
-      agents: [],
-      currentAgentId: "main",
-      currentSessionKey: "agent:main:main",
-      currentSessionId: null,
-      activeChatRunId: null,
-      historyLoaded: false,
-      sessionInfo: {},
-      initialSessionApplied: true,
-      isConnected: true,
-      autoMessageSent: false,
-      toolsExpanded: false,
-      showThinking: false,
-      connectionStatus: "connected",
-      activityStatus: "idle",
-      statusTimeout: null,
-      lastCtrlCAt: 0,
-    };
+    const state = makeState();
 
     const updateFooter = vi.fn();
     const updateAutocompleteProvider = vi.fn();
@@ -109,5 +111,117 @@ describe("tui session actions", () => {
     expect(updateAutocompleteProvider).toHaveBeenCalledTimes(2);
     expect(updateFooter).toHaveBeenCalledTimes(2);
     expect(requestRender).toHaveBeenCalledTimes(2);
+  });
+
+  it("hydrates tool history from toolUseId when toolCallId is absent", async () => {
+    const state = makeState();
+    const requestRender = vi.fn();
+    const listSessions = vi.fn().mockResolvedValue({
+      ts: Date.now(),
+      path: "/tmp/sessions.json",
+      count: 1,
+      defaults: {},
+      sessions: [],
+    });
+    const loadHistoryRpc = vi.fn().mockResolvedValue({
+      sessionId: "session-1",
+      verboseLevel: "on",
+      messages: [
+        {
+          role: "toolResult",
+          toolUseId: "use_1",
+          toolName: "read",
+          content: [{ type: "text", text: "ok" }],
+        },
+      ],
+    });
+    const setResult = vi.fn();
+    const startTool = vi.fn().mockReturnValue({ setResult });
+
+    const { loadHistory } = createSessionActions({
+      client: {
+        listSessions,
+        loadHistory: loadHistoryRpc,
+      } as unknown as import("./gateway-chat.js").GatewayChatClient,
+      chatLog: {
+        addSystem: vi.fn(),
+        clearAll: vi.fn(),
+        addUser: vi.fn(),
+        finalizeAssistant: vi.fn(),
+        startTool,
+      } as unknown as import("./components/chat-log.js").ChatLog,
+      tui: { requestRender } as unknown as import("@mariozechner/pi-tui").TUI,
+      opts: {},
+      state,
+      agentNames: new Map(),
+      initialSessionInput: "",
+      initialSessionAgentId: null,
+      resolveSessionKey: vi.fn(),
+      updateHeader: vi.fn(),
+      updateFooter: vi.fn(),
+      updateAutocompleteProvider: vi.fn(),
+      setActivityStatus: vi.fn(),
+    });
+
+    await loadHistory();
+
+    expect(startTool).toHaveBeenCalledWith("use_1", "read", {});
+    expect(setResult).toHaveBeenCalledWith(
+      { content: [{ type: "text", text: "ok" }], details: undefined },
+      { isError: false },
+    );
+  });
+
+  it("assigns unique fallback ids to legacy tool history entries without correlation ids", async () => {
+    const state = makeState();
+    const listSessions = vi.fn().mockResolvedValue({
+      ts: Date.now(),
+      path: "/tmp/sessions.json",
+      count: 1,
+      defaults: {},
+      sessions: [],
+    });
+    const loadHistoryRpc = vi.fn().mockResolvedValue({
+      sessionId: "session-1",
+      verboseLevel: "on",
+      messages: [
+        { role: "toolResult", toolName: "read", content: [{ type: "text", text: "one" }] },
+        { role: "toolResult", toolName: "read", content: [{ type: "text", text: "two" }] },
+      ],
+    });
+    const startTool = vi
+      .fn()
+      .mockReturnValueOnce({ setResult: vi.fn() })
+      .mockReturnValueOnce({ setResult: vi.fn() });
+
+    const { loadHistory } = createSessionActions({
+      client: {
+        listSessions,
+        loadHistory: loadHistoryRpc,
+      } as unknown as import("./gateway-chat.js").GatewayChatClient,
+      chatLog: {
+        addSystem: vi.fn(),
+        clearAll: vi.fn(),
+        addUser: vi.fn(),
+        finalizeAssistant: vi.fn(),
+        startTool,
+      } as unknown as import("./components/chat-log.js").ChatLog,
+      tui: { requestRender: vi.fn() } as unknown as import("@mariozechner/pi-tui").TUI,
+      opts: {},
+      state,
+      agentNames: new Map(),
+      initialSessionInput: "",
+      initialSessionAgentId: null,
+      resolveSessionKey: vi.fn(),
+      updateHeader: vi.fn(),
+      updateFooter: vi.fn(),
+      updateAutocompleteProvider: vi.fn(),
+      setActivityStatus: vi.fn(),
+    });
+
+    await loadHistory();
+
+    expect(startTool.mock.calls[0]?.[0]).toBe("history-tool-0");
+    expect(startTool.mock.calls[1]?.[0]).toBe("history-tool-1");
   });
 });
