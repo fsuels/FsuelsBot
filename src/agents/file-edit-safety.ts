@@ -68,6 +68,18 @@ type TrackedFileState = {
   textMetadata?: TextFileMetadata;
 };
 
+export type FileReadStateSeed = {
+  path: string;
+  mtimeMs: number;
+  contentHash?: string;
+  readAtMs?: number;
+  size?: number;
+  partial?: boolean;
+  readOffset?: number;
+  readLimit?: number;
+  readKind?: "text" | "image";
+};
+
 type MutationCheck = {
   exists: boolean;
   resolvedPath: string;
@@ -317,6 +329,30 @@ function restoreLineEndings(text: string, newline: "\n" | "\r\n" | "\r"): string
 
 function computeHash(buffer: Buffer): string {
   return crypto.createHash("sha256").update(buffer).digest("hex");
+}
+
+function hasTrackedFileStateChanged(params: {
+  previousState: TrackedFileState;
+  currentState: TrackedFileState;
+}): boolean {
+  const { previousState, currentState } = params;
+  if (typeof previousState.content === "string" && typeof currentState.content === "string") {
+    return previousState.content !== currentState.content;
+  }
+  if (previousState.hash && currentState.hash) {
+    return previousState.hash !== currentState.hash;
+  }
+  if (previousState.mtimeMs !== currentState.mtimeMs) {
+    return true;
+  }
+  return previousState.size !== currentState.size;
+}
+
+function normalizeReadStateCacheSize(maxEntries?: number): number {
+  if (typeof maxEntries !== "number" || !Number.isFinite(maxEntries)) {
+    return 256;
+  }
+  return Math.max(1, Math.floor(maxEntries));
 }
 
 function detectEncoding(buffer: Buffer): {
@@ -582,8 +618,29 @@ export function fileToolErrorToResult(toolName: string, err: FileToolError) {
   });
 }
 
-export function createFileEditStateTracker() {
+export function createFileEditStateTracker(options?: { maxEntries?: number }) {
   const readStateByCanonicalPath = new Map<string, TrackedFileState>();
+  const maxEntries = normalizeReadStateCacheSize(options?.maxEntries);
+
+  function setTrackedState(state: TrackedFileState): TrackedFileState {
+    readStateByCanonicalPath.delete(state.canonicalPath);
+    readStateByCanonicalPath.set(state.canonicalPath, state);
+    while (readStateByCanonicalPath.size > maxEntries) {
+      const oldestKey = readStateByCanonicalPath.keys().next().value;
+      if (typeof oldestKey !== "string") {
+        break;
+      }
+      readStateByCanonicalPath.delete(oldestKey);
+    }
+    return state;
+  }
+
+  function touchTrackedState(state: TrackedFileState): TrackedFileState {
+    if (!readStateByCanonicalPath.has(state.canonicalPath)) {
+      return state;
+    }
+    return setTrackedState(state);
+  }
 
   function findTrackedStateForAbsolutePath(absolutePath: string): TrackedFileState | undefined {
     const normalizedPath = path.normalize(absolutePath);
@@ -592,7 +649,7 @@ export function createFileEditStateTracker() {
         path.normalize(tracked.resolvedPath) === normalizedPath ||
         path.normalize(tracked.canonicalPath) === normalizedPath
       ) {
-        return tracked;
+        return touchTrackedState(tracked);
       }
     }
     return undefined;
@@ -600,14 +657,90 @@ export function createFileEditStateTracker() {
 
   async function rememberResolvedPath(resolvedPath: string, buffer?: Buffer) {
     const state = await buildTrackedStateFromResolvedPath(resolvedPath, buffer);
-    readStateByCanonicalPath.set(state.canonicalPath, state);
-    return state;
+    return setTrackedState(state);
   }
 
   async function rememberReadHeader(resolvedPath: string, info: ReadTrackingInfo) {
     const state = await buildTrackedHeaderFromResolvedPath(resolvedPath, info);
-    readStateByCanonicalPath.set(state.canonicalPath, state);
-    return state;
+    return setTrackedState(state);
+  }
+
+  async function seedReadState(params: {
+    path: string;
+    cwd: string;
+    sandboxRoot?: string;
+    mtimeMs: number;
+    contentHash?: string;
+    readAtMs?: number;
+    size?: number;
+    partial?: boolean;
+    readOffset?: number;
+    readLimit?: number;
+    readKind?: "text" | "image";
+  }): Promise<void> {
+    const resolvedPath = await resolveRequestedPath(params.path, {
+      cwd: params.cwd,
+      sandboxRoot: params.sandboxRoot,
+      readMode: true,
+    });
+    let stat;
+    try {
+      stat = await fs.stat(resolvedPath);
+    } catch (err) {
+      const mapped = mapNodeErrorToFileToolError(err, `Cannot access ${resolvedPath}`, {
+        path: resolvedPath,
+      });
+      if (mapped) {
+        throw mapped;
+      }
+      throw err;
+    }
+
+    if (!stat.isFile()) {
+      throw new FileToolError({
+        errorCode: "invalid_file_type",
+        contractCode: "invalid_input",
+        message: `Path is not a regular file: ${resolvedPath}`,
+        details: { path: resolvedPath },
+      });
+    }
+
+    const canonicalPath = await fs.realpath(resolvedPath).catch(() => path.normalize(resolvedPath));
+    setTrackedState({
+      resolvedPath,
+      canonicalPath,
+      readAtMs:
+        typeof params.readAtMs === "number" && Number.isFinite(params.readAtMs)
+          ? params.readAtMs
+          : Date.now(),
+      hash: params.contentHash?.trim() || undefined,
+      mtimeMs:
+        typeof params.mtimeMs === "number" && Number.isFinite(params.mtimeMs)
+          ? params.mtimeMs
+          : stat.mtimeMs,
+      size:
+        typeof params.size === "number" && Number.isFinite(params.size)
+          ? Math.max(0, params.size)
+          : stat.size,
+      partial: params.partial === true,
+      readOffset: typeof params.readOffset === "number" ? params.readOffset : undefined,
+      readLimit: typeof params.readLimit === "number" ? params.readLimit : undefined,
+      readKind: params.readKind ?? "text",
+    });
+  }
+
+  function snapshotReadStates(): FileReadStateSeed[] {
+    return [...readStateByCanonicalPath.values()].map((state) => ({
+      path: state.resolvedPath,
+      mtimeMs: state.mtimeMs,
+      contentHash: state.hash,
+      readAtMs: state.readAtMs,
+      size: state.size,
+      partial: state.partial,
+      readOffset: state.readOffset,
+      readLimit: state.readLimit,
+      readKind: state.readKind,
+    }));
   }
 
   async function recordRead(params: {
@@ -677,7 +810,8 @@ export function createFileEditStateTracker() {
       return { exists: false, resolvedPath: snapshot.resolvedPath };
     }
 
-    const previousState = readStateByCanonicalPath.get(snapshot.state.canonicalPath);
+    const previousStateRaw = readStateByCanonicalPath.get(snapshot.state.canonicalPath);
+    const previousState = previousStateRaw ? touchTrackedState(previousStateRaw) : undefined;
     if (!previousState) {
       throw new FileToolError({
         errorCode: "file_not_read",
@@ -703,7 +837,12 @@ export function createFileEditStateTracker() {
       });
     }
 
-    if (previousState.content !== snapshot.state.content) {
+    if (
+      hasTrackedFileStateChanged({
+        previousState,
+        currentState: snapshot.state,
+      })
+    ) {
       throw new FileToolError({
         errorCode: "file_changed_since_read",
         message:
@@ -822,6 +961,8 @@ export function createFileEditStateTracker() {
     readBufferForEdit,
     ensureExistingFileIsFresh,
     rememberResolvedPath,
+    seedReadState,
+    snapshotReadStates,
     forgetPath,
   };
 }
@@ -880,7 +1021,12 @@ function commitWriteSync(params: {
         },
       });
     }
-    if (params.previousState.content !== currentState.content) {
+    if (
+      hasTrackedFileStateChanged({
+        previousState: params.previousState,
+        currentState,
+      })
+    ) {
       throw new FileToolError({
         errorCode: "file_changed_since_read",
         message:
