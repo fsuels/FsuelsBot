@@ -173,6 +173,13 @@ function buildChatCommands(): ChatCommandDefinition[] {
       category: "status",
     }),
     defineChatCommand({
+      key: "doctor",
+      nativeName: "doctor",
+      description: "Run a local health check for this session.",
+      textAlias: "/doctor",
+      category: "status",
+    }),
+    defineChatCommand({
       key: "allowlist",
       description: "List/add/remove allowlist entries.",
       textAlias: "/allowlist",
@@ -695,6 +702,28 @@ function buildChatCommands(): ChatCommandDefinition[] {
         {
           name: "command",
           description: "Shell command",
+          type: "string",
+          captureRemaining: true,
+        },
+      ],
+    }),
+    defineChatCommand({
+      key: "diff",
+      nativeName: "diff",
+      description: "Show a git summary of workspace changes.",
+      textAlias: "/diff",
+      category: "tools",
+    }),
+    defineChatCommand({
+      key: "export",
+      nativeName: "export",
+      description: "Export the current session to a local markdown file.",
+      textAlias: "/export",
+      category: "tools",
+      args: [
+        {
+          name: "filename",
+          description: "Optional export filename",
           type: "string",
           captureRemaining: true,
         },

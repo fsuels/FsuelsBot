@@ -8,6 +8,11 @@ import {
   buildHelpMessage,
 } from "../status.js";
 import { buildContextReply } from "./commands-context-report.js";
+import {
+  handleDiffCommand,
+  handleDoctorCommand,
+  handleExportCommand,
+} from "./commands-introspection.js";
 import { buildStatusReply } from "./commands-status.js";
 
 function isTelegramCommand(params: Parameters<CommandHandler>[0]): boolean {
@@ -250,3 +255,5 @@ export const handleWhoamiCommand: CommandHandler = async (params, allowTextComma
   }
   return { shouldContinue: false, reply: { text: lines.join("\n") } };
 };
+
+export { handleDiffCommand, handleDoctorCommand, handleExportCommand };

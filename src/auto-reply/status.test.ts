@@ -433,12 +433,12 @@ describe("buildCommandsMessage", () => {
     expect(text).toContain("ℹ️ Slash commands");
     expect(text).toContain("Status");
     expect(text).toContain("/commands - Show everything I can do.");
-    expect(text).toContain("/skill <name> [input] - Run a skill by name.");
-    expect(text).toContain("/think <level> (/thinking, /t) - Set thinking level.");
     expect(text).toContain("/doctor - Run a local health check for this session.");
-    expect(text).toContain(
-      "/compact [instructions] [text] - Save and shorten the current conversation.",
-    );
+    expect(text).toContain("/diff - Show a git summary of workspace changes.");
+    expect(text).toContain("/export - Export the current session to a local markdown file.");
+    expect(text).toContain("/skill - Run a skill by name.");
+    expect(text).toContain("/think (/thinking, /t) - Set thinking level.");
+    expect(text).toContain("/compact [text] - Save and shorten the current conversation.");
     expect(text).not.toContain("/config");
     expect(text).not.toContain("/debug");
   });
@@ -466,13 +466,11 @@ describe("buildHelpMessage", () => {
       commands: { config: false, debug: false },
     } as OpenClawConfig);
     expect(text).toContain("Skills");
-    expect(text).toContain("/plan [status|open|off|on|proactive|conservative|<description>]");
+    expect(text).toContain("/plan [on|off|status|proactive|conservative]");
     expect(text).toContain("/skill <name> [input]");
     expect(text).toContain("/doctor");
     expect(text).toContain("/diff");
     expect(text).toContain("/export [filename]");
-    expect(text).toContain("/files-in-context");
-    expect(text).toContain("/hooks [detail|json]");
     expect(text).toContain(
       "Tip: Tell me what you are working on, tell me when you switch, and tell me what matters.",
     );
