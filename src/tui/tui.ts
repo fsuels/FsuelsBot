@@ -3,6 +3,7 @@ import {
   Container,
   Loader,
   ProcessTerminal,
+  setEditorKeybindings,
   Text,
   TUI,
 } from "@mariozechner/pi-tui";
@@ -29,8 +30,9 @@ import { editorTheme, theme } from "./theme/theme.js";
 import { createCommandHandlers } from "./tui-command-handlers.js";
 import { createEventHandlers } from "./tui-event-handlers.js";
 import { formatTokens } from "./tui-formatters.js";
+import { createEditorKeybindingsManager, TuiShortcutManager } from "./tui-keybindings.js";
 import { createLocalShellRunner } from "./tui-local-shell.js";
-import { createOverlayHandlers } from "./tui-overlays.js";
+import { createOverlayHandlers, handleOverlayEscape } from "./tui-overlays.js";
 import { createSessionActions } from "./tui-session-actions.js";
 import { buildWaitingStatusMessage, defaultWaitingPhrases } from "./tui-waiting.js";
 
@@ -79,6 +81,8 @@ export function createEditorSubmitHandler(params: {
 
 export async function runTui(opts: TuiOptions) {
   const config = loadConfig();
+  setEditorKeybindings(createEditorKeybindingsManager(config.ui?.tui?.editor ?? {}));
+  const shortcutManager = new TuiShortcutManager(config.ui?.tui?.shortcuts ?? {});
   const initialSessionInput = (opts.session ?? "").trim();
   let sessionScope: SessionScope = (config.session?.scope ?? "per-sender") as SessionScope;
   let sessionMainKey = normalizeMainKey(config.session?.mainKey);
@@ -261,6 +265,7 @@ export async function runTui(opts: TuiOptions) {
   const footer = new Text("", 1, 0);
   const chatLog = new ChatLog();
   const editor = new CustomEditor(tui, editorTheme);
+  editor.setShortcutManager(shortcutManager);
   const root = new Container();
   root.addChild(header);
   root.addChild(chatLog);
@@ -522,7 +527,7 @@ export async function runTui(opts: TuiOptions) {
     footer.setText(theme.dim(footerParts.join(" | ")));
   };
 
-  const { openOverlay, closeOverlay } = createOverlayHandlers(tui, editor);
+  const { openOverlay, closeOverlay, hasActiveOverlay } = createOverlayHandlers(tui, editor);
 
   const initialSessionAgentId = (() => {
     if (!initialSessionInput) {
@@ -605,10 +610,15 @@ export async function runTui(opts: TuiOptions) {
     handleBangLine: runLocalShellLine,
   });
 
-  editor.onEscape = () => {
-    void abortActive();
-  };
-  editor.onCtrlC = () => {
+  editor.setShortcutHandler("abortRun", () => {
+    handleOverlayEscape({
+      hasActiveOverlay,
+      closeOverlay,
+      abortActive,
+      requestRender: () => tui.requestRender(),
+    });
+  });
+  editor.setShortcutHandler("clearInputOrExit", () => {
     const now = Date.now();
     if (editor.getText().trim().length > 0) {
       editor.setText("");
@@ -624,31 +634,31 @@ export async function runTui(opts: TuiOptions) {
     lastCtrlCAt = now;
     setActivityStatus("press ctrl+c again to exit");
     tui.requestRender();
-  };
-  editor.onCtrlD = () => {
+  });
+  editor.setShortcutHandler("exit", () => {
     client.stop();
     tui.stop();
     process.exit(0);
-  };
-  editor.onCtrlO = () => {
+  });
+  editor.setShortcutHandler("toggleToolOutput", () => {
     toolsExpanded = !toolsExpanded;
     chatLog.setToolsExpanded(toolsExpanded);
     setActivityStatus(toolsExpanded ? "tools expanded" : "tools collapsed");
     tui.requestRender();
-  };
-  editor.onCtrlL = () => {
+  });
+  editor.setShortcutHandler("openModelPicker", () => {
     void openModelSelector();
-  };
-  editor.onCtrlG = () => {
+  });
+  editor.setShortcutHandler("openAgentPicker", () => {
     void openAgentSelector();
-  };
-  editor.onCtrlP = () => {
+  });
+  editor.setShortcutHandler("openSessionPicker", () => {
     void openSessionSelector();
-  };
-  editor.onCtrlT = () => {
+  });
+  editor.setShortcutHandler("toggleThinking", () => {
     showThinking = !showThinking;
     void loadHistory();
-  };
+  });
 
   client.onEvent = (evt) => {
     if (evt.event === "chat") {
