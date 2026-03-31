@@ -246,8 +246,7 @@ export function buildSubagentTaskSpec(
         taskText: task,
         isStructured: false,
         allowFileChanges:
-          allowFileChangesInput ??
-          (taskType === "research" || taskType === "verification" ? false : true),
+          allowFileChangesInput ?? !(taskType === "research" || taskType === "verification"),
         hiddenContextRefs,
         facts,
         doneCriteria: doneCriteriaBase,
@@ -291,8 +290,7 @@ export function buildSubagentTaskSpec(
   }
 
   const allowFileChanges =
-    allowFileChangesInput ??
-    (taskType === "research" || taskType === "verification" ? false : true);
+    allowFileChangesInput ?? !(taskType === "research" || taskType === "verification");
   if (taskType === "research" && allowFileChanges) {
     return {
       ok: false,

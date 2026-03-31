@@ -1,3 +1,4 @@
+import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { SessionManager } from "@mariozechner/pi-coding-agent";
 import { getGlobalHookRunner } from "../plugins/hook-runner-global.js";
 import { installSessionToolResultGuard } from "./session-tool-result-guard.js";
@@ -25,26 +26,26 @@ export function guardSessionManager(
   }
 
   const hookRunner = getGlobalHookRunner();
-  const transform = hookRunner?.hasHooks("tool_result_persist")
-    ? // oxlint-disable-next-line typescript/no-explicit-any
-      (message: any, meta: { toolCallId?: string; toolName?: string; isSynthetic?: boolean }) => {
-        const out = hookRunner.runToolResultPersist(
-          {
-            toolName: meta.toolName,
-            toolCallId: meta.toolCallId,
-            message,
-            isSynthetic: meta.isSynthetic,
-          },
-          {
-            agentId: opts?.agentId,
-            sessionKey: opts?.sessionKey,
-            toolName: meta.toolName,
-            toolCallId: meta.toolCallId,
-          },
-        );
-        return out?.message ?? message;
-      }
-    : undefined;
+  const transform = (
+    message: AgentMessage,
+    meta: { toolCallId?: string; toolName?: string; isSynthetic?: boolean },
+  ) => {
+    const out = hookRunner.runToolResultPersist(
+      {
+        toolName: meta.toolName,
+        toolCallId: meta.toolCallId,
+        message,
+        isSynthetic: meta.isSynthetic,
+      },
+      {
+        agentId: opts?.agentId,
+        sessionKey: opts?.sessionKey,
+        toolName: meta.toolName,
+        toolCallId: meta.toolCallId,
+      },
+    );
+    return out?.message ?? message;
+  };
 
   const guard = installSessionToolResultGuard(sessionManager, {
     transformToolResultForPersistence: transform,

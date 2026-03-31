@@ -20,6 +20,7 @@ import { imageMimeFromFormat } from "../../media/mime.js";
 import { resolveSessionAgentId } from "../agent-scope.js";
 import { optionalStringEnum, stringEnum } from "../schema/typebox.js";
 import { sanitizeToolResultImages } from "../tool-images.js";
+import { validateFlatActionInput, type ActionValidationRule } from "./action-validation.js";
 import { type AnyAgentTool, jsonResult, readStringParam } from "./common.js";
 import { callGatewayTool, type GatewayCallOptions } from "./gateway.js";
 import { listNodes, resolveNodeIdFromList, resolveNodeId } from "./nodes-utils.js";
@@ -90,6 +91,56 @@ const NodesToolSchema = Type.Object({
   invokeParamsJson: Type.Optional(Type.String()),
 });
 
+const NODE_REQUIRED = { key: "node", label: "node" } as const;
+
+const NODES_ACTION_RULES: Record<string, ActionValidationRule> = {
+  status: {},
+  describe: {
+    required: [NODE_REQUIRED],
+  },
+  pending: {},
+  approve: {
+    required: ["requestId"],
+  },
+  reject: {
+    required: ["requestId"],
+  },
+  notify: {
+    required: [NODE_REQUIRED],
+    oneOf: [
+      {
+        keys: ["title", "body"],
+        label: "title or body",
+      },
+    ],
+  },
+  camera_snap: {
+    required: [NODE_REQUIRED],
+  },
+  camera_list: {
+    required: [NODE_REQUIRED],
+  },
+  camera_clip: {
+    required: [NODE_REQUIRED],
+  },
+  screen_record: {
+    required: [NODE_REQUIRED],
+  },
+  location_get: {
+    required: [NODE_REQUIRED],
+  },
+  run: {
+    required: [NODE_REQUIRED, { key: "command", label: "command", presence: "defined" }],
+    custom: (input) =>
+      Array.isArray(input.command) && input.command.length > 0
+        ? undefined
+        : "command required for action=run",
+  },
+  invoke: {
+    required: [NODE_REQUIRED, "invokeCommand"],
+  },
+};
+
 export function createNodesTool(options?: {
   agentSessionKey?: string;
   config?: OpenClawConfig;
@@ -105,6 +156,13 @@ export function createNodesTool(options?: {
     description:
       "Discover and control paired nodes (status/describe/pairing/notify/camera/screen/location/run/invoke).",
     parameters: NodesToolSchema,
+    validateInput: async (input, _context) =>
+      validateFlatActionInput({
+        toolName: "nodes",
+        action: typeof input.action === "string" ? input.action : "",
+        input: input as Record<string, unknown>,
+        rules: NODES_ACTION_RULES,
+      }),
     execute: async (_toolCallId, args) => {
       const params = args as Record<string, unknown>;
       const action = readStringParam(params, "action", { required: true });

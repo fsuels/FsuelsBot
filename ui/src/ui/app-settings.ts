@@ -55,6 +55,7 @@ type SettingsHost = {
   themeMedia: MediaQueryList | null;
   themeMediaHandler: ((event: MediaQueryListEvent) => void) | null;
   pendingGatewayUrl?: string | null;
+  syncOverlays?: () => void;
 };
 
 export function applySettings(host: SettingsHost, next: UiSettings) {
@@ -132,6 +133,7 @@ export function applySettingsFromUrl(host: SettingsHost) {
     const gatewayUrl = gatewayUrlRaw.trim();
     if (gatewayUrl && gatewayUrl !== host.settings.gatewayUrl) {
       host.pendingGatewayUrl = gatewayUrl;
+      host.syncOverlays?.();
     }
     params.delete("gatewayUrl");
     hashParams.delete("gatewayUrl");

@@ -40,7 +40,7 @@ function quantile(sortedValues: number[], percentile: number): number {
     return 0;
   }
   if (sortedValues.length === 1) {
-    return sortedValues[0];
+    return sortedValues[0] ?? 0;
   }
   const position = (sortedValues.length - 1) * percentile;
   const lowerIndex = Math.floor(position);

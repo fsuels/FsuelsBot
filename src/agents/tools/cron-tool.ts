@@ -58,7 +58,11 @@ const CronToolSchema = Type.Object({
   enabled: Type.Optional(Type.Boolean()),
   description: Type.Optional(Type.String()),
   deleteAfterRun: Type.Optional(Type.Boolean()),
-  agentId: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+  agentId: Type.Optional(
+    Type.Unsafe<string | null>({
+      type: ["string", "null"],
+    }),
+  ),
   message: Type.Optional(Type.String()),
   model: Type.Optional(Type.String()),
   thinking: Type.Optional(Type.String()),
@@ -441,7 +445,7 @@ function normalizeCronToolInput(input: unknown, opts?: CronToolOptions): Record<
             : "next-heartbeat",
       };
     default:
-      throw new Error(`Unsupported cron action: ${action}`);
+      throw new Error("Unsupported cron action.");
   }
 }
 
@@ -497,8 +501,13 @@ function formatCronToolResultText(payload: CronToolPayload) {
         return "Listed cron jobs. No matching jobs found.";
       }
       const first = jobs[0];
-      const name = typeof first?.name === "string" ? first.name : first?.id;
-      return `Listed ${jobs.length} cron job${jobs.length === 1 ? "" : "s"}. Next: ${name ?? "unknown"} (${formatScheduleSummary(first?.schedule)}).`;
+      const nextName =
+        typeof first?.name === "string"
+          ? first.name
+          : typeof first?.id === "string"
+            ? first.id
+            : "unknown";
+      return `Listed ${jobs.length} cron job${jobs.length === 1 ? "" : "s"}. Next: ${nextName} (${formatScheduleSummary(first?.schedule)}).`;
     }
     case "add": {
       const job = result;
@@ -738,7 +747,7 @@ export function createCronTool(opts?: CronToolOptions): AnyAgentTool {
           ),
         };
       default:
-        throw new Error(`Unknown action: ${action}`);
+        throw new Error("Unknown action.");
     }
   };
 

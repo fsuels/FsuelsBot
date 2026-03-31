@@ -9,21 +9,19 @@ const mockGetGlobalHookRunner = vi.mocked(getGlobalHookRunner);
 
 describe("before_tool_call hook integration", () => {
   let hookRunner: {
-    hasHooks: ReturnType<typeof vi.fn>;
     runBeforeToolCall: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
     hookRunner = {
-      hasHooks: vi.fn(),
       runBeforeToolCall: vi.fn(),
     };
     // oxlint-disable-next-line typescript/no-explicit-any
     mockGetGlobalHookRunner.mockReturnValue(hookRunner as any);
   });
 
-  it("executes tool normally when no hook is registered", async () => {
-    hookRunner.hasHooks.mockReturnValue(false);
+  it("executes tool normally when the hook runner returns no change", async () => {
+    hookRunner.runBeforeToolCall.mockResolvedValue(undefined);
     const execute = vi.fn().mockResolvedValue({ content: [], details: { ok: true } });
     // oxlint-disable-next-line typescript/no-explicit-any
     const tool = wrapToolWithBeforeToolCallHook({ name: "Read", execute } as any, {
@@ -33,12 +31,21 @@ describe("before_tool_call hook integration", () => {
 
     await tool.execute("call-1", { path: "/tmp/file" }, undefined, undefined);
 
-    expect(hookRunner.runBeforeToolCall).not.toHaveBeenCalled();
+    expect(hookRunner.runBeforeToolCall).toHaveBeenCalledWith(
+      {
+        toolName: "read",
+        params: { path: "/tmp/file" },
+      },
+      {
+        toolName: "read",
+        agentId: "main",
+        sessionKey: "main",
+      },
+    );
     expect(execute).toHaveBeenCalledWith("call-1", { path: "/tmp/file" }, undefined, undefined);
   });
 
   it("allows hook to modify parameters", async () => {
-    hookRunner.hasHooks.mockReturnValue(true);
     hookRunner.runBeforeToolCall.mockResolvedValue({ params: { mode: "safe" } });
     const execute = vi.fn().mockResolvedValue({ content: [], details: { ok: true } });
     // oxlint-disable-next-line typescript/no-explicit-any
@@ -55,7 +62,6 @@ describe("before_tool_call hook integration", () => {
   });
 
   it("blocks tool execution when hook returns block=true", async () => {
-    hookRunner.hasHooks.mockReturnValue(true);
     hookRunner.runBeforeToolCall.mockResolvedValue({
       block: true,
       blockReason: "blocked",
@@ -71,7 +77,6 @@ describe("before_tool_call hook integration", () => {
   });
 
   it("continues execution when hook throws", async () => {
-    hookRunner.hasHooks.mockReturnValue(true);
     hookRunner.runBeforeToolCall.mockRejectedValue(new Error("boom"));
     const execute = vi.fn().mockResolvedValue({ content: [], details: { ok: true } });
     // oxlint-disable-next-line typescript/no-explicit-any
@@ -83,7 +88,6 @@ describe("before_tool_call hook integration", () => {
   });
 
   it("normalizes non-object params for hook contract", async () => {
-    hookRunner.hasHooks.mockReturnValue(true);
     hookRunner.runBeforeToolCall.mockResolvedValue(undefined);
     const execute = vi.fn().mockResolvedValue({ content: [], details: { ok: true } });
     // oxlint-disable-next-line typescript/no-explicit-any
@@ -110,13 +114,11 @@ describe("before_tool_call hook integration", () => {
 
 describe("before_tool_call hook integration for client tools", () => {
   let hookRunner: {
-    hasHooks: ReturnType<typeof vi.fn>;
     runBeforeToolCall: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
     hookRunner = {
-      hasHooks: vi.fn(),
       runBeforeToolCall: vi.fn(),
     };
     // oxlint-disable-next-line typescript/no-explicit-any
@@ -124,7 +126,6 @@ describe("before_tool_call hook integration for client tools", () => {
   });
 
   it("passes modified params to client tool callbacks", async () => {
-    hookRunner.hasHooks.mockReturnValue(true);
     hookRunner.runBeforeToolCall.mockResolvedValue({ params: { extra: true } });
     const onClientToolCall = vi.fn();
     const [tool] = toClientToolDefinitions(

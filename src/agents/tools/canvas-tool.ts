@@ -5,6 +5,7 @@ import { writeBase64ToFile } from "../../cli/nodes-camera.js";
 import { canvasSnapshotTempPath, parseCanvasSnapshotPayload } from "../../cli/nodes-canvas.js";
 import { imageMimeFromFormat } from "../../media/mime.js";
 import { optionalStringEnum, stringEnum } from "../schema/typebox.js";
+import { validateFlatActionInput, type ActionValidationRule } from "./action-validation.js";
 import { type AnyAgentTool, imageResult, jsonResult, readStringParam } from "./common.js";
 import { callGatewayTool, type GatewayCallOptions } from "./gateway.js";
 import { resolveNodeId } from "./nodes-utils.js";
@@ -48,6 +49,27 @@ const CanvasToolSchema = Type.Object({
   jsonlPath: Type.Optional(Type.String()),
 });
 
+const CANVAS_ACTION_RULES: Record<string, ActionValidationRule> = {
+  present: {},
+  hide: {},
+  navigate: {
+    required: ["url"],
+  },
+  eval: {
+    required: [{ key: "javaScript", label: "javaScript" }],
+  },
+  snapshot: {},
+  a2ui_push: {
+    oneOf: [
+      {
+        keys: ["jsonl", "jsonlPath"],
+        label: "jsonl or jsonlPath",
+      },
+    ],
+  },
+  a2ui_reset: {},
+};
+
 export function createCanvasTool(): AnyAgentTool {
   return {
     label: "Canvas",
@@ -55,6 +77,13 @@ export function createCanvasTool(): AnyAgentTool {
     description:
       "Control node canvases (present/hide/navigate/eval/snapshot/A2UI). Use snapshot to capture the rendered UI.",
     parameters: CanvasToolSchema,
+    validateInput: async (input, _context) =>
+      validateFlatActionInput({
+        toolName: "canvas",
+        action: typeof input.action === "string" ? input.action : "",
+        input: input as Record<string, unknown>,
+        rules: CANVAS_ACTION_RULES,
+      }),
     execute: async (_toolCallId, args) => {
       const params = args as Record<string, unknown>;
       const action = readStringParam(params, "action", { required: true });

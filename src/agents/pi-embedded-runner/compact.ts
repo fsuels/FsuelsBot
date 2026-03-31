@@ -464,19 +464,17 @@ export async function compactEmbeddedPiSessionDirect(
 
         // RSC v2.1: Fire before_compaction hook
         const hookRunner = getGlobalHookRunner();
-        if (hookRunner?.hasHooks("before_compaction")) {
-          try {
-            await hookRunner.runBeforeCompaction(
-              { messageCount: limited.length },
-              {
-                agentId: sessionAgentId,
-                sessionKey: params.sessionKey ?? params.sessionId,
-                workspaceDir: effectiveWorkspace,
-              },
-            );
-          } catch {
-            /* ignore hook failures */
-          }
+        try {
+          await hookRunner.runBeforeCompaction(
+            { messageCount: limited.length },
+            {
+              agentId: sessionAgentId,
+              sessionKey: params.sessionKey ?? params.sessionId,
+              workspaceDir: effectiveWorkspace,
+            },
+          );
+        } catch {
+          /* ignore hook failures */
         }
 
         // RSC v2.1 + v3.0: Append pinned + recent coherence entries to compaction instructions.
@@ -531,22 +529,20 @@ export async function compactEmbeddedPiSessionDirect(
         const result = await session.compact(compactInstructions);
 
         // RSC v2.1: Fire after_compaction hook
-        if (hookRunner?.hasHooks("after_compaction")) {
-          try {
-            await hookRunner.runAfterCompaction(
-              {
-                messageCount: session.messages.length,
-                compactedCount: limited.length - session.messages.length,
-              },
-              {
-                agentId: sessionAgentId,
-                sessionKey: params.sessionKey ?? params.sessionId,
-                workspaceDir: effectiveWorkspace,
-              },
-            );
-          } catch {
-            /* ignore hook failures */
-          }
+        try {
+          await hookRunner.runAfterCompaction(
+            {
+              messageCount: session.messages.length,
+              compactedCount: limited.length - session.messages.length,
+            },
+            {
+              agentId: sessionAgentId,
+              sessionKey: params.sessionKey ?? params.sessionId,
+              workspaceDir: effectiveWorkspace,
+            },
+          );
+        } catch {
+          /* ignore hook failures */
         }
 
         // Estimate tokens after compaction by summing token estimates for remaining messages

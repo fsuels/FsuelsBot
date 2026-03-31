@@ -26,7 +26,6 @@ const KNOWN_INTERNAL_HOOK_EVENT_KEYS = [
 export function listKnownInternalHookEventKeys(): InternalHookEventKey[] {
   return [...KNOWN_INTERNAL_HOOK_EVENT_KEYS];
 }
-
 export function normalizeInternalHookEventKey(value: string): string {
   return value.trim().toLowerCase();
 }

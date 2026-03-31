@@ -53,6 +53,8 @@ const POLLING_WHITELIST = new Set([
   "interact_with_process",
   "list_sessions",
   "list_processes",
+  "get_task_output",
+  "task_output",
 ]);
 
 // ---------------------------------------------------------------------------
@@ -65,7 +67,10 @@ const POLLING_WHITELIST = new Set([
  */
 export function hashToolArgs(args: unknown): string {
   try {
-    const canonical = JSON.stringify(args, Object.keys(args as object).sort());
+    const canonical =
+      args && typeof args === "object"
+        ? JSON.stringify(args, Object.keys(args).toSorted())
+        : JSON.stringify(args);
     return createHash("sha256").update(canonical).digest("hex").slice(0, 16);
   } catch {
     return createHash("sha256").update(String(args)).digest("hex").slice(0, 16);
@@ -138,7 +143,9 @@ export function detectToolCallLoop(
  * Returns null if no loop is detected.
  */
 export function buildLoopDetectionHint(result: LoopDetectionResult): string | null {
-  if (!result.loopDetected || !result.toolName) return null;
+  if (!result.loopDetected || !result.toolName) {
+    return null;
+  }
 
   return (
     `## Action Loop Detected\n` +

@@ -316,6 +316,7 @@ export const handleSubagentsCommand: CommandHandler = async (params, allowTextCo
       run.cleanupError ? `Cleanup error: ${run.cleanupError}` : undefined,
       run.profile ? `Profile: ${run.profile}` : undefined,
       run.requiredTools?.length ? `Required tools: ${run.requiredTools.join(", ")}` : undefined,
+      run.resolvedTools?.length ? `Resolved tools: ${run.resolvedTools.join(", ")}` : undefined,
       run.archiveAtMs ? `Archive: ${formatTimestampWithAge(run.archiveAtMs)}` : undefined,
       run.cleanupHandled ? "Cleanup handled: yes" : undefined,
       `Outcome: ${outcome}`,

@@ -243,8 +243,8 @@ export type OpenClawPluginDefinition = {
   version?: string;
   kind?: PluginKind;
   configSchema?: OpenClawPluginConfigSchema;
-  register?: (api: OpenClawPluginApi) => void | Promise<void>;
   isAvailable?: (ctx: OpenClawPluginAvailabilityContext) => OpenClawPluginAvailabilityResult;
+  register?: (api: OpenClawPluginApi) => void | Promise<void>;
   activate?: (api: OpenClawPluginApi) => void | Promise<void>;
 };
 
@@ -299,6 +299,9 @@ export type PluginDiagnostic = {
   level: "warn" | "error";
   message: string;
   pluginId?: string;
+  source?: string;
+};
+
 export type OpenClawPluginAvailabilityResult =
   | boolean
   | {
@@ -314,9 +317,6 @@ export type OpenClawPluginAvailabilityContext = {
   workspaceDir?: string;
   source: string;
   origin: PluginOrigin;
-};
-
-  source?: string;
 };
 
 // ============================================================================
@@ -350,7 +350,7 @@ export type PluginHookAgentContext = {
 // before_agent_start hook
 export type PluginHookBeforeAgentStartEvent = {
   prompt: string;
-  messages?: unknown[];
+  messages?: readonly AgentMessage[];
 };
 
 export type PluginHookBeforeAgentStartResult = {
@@ -360,7 +360,7 @@ export type PluginHookBeforeAgentStartResult = {
 
 // agent_end hook
 export type PluginHookAgentEndEvent = {
-  messages: unknown[];
+  messages: readonly AgentMessage[];
   success: boolean;
   error?: string;
   durationMs?: number;

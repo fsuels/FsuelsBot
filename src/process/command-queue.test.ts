@@ -16,7 +16,14 @@ vi.mock("../logging/diagnostic.js", () => ({
   diagnosticLogger: diagnosticMocks.diag,
 }));
 
-import { enqueueCommand, getQueueSize } from "./command-queue.js";
+import {
+  CommandQueueInterruptedError,
+  clearCommandLane,
+  enqueueCommand,
+  enqueueCommandInLane,
+  getQueueSize,
+  requestCommandLaneInterrupt,
+} from "./command-queue.js";
 
 describe("command queue", () => {
   beforeEach(() => {
@@ -84,5 +91,92 @@ describe("command queue", () => {
     expect(waited).not.toBeNull();
     expect(waited as number).toBeGreaterThanOrEqual(5);
     expect(queuedAhead).toBe(0);
+  });
+
+  it("runs higher-priority queued work before lower-priority work", async () => {
+    const calls: number[] = [];
+
+    const first = enqueueCommand(async () => {
+      calls.push(1);
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+    const later = enqueueCommand(
+      async () => {
+        calls.push(2);
+      },
+      { priority: "later" },
+    );
+    const next = enqueueCommand(
+      async () => {
+        calls.push(3);
+      },
+      { priority: "next" },
+    );
+    const now = enqueueCommand(
+      async () => {
+        calls.push(4);
+      },
+      { priority: "now" },
+    );
+
+    await Promise.all([first, later, next, now]);
+
+    expect(calls).toEqual([1, 4, 3, 2]);
+  });
+
+  it("rejects queued work when a lane is cleared", async () => {
+    const first = enqueueCommandInLane("clear-test", async () => {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    });
+    const second = enqueueCommandInLane("clear-test", async () => "never");
+    const secondResult = second.then(
+      () => "resolved" as const,
+      (err) => err,
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    const cleared = clearCommandLane("clear-test", {
+      source: "test",
+      reason: "clear queued work",
+    });
+    await first;
+    expect(await secondResult).toBeInstanceOf(CommandQueueInterruptedError);
+    expect(cleared).toBe(1);
+  });
+
+  it("interrupts active lane work and clears pending entries", async () => {
+    let interrupted = false;
+    let release: (() => void) | null = null;
+
+    const first = enqueueCommandInLane(
+      "interrupt-test",
+      async () => {
+        await new Promise<void>((resolve) => {
+          release = resolve;
+        });
+      },
+      {
+        onInterrupt: () => {
+          interrupted = true;
+          release?.();
+        },
+      },
+    );
+    const second = enqueueCommandInLane("interrupt-test", async () => "never");
+    const secondResult = second.then(
+      () => "resolved" as const,
+      (err) => err,
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    const result = requestCommandLaneInterrupt("interrupt-test", {
+      source: "test",
+      reason: "interrupt active work",
+    });
+
+    await first;
+    expect(await secondResult).toBeInstanceOf(CommandQueueInterruptedError);
+    expect(interrupted).toBe(true);
+    expect(result).toEqual({ clearedQueued: 1, interruptedActive: 1 });
   });
 });

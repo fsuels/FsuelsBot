@@ -65,6 +65,10 @@ function buildCacheKey(params: {
   return `${workspaceKey}::${JSON.stringify(params.plugins)}`;
 }
 
+export function clearPluginManifestRegistryCache(): void {
+  registryCache.clear();
+}
+
 function safeStatMtimeMs(filePath: string): number | null {
   try {
     return fs.statSync(filePath).mtimeMs;

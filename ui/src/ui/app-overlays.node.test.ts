@@ -1,26 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
-import { createOverlayCoordinator, handleAppEscapeKey, syncAppOverlays } from "./app-overlays.ts";
+import { getTopModalOverlayId, handleEscapeKeyForOverlayState } from "./app-overlays.ts";
 
-function createHost(overrides: Partial<Parameters<typeof syncAppOverlays>[0]> = {}) {
-  return {
-    sidebarOpen: false,
-    execApprovalQueue: [],
-    pendingGatewayUrl: null,
-    overlayCoordinator: createOverlayCoordinator(),
-    telemetry: {
-      noteOverlayCount: vi.fn(),
-    },
-    handleCloseSidebar: vi.fn(),
-    handleExecApprovalDecision: vi.fn(async () => undefined),
-    handleGatewayUrlCancel: vi.fn(),
-    connected: true,
-    chatRunId: "run-1",
-    handleAbortChat: vi.fn(async () => undefined),
-    ...overrides,
-  };
-}
-
-function createEscapeEvent() {
+function createEscapeEvent(overrides: Partial<KeyboardEvent> = {}) {
   return {
     key: "Escape",
     defaultPrevented: false,
@@ -28,52 +9,144 @@ function createEscapeEvent() {
     metaKey: false,
     altKey: false,
     preventDefault: vi.fn(),
-  } as KeyboardEvent;
+    ...overrides,
+  } as Pick<
+    KeyboardEvent,
+    "key" | "defaultPrevented" | "ctrlKey" | "metaKey" | "altKey" | "preventDefault"
+  >;
 }
 
-describe("app overlays", () => {
-  it("syncs modal and non-modal overlays into the coordinator", () => {
-    const host = createHost({
-      sidebarOpen: true,
-      execApprovalQueue: [{ id: "approval-1" }],
-      pendingGatewayUrl: "wss://example.com/gateway",
-    });
+function createState(
+  overrides: Partial<Parameters<typeof handleEscapeKeyForOverlayState>[0]["state"]> = {},
+) {
+  return {
+    pendingGatewayUrl: null,
+    execApprovalQueue: [],
+    connected: false,
+    chatRunId: null,
+    ...overrides,
+  };
+}
 
-    syncAppOverlays(host);
-
-    expect(host.overlayCoordinator.getSnapshot()).toEqual({
-      activeIds: ["chat-sidebar", "exec-approval", "gateway-url-confirmation"],
-      modalIds: ["exec-approval", "gateway-url-confirmation"],
-      topOverlayId: "gateway-url-confirmation",
-    });
-    expect(host.telemetry.noteOverlayCount).toHaveBeenCalledWith(3);
+describe("app overlay precedence", () => {
+  it("prioritizes the gateway-url modal over exec approvals", () => {
+    expect(
+      getTopModalOverlayId({
+        pendingGatewayUrl: "wss://example.com/gateway",
+        execApprovalQueue: [
+          {
+            id: "approval-1",
+            request: { command: "rm -rf /tmp/demo" },
+            createdAtMs: 1_000,
+            expiresAtMs: 2_000,
+          },
+        ],
+      }),
+    ).toBe("gateway-url-confirmation");
   });
 
-  it("lets Escape dismiss the newest modal before a newer non-modal overlay", () => {
-    const host = createHost({
-      sidebarOpen: true,
-      execApprovalQueue: [{ id: "approval-1" }],
-    });
-    syncAppOverlays(host);
-
-    const event = createEscapeEvent();
-    const handled = handleAppEscapeKey(host, event);
-
-    expect(handled).toBe(true);
-    expect(event.preventDefault).toHaveBeenCalledTimes(1);
-    expect(host.handleExecApprovalDecision).toHaveBeenCalledWith("deny");
-    expect(host.handleCloseSidebar).not.toHaveBeenCalled();
-    expect(host.handleAbortChat).not.toHaveBeenCalled();
+  it("returns the exec-approval modal when no gateway-url modal is pending", () => {
+    expect(
+      getTopModalOverlayId({
+        pendingGatewayUrl: null,
+        execApprovalQueue: [
+          {
+            id: "approval-1",
+            request: { command: "rm -rf /tmp/demo" },
+            createdAtMs: 1_000,
+            expiresAtMs: 2_000,
+          },
+        ],
+      }),
+    ).toBe("exec-approval");
   });
 
-  it("aborts the chat only when no overlays remain", () => {
-    const host = createHost();
-
+  it("dismisses the gateway-url modal before any other escape action", () => {
     const event = createEscapeEvent();
-    const handled = handleAppEscapeKey(host, event);
+    const onCancelGatewayUrl = vi.fn();
+    const onDenyExecApproval = vi.fn();
+    const onAbortChat = vi.fn();
 
-    expect(handled).toBe(true);
-    expect(event.preventDefault).toHaveBeenCalledTimes(1);
-    expect(host.handleAbortChat).toHaveBeenCalledTimes(1);
+    const result = handleEscapeKeyForOverlayState({
+      event,
+      state: createState({
+        pendingGatewayUrl: "wss://example.com/gateway",
+        execApprovalQueue: [
+          {
+            id: "approval-1",
+            request: { command: "rm -rf /tmp/demo" },
+            createdAtMs: 1_000,
+            expiresAtMs: 2_000,
+          },
+        ],
+        connected: true,
+        chatRunId: "run-1",
+      }),
+      onCancelGatewayUrl,
+      onDenyExecApproval,
+      onAbortChat,
+    });
+
+    expect(result).toBe("gateway-url-confirmation");
+    expect(event.preventDefault).toHaveBeenCalledOnce();
+    expect(onCancelGatewayUrl).toHaveBeenCalledOnce();
+    expect(onDenyExecApproval).not.toHaveBeenCalled();
+    expect(onAbortChat).not.toHaveBeenCalled();
+  });
+
+  it("denies the active exec approval before aborting chat", () => {
+    const event = createEscapeEvent();
+    const onCancelGatewayUrl = vi.fn();
+    const onDenyExecApproval = vi.fn();
+    const onAbortChat = vi.fn();
+
+    const result = handleEscapeKeyForOverlayState({
+      event,
+      state: createState({
+        execApprovalQueue: [
+          {
+            id: "approval-1",
+            request: { command: "rm -rf /tmp/demo" },
+            createdAtMs: 1_000,
+            expiresAtMs: 2_000,
+          },
+        ],
+        connected: true,
+        chatRunId: "run-1",
+      }),
+      onCancelGatewayUrl,
+      onDenyExecApproval,
+      onAbortChat,
+    });
+
+    expect(result).toBe("exec-approval");
+    expect(event.preventDefault).toHaveBeenCalledOnce();
+    expect(onCancelGatewayUrl).not.toHaveBeenCalled();
+    expect(onDenyExecApproval).toHaveBeenCalledOnce();
+    expect(onAbortChat).not.toHaveBeenCalled();
+  });
+
+  it("aborts chat when no overlay is active", () => {
+    const event = createEscapeEvent();
+    const onCancelGatewayUrl = vi.fn();
+    const onDenyExecApproval = vi.fn();
+    const onAbortChat = vi.fn();
+
+    const result = handleEscapeKeyForOverlayState({
+      event,
+      state: createState({
+        connected: true,
+        chatRunId: "run-1",
+      }),
+      onCancelGatewayUrl,
+      onDenyExecApproval,
+      onAbortChat,
+    });
+
+    expect(result).toBe("chat-abort");
+    expect(event.preventDefault).toHaveBeenCalledOnce();
+    expect(onCancelGatewayUrl).not.toHaveBeenCalled();
+    expect(onDenyExecApproval).not.toHaveBeenCalled();
+    expect(onAbortChat).toHaveBeenCalledOnce();
   });
 });

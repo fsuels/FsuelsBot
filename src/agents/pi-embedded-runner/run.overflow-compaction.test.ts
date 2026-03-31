@@ -61,9 +61,13 @@ vi.mock("../../utils.js", () => ({
   resolveUserPath: vi.fn((p: string) => p),
 }));
 
-vi.mock("../../utils/message-channel.js", () => ({
-  isMarkdownCapableMessageChannel: vi.fn(() => true),
-}));
+vi.mock("../../utils/message-channel.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../utils/message-channel.js")>();
+  return {
+    ...actual,
+    isMarkdownCapableMessageChannel: vi.fn(() => true),
+  };
+});
 
 vi.mock("../agent-paths.js", () => ({
   resolveOpenClawAgentDir: vi.fn(() => "/tmp/agent-dir"),

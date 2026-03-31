@@ -1,4 +1,5 @@
 import { html, nothing } from "lit";
+import type { TelemetrySnapshot } from "../../../../src/shared/telemetry-store.ts";
 import type { EventLogEntry } from "../app-events.ts";
 import { formatEventPayload } from "../presenter.ts";
 
@@ -9,6 +10,8 @@ export type DebugProps = {
   models: unknown[];
   heartbeat: unknown;
   eventLog: EventLogEntry[];
+  telemetry: TelemetrySnapshot;
+  lastTelemetry: TelemetrySnapshot | null;
   callMethod: string;
   callParams: string;
   callResult: string | null;
@@ -103,6 +106,29 @@ export function renderDebug(props: DebugProps) {
         ${
           props.callResult
             ? html`<pre class="code-block" style="margin-top: 12px;">${props.callResult}</pre>`
+            : nothing
+        }
+      </div>
+    </section>
+
+    <section class="card" style="margin-top: 18px;">
+      <div class="card-title">UI Telemetry</div>
+      <div class="card-sub">
+        Bounded client-side timings for prompt, tool, render, and overlay behavior.
+      </div>
+      <div class="stack" style="margin-top: 12px;">
+        <div>
+          <div class="muted">Current session</div>
+          <pre class="code-block">${JSON.stringify(props.telemetry, null, 2)}</pre>
+        </div>
+        ${
+          props.lastTelemetry
+            ? html`
+              <div>
+                <div class="muted">Last session snapshot</div>
+                <pre class="code-block">${JSON.stringify(props.lastTelemetry, null, 2)}</pre>
+              </div>
+            `
             : nothing
         }
       </div>

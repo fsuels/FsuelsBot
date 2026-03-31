@@ -316,6 +316,25 @@ describe("createOpenClawCodingTools", () => {
     expect(names.has("telegram")).toBe(false);
     expect(names.has("whatsapp")).toBe(false);
   });
+  it("enforces read-only tool filtering in plan mode", () => {
+    const tools = createOpenClawCodingTools({
+      collaborationMode: "plan",
+    });
+    const names = new Set(tools.map((tool) => tool.name));
+
+    expect(names.has("read")).toBe(true);
+    expect(names.has("grep")).toBe(true);
+    expect(names.has("find")).toBe(true);
+    expect(names.has("write")).toBe(false);
+    expect(names.has("edit")).toBe(false);
+    expect(names.has("apply_patch")).toBe(false);
+    expect(names.has("exec")).toBe(false);
+    expect(names.has("process")).toBe(false);
+    expect(names.has("sessions_spawn")).toBe(false);
+    expect(names.has("message")).toBe(false);
+    expect(names.has("gateway")).toBe(false);
+    expect(names.has("task_tracker")).toBe(false);
+  });
   it("filters session tools for sub-agent sessions by default", () => {
     const tools = createOpenClawCodingTools({
       sessionKey: "agent:main:subagent:test",

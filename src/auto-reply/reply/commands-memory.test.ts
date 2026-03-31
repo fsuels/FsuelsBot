@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { MoltbotConfig } from "../../config/config.js";
 import type { SessionEntry } from "../../config/sessions/types.js";
 import type { MsgContext } from "../templating.js";
+import { requestTaskPlanApproval, saveTaskPlan } from "../../infra/task-plan.js";
 import * as taskMemorySystem from "../../memory/task-memory-system.js";
 import { buildCommandContext, handleCommands } from "./commands.js";
 import { parseInlineDirectives } from "./directive-handling.js";
@@ -400,6 +401,163 @@ describe("memory commands", () => {
     expect(result.reply?.text).toContain("is not ready to mark completed");
     expect(sessionStore[sessionKey]?.activeTaskId).toBe("task-a");
     expect(sessionStore[sessionKey]?.taskStateById?.["task-a"]?.status).toBe("active");
+  });
+
+  it("shows and approves a persisted task plan from /task commands", async () => {
+    const cfg = {
+      commands: { text: true },
+      channels: { whatsapp: { allowFrom: ["*"] } },
+    } as MoltbotConfig;
+    const sessionKey = "agent:main:plan-approve";
+    const now = Date.now();
+    const sessionEntry: SessionEntry = {
+      sessionId: "plan-approve",
+      updatedAt: now,
+      activeTaskId: "task-plan-a",
+      taskStateById: {
+        default: { updatedAt: now, status: "paused" },
+        "task-plan-a": { updatedAt: now, status: "active" },
+      },
+    };
+    const sessionStore: Record<string, SessionEntry> = { [sessionKey]: sessionEntry };
+    const tasksPath = path.join(workspaceDir, "memory", "tasks.json");
+    await fs.writeFile(
+      tasksPath,
+      JSON.stringify(
+        {
+          version: 1,
+          updated_at: "2026-03-31T00:00:00.000Z",
+          lanes: { bot_current: ["task-plan-a"] },
+          tasks: {
+            "task-plan-a": {
+              title: "Task Plan A",
+              status: "pending",
+              file: "memory/tasks/task-plan-a.md",
+            },
+          },
+        },
+        null,
+        2,
+      ),
+      "utf-8",
+    );
+
+    await saveTaskPlan({
+      workspaceDir,
+      taskId: "task-plan-a",
+      plan: "# Plan\n- patch runtime\n- run tests",
+    });
+    await requestTaskPlanApproval({
+      workspaceDir,
+      taskId: "task-plan-a",
+    });
+
+    const showResult = await handleCommands(
+      buildParams({
+        body: "/task plan",
+        cfg,
+        sessionKey,
+        sessionEntry,
+        sessionStore,
+      }),
+    );
+    expect(showResult.shouldContinue).toBe(false);
+    expect(showResult.reply?.text).toContain("Task plan task-plan-a (awaiting_approval)");
+    expect(showResult.reply?.text).toContain("Next: Wait for human approval");
+
+    const approveResult = await handleCommands(
+      buildParams({
+        body: '/task approve-plan --note "Looks good."',
+        cfg,
+        sessionKey,
+        sessionEntry,
+        sessionStore,
+      }),
+    );
+    expect(approveResult.shouldContinue).toBe(false);
+    expect(approveResult.reply?.text).toContain("Task plan task-plan-a (approved)");
+    expect(approveResult.reply?.text).toContain("Decision note: looks good.");
+
+    const board = JSON.parse(await fs.readFile(tasksPath, "utf-8")) as {
+      tasks: Record<string, { status?: string; plan_approval?: { state?: string } }>;
+    };
+    expect(board.tasks["task-plan-a"]?.status).toBe("pending");
+    expect(board.tasks["task-plan-a"]?.plan_approval?.state).toBe("approved");
+  });
+
+  it("rejects a persisted task plan from /task commands", async () => {
+    const cfg = {
+      commands: { text: true },
+      channels: { whatsapp: { allowFrom: ["*"] } },
+    } as MoltbotConfig;
+    const sessionKey = "agent:main:plan-reject";
+    const now = Date.now();
+    const sessionEntry: SessionEntry = {
+      sessionId: "plan-reject",
+      updatedAt: now,
+      activeTaskId: "task-plan-b",
+      taskStateById: {
+        default: { updatedAt: now, status: "paused" },
+        "task-plan-b": { updatedAt: now, status: "active" },
+      },
+    };
+    const sessionStore: Record<string, SessionEntry> = { [sessionKey]: sessionEntry };
+    const tasksPath = path.join(workspaceDir, "memory", "tasks.json");
+    await fs.writeFile(
+      tasksPath,
+      JSON.stringify(
+        {
+          version: 1,
+          updated_at: "2026-03-31T00:00:00.000Z",
+          lanes: { bot_current: ["task-plan-b"] },
+          tasks: {
+            "task-plan-b": {
+              title: "Task Plan B",
+              status: "pending",
+              file: "memory/tasks/task-plan-b.md",
+            },
+          },
+        },
+        null,
+        2,
+      ),
+      "utf-8",
+    );
+
+    await saveTaskPlan({
+      workspaceDir,
+      taskId: "task-plan-b",
+      plan: "# Plan\n- ship it",
+    });
+    await requestTaskPlanApproval({
+      workspaceDir,
+      taskId: "task-plan-b",
+    });
+
+    const rejectResult = await handleCommands(
+      buildParams({
+        body: '/task reject-plan --note "Add rollback steps."',
+        cfg,
+        sessionKey,
+        sessionEntry,
+        sessionStore,
+      }),
+    );
+    expect(rejectResult.shouldContinue).toBe(false);
+    expect(rejectResult.reply?.text).toContain("Task plan task-plan-b (rejected)");
+    expect(rejectResult.reply?.text).toContain("Decision note: add rollback steps.");
+
+    const board = JSON.parse(await fs.readFile(tasksPath, "utf-8")) as {
+      tasks: Record<
+        string,
+        { status?: string; blockers?: string[]; plan_approval?: { state?: string } }
+      >;
+    };
+    expect(board.tasks["task-plan-b"]?.status).toBe("blocked");
+    expect(board.tasks["task-plan-b"]?.plan_approval?.state).toBe("rejected");
+    expect(board.tasks["task-plan-b"]?.blockers).toEqual([
+      "Plan revision required: add rollback steps.",
+    ]);
   });
 
   it("supports autoswitch and memory mode command toggles", async () => {

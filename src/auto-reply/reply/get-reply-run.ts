@@ -9,7 +9,6 @@ import type { createModelSelectionState } from "./model-selection.js";
 import type { TypingController } from "./typing.js";
 import { resolveSessionAuthProfileOverride } from "../../agents/auth-profiles/session-override.js";
 import {
-  abortEmbeddedPiRun,
   isEmbeddedPiRunActive,
   isEmbeddedPiRunStreaming,
   resolveEmbeddedSessionLane,
@@ -32,7 +31,7 @@ import {
 } from "../../infra/diagnostic-events.js";
 import { listConstraintPinsForInjection } from "../../memory/pins.js";
 import { commitMemoryEvents } from "../../memory/task-memory-system.js";
-import { clearCommandLane, getQueueSize } from "../../process/command-queue.js";
+import { getQueueSize, requestCommandLaneInterrupt } from "../../process/command-queue.js";
 import { normalizeMainKey } from "../../routing/session-key.js";
 import {
   applySessionTaskUpdate,
@@ -390,9 +389,15 @@ export async function runPreparedReply(
   const sessionLaneKey = resolveEmbeddedSessionLane(sessionKey ?? sessionIdFinal);
   const laneSize = getQueueSize(sessionLaneKey);
   if (resolvedQueue.mode === "interrupt" && laneSize > 0) {
-    const cleared = clearCommandLane(sessionLaneKey);
-    const aborted = abortEmbeddedPiRun(sessionIdFinal);
-    logVerbose(`Interrupting ${sessionLaneKey} (cleared ${cleared}, aborted=${aborted})`);
+    const interrupted = requestCommandLaneInterrupt(sessionLaneKey, {
+      source: "reply.queue.interrupt",
+      reason: "queue mode interrupt",
+      sessionId: sessionIdFinal,
+      sessionKey,
+    });
+    logVerbose(
+      `Interrupting ${sessionLaneKey} (cleared ${interrupted.clearedQueued}, aborted=${interrupted.interruptedActive > 0})`,
+    );
   }
   const queueKey = sessionKey ?? sessionIdFinal;
   const isActive = isEmbeddedPiRunActive(sessionIdFinal);

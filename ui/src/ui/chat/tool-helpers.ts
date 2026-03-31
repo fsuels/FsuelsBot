@@ -360,6 +360,66 @@ function renderCompactSuccess(
   return `Sent to ${linkifyUrls(destination)}${via}${receipt}`;
 }
 
+function renderReadSummary(value: Record<string, unknown>, toolName?: string): string | null {
+  if (toolName?.trim().toLowerCase() !== "read") {
+    return null;
+  }
+  if (!isPlainObject(value.details)) {
+    return null;
+  }
+  const details = value.details;
+  const kind = typeof details.kind === "string" ? details.kind : "";
+  const filePath = typeof details.path === "string" ? details.path.trim() : "";
+  if (!kind || !filePath) {
+    return null;
+  }
+
+  if (kind === "text") {
+    const numLines = typeof details.numLines === "number" ? details.numLines : undefined;
+    const startLine = typeof details.startLine === "number" ? details.startLine : undefined;
+    const endLine = typeof details.endLine === "number" ? details.endLine : undefined;
+    const totalLines = typeof details.totalLines === "number" ? details.totalLines : undefined;
+    if (
+      numLines === undefined ||
+      startLine === undefined ||
+      endLine === undefined ||
+      totalLines === undefined
+    ) {
+      return null;
+    }
+    const noun = numLines === 1 ? "line" : "lines";
+    return `Read ${numLines} ${noun} from ${filePath} (${startLine}-${endLine} of ${totalLines})`;
+  }
+
+  if (kind === "empty") {
+    return `Read empty file ${filePath}`;
+  }
+
+  if (kind === "past_eof") {
+    const requestedOffset =
+      typeof details.requestedOffset === "number" ? details.requestedOffset : undefined;
+    const totalLines = typeof details.totalLines === "number" ? details.totalLines : undefined;
+    if (requestedOffset === undefined || totalLines === undefined) {
+      return null;
+    }
+    return `Read past EOF for ${filePath} (offset ${requestedOffset}, total ${totalLines} lines)`;
+  }
+
+  if (kind === "image") {
+    const mimeType = typeof details.mimeType === "string" ? details.mimeType : "image";
+    return `Read image ${filePath} (${mimeType})`;
+  }
+
+  return null;
+}
+
+function renderUnserializableToolOutput(markdown: boolean): string {
+  const fallback = { error: "Unable to render tool output" };
+  return markdown
+    ? `\`\`\`json\n${JSON.stringify(fallback, null, 2)}\n\`\`\``
+    : JSON.stringify(fallback, null, 2);
+}
+
 /**
  * Render a tool output payload into plain text or markdown.
  */
@@ -394,6 +454,10 @@ export function renderToolOutputValue(
   if (compactSuccess) {
     return compactSuccess;
   }
+  const readSummary = renderReadSummary(record, options.toolName);
+  if (readSummary) {
+    return readSummary;
+  }
 
   if (typeof record.text === "string") {
     return renderJsonString(record.text, markdown, options.toolName);
@@ -408,7 +472,7 @@ export function renderToolOutputValue(
             ? `\`\`\`json\n${JSON.stringify(value, null, 2)}\n\`\`\``
             : JSON.stringify(value, null, 2);
         } catch {
-          return String(value);
+          return renderUnserializableToolOutput(markdown);
         }
       }
       const entry = item as Record<string, unknown>;
@@ -425,7 +489,7 @@ export function renderToolOutputValue(
           ? `\`\`\`json\n${JSON.stringify(value, null, 2)}\n\`\`\``
           : JSON.stringify(value, null, 2);
       } catch {
-        return String(value);
+        return renderUnserializableToolOutput(markdown);
       }
     }
     return parts.length > 0 ? parts.join("\n") : null;
@@ -436,7 +500,7 @@ export function renderToolOutputValue(
       ? `\`\`\`json\n${JSON.stringify(value, null, 2)}\n\`\`\``
       : JSON.stringify(value, null, 2);
   } catch {
-    return String(value);
+    return renderUnserializableToolOutput(markdown);
   }
 }
 

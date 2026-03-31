@@ -26,17 +26,20 @@ type LifecycleHost = {
   chatLoading: boolean;
   chatMessages: unknown[];
   chatToolMessages: unknown[];
-  chatStream: string;
+  chatStream: string | null;
   logsAutoFollow: boolean;
   logsAtBottom: boolean;
   logsEntries: unknown[];
   popStateHandler: () => void;
   topbarObserver: ResizeObserver | null;
+  syncOverlays: () => void;
+  telemetry: Pick<import("./types/internal.ts").UiTelemetry, "noteRenderFrame">;
 };
 
 export function handleConnected(host: LifecycleHost) {
   host.basePath = inferBasePath();
   applySettingsFromUrl(host as unknown as Parameters<typeof applySettingsFromUrl>[0]);
+  host.syncOverlays();
   syncTabWithLocation(host as unknown as Parameters<typeof syncTabWithLocation>[0], true);
   syncThemeWithSettings(host as unknown as Parameters<typeof syncThemeWithSettings>[0]);
   attachThemeListener(host as unknown as Parameters<typeof attachThemeListener>[0]);
@@ -66,6 +69,19 @@ export function handleDisconnected(host: LifecycleHost) {
 }
 
 export function handleUpdated(host: LifecycleHost, changed: Map<PropertyKey, unknown>) {
+  if (
+    typeof performance !== "undefined" &&
+    (changed.has("chatMessages") ||
+      changed.has("chatToolMessages") ||
+      changed.has("chatStream") ||
+      changed.has("sidebarOpen") ||
+      changed.has("execApprovalQueue") ||
+      changed.has("pendingGatewayUrl"))
+  ) {
+    const startedAt = performance.now();
+    requestAnimationFrame(() => host.telemetry.noteRenderFrame(performance.now() - startedAt));
+  }
+
   if (host.tab === "chat" && host.chatManualRefreshInFlight) {
     return;
   }

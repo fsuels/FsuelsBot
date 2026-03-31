@@ -82,12 +82,37 @@ export function createUiTelemetry(
     }
   };
 
+  const increment = (name: string, delta?: number) => store.increment(name, delta);
+  const set = (name: string, value: number) => store.set(name, value);
+  const observe = (name: string, value: number) => store.observe(name, value);
+  const add = (name: string, value: string) => store.add(name, value);
+  const getAll = () => store.getAll();
+
+  const notePromptFinished = (runId: string, finishedAt = now()) => {
+    const run = activeRuns.get(runId);
+    if (!run) {
+      return;
+    }
+    observe("prompt_to_done_ms", Math.max(0, finishedAt - run.startedAt));
+    if (run.cancelRequestedAt != null) {
+      observe("cancel_latency_ms", Math.max(0, finishedAt - run.cancelRequestedAt));
+    }
+    activeRuns.delete(runId);
+  };
+
+  const notePromptError = (runId?: string) => {
+    increment("error_count");
+    if (runId) {
+      notePromptFinished(runId);
+    }
+  };
+
   return {
-    increment: store.increment,
-    set: store.set,
-    observe: store.observe,
-    add: store.add,
-    getAll: store.getAll,
+    increment,
+    set,
+    observe,
+    add,
+    getAll,
 
     start() {
       if (started || !win) {
@@ -138,7 +163,7 @@ export function createUiTelemetry(
         return;
       }
       run.firstTokenRecorded = true;
-      store.observe("prompt_to_first_token_ms", Math.max(0, firstTokenAt - run.startedAt));
+      observe("prompt_to_first_token_ms", Math.max(0, firstTokenAt - run.startedAt));
     },
 
     noteCancelRequested(runId: string, requestedAt = now()) {
@@ -149,28 +174,13 @@ export function createUiTelemetry(
       run.cancelRequestedAt = requestedAt;
     },
 
-    notePromptFinished(runId: string, finishedAt = now()) {
-      const run = activeRuns.get(runId);
-      if (!run) {
-        return;
-      }
-      store.observe("prompt_to_done_ms", Math.max(0, finishedAt - run.startedAt));
-      if (run.cancelRequestedAt != null) {
-        store.observe("cancel_latency_ms", Math.max(0, finishedAt - run.cancelRequestedAt));
-      }
-      activeRuns.delete(runId);
-    },
+    notePromptFinished,
 
-    notePromptError(runId?: string) {
-      store.increment("error_count");
-      if (runId) {
-        this.notePromptFinished(runId);
-      }
-    },
+    notePromptError,
 
     noteToolStarted(toolCallId: string, name: string, startedAt = now()) {
       activeTools.set(toolCallId, { startedAt, name });
-      store.add("unique_tool_names", name);
+      add("unique_tool_names", name);
     },
 
     noteToolFinished(toolCallId: string, finishedAt = now()) {
@@ -178,12 +188,12 @@ export function createUiTelemetry(
       if (!tool) {
         return;
       }
-      store.observe("tool_call_ms", Math.max(0, finishedAt - tool.startedAt));
+      observe("tool_call_ms", Math.max(0, finishedAt - tool.startedAt));
       activeTools.delete(toolCallId);
     },
 
     noteOverlayCount(count: number) {
-      store.set("active_overlay_count", count);
+      set("active_overlay_count", count);
     },
 
     noteRenderFrame(ms: number) {

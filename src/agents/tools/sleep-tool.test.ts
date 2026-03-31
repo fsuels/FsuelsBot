@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it } from "vitest";
+import "../test-helpers/fast-core-tools.js";
+import { createOpenClawTools } from "../openclaw-tools.js";
 import { resetSleepRegistryForTests } from "../sleep-registry.js";
+import { applyToolContracts } from "../tool-contracts.js";
 import { createSleepTool } from "./sleep-tool.js";
 
 afterEach(() => {
@@ -7,62 +10,37 @@ afterEach(() => {
 });
 
 describe("sleep tool", () => {
-  it("uses the canonical sleep tool id", () => {
-    expect(createSleepTool({ agentSessionKey: "agent:main:main" }).name).toBe("sleep");
+  it("is exposed in the OpenClaw tool list", () => {
+    const tools = createOpenClawTools({ agentSessionKey: "agent:main:main" });
+
+    expect(tools.some((tool) => tool.name === "sleep")).toBe(true);
   });
 
   it("rejects invalid wait specifications", async () => {
-    const tool = createSleepTool({ agentSessionKey: "agent:main:main" });
+    const tool = applyToolContracts(createSleepTool({ agentSessionKey: "agent:main:main" }));
 
-    const negative = await tool.validateInput?.(
-      {
-        durationMs: -1,
-      },
-      {
-        toolCallId: "sleep-invalid-1",
-        source: "direct",
-      },
-    );
-    expect(negative).toMatchObject({
-      result: false,
+    const negative = await tool.execute("sleep-invalid-1", {
+      durationMs: -1,
+    });
+    expect(negative.details).toMatchObject({
+      ok: false,
       code: "invalid_input",
-      message: expect.stringMatching(/positive number/i),
+      error: expect.stringMatching(/positive number/i),
     });
 
-    const conflicting = await tool.validateInput?.(
-      {
-        durationMs: 1000,
-        until: new Date(Date.now() + 2000).toISOString(),
-      },
-      {
-        toolCallId: "sleep-invalid-2",
-        source: "direct",
-      },
-    );
-    expect(conflicting).toMatchObject({
-      result: false,
+    const conflicting = await tool.execute("sleep-invalid-2", {
+      durationMs: 1000,
+      until: new Date(Date.now() + 2000).toISOString(),
+    });
+    expect(conflicting.details).toMatchObject({
+      ok: false,
       code: "invalid_input",
-      message: expect.stringMatching(/exactly one of durationMs or until/i),
+      error: expect.stringMatching(/exactly one of durationMs or until/i),
     });
   });
 
   it("accepts future ISO wake times", async () => {
-    const tool = createSleepTool({ agentSessionKey: "agent:main:main" });
-
-    const validation = await tool.validateInput?.(
-      {
-        until: new Date(Date.now() + 2_000).toISOString(),
-        reason: "wait for follow-up",
-      },
-      {
-        toolCallId: "sleep-valid-validate",
-        source: "direct",
-      },
-    );
-
-    expect(validation).toMatchObject({
-      result: true,
-    });
+    const tool = applyToolContracts(createSleepTool({ agentSessionKey: "agent:main:main" }));
 
     const result = await tool.execute("sleep-valid", {
       until: new Date(Date.now() + 5_000).toISOString(),

@@ -7,11 +7,11 @@
 
 import type { PluginRegistry } from "./registry.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
-import { createHookRunner, type HookRunner } from "./hooks.js";
+import { createHookRunner, createNoopHookRunner, type HookRunner } from "./hooks.js";
 
 const log = createSubsystemLogger("plugins");
 
-let globalHookRunner: HookRunner | null = null;
+let globalHookRunner: HookRunner = createNoopHookRunner();
 let globalRegistry: PluginRegistry | null = null;
 
 /**
@@ -37,9 +37,9 @@ export function initializeGlobalHookRunner(registry: PluginRegistry): void {
 
 /**
  * Get the global hook runner.
- * Returns null if plugins haven't been loaded yet.
+ * Returns a no-op runner until plugins are loaded.
  */
-export function getGlobalHookRunner(): HookRunner | null {
+export function getGlobalHookRunner(): HookRunner {
   return globalHookRunner;
 }
 
@@ -55,13 +55,13 @@ export function getGlobalPluginRegistry(): PluginRegistry | null {
  * Check if any hooks are registered for a given hook name.
  */
 export function hasGlobalHooks(hookName: Parameters<HookRunner["hasHooks"]>[0]): boolean {
-  return globalHookRunner?.hasHooks(hookName) ?? false;
+  return globalHookRunner.hasHooks(hookName);
 }
 
 /**
  * Reset the global hook runner (for testing).
  */
 export function resetGlobalHookRunner(): void {
-  globalHookRunner = null;
+  globalHookRunner = createNoopHookRunner();
   globalRegistry = null;
 }

@@ -160,6 +160,28 @@ describe("tool-helpers", () => {
         ),
       ).toBe("Sent to channel:C1 via discord (m1)");
     });
+
+    it("summarizes read results without exposing file contents", () => {
+      const result = renderToolOutputValue(
+        {
+          content: [{ type: "text", text: "TOKEN=top-secret" }],
+          details: {
+            kind: "text",
+            path: "/tmp/.env",
+            startLine: 1,
+            endLine: 1,
+            numLines: 1,
+            totalLines: 1,
+            requestedOffset: 1,
+            truncated: false,
+          },
+        },
+        { markdown: false, toolName: "read" },
+      );
+
+      expect(result).toBe("Read 1 line from /tmp/.env (1-1 of 1)");
+      expect(result).not.toContain("top-secret");
+    });
   });
 
   describe("getTruncatedPreview", () => {

@@ -1,7 +1,7 @@
 import { Type } from "@sinclair/typebox";
 import type { OpenClawConfig } from "../../config/config.js";
-import { defineOpenClawTool, toolValidationError, toolValidationOk } from "../tool-contract.js";
 import { registerSleep } from "../sleep-registry.js";
+import { defineOpenClawTool, toolValidationError, toolValidationOk } from "../tool-contract.js";
 import { jsonResult, readNumberParam, readStringOrNumberParam, readStringParam } from "./common.js";
 
 const SleepToolSchema = Type.Object(
@@ -12,14 +12,10 @@ const SleepToolSchema = Type.Object(
       }),
     ),
     until: Type.Optional(
-      Type.Union([
-        Type.String({
-          description: "Future ISO timestamp to wake at.",
-        }),
-        Type.Number({
-          description: "Future epoch timestamp in milliseconds to wake at.",
-        }),
-      ]),
+      Type.Unsafe<string | number>({
+        type: ["string", "number"],
+        description: "Future ISO timestamp or epoch milliseconds to wake at.",
+      }),
     ),
     reason: Type.Optional(
       Type.String({
@@ -46,7 +42,10 @@ function normalizeSleepInput(input: Record<string, unknown>): NormalizedSleepInp
   const durationMs = readNumberParam(input, "durationMs", { integer: true });
   const untilRaw = readStringOrNumberParam(input, "until");
 
-  if ((durationMs === undefined && untilRaw === undefined) || (durationMs !== undefined && untilRaw)) {
+  if (
+    (durationMs === undefined && untilRaw === undefined) ||
+    (durationMs !== undefined && untilRaw)
+  ) {
     throw new Error("Provide exactly one of durationMs or until.");
   }
 
@@ -80,15 +79,11 @@ function normalizeSleepInput(input: Record<string, unknown>): NormalizedSleepInp
     wakeAt,
     requestedDurationMs,
     reason: readStringParam(input, "reason"),
-    interruptible:
-      typeof input.interruptible === "boolean" ? input.interruptible : true,
+    interruptible: typeof input.interruptible === "boolean" ? input.interruptible : true,
   };
 }
 
-export function createSleepTool(opts?: {
-  agentSessionKey?: string;
-  config?: OpenClawConfig;
-}) {
+export function createSleepTool(opts?: { agentSessionKey?: string; config?: OpenClawConfig }) {
   return defineOpenClawTool({
     name: "sleep",
     label: "Sleep",

@@ -2,6 +2,10 @@ import type { Component, TUI } from "@mariozechner/pi-tui";
 
 type OverlayHost = Pick<TUI, "showOverlay" | "hideOverlay" | "hasOverlay" | "setFocus">;
 
+/**
+ * Escape should dismiss transient selectors before it cancels the active run.
+ * That keeps overlay exploration from turning into an accidental abort.
+ */
 export function handleOverlayEscape(params: {
   hasActiveOverlay: () => boolean;
   closeOverlay: () => void;

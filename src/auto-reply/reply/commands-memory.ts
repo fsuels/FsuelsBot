@@ -10,6 +10,13 @@ import {
 import { parseDurationMs } from "../../cli/parse-duration.js";
 import { updateSessionStore } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
+import {
+  approveTaskPlan,
+  getTaskPlan,
+  rejectTaskPlan,
+  TaskPlanError,
+  type TaskPlanSnapshot,
+} from "../../infra/task-plan.js";
 import { forgetMemoryWorkspace } from "../../memory/forget.js";
 import {
   cancelMemoryPinRemoveIntent,
@@ -148,6 +155,9 @@ function slugifyTaskTitle(value: string): string {
 const KNOWN_TASK_SUBCOMMANDS = new Set([
   "show",
   "status",
+  "plan",
+  "approve-plan",
+  "reject-plan",
   "list",
   "new",
   "set",
@@ -176,6 +186,77 @@ function isTaskIdShorthand(action: string): string | null {
     return null;
   }
   return stripped;
+}
+
+function resolveTaskPlanCommandTaskId(params: {
+  explicitTaskId?: string;
+  activeTaskId?: string;
+}): string | undefined {
+  const explicit = params.explicitTaskId?.trim();
+  if (explicit) {
+    return explicit;
+  }
+  const active = params.activeTaskId?.trim();
+  if (!active || active === DEFAULT_SESSION_TASK_ID) {
+    return undefined;
+  }
+  return active;
+}
+
+function formatTaskPlanReply(snapshot: TaskPlanSnapshot): string {
+  const lines = [
+    `Task plan ${snapshot.taskId} (${snapshot.approvalState})`,
+    `File: ${snapshot.filePath}`,
+    `Plan exists: ${snapshot.exists ? "yes" : "no"}`,
+  ];
+  if (snapshot.exists) {
+    lines.push(`Edited since submission: ${snapshot.planWasEdited ? "yes" : "no"}`);
+  }
+  if (snapshot.taskStatus) {
+    lines.push(`Task status: ${snapshot.taskStatus}`);
+  }
+  if (snapshot.requestId) {
+    lines.push(`Request id: ${snapshot.requestId}`);
+  }
+  if (snapshot.requestedAt) {
+    lines.push(`Requested at: ${snapshot.requestedAt}`);
+  }
+  if (snapshot.decidedAt) {
+    lines.push(`Decided at: ${snapshot.decidedAt}`);
+  }
+  if (snapshot.decisionNote) {
+    lines.push(`Decision note: ${snapshot.decisionNote}`);
+  }
+  lines.push(`Next: ${snapshot.nextStep}`);
+
+  const planText = snapshot.plan.trim();
+  if (planText) {
+    const previewLimit = 1200;
+    const preview =
+      planText.length > previewLimit
+        ? `${planText.slice(0, previewLimit).trimEnd()}\n...(truncated, see ${snapshot.filePath})`
+        : planText;
+    lines.push("", preview);
+  }
+  return lines.join("\n");
+}
+
+function taskPlanCommandFailureReply(
+  action: string,
+  error: unknown,
+): { shouldContinue: false; reply: { text: string } } {
+  const detail = error instanceof Error ? error.message : String(error);
+  if (error instanceof TaskPlanError) {
+    return {
+      shouldContinue: false,
+      reply: { text: `${action} failed. ${detail}` },
+    };
+  }
+  logVerbose(`${action} failed: ${detail}`);
+  return {
+    shouldContinue: false,
+    reply: { text: `${action} failed. ${detail}` },
+  };
 }
 
 /**
@@ -925,6 +1006,65 @@ export const handleTaskCommand: CommandHandler = async (params, allowTextCommand
     };
   }
 
+  if (action === "plan") {
+    const taskId = resolveTaskPlanCommandTaskId({
+      explicitTaskId: parsed.values[1],
+      activeTaskId: active.taskId,
+    });
+    try {
+      const snapshot = await getTaskPlan({
+        workspaceDir: params.workspaceDir,
+        taskId,
+      });
+      return {
+        shouldContinue: false,
+        reply: { text: formatTaskPlanReply(snapshot) },
+      };
+    } catch (error) {
+      return taskPlanCommandFailureReply("Read task plan", error);
+    }
+  }
+
+  if (action === "approve-plan") {
+    const taskId = resolveTaskPlanCommandTaskId({
+      explicitTaskId: parsed.values[1],
+      activeTaskId: active.taskId,
+    });
+    try {
+      const snapshot = await approveTaskPlan({
+        workspaceDir: params.workspaceDir,
+        taskId,
+        note: typeof parsed.flags.note === "string" ? parsed.flags.note : undefined,
+      });
+      return {
+        shouldContinue: false,
+        reply: { text: formatTaskPlanReply(snapshot) },
+      };
+    } catch (error) {
+      return taskPlanCommandFailureReply("Approve task plan", error);
+    }
+  }
+
+  if (action === "reject-plan") {
+    const taskId = resolveTaskPlanCommandTaskId({
+      explicitTaskId: parsed.values[1],
+      activeTaskId: active.taskId,
+    });
+    try {
+      const snapshot = await rejectTaskPlan({
+        workspaceDir: params.workspaceDir,
+        taskId,
+        note: typeof parsed.flags.note === "string" ? parsed.flags.note : undefined,
+      });
+      return {
+        shouldContinue: false,
+        reply: { text: formatTaskPlanReply(snapshot) },
+      };
+    } catch (error) {
+      return taskPlanCommandFailureReply("Reject task plan", error);
+    }
+  }
+
   if (action === "list") {
     const registryTasks = await listTaskRegistry(params.workspaceDir);
     if (registryTasks.length > 0) {
@@ -1072,7 +1212,7 @@ export const handleTaskCommand: CommandHandler = async (params, allowTextCommand
       reply: {
         text:
           "Usage:\n" +
-          "/task show|list|new|set|link|<task-id>\n" +
+          "/task show|plan|approve-plan|reject-plan|list|new|set|link|<task-id>\n" +
           "/task set <id> [title]\n" +
           "/task <active|paused|completed|archived|done>\n" +
           "/tasks | /resume <id> | /switch <id> | /newtask <title> | /archive <id> | /close <id>",

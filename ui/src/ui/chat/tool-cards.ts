@@ -5,7 +5,11 @@ import { formatToolDetail, resolveToolDisplay } from "../tool-display.ts";
 import { TOOL_INLINE_THRESHOLD } from "./constants.ts";
 import { extractTextCached } from "./message-extract.ts";
 import { isToolResultMessage } from "./message-normalizer.ts";
-import { formatToolOutputForSidebar, getTruncatedPreview } from "./tool-helpers.ts";
+import {
+  formatToolOutputForSidebar,
+  getTruncatedPreview,
+  renderToolOutputValue,
+} from "./tool-helpers.ts";
 
 export function extractToolCards(message: unknown): ToolCard[] {
   const m = message as Record<string, unknown>;
@@ -31,8 +35,9 @@ export function extractToolCards(message: unknown): ToolCard[] {
     if (kind !== "toolresult" && kind !== "tool_result") {
       continue;
     }
-    const text = extractToolText(item);
     const name = typeof item.name === "string" ? item.name : "tool";
+    const text =
+      renderToolOutputValue(item, { markdown: false, toolName: name }) ?? extractToolText(item);
     cards.push({ kind: "result", name, text, details: item.details });
   }
 
@@ -41,7 +46,10 @@ export function extractToolCards(message: unknown): ToolCard[] {
       (typeof m.toolName === "string" && m.toolName) ||
       (typeof m.tool_name === "string" && m.tool_name) ||
       "tool";
-    const text = extractTextCached(message) ?? undefined;
+    const text =
+      renderToolOutputValue(message, { markdown: false, toolName: name }) ??
+      extractTextCached(message) ??
+      undefined;
     cards.push({ kind: "result", name, text, details: m.details });
   }
 

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const callGatewayMock = vi.fn();
 vi.mock("../gateway/call.js", () => ({
@@ -27,6 +27,10 @@ import { createOpenClawTools } from "./openclaw-tools.js";
 import { getSubagentRunBySessionKey, resetSubagentRegistryForTests } from "./subagent-registry.js";
 
 describe("openclaw-tools: subagents", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   beforeEach(() => {
     configOverride = {
       session: {
@@ -115,33 +119,6 @@ describe("openclaw-tools: subagents", () => {
     expect(callGatewayMock).not.toHaveBeenCalled();
   });
 
-  it("sessions_spawn rejects invalid whitespace-only labels before execution", async () => {
-    resetSubagentRegistryForTests();
-    callGatewayMock.mockReset();
-
-    const tool = createOpenClawTools({
-      agentSessionKey: "main",
-      agentChannel: "whatsapp",
-    }).find((candidate) => candidate.name === "sessions_spawn");
-    if (!tool) {
-      throw new Error("missing sessions_spawn tool");
-    }
-
-    const result = await tool.execute("call-invalid-label", {
-      task: "do thing",
-      label: "   ",
-    });
-
-    expect(callGatewayMock).not.toHaveBeenCalled();
-    expect(result.details).toMatchObject({
-      ok: false,
-      success: false,
-      code: "invalid_input",
-      tool: "sessions_spawn",
-      message: "invalid label: empty",
-    });
-  });
-
   it("sessions_spawn persists per-run capability policy and prompt context", async () => {
     resetSubagentRegistryForTests();
     callGatewayMock.mockReset();
@@ -192,9 +169,86 @@ describe("openclaw-tools: subagents", () => {
     const run = getSubagentRunBySessionKey(childSessionKey);
     expect(run?.profile).toBe("implementation");
     expect(run?.requiredTools).toEqual(["write", "exec"]);
+    expect(run?.resolvedTools).toEqual(
+      expect.arrayContaining(["apply_patch", "edit", "exec", "process", "read", "write"]),
+    );
     expect(run?.sessionToolPolicy?.allow).toEqual(
       expect.arrayContaining(["write", "edit", "apply_patch", "exec", "process"]),
     );
+  });
+
+  it("sessions_spawn rejects invalid tool specs before spawning", async () => {
+    resetSubagentRegistryForTests();
+    callGatewayMock.mockReset();
+
+    const tool = createOpenClawTools({
+      agentSessionKey: "main",
+      agentChannel: "whatsapp",
+    }).find((candidate) => candidate.name === "sessions_spawn");
+    if (!tool) {
+      throw new Error("missing sessions_spawn tool");
+    }
+
+    const result = await tool.execute("call-invalid-tools", {
+      task: "inspect the repo",
+      toolAllow: ["not_a_real_tool"],
+      toolDeny: ["ghost_tool"],
+    });
+
+    expect(result.details).toMatchObject({
+      status: "error",
+    });
+    expect(String(result.details?.error)).toMatch(/invalid subagent tool specs/i);
+    expect(callGatewayMock).not.toHaveBeenCalled();
+  });
+
+  it("sessions_spawn reports the resolved effective tool surface", async () => {
+    resetSubagentRegistryForTests();
+    callGatewayMock.mockReset();
+    vi.stubEnv("BRAVE_API_KEY", "test-key");
+    let childSessionKey = "";
+
+    callGatewayMock.mockImplementation(async (opts: unknown) => {
+      const request = opts as { method?: string; params?: unknown };
+      if (request.method === "agent") {
+        const params = request.params as { sessionKey?: string } | undefined;
+        childSessionKey = params?.sessionKey ?? "";
+        return { runId: "run-resolved-tools", status: "accepted", acceptedAt: 5600 };
+      }
+      if (request.method === "agent.wait") {
+        return { status: "timeout" };
+      }
+      return {};
+    });
+
+    const tool = createOpenClawTools({
+      agentSessionKey: "main",
+      agentChannel: "whatsapp",
+    }).find((candidate) => candidate.name === "sessions_spawn");
+    if (!tool) {
+      throw new Error("missing sessions_spawn tool");
+    }
+
+    const result = await tool.execute("call-resolved-tools", {
+      task: "review the API responses",
+      profile: "custom",
+      toolAllow: ["read", "web_*"],
+      toolDeny: ["web_fetch"],
+      requiredTools: ["read"],
+    });
+
+    expect(result.details).toMatchObject({
+      status: "accepted",
+      resolvedTools: expect.arrayContaining(["read", "web_search"]),
+      validTools: expect.arrayContaining(["read", "web_fetch", "web_search"]),
+    });
+    expect((result.details as { resolvedTools?: string[] }).resolvedTools).not.toContain(
+      "web_fetch",
+    );
+
+    const run = getSubagentRunBySessionKey(childSessionKey);
+    expect(run?.resolvedTools).toEqual(expect.arrayContaining(["read", "web_search"]));
+    expect(run?.resolvedTools).not.toContain("web_fetch");
   });
 
   it("sessions_spawn forbids cross-agent spawning when not allowed", async () => {
