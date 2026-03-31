@@ -8,6 +8,7 @@ import { lookupContextTokens } from "../agents/context.js";
 import { DEFAULT_CONTEXT_TOKENS, DEFAULT_MODEL, DEFAULT_PROVIDER } from "../agents/defaults.js";
 import { resolveModelAuthMode } from "../agents/model-auth.js";
 import { resolveConfiguredModelRef } from "../agents/model-selection.js";
+import { formatPlanModeStatusLine } from "../agents/plan-mode.js";
 import { resolveSandboxRuntimeStatus } from "../agents/sandbox.js";
 import { derivePromptTokens, normalizeUsage, type UsageLike } from "../agents/usage.js";
 import {
@@ -448,6 +449,7 @@ export function buildStatusMessage(args: StatusArgs): string {
     usagePair && costLine ? `${usagePair} · ${costLine}` : (usagePair ?? costLine);
   const mediaLine = formatMediaUnderstandingLine(args.mediaDecisions);
   const voiceLine = formatVoiceModeLine(args.config, args.sessionEntry);
+  const modeLine = formatPlanModeStatusLine(entry);
 
   return [
     versionLine,
@@ -459,6 +461,7 @@ export function buildStatusMessage(args: StatusArgs): string {
     args.usageLine,
     `🧵 ${sessionLine}`,
     args.subagentsLine,
+    modeLine,
     `⚙️ ${optionsLine}`,
     voiceLine,
     activationLine,
@@ -507,7 +510,9 @@ export function buildHelpMessage(cfg?: OpenClawConfig): string {
   const lines = ["ℹ️ Help", ""];
 
   lines.push("Session");
-  lines.push("  /new  |  /reset  |  /compact [instructions]  |  /stop");
+  lines.push(
+    "  /new  |  /reset  |  /plan [on|off|status|proactive|conservative]  |  /compact [instructions]  |  /stop",
+  );
   lines.push("");
 
   const optionParts = ["/think <level>", "/model <id>", "/verbose on|off"];

@@ -1,11 +1,18 @@
 import type { SessionEntry } from "../../config/sessions.js";
 import type { CommandHandler } from "./commands-types.js";
+import { isCliProvider } from "../../agents/model-selection.js";
 import { abortEmbeddedPiRun } from "../../agents/pi-embedded.js";
+import {
+  DEFAULT_PLAN_MODE_PROFILE,
+  formatPlanModeStatusLine,
+  normalizePlanModeProfile,
+} from "../../agents/plan-mode.js";
 import { updateSessionStore } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
 import { createInternalHookEvent, triggerInternalHook } from "../../hooks/internal-hooks.js";
 import { scheduleGatewaySigusr1Restart, triggerOpenClawRestart } from "../../infra/restart.js";
 import { loadCostUsageSummary, loadSessionCostSummary } from "../../infra/session-cost-usage.js";
+import { isSubagentSessionKey } from "../../routing/session-key.js";
 import { formatTokenCount, formatUsd } from "../../utils/usage-format.js";
 import { parseActivationCommand } from "../group-activation.js";
 import { parseSendPolicyCommand } from "../send-policy.js";
@@ -51,6 +58,46 @@ function resolveAbortTarget(params: {
     };
   }
   return { entry: undefined, key: targetSessionKey, sessionId: undefined };
+}
+
+type PlanCommandState =
+  | { kind: "enter"; profile: "proactive" | "conservative" }
+  | { kind: "exit" }
+  | { kind: "status" }
+  | { kind: "invalid" };
+
+function parsePlanCommandState(normalized: string): PlanCommandState | null {
+  if (normalized !== "/plan" && !normalized.startsWith("/plan ")) {
+    return null;
+  }
+  const rawArgs = normalized === "/plan" ? "" : normalized.slice("/plan".length).trim();
+  if (!rawArgs) {
+    return { kind: "enter", profile: DEFAULT_PLAN_MODE_PROFILE };
+  }
+  const parts = rawArgs.split(/\s+/).filter(Boolean);
+  if (parts.length === 0) {
+    return { kind: "enter", profile: DEFAULT_PLAN_MODE_PROFILE };
+  }
+
+  const first = parts[0]?.trim().toLowerCase();
+  const second = parts[1]?.trim().toLowerCase();
+  if (first === "status") {
+    return { kind: "status" };
+  }
+  if (first === "off" || first === "exit" || first === "stop") {
+    return { kind: "exit" };
+  }
+  if (first === "on" || first === "enter" || first === "start") {
+    const profile = normalizePlanModeProfile(second) ?? DEFAULT_PLAN_MODE_PROFILE;
+    return second && !normalizePlanModeProfile(second)
+      ? { kind: "invalid" }
+      : { kind: "enter", profile };
+  }
+  const directProfile = normalizePlanModeProfile(first);
+  if (directProfile) {
+    return { kind: "enter", profile: directProfile };
+  }
+  return { kind: "invalid" };
 }
 
 export const handleActivationCommand: CommandHandler = async (params, allowTextCommands) => {
@@ -142,6 +189,85 @@ export const handleSendPolicyCommand: CommandHandler = async (params, allowTextC
     shouldContinue: false,
     reply: { text: `⚙️ Send policy set to ${label}.` },
   };
+};
+
+export const handlePlanCommand: CommandHandler = async (params, allowTextCommands) => {
+  if (!allowTextCommands) {
+    return null;
+  }
+  const requested = parsePlanCommandState(params.command.commandBodyNormalized);
+  if (!requested) {
+    return null;
+  }
+  if (!params.command.isAuthorizedSender) {
+    logVerbose(
+      `Ignoring /plan from unauthorized sender: ${params.command.senderId || "<unknown>"}`,
+    );
+    return { shouldContinue: false };
+  }
+
+  if (requested.kind === "invalid") {
+    return {
+      shouldContinue: false,
+      reply: { text: "⚙️ Usage: /plan [on|off|status|proactive|conservative]" },
+    };
+  }
+
+  if (requested.kind === "status") {
+    return {
+      shouldContinue: false,
+      reply: { text: formatPlanModeStatusLine(params.sessionEntry) },
+    };
+  }
+
+  if (!params.sessionKey || isSubagentSessionKey(params.sessionKey)) {
+    return {
+      shouldContinue: false,
+      reply: {
+        text: "⚠️ /plan is only available in top-level sessions because subagents do not have a safe local exit path.",
+      },
+    };
+  }
+
+  if (requested.kind === "enter" && isCliProvider(params.provider, params.cfg)) {
+    return {
+      shouldContinue: false,
+      reply: {
+        text: "⚠️ /plan is not available with CLI providers yet because OpenClaw cannot hard-enforce read-only behavior there. Switch to an embedded model or stay in execution mode.",
+      },
+    };
+  }
+
+  if (params.sessionEntry && params.sessionStore && params.sessionKey) {
+    if (requested.kind === "exit") {
+      delete params.sessionEntry.collaborationMode;
+      delete params.sessionEntry.planProfile;
+    } else {
+      params.sessionEntry.collaborationMode = "plan";
+      params.sessionEntry.planProfile = requested.profile;
+    }
+    params.sessionEntry.updatedAt = Date.now();
+    params.sessionStore[params.sessionKey] = params.sessionEntry;
+    if (params.storePath) {
+      await updateSessionStore(params.storePath, (store) => {
+        store[params.sessionKey] = params.sessionEntry as SessionEntry;
+      });
+    }
+  }
+
+  return requested.kind === "exit"
+    ? {
+        shouldContinue: false,
+        reply: {
+          text: "🗺️ Plan mode disabled. Normal execution is restored for this session.",
+        },
+      }
+    : {
+        shouldContinue: false,
+        reply: {
+          text: `🗺️ Plan mode enabled (${requested.profile}). I will stay read-only, inspect the codebase, and return a concrete implementation plan. Exit with /plan off.`,
+        },
+      };
 };
 
 export const handleUsageCommand: CommandHandler = async (params, allowTextCommands) => {

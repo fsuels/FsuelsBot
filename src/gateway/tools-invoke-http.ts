@@ -9,6 +9,10 @@ import {
   resolveSubagentToolPolicy,
 } from "../agents/pi-tools.policy.js";
 import {
+  resolveSessionCollaborationMode,
+  resolveSessionPlanModeProfile,
+} from "../agents/plan-mode.js";
+import {
   coerceToolDataToResult,
   executeToolWithContract,
   isToolEnabled,
@@ -37,6 +41,7 @@ import {
   sendUnauthorized,
 } from "./http-common.js";
 import { getBearerToken, getHeader } from "./http-utils.js";
+import { loadSessionEntry } from "./session-utils.js";
 
 const DEFAULT_BODY_BYTES = 2 * 1024 * 1024;
 const MEMORY_TOOL_NAMES = new Set(["memory_search", "memory_get"]);
@@ -174,6 +179,7 @@ export async function handleToolsInvokeHttpRequest(
   const rawSessionKey = resolveSessionKeyFromBody(body);
   const sessionKey =
     !rawSessionKey || rawSessionKey === "main" ? resolveMainSessionKey(cfg) : rawSessionKey;
+  const { entry: sessionEntry } = loadSessionEntry(sessionKey);
 
   // Resolve message channel/account hints (optional headers) for policy inheritance.
   const messageChannel = normalizeMessageChannel(
@@ -223,6 +229,8 @@ export async function handleToolsInvokeHttpRequest(
     agentChannel: messageChannel ?? undefined,
     agentAccountId: accountId,
     config: cfg,
+    collaborationMode: resolveSessionCollaborationMode(sessionEntry),
+    planProfile: resolveSessionPlanModeProfile(sessionEntry),
     pluginToolAllowlist: collectExplicitAllowlist([
       profilePolicy,
       providerProfilePolicy,

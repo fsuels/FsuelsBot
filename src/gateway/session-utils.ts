@@ -664,6 +664,8 @@ export function listSessionsFromStore(params: {
         reasoningLevel: entry?.reasoningLevel,
         elevatedLevel: entry?.elevatedLevel,
         sendPolicy: entry?.sendPolicy,
+        collaborationMode: entry?.collaborationMode,
+        planProfile: entry?.planProfile,
         inputTokens: entry?.inputTokens,
         outputTokens: entry?.outputTokens,
         totalTokens: total,

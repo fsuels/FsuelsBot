@@ -80,11 +80,28 @@ describe("buildStatusMessage", () => {
     expect(normalized).toContain("Compactions: 2");
     expect(normalized).toContain("Session: agent:main:main");
     expect(normalized).toContain("updated 10m ago");
+    expect(normalized).toContain("Mode: execution");
     expect(normalized).toContain("Runtime: direct");
     expect(normalized).toContain("Think: medium");
     expect(normalized).not.toContain("verbose");
     expect(normalized).toContain("elevated");
     expect(normalized).toContain("Queue: collect");
+  });
+
+  it("shows planning mode when the session is in plan mode", () => {
+    const text = buildStatusMessage({
+      agent: { model: "anthropic/claude-opus-4-5" },
+      sessionEntry: {
+        sessionId: "plan",
+        updatedAt: 0,
+        collaborationMode: "plan",
+        planProfile: "proactive",
+      },
+      sessionKey: "agent:main:main",
+      queue: { mode: "collect", depth: 0 },
+    });
+
+    expect(normalizeTestText(text)).toContain("Mode: planning (proactive, read-only)");
   });
 
   it("uses per-agent sandbox config when config and session key are provided", () => {
@@ -446,6 +463,7 @@ describe("buildHelpMessage", () => {
       commands: { config: false, debug: false },
     } as OpenClawConfig);
     expect(text).toContain("Skills");
+    expect(text).toContain("/plan [on|off|status|proactive|conservative]");
     expect(text).toContain("/skill <name> [input]");
     expect(text).toContain(
       "Tip: Tell me what you are working on, tell me when you switch, and tell me what matters.",

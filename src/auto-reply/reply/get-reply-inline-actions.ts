@@ -8,6 +8,10 @@ import type { InlineDirectives } from "./directive-handling.js";
 import type { createModelSelectionState } from "./model-selection.js";
 import type { TypingController } from "./typing.js";
 import { createOpenClawTools } from "../../agents/openclaw-tools.js";
+import {
+  resolveSessionCollaborationMode,
+  resolveSessionPlanModeProfile,
+} from "../../agents/plan-mode.js";
 import { processSkillFactoryEpisodeDetached } from "../../agents/skill-factory/orchestrator.js";
 import { enforceSkillDispatchPolicy } from "../../agents/skill-factory/safety.js";
 import {
@@ -222,6 +226,8 @@ export async function handleInlineActions(params: {
         agentDir,
         workspaceDir,
         config: cfg,
+        collaborationMode: resolveSessionCollaborationMode(sessionEntry),
+        planProfile: resolveSessionPlanModeProfile(sessionEntry),
       });
 
       const tool = tools.find((candidate) => candidate.name === dispatch.toolName);

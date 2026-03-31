@@ -5,6 +5,7 @@ import type { CoherenceIntervention } from "../coherence-intervention.js";
 import type { ResolvedTimeFormat } from "../date-time.js";
 import type { DriftPromptInjection } from "../drift-detection.js";
 import type { EmbeddedContextFile } from "../pi-embedded-helpers.js";
+import type { CollaborationMode, PlanModeProfile } from "../plan-mode.js";
 import type { EmbeddedSandboxInfo } from "./types.js";
 import type { ReasoningLevel, ThinkLevel } from "./utils.js";
 import { buildAgentSystemPrompt, type PromptMode } from "../system-prompt.js";
@@ -21,6 +22,8 @@ export function buildEmbeddedSystemPrompt(params: {
   skillsPrompt?: string;
   docsPath?: string;
   ttsHint?: string;
+  collaborationMode?: CollaborationMode;
+  planProfile?: PlanModeProfile;
   reactionGuidance?: {
     level: "minimal" | "extensive";
     channel: string;
@@ -72,6 +75,8 @@ export function buildEmbeddedSystemPrompt(params: {
     skillsPrompt: params.skillsPrompt,
     docsPath: params.docsPath,
     ttsHint: params.ttsHint,
+    collaborationMode: params.collaborationMode,
+    planProfile: params.planProfile,
     workspaceNotes: params.workspaceNotes,
     reactionGuidance: params.reactionGuidance,
     promptMode: params.promptMode,

@@ -77,6 +77,12 @@ export const SessionsPatchParamsSchema = Type.Object(
     sendPolicy: Type.Optional(
       Type.Union([Type.Literal("allow"), Type.Literal("deny"), Type.Null()]),
     ),
+    collaborationMode: Type.Optional(
+      Type.Union([Type.Literal("default"), Type.Literal("plan"), Type.Null()]),
+    ),
+    planProfile: Type.Optional(
+      Type.Union([Type.Literal("proactive"), Type.Literal("conservative"), Type.Null()]),
+    ),
     groupActivation: Type.Optional(
       Type.Union([Type.Literal("mention"), Type.Literal("always"), Type.Null()]),
     ),

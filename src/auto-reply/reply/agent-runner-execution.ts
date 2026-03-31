@@ -19,6 +19,10 @@ import {
 } from "../../agents/pi-embedded-helpers.js";
 import { runEmbeddedPiAgent } from "../../agents/pi-embedded.js";
 import {
+  resolveSessionCollaborationMode,
+  resolveSessionPlanModeProfile,
+} from "../../agents/plan-mode.js";
+import {
   resolveAgentIdFromSessionKey,
   resolveGroupSessionKey,
   resolveSessionTranscriptPath,
@@ -146,6 +150,9 @@ export async function runAgentTurnWithFallback(params: {
       };
       const blockReplyPipeline = params.blockReplyPipeline;
       const onToolResult = params.opts?.onToolResult;
+      const activeEntry = params.getActiveSessionEntry();
+      const collaborationMode = resolveSessionCollaborationMode(activeEntry);
+      const planProfile = resolveSessionPlanModeProfile(activeEntry);
       const fallbackResult = await runWithModelFallback({
         cfg: params.followupRun.run.config,
         provider: params.followupRun.run.provider,
@@ -156,6 +163,14 @@ export async function runAgentTurnWithFallback(params: {
           resolveAgentIdFromSessionKey(params.followupRun.run.sessionKey),
         ),
         run: (provider, model) => {
+          if (
+            collaborationMode === "plan" &&
+            isCliProvider(provider, params.followupRun.run.config)
+          ) {
+            throw new Error(
+              "Plan mode is not supported with CLI providers because OpenClaw cannot hard-enforce read-only behavior there yet. Exit with /plan off or switch to an embedded model.",
+            );
+          }
           // Notify that model selection is complete (including after fallback).
           // This allows responsePrefix template interpolation with the actual model.
           params.opts?.onModelSelected?.({
@@ -258,7 +273,6 @@ export async function runAgentTurnWithFallback(params: {
               : undefined;
 
           // RSC v2.0: Compute context pressure and drift injection from session state.
-          const activeEntry = params.getActiveSessionEntry();
           const contextPressure = (() => {
             const budget = activeEntry?.contextTokens;
             const used = activeEntry?.totalTokens;
@@ -314,6 +328,8 @@ export async function runAgentTurnWithFallback(params: {
             extraSystemPrompt: params.followupRun.run.extraSystemPrompt,
             ownerNumbers: params.followupRun.run.ownerNumbers,
             enforceFinalTag: resolveEnforceFinalTag(params.followupRun.run, provider),
+            collaborationMode,
+            planProfile,
             provider,
             model,
             authProfileId,

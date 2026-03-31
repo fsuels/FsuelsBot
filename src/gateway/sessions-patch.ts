@@ -4,6 +4,11 @@ import type { OpenClawConfig } from "../config/config.js";
 import type { SessionEntry } from "../config/sessions.js";
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { resolveAllowedModelRef, resolveDefaultModelForAgent } from "../agents/model-selection.js";
+import {
+  DEFAULT_PLAN_MODE_PROFILE,
+  normalizeCollaborationMode,
+  normalizePlanModeProfile,
+} from "../agents/plan-mode.js";
 import { normalizeGroupActivation } from "../auto-reply/group-activation.js";
 import {
   formatThinkingLevels,
@@ -372,6 +377,46 @@ export async function applySessionsPatchToStore(params: {
       }
       next.sendPolicy = normalized;
     }
+  }
+
+  if ("collaborationMode" in patch) {
+    const raw = patch.collaborationMode;
+    if (raw === null) {
+      delete next.collaborationMode;
+      delete next.planProfile;
+    } else if (raw !== undefined) {
+      const normalized = normalizeCollaborationMode(String(raw));
+      if (!normalized) {
+        return invalid('invalid collaborationMode (use "default"|"plan")');
+      }
+      if (normalized === "default") {
+        delete next.collaborationMode;
+        delete next.planProfile;
+      } else {
+        next.collaborationMode = "plan";
+        next.planProfile = next.planProfile ?? DEFAULT_PLAN_MODE_PROFILE;
+      }
+    }
+  }
+
+  if ("planProfile" in patch) {
+    const raw = patch.planProfile;
+    if (raw === null) {
+      delete next.planProfile;
+    } else if (raw !== undefined) {
+      const normalized = normalizePlanModeProfile(String(raw));
+      if (!normalized) {
+        return invalid('invalid planProfile (use "proactive"|"conservative")');
+      }
+      if (next.collaborationMode !== "plan") {
+        return invalid('planProfile requires collaborationMode "plan"');
+      }
+      next.planProfile = normalized;
+    }
+  }
+
+  if (next.collaborationMode === "plan" && !next.planProfile) {
+    next.planProfile = DEFAULT_PLAN_MODE_PROFILE;
   }
 
   if ("groupActivation" in patch) {

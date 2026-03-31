@@ -32,6 +32,7 @@ import { handleRevenueCommand, runRevenueAutopilotOnMessage } from "./commands-r
 import {
   handleAbortTrigger,
   handleActivationCommand,
+  handlePlanCommand,
   handleRestartCommand,
   handleSendPolicyCommand,
   handleStopCommand,
@@ -50,6 +51,7 @@ export async function handleCommands(params: HandleCommandsParams): Promise<Comm
       handlePluginCommand,
       handleBashCommand,
       handleActivationCommand,
+      handlePlanCommand,
       handleSendPolicyCommand,
       handleUsageCommand,
       handleRestartCommand,

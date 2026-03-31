@@ -944,6 +944,7 @@ export function createWebSearchTool(options?: {
     name: "web_search",
     description,
     parameters: WebSearchSchema,
+    isReadOnly: () => true,
     execute: async (toolCallId, args, _signal, onUpdate) => {
       const perplexityAuth =
         provider === "perplexity" ? resolvePerplexityApiKey(perplexityConfig) : undefined;

@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../../config/config.js";
+import type { SessionEntry } from "../../config/sessions.js";
 import type { MsgContext } from "../templating.js";
 import {
   addSubagentRunForTests,
@@ -39,7 +40,19 @@ afterAll(async () => {
   await fs.rm(testWorkspaceDir, { recursive: true, force: true });
 });
 
-function buildParams(commandBody: string, cfg: OpenClawConfig, ctxOverrides?: Partial<MsgContext>) {
+function buildParams(
+  commandBody: string,
+  cfg: OpenClawConfig,
+  ctxOverrides?: Partial<MsgContext>,
+  stateOverrides?: {
+    sessionEntry?: SessionEntry;
+    sessionStore?: Record<string, SessionEntry>;
+    storePath?: string;
+    sessionKey?: string;
+    provider?: string;
+    model?: string;
+  },
+) {
   const ctx = {
     Body: commandBody,
     CommandBody: commandBody,
@@ -64,14 +77,17 @@ function buildParams(commandBody: string, cfg: OpenClawConfig, ctxOverrides?: Pa
     command,
     directives: parseInlineDirectives(commandBody),
     elevated: { enabled: true, allowed: true, failures: [] },
-    sessionKey: "agent:main:main",
+    sessionEntry: stateOverrides?.sessionEntry,
+    sessionStore: stateOverrides?.sessionStore,
+    sessionKey: stateOverrides?.sessionKey ?? "agent:main:main",
+    storePath: stateOverrides?.storePath,
     workspaceDir: testWorkspaceDir,
     defaultGroupActivation: () => "mention",
     resolvedVerboseLevel: "off" as const,
     resolvedReasoningLevel: "off" as const,
     resolveDefaultThinkingLevel: async () => undefined,
-    provider: "whatsapp",
-    model: "test-model",
+    provider: stateOverrides?.provider ?? "whatsapp",
+    model: stateOverrides?.model ?? "test-model",
     contextTokens: 0,
     isGroup: false,
   };
@@ -212,6 +228,112 @@ describe("handleCommands hooks", () => {
 
     expect(spy).toHaveBeenCalledWith(expect.objectContaining({ type: "command", action: "new" }));
     spy.mockRestore();
+  });
+});
+
+describe("handleCommands plan mode", () => {
+  it("enables plan mode and persists the session state", async () => {
+    const cfg = {
+      commands: { text: true },
+      channels: { whatsapp: { allowFrom: ["*"] } },
+    } as OpenClawConfig;
+    const sessionEntry = {
+      sessionId: "plan-session",
+      updatedAt: 1,
+    } as SessionEntry;
+    const sessionStore: Record<string, SessionEntry> = {
+      "agent:main:main": sessionEntry,
+    };
+    const storePath = path.join(testWorkspaceDir, "plan-session-store.json");
+    await fs.writeFile(storePath, JSON.stringify(sessionStore), "utf-8");
+
+    const params = buildParams("/plan proactive", cfg, undefined, {
+      sessionEntry,
+      sessionStore,
+      storePath,
+      provider: "openai",
+      model: "gpt-5.2",
+    });
+    const result = await handleCommands(params);
+
+    expect(result.shouldContinue).toBe(false);
+    expect(result.reply?.text).toContain("Plan mode enabled (proactive)");
+    expect(sessionEntry.collaborationMode).toBe("plan");
+    expect(sessionEntry.planProfile).toBe("proactive");
+
+    const persisted = JSON.parse(await fs.readFile(storePath, "utf-8")) as Record<
+      string,
+      SessionEntry
+    >;
+    expect(persisted["agent:main:main"]?.collaborationMode).toBe("plan");
+    expect(persisted["agent:main:main"]?.planProfile).toBe("proactive");
+  });
+
+  it("reports plan mode status and disables it cleanly", async () => {
+    const cfg = {
+      commands: { text: true },
+      channels: { whatsapp: { allowFrom: ["*"] } },
+    } as OpenClawConfig;
+    const sessionEntry = {
+      sessionId: "plan-status",
+      updatedAt: 1,
+      collaborationMode: "plan",
+      planProfile: "conservative",
+    } as SessionEntry;
+    const sessionStore: Record<string, SessionEntry> = {
+      "agent:main:main": sessionEntry,
+    };
+
+    const statusParams = buildParams("/plan status", cfg, undefined, {
+      sessionEntry,
+      sessionStore,
+      provider: "openai",
+      model: "gpt-5.2",
+    });
+    const statusResult = await handleCommands(statusParams);
+    expect(statusResult.reply?.text).toContain("Mode: planning (conservative, read-only)");
+
+    const offParams = buildParams("/plan off", cfg, undefined, {
+      sessionEntry,
+      sessionStore,
+      provider: "openai",
+      model: "gpt-5.2",
+    });
+    const offResult = await handleCommands(offParams);
+    expect(offResult.reply?.text).toContain("Plan mode disabled");
+    expect(sessionEntry.collaborationMode).toBeUndefined();
+    expect(sessionEntry.planProfile).toBeUndefined();
+  });
+
+  it("blocks /plan in subagent sessions", async () => {
+    const cfg = {
+      commands: { text: true },
+      channels: { whatsapp: { allowFrom: ["*"] } },
+    } as OpenClawConfig;
+    const params = buildParams("/plan", cfg, undefined, {
+      sessionKey: "agent:main:subagent:abc",
+      provider: "openai",
+      model: "gpt-5.2",
+    });
+    const result = await handleCommands(params);
+
+    expect(result.shouldContinue).toBe(false);
+    expect(result.reply?.text).toContain("only available in top-level sessions");
+  });
+
+  it("blocks /plan on CLI providers", async () => {
+    const cfg = {
+      commands: { text: true },
+      channels: { whatsapp: { allowFrom: ["*"] } },
+    } as OpenClawConfig;
+    const params = buildParams("/plan", cfg, undefined, {
+      provider: "claude-cli",
+      model: "default",
+    });
+    const result = await handleCommands(params);
+
+    expect(result.shouldContinue).toBe(false);
+    expect(result.reply?.text).toContain("not available with CLI providers yet");
   });
 });
 

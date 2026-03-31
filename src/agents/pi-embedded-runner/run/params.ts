@@ -7,6 +7,7 @@ import type { ExecElevatedDefaults, ExecToolDefaults } from "../../bash-tools.js
 import type { CoherenceIntervention } from "../../coherence-intervention.js";
 import type { DriftPromptInjection } from "../../drift-detection.js";
 import type { BlockReplyChunking, ToolResultFormat } from "../../pi-embedded-subscribe.js";
+import type { CollaborationMode, PlanModeProfile } from "../../plan-mode.js";
 import type { SkillSnapshot } from "../../skills.js";
 
 // Simplified tool definition for client-provided tools (OpenResponses hosted tools)
@@ -58,6 +59,8 @@ export type RunEmbeddedPiAgentParams = {
   requireExplicitMessageTarget?: boolean;
   /** If true, omit the message tool from the tool list. */
   disableMessageTool?: boolean;
+  collaborationMode?: CollaborationMode;
+  planProfile?: PlanModeProfile;
   sessionFile: string;
   workspaceDir: string;
   agentDir?: string;

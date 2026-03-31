@@ -66,6 +66,60 @@ describe("gateway sessions patch", () => {
     expect(res.error.message).toContain("invalid elevatedLevel");
   });
 
+  test("enables plan mode with a default profile", async () => {
+    const store: Record<string, SessionEntry> = {};
+    const res = await applySessionsPatchToStore({
+      cfg: {} as OpenClawConfig,
+      store,
+      storeKey: "agent:main:main",
+      patch: { collaborationMode: "plan" },
+    });
+    expect(res.ok).toBe(true);
+    if (!res.ok) {
+      return;
+    }
+    expect(res.entry.collaborationMode).toBe("plan");
+    expect(res.entry.planProfile).toBe("conservative");
+  });
+
+  test("rejects planProfile outside of plan mode", async () => {
+    const store: Record<string, SessionEntry> = {};
+    const res = await applySessionsPatchToStore({
+      cfg: {} as OpenClawConfig,
+      store,
+      storeKey: "agent:main:main",
+      patch: { planProfile: "proactive" },
+    });
+    expect(res.ok).toBe(false);
+    if (res.ok) {
+      return;
+    }
+    expect(res.error.message).toContain('planProfile requires collaborationMode "plan"');
+  });
+
+  test("clearing collaborationMode also clears planProfile", async () => {
+    const store: Record<string, SessionEntry> = {
+      "agent:main:main": {
+        sessionId: "sess",
+        updatedAt: 1,
+        collaborationMode: "plan",
+        planProfile: "proactive",
+      } as SessionEntry,
+    };
+    const res = await applySessionsPatchToStore({
+      cfg: {} as OpenClawConfig,
+      store,
+      storeKey: "agent:main:main",
+      patch: { collaborationMode: null },
+    });
+    expect(res.ok).toBe(true);
+    if (!res.ok) {
+      return;
+    }
+    expect(res.entry.collaborationMode).toBeUndefined();
+    expect(res.entry.planProfile).toBeUndefined();
+  });
+
   test("clears auth overrides when model patch changes", async () => {
     const store: Record<string, SessionEntry> = {
       "agent:main:main": {

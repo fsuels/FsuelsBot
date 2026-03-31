@@ -5,6 +5,7 @@ import { callGateway } from "../../gateway/call.js";
 import { capArrayByJsonBytes } from "../../gateway/session-utils.fs.js";
 import { isSubagentSessionKey, resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
 import { truncateUtf16Safe } from "../../utils.js";
+import { defineOpenClawTool } from "../tool-contract.js";
 import { assertKnownParams, jsonResult, readAliasedStringParam } from "./common.js";
 import {
   createAgentToAgentPolicy,
@@ -197,11 +198,14 @@ export function createSessionsHistoryTool(opts?: {
   agentSessionKey?: string;
   sandboxed?: boolean;
 }): AnyAgentTool {
-  return {
+  return defineOpenClawTool({
     label: "Session History",
     name: "sessions_history",
     description: "Fetch message history for a session.",
     parameters: SessionsHistoryToolSchema,
+    inputSchema: SessionsHistoryToolSchema,
+    isReadOnly: () => true,
+    isConcurrencySafe: () => true,
     execute: async (_toolCallId, args) => {
       const params = args as Record<string, unknown>;
       assertKnownParams(params, ["sessionKey", "sessionId", "limit", "includeTools"], {
@@ -308,5 +312,5 @@ export function createSessionsHistoryTool(opts?: {
         bytes: hardened.bytes,
       });
     },
-  };
+  });
 }

@@ -219,6 +219,7 @@ export async function runEmbeddedAttempt(
 
     // Check if the model supports native image input
     const modelHasVision = params.model.input?.includes("image") ?? false;
+    const planModeActive = params.collaborationMode === "plan";
     const toolsRaw = params.disableTools
       ? []
       : createOpenClawCodingTools({
@@ -257,6 +258,8 @@ export async function runEmbeddedAttempt(
           requireExplicitMessageTarget:
             params.requireExplicitMessageTarget ?? isSubagentSessionKey(params.sessionKey),
           disableMessageTool: params.disableMessageTool,
+          collaborationMode: params.collaborationMode,
+          planProfile: params.planProfile,
         });
     const tools = sanitizeToolsForGoogle({ tools: toolsRaw, provider: params.provider });
     logToolSchemasForGoogle({ tools, provider: params.provider });
@@ -393,6 +396,8 @@ export async function runEmbeddedAttempt(
       skillsPrompt,
       docsPath: docsPath ?? undefined,
       ttsHint,
+      collaborationMode: params.collaborationMode,
+      planProfile: params.planProfile,
       workspaceNotes,
       reactionGuidance,
       promptMode,
@@ -537,18 +542,19 @@ export async function runEmbeddedAttempt(
 
       // Add client tools (OpenResponses hosted tools) to customTools
       let clientToolCallDetected: { name: string; params: Record<string, unknown> } | null = null;
-      const clientToolDefs = params.clientTools
-        ? toClientToolDefinitions(
-            params.clientTools,
-            (toolName, toolParams) => {
-              clientToolCallDetected = { name: toolName, params: toolParams };
-            },
-            {
-              agentId: sessionAgentId,
-              sessionKey: params.sessionKey,
-            },
-          )
-        : [];
+      const clientToolDefs =
+        !planModeActive && params.clientTools
+          ? toClientToolDefinitions(
+              params.clientTools,
+              (toolName, toolParams) => {
+                clientToolCallDetected = { name: toolName, params: toolParams };
+              },
+              {
+                agentId: sessionAgentId,
+                sessionKey: params.sessionKey,
+              },
+            )
+          : [];
       const structuredOutputToolDefs =
         structuredOutputToolResult && "tool" in structuredOutputToolResult
           ? [structuredOutputToolResult.tool]
@@ -932,12 +938,12 @@ export async function runEmbeddedAttempt(
               );
               // Emit the delegated response through the block reply pipeline
               assistantTexts.push(delegateResult.text);
-              params.onBlockReply?.({ text: delegateResult.text });
-              params.onBlockReplyFlush?.();
+              await params.onBlockReply?.({ text: delegateResult.text });
+              await params.onBlockReplyFlush?.();
               delegateHandled = true;
             }
           } catch (err) {
-            log.debug(`delegate-router: fallback to main agent: ${err}`);
+            log.debug(`delegate-router: fallback to main agent: ${String(err)}`);
           }
         }
 
