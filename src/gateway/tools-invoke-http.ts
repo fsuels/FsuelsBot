@@ -1,11 +1,18 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { createOpenClawTools } from "../agents/openclaw-tools.js";
+import { runBeforeToolCallHook } from "../agents/pi-tools.before-tool-call.js";
 import {
   filterToolsByPolicy,
   resolveEffectiveToolPolicy,
   resolveGroupToolPolicy,
+  resolveSubagentSessionToolPolicy,
   resolveSubagentToolPolicy,
 } from "../agents/pi-tools.policy.js";
+import {
+  coerceToolDataToResult,
+  executeToolWithContract,
+  isToolEnabled,
+} from "../agents/tool-contract.js";
 import {
   buildPluginToolGroups,
   collectExplicitAllowlist,
@@ -206,9 +213,9 @@ export async function handleToolsInvokeHttpRequest(
     messageProvider: messageChannel ?? undefined,
     accountId: accountId ?? null,
   });
-  const subagentPolicy = isSubagentSessionKey(sessionKey)
-    ? resolveSubagentToolPolicy(cfg)
-    : undefined;
+  const subagentPolicies = isSubagentSessionKey(sessionKey)
+    ? [resolveSubagentToolPolicy(cfg), resolveSubagentSessionToolPolicy(sessionKey)]
+    : [];
 
   // Build tool list (core + plugin tools).
   const allTools = createOpenClawTools({
@@ -224,7 +231,7 @@ export async function handleToolsInvokeHttpRequest(
       agentPolicy,
       agentProviderPolicy,
       groupPolicy,
-      subagentPolicy,
+      ...subagentPolicies,
     ]),
   });
 
@@ -270,7 +277,12 @@ export async function handleToolsInvokeHttpRequest(
     agentId ? `agents.${agentId}.tools.byProvider.allow` : "agent tools.byProvider.allow",
   );
   const groupPolicyExpanded = resolvePolicy(groupPolicy, "group tools.allow");
+  const [subagentPolicy, subagentSessionPolicy] = subagentPolicies;
   const subagentPolicyExpanded = expandPolicyWithPluginGroups(subagentPolicy, pluginGroups);
+  const subagentSessionPolicyExpanded = expandPolicyWithPluginGroups(
+    subagentSessionPolicy,
+    pluginGroups,
+  );
 
   const toolsFiltered = profilePolicyExpanded
     ? filterToolsByPolicy(allTools, profilePolicyExpanded)
@@ -293,11 +305,16 @@ export async function handleToolsInvokeHttpRequest(
   const groupFiltered = groupPolicyExpanded
     ? filterToolsByPolicy(agentProviderFiltered, groupPolicyExpanded)
     : agentProviderFiltered;
-  const subagentFiltered = subagentPolicyExpanded
+  const subagentBaseFiltered = subagentPolicyExpanded
     ? filterToolsByPolicy(groupFiltered, subagentPolicyExpanded)
     : groupFiltered;
+  const subagentFiltered = subagentSessionPolicyExpanded
+    ? filterToolsByPolicy(subagentBaseFiltered, subagentSessionPolicyExpanded)
+    : subagentBaseFiltered;
 
-  const tool = subagentFiltered.find((t) => t.name === toolName);
+  const tool = subagentFiltered.find(
+    (t) => t.name === toolName && isToolEnabled(t, { source: "http" }),
+  );
   if (!tool) {
     sendJson(res, 404, {
       ok: false,
@@ -313,8 +330,51 @@ export async function handleToolsInvokeHttpRequest(
       action,
       args,
     });
-    // oxlint-disable-next-line typescript/no-explicit-any
-    const result = await (tool as any).execute?.(`http-${Date.now()}`, toolArgs);
+    const toolCallId = `http-${Date.now()}`;
+    const result = await executeToolWithContract({
+      // oxlint-disable-next-line typescript/no-explicit-any
+      tool: tool as any,
+      rawInput: toolArgs,
+      context: {
+        toolCallId,
+        source: "http",
+        context: {
+          agentId,
+          sessionKey,
+        },
+      },
+      transformInput: async (input) => {
+        const outcome = await runBeforeToolCallHook({
+          toolName,
+          params: input,
+          toolCallId,
+          ctx: {
+            agentId,
+            sessionKey,
+          },
+        });
+        if (outcome.blocked) {
+          throw new Error(outcome.reason);
+        }
+        return outcome.params;
+      },
+      invoke: async (input) => {
+        // oxlint-disable-next-line typescript/no-explicit-any
+        const openClawTool = tool as any;
+        if (typeof openClawTool.call === "function") {
+          const output = await openClawTool.call(input, {
+            toolCallId,
+            source: "http",
+            context: {
+              agentId,
+              sessionKey,
+            },
+          });
+          return coerceToolDataToResult(output?.data ?? null);
+        }
+        return await openClawTool.execute(toolCallId, input);
+      },
+    });
     sendJson(res, 200, { ok: true, result });
   } catch (err) {
     sendJson(res, 400, {

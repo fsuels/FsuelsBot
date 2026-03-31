@@ -7,7 +7,7 @@ import {
   type OpenAICompletionsOptions,
   type Tool,
 } from "@mariozechner/pi-ai";
-import { Type } from "@sinclair/typebox";
+import { createStrictEmptyObjectSchema } from "./tool-contract.js";
 
 const OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models";
 const DEFAULT_TIMEOUT_MS = 12_000;
@@ -19,7 +19,7 @@ const BASE_IMAGE_PNG =
 const TOOL_PING: Tool = {
   name: "ping",
   description: "Return OK.",
-  parameters: Type.Object({}),
+  parameters: createStrictEmptyObjectSchema(),
 };
 
 type OpenRouterModelMeta = {
