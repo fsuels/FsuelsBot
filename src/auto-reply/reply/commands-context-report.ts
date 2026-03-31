@@ -12,7 +12,7 @@ import { getSkillsSnapshotVersion } from "../../agents/skills/refresh.js";
 import { buildSystemPromptParams } from "../../agents/system-prompt-params.js";
 import { buildSystemPromptReport } from "../../agents/system-prompt-report.js";
 import { buildAgentSystemPrompt } from "../../agents/system-prompt.js";
-import { buildToolSummaryMap } from "../../agents/tool-summaries.js";
+import { buildToolOperatorManualMap, buildToolSummaryMap } from "../../agents/tool-summaries.js";
 import { getRemoteSkillEligibility } from "../../infra/skills-remote.js";
 import { buildTtsSystemPromptHint } from "../../tts/tts.js";
 
@@ -159,6 +159,7 @@ async function resolveContextReport(
     runtimeInfo,
     sandboxInfo,
     memoryCitationsMode: params.cfg?.memory?.citations,
+    toolManuals: buildToolOperatorManualMap(tools),
   });
 
   return buildSystemPromptReport({

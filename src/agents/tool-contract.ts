@@ -3,9 +3,14 @@ import type {
   AgentToolResult,
   AgentToolUpdateCallback,
 } from "@mariozechner/pi-agent-core";
+import { Buffer } from "node:buffer";
 import type { Static, TSchema } from "@sinclair/typebox";
 import { Type } from "@sinclair/typebox";
 import AjvPkg, { type ErrorObject, type ValidateFunction } from "ajv";
+import {
+  persistToolResultBinaryArtifact,
+  persistToolResultTextArtifact,
+} from "./tool-result-artifacts.js";
 import { truncateUtf16Safe } from "../utils.js";
 import { sanitizeToolResultImages } from "./tool-images.js";
 
@@ -19,7 +24,10 @@ const ajv = new Ajv({
 
 const validatorCache = new WeakMap<object, ValidateFunction>();
 const DEFAULT_MAX_RESULT_SIZE_CHARS = 200_000;
+const DEFAULT_EXTERNALIZED_TEXT_CHARS = 20_000;
+const TOOL_RESULT_PREVIEW_CHARS = 4_000;
 const TRUNCATION_MARKER = "\n...(truncated)...\n";
+const TOOL_RESULT_FINALIZED = Symbol("openclaw.tool-result.finalized");
 
 export type ToolPermissionBehavior = "allow" | "ask" | "deny";
 
@@ -28,9 +36,17 @@ export type ToolPermissionDecision = {
   message?: string;
 };
 
-export type ToolValidationResult =
-  | { result: true }
-  | { result: false; message: string; errorCode?: number };
+export type ToolFailureCode = "invalid_input" | "not_found" | "precondition_failed";
+
+export type ToolValidationResult<TParams = unknown> =
+  | { result: true; params?: TParams }
+  | {
+      result: false;
+      message: string;
+      code?: ToolFailureCode;
+      details?: Record<string, unknown>;
+      errorCode?: number;
+    };
 
 export type ToolExecutionSource = "embedded" | "http" | "direct";
 
@@ -65,6 +81,7 @@ export type OpenClawTool<TParameters extends TSchema = TSchema, TDetails = unkno
 > & {
   userFacingName?: () => string;
   prompt?: () => string | Promise<string>;
+  operatorManual?: () => string;
   inputSchema?: TParameters;
   outputSchema?: TSchema;
   isEnabled?: (context: ToolAvailabilityContext) => boolean;
@@ -84,6 +101,10 @@ export type OpenClawTool<TParameters extends TSchema = TSchema, TDetails = unkno
     toolUseId: string,
     context: ToolExecutionContext,
   ) => AgentToolResult<TDetails> | Promise<AgentToolResult<TDetails>>;
+  mapToolResultToText?: (
+    result: AgentToolResult<TDetails>,
+    context: ToolExecutionContext,
+  ) => string | Promise<string>;
   renderQueued?: (...args: unknown[]) => unknown;
   renderRejected?: (...args: unknown[]) => unknown;
   renderError?: (...args: unknown[]) => unknown;
@@ -91,12 +112,36 @@ export type OpenClawTool<TParameters extends TSchema = TSchema, TDetails = unkno
 };
 
 // oxlint-disable-next-line typescript/no-explicit-any
-export type AnyOpenClawTool = OpenClawTool<any>;
+export type AnyOpenClawTool = OpenClawTool<any, any>;
 
 export function defineOpenClawTool<TParameters extends TSchema, TDetails = unknown>(
   tool: OpenClawTool<TParameters, TDetails>,
 ): OpenClawTool<TParameters, TDetails> {
   return tool;
+}
+
+export function toolValidationOk<TParams = unknown>(params?: {
+  params?: TParams;
+}): ToolValidationResult<TParams> {
+  if (params?.params === undefined) {
+    return { result: true };
+  }
+  return { result: true, params: params.params };
+}
+
+export function toolValidationError(params: {
+  message: string;
+  code?: ToolFailureCode;
+  details?: Record<string, unknown>;
+  errorCode?: number;
+}): ToolValidationResult<never> {
+  return {
+    result: false,
+    message: params.message,
+    code: params.code,
+    details: params.details,
+    errorCode: params.errorCode,
+  };
 }
 
 export function createStrictEmptyObjectSchema(options?: { description?: string; title?: string }) {
@@ -152,8 +197,8 @@ function formatValidationErrors(
   return `Validation failed for tool "${toolName}":\n${details}`;
 }
 
-export function validateToolInputSchema<TParameters extends TSchema>(
-  tool: OpenClawTool<TParameters>,
+export function validateToolInputSchema<TParameters extends TSchema, TDetails = unknown>(
+  tool: OpenClawTool<TParameters, TDetails>,
   input: unknown,
 ) {
   const schema = getToolSchema(tool as AnyOpenClawTool);
@@ -211,6 +256,83 @@ function normalizeToolTextBlockText(text: unknown): string {
     : normalized;
 }
 
+function parseBase64DataUrl(
+  text: string,
+): {
+  mimeType: string;
+  buffer: Buffer;
+} | null {
+  const trimmed = text.trim();
+  const match = /^data:([^;,]+);base64,([a-z0-9+/=\r\n]+)$/i.exec(trimmed);
+  if (!match) {
+    return null;
+  }
+  try {
+    const buffer = Buffer.from(match[2], "base64");
+    if (buffer.byteLength === 0) {
+      return null;
+    }
+    return {
+      mimeType: match[1],
+      buffer,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function formatArtifactHash(sha256: string): string {
+  return sha256.slice(0, 16);
+}
+
+async function externalizeToolTextBlock(text: string): Promise<string | null> {
+  const dataUrl = parseBase64DataUrl(text);
+  if (dataUrl) {
+    try {
+      const artifact = await persistToolResultBinaryArtifact(dataUrl.buffer, {
+        mimeType: dataUrl.mimeType,
+      });
+      return [
+        "Binary tool output was saved outside model context.",
+        `path: ${artifact.path}`,
+        `mimeType: ${artifact.mimeType ?? "application/octet-stream"}`,
+        `sizeBytes: ${artifact.sizeBytes}`,
+        `sha256: ${formatArtifactHash(artifact.sha256)}`,
+        "Raw base64 content was omitted from the prompt.",
+      ].join("\n");
+    } catch (error) {
+      return `Failed to persist binary tool output: ${error instanceof Error ? error.message : String(error)}`;
+    }
+  }
+
+  if (text.length <= DEFAULT_EXTERNALIZED_TEXT_CHARS) {
+    return null;
+  }
+
+  try {
+    const artifact = await persistToolResultTextArtifact(text);
+    const preview = truncateUtf16Safe(text, TOOL_RESULT_PREVIEW_CHARS);
+    const previewSuffix = preview.length < text.length ? "\n...(preview truncated)..." : "";
+    return [
+      "Tool output was externalized to protect model context.",
+      `path: ${artifact.path}`,
+      `mimeType: ${artifact.mimeType ?? "text/plain"}`,
+      `sizeBytes: ${artifact.sizeBytes}`,
+      `chars: ${text.length}`,
+      `sha256: ${formatArtifactHash(artifact.sha256)}`,
+      "",
+      "Preview:",
+      `${preview}${previewSuffix}`,
+    ].join("\n");
+  } catch (error) {
+    return [
+      `Failed to persist oversized tool output: ${error instanceof Error ? error.message : String(error)}`,
+      "",
+      truncateUtf16Safe(text, TOOL_RESULT_PREVIEW_CHARS),
+    ].join("\n");
+  }
+}
+
 function isImageBlock(
   block: unknown,
 ): block is Extract<AgentToolResult<unknown>["content"][number], { type: "image" }> {
@@ -225,32 +347,43 @@ function isImageBlock(
   );
 }
 
-function normalizeToolContent(
+async function normalizeToolContentAsync(
   content: unknown,
   maxResultSizeChars: number,
-): AgentToolResult<unknown>["content"] {
+): Promise<AgentToolResult<unknown>["content"]> {
   if (!Array.isArray(content)) {
+    const text = normalizeToolTextBlockText(content);
+    const externalized = await externalizeToolTextBlock(text);
     return [
       {
         type: "text",
-        text: normalizeToolTextBlockText(content),
+        text: truncateDeterministically(externalized ?? text, maxResultSizeChars),
       },
     ];
   }
-  return content.map((block) => {
-    if (isImageBlock(block)) {
-      return block;
-    }
-    const record =
-      block && typeof block === "object" ? (block as Record<string, unknown>) : { text: block };
-    return {
-      type: "text",
-      text: truncateDeterministically(
-        normalizeToolTextBlockText(record.type === "text" ? record.text : record),
-        maxResultSizeChars,
-      ),
-    } as const;
-  });
+
+  return await Promise.all(
+    content.map(async (block) => {
+      if (isImageBlock(block)) {
+        return block;
+      }
+      const record =
+        block && typeof block === "object" ? (block as Record<string, unknown>) : { text: block };
+      const blockText = ("type" in record && record.type === "text" ? record.text : record) as
+        | Record<string, unknown>
+        | string
+        | number
+        | boolean
+        | null
+        | undefined;
+      const normalizedText = normalizeToolTextBlockText(blockText);
+      const externalized = await externalizeToolTextBlock(normalizedText);
+      return {
+        type: "text",
+        text: truncateDeterministically(externalized ?? normalizedText, maxResultSizeChars),
+      } as const;
+    }),
+  );
 }
 
 export function coerceToolDataToResult(data: unknown): AgentToolResult<unknown> {
@@ -273,30 +406,72 @@ export function coerceToolDataToResult(data: unknown): AgentToolResult<unknown> 
   };
 }
 
+function validateToolOutputSchema<TDetails>(
+  tool: OpenClawTool<TSchema, TDetails>,
+  result: AgentToolResult<TDetails>,
+): void {
+  const schema = tool.outputSchema;
+  if (!schema || typeof schema !== "object") {
+    return;
+  }
+  const validate = getValidator(schema);
+  const cloned = structuredClone(result.details ?? null);
+  if (validate(cloned)) {
+    return;
+  }
+  throw new Error(formatValidationErrors(`${tool.name || "tool"} output`, validate.errors));
+}
+
 async function finalizeToolResult<TDetails>(
   tool: OpenClawTool<TSchema, TDetails>,
   result: AgentToolResult<TDetails>,
   context: ToolExecutionContext,
 ): Promise<AgentToolResult<TDetails>> {
+  if ((result as unknown as Record<PropertyKey, unknown>)[TOOL_RESULT_FINALIZED]) {
+    return result;
+  }
   const mapped = tool.mapToolResultToModelBlock
     ? await tool.mapToolResultToModelBlock(result, context.toolCallId, context)
     : result;
+  validateToolOutputSchema(tool, mapped);
+  const deterministicText = tool.mapToolResultToText
+    ? await tool.mapToolResultToText(mapped, context)
+    : undefined;
   const maxResultSizeChars = Math.max(
     1,
     Math.floor(tool.maxResultSizeChars ?? DEFAULT_MAX_RESULT_SIZE_CHARS),
   );
+  const content =
+    deterministicText === undefined
+      ? mapped.content
+      : [
+          {
+            type: "text" as const,
+            text: deterministicText,
+          },
+          ...(Array.isArray(mapped.content) ? mapped.content.filter((block) => isImageBlock(block)) : []),
+        ];
   const normalized = {
     ...mapped,
-    content: normalizeToolContent(mapped.content, maxResultSizeChars),
-  } satisfies AgentToolResult<TDetails>;
+    content: await normalizeToolContentAsync(content, maxResultSizeChars),
+  } as AgentToolResult<TDetails> & Record<PropertyKey, unknown>;
+  normalized[TOOL_RESULT_FINALIZED] = true;
   return (await sanitizeToolResultImages(
     normalized as AgentToolResult<unknown>,
     tool.name || "tool",
   )) as AgentToolResult<TDetails>;
 }
 
-async function resolvePermissionDecision<TParameters extends TSchema>(
-  tool: OpenClawTool<TParameters>,
+export async function finalizeToolExecutionResult<TDetails>(args: {
+  tool: OpenClawTool<TSchema, TDetails>;
+  result: AgentToolResult<TDetails>;
+  context: ToolExecutionContext;
+}): Promise<AgentToolResult<TDetails>> {
+  return await finalizeToolResult(args.tool, args.result, args.context);
+}
+
+async function resolvePermissionDecision<TParameters extends TSchema, TDetails>(
+  tool: OpenClawTool<TParameters, TDetails>,
   input: Static<TParameters>,
   context: ToolExecutionContext,
 ): Promise<void> {
@@ -337,11 +512,14 @@ export async function executeToolWithContract<TParameters extends TSchema, TDeta
   if (args.transformInput) {
     input = validateToolInputSchema(tool, await args.transformInput(input));
   }
-  const validation = tool.validateInput
+  const validation: ToolValidationResult<Static<TParameters>> = tool.validateInput
     ? await tool.validateInput(input, context)
     : { result: true };
   if (!validation.result) {
     throw new Error(validation.message);
+  }
+  if (validation.params !== undefined) {
+    input = validateToolInputSchema(tool, validation.params);
   }
   await resolvePermissionDecision(tool, input, context);
   const result = await invoke(input);

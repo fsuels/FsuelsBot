@@ -195,6 +195,7 @@ export function buildAgentSystemPrompt(params: {
   reasoningTagHint?: boolean;
   toolNames?: string[];
   toolSummaries?: Record<string, string>;
+  toolManuals?: Record<string, string>;
   modelAliasLines?: string[];
   userTimezone?: string;
   userTime?: string;
@@ -332,6 +333,14 @@ export function buildAgentSystemPrompt(params: {
     }
     externalToolSummaries.set(normalized, value.trim());
   }
+  const externalToolManuals = new Map<string, string>();
+  for (const [key, value] of Object.entries(params.toolManuals ?? {})) {
+    const normalized = key.trim().toLowerCase();
+    if (!normalized || !value?.trim()) {
+      continue;
+    }
+    externalToolManuals.set(normalized, value.trim());
+  }
   const extraTools = Array.from(
     new Set(normalizedTools.filter((tool) => !toolOrder.includes(tool))),
   );
@@ -346,6 +355,14 @@ export function buildAgentSystemPrompt(params: {
     const name = resolveToolName(tool);
     toolLines.push(summary ? `- ${name}: ${summary}` : `- ${name}`);
   }
+  const manualOrder = [...enabledTools, ...extraTools.toSorted()];
+  const toolManualLines = manualOrder.flatMap((tool) => {
+    const manual = externalToolManuals.get(tool);
+    if (!manual) {
+      return [];
+    }
+    return [`### ${resolveToolName(tool)}`, manual, ""];
+  });
 
   const hasGateway = availableTools.has("gateway");
   const readToolName = resolveToolName("read");
@@ -454,6 +471,9 @@ export function buildAgentSystemPrompt(params: {
     "Keep narration brief and value-dense; avoid repeating obvious steps.",
     "Use plain human language for narration unless in a technical context.",
     "",
+    ...(!isMinimal && toolManualLines.length > 0
+      ? ["## Tool Operator Manuals", ...toolManualLines]
+      : []),
     ...(availableTools.has("delegate")
       ? [
           "## Delegate Routing (MANDATORY)",

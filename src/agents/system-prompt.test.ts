@@ -165,6 +165,21 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain("sessions_send");
   });
 
+  it("includes tool operator manuals when provided", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/openclaw",
+      toolNames: ["cron"],
+      toolManuals: {
+        cron: "Purpose: manage scheduled jobs.\nAnti-patterns: do not use for immediate work.",
+      },
+    });
+
+    expect(prompt).toContain("## Tool Operator Manuals");
+    expect(prompt).toContain("### cron");
+    expect(prompt).toContain("Purpose: manage scheduled jobs.");
+    expect(prompt).toContain("Anti-patterns: do not use for immediate work.");
+  });
+
   it("preserves tool casing in the prompt", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/openclaw",

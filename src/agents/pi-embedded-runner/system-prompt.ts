@@ -8,7 +8,7 @@ import type { EmbeddedContextFile } from "../pi-embedded-helpers.js";
 import type { EmbeddedSandboxInfo } from "./types.js";
 import type { ReasoningLevel, ThinkLevel } from "./utils.js";
 import { buildAgentSystemPrompt, type PromptMode } from "../system-prompt.js";
-import { buildToolSummaryMap } from "../tool-summaries.js";
+import { buildToolOperatorManualMap, buildToolSummaryMap } from "../tool-summaries.js";
 
 export function buildEmbeddedSystemPrompt(params: {
   workspaceDir: string;
@@ -80,6 +80,7 @@ export function buildEmbeddedSystemPrompt(params: {
     sandboxInfo: params.sandboxInfo,
     toolNames: params.tools.map((tool) => tool.name),
     toolSummaries: buildToolSummaryMap(params.tools),
+    toolManuals: buildToolOperatorManualMap(params.tools),
     modelAliasLines: params.modelAliasLines,
     userTimezone: params.userTimezone,
     userTime: params.userTime,

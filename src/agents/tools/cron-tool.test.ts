@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { applyToolContracts } from "../tool-contracts.js";
 
 const callGatewayMock = vi.fn();
 vi.mock("../../gateway/call.js", () => ({
@@ -61,6 +62,22 @@ describe("cron tool", () => {
     expect(call?.params).toEqual({ id: "job-primary", mode: "force" });
   });
 
+  it("exposes an operator manual with scheduling guidance", () => {
+    const tool = createCronTool();
+
+    expect(tool.operatorManual?.()).toMatchInlineSnapshot(`
+      "Purpose: manage durable Gateway scheduler jobs and immediate wake requests.
+      Defaults: prefer action=add with sessionTarget=isolated and payload.kind=agentTurn for follow-ups, reminders, or background agent work. Use sessionTarget=main only when you intentionally want a systemEvent injected into the main session.
+      Schedules: use schedule.kind=at for one-shots, every for fixed intervals, cron for recurring wall-clock schedules. If the user gives a local wall-clock time, include schedule.tz explicitly instead of relying on the Gateway host timezone.
+      Approximate times: when the user does not care about the exact minute, avoid synchronized defaults like :00 and :30. Pick a nearby uneven minute such as :07, :13, :37, or :43 to spread load.
+      Delivery: for isolated jobs, put channel/to on the top-level delivery object. Do not plan to call message tools inside the future run just to reach a recipient.
+      Lifecycle disclosure: when creating or updating a job, tell the user whether it is one-shot or recurring, whether it is durable, when it should run next, and how to cancel it with action=remove and the returned job id.
+      Context: contextMessages only helps systemEvent reminder text. Use it when the reminder should carry a small amount of recent context into the future prompt.
+      Wake vs add: use wake for immediate nudges that should not persist. Use add when the work must survive process restarts.
+      Anti-patterns: do not use cron for a task that should happen right now, do not omit delivery targets when the future run must reach a specific chat, and do not assume the model inside a future isolated run will remember current context unless you include it in the payload."
+    `);
+  });
+
   it("supports due-only run mode", async () => {
     const tool = createCronTool();
     await tool.execute("call-due", {
@@ -73,6 +90,42 @@ describe("cron tool", () => {
       params?: unknown;
     };
     expect(call?.params).toEqual({ id: "job-due", mode: "due" });
+  });
+
+  it("returns deterministic summary text for add results", async () => {
+    callGatewayMock.mockResolvedValueOnce({
+      id: "job-123",
+      name: "Morning follow-up",
+      schedule: { kind: "cron", expr: "7 9 * * *", tz: "America/New_York" },
+      sessionTarget: "isolated",
+      payload: { kind: "agentTurn", message: "follow up" },
+      state: { nextRunAtMs: Date.UTC(2026, 0, 5, 14, 7, 0) },
+    });
+
+    const tool = createCronTool();
+    const result = await tool.execute("call-summary", {
+      action: "add",
+      job: {
+        name: "Morning follow-up",
+        schedule: { kind: "cron", expr: "7 9 * * *", tz: "America/New_York" },
+        sessionTarget: "isolated",
+        wakeMode: "next-heartbeat",
+        payload: { kind: "agentTurn", message: "follow up" },
+      },
+    });
+
+    expect(result.content).toEqual([
+      {
+        type: "text",
+        text: expect.stringContaining("Created cron job job-123 (Morning follow-up)."),
+      },
+    ]);
+    expect(result.details).toMatchObject({
+      action: "add",
+      result: {
+        id: "job-123",
+      },
+    });
   });
 
   it("normalizes cron.add job payloads", async () => {
@@ -401,6 +454,23 @@ describe("cron tool", () => {
         enabled: true,
       }),
     ).rejects.toThrow("job required");
+  });
+
+  it("returns structured validation failures before any gateway calls", async () => {
+    const tool = applyToolContracts(createCronTool());
+    const result = await tool.execute("call-invalid", {
+      action: "add",
+      name: "orphan-name",
+      enabled: true,
+    });
+
+    expect(callGatewayMock).not.toHaveBeenCalled();
+    expect(result.details).toMatchObject({
+      ok: false,
+      success: false,
+      tool: "cron",
+      code: "invalid_input",
+    });
   });
 
   it("prefers existing non-empty job over flat params", async () => {

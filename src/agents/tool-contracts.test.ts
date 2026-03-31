@@ -158,4 +158,24 @@ describe("tool contracts", () => {
       message: "blocked by validator",
     });
   });
+
+  it("validates declared output schemas on direct tool execution", async () => {
+    const tool = applyToolContracts(
+      defineOpenClawTool({
+        name: "output_checked",
+        label: "Output Checked",
+        description: "test",
+        parameters: Type.Object({}),
+        outputSchema: Type.Object({
+          ok: Type.Boolean(),
+        }),
+        execute: async () => ({
+          content: [{ type: "text" as const, text: "bad" }],
+          details: { ok: "nope" },
+        }),
+      }),
+    );
+
+    await expect(tool.execute("call-output", {})).rejects.toThrow(/output_checked output/i);
+  });
 });
