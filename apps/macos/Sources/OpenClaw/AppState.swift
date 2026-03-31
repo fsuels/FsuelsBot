@@ -8,13 +8,16 @@ import SwiftUI
 @Observable
 final class AppState {
     private let isPreview: Bool
+    private let sideEffectsEnabled: Bool
+    private let watchConfigChanges: Bool
     private var isInitializing = true
     private var configWatcher: ConfigFileWatcher?
     private var suppressVoiceWakeGlobalSync = false
+    private var suppressGatewayConfigSync = false
     private var voiceWakeGlobalSyncTask: Task<Void, Never>?
 
-    private func ifNotPreview(_ action: () -> Void) {
-        guard !self.isPreview else { return }
+    private func ifSideEffectsEnabled(_ action: () -> Void) {
+        guard self.sideEffectsEnabled else { return }
         action()
     }
 
@@ -29,32 +32,39 @@ final class AppState {
         case direct
     }
 
+    private struct ExternalGatewayConfigState: Equatable {
+        let connectionMode: ConnectionMode
+        let remoteTransport: RemoteTransport
+        let remoteTarget: String
+        let remoteUrl: String
+    }
+
     var isPaused: Bool {
-        didSet { self.ifNotPreview { UserDefaults.standard.set(self.isPaused, forKey: pauseDefaultsKey) } }
+        didSet { self.ifSideEffectsEnabled { UserDefaults.standard.set(self.isPaused, forKey: pauseDefaultsKey) } }
     }
 
     var launchAtLogin: Bool {
         didSet {
             guard !self.isInitializing else { return }
-            self.ifNotPreview { Task { AppStateStore.updateLaunchAtLogin(enabled: self.launchAtLogin) } }
+            self.ifSideEffectsEnabled { Task { AppStateStore.updateLaunchAtLogin(enabled: self.launchAtLogin) } }
         }
     }
 
     var onboardingSeen: Bool {
-        didSet { self.ifNotPreview { UserDefaults.standard.set(self.onboardingSeen, forKey: onboardingSeenKey) }
+        didSet { self.ifSideEffectsEnabled { UserDefaults.standard.set(self.onboardingSeen, forKey: onboardingSeenKey) }
         }
     }
 
     var debugPaneEnabled: Bool {
         didSet {
-            self.ifNotPreview { UserDefaults.standard.set(self.debugPaneEnabled, forKey: debugPaneEnabledKey) }
+            self.ifSideEffectsEnabled { UserDefaults.standard.set(self.debugPaneEnabled, forKey: debugPaneEnabledKey) }
             CanvasManager.shared.refreshDebugStatus()
         }
     }
 
     var swabbleEnabled: Bool {
         didSet {
-            self.ifNotPreview {
+            self.ifSideEffectsEnabled {
                 UserDefaults.standard.set(self.swabbleEnabled, forKey: swabbleEnabledKey)
                 Task { await VoiceWakeRuntime.shared.refresh(state: self) }
             }
@@ -64,7 +74,7 @@ final class AppState {
     var swabbleTriggerWords: [String] {
         didSet {
             // Preserve the raw editing state; sanitization happens when we actually use the triggers.
-            self.ifNotPreview {
+            self.ifSideEffectsEnabled {
                 UserDefaults.standard.set(self.swabbleTriggerWords, forKey: swabbleTriggersKey)
                 if self.swabbleEnabled {
                     Task { await VoiceWakeRuntime.shared.refresh(state: self) }
@@ -75,22 +85,22 @@ final class AppState {
     }
 
     var voiceWakeTriggerChime: VoiceWakeChime {
-        didSet { self.ifNotPreview { self.storeChime(self.voiceWakeTriggerChime, key: voiceWakeTriggerChimeKey) } }
+        didSet { self.ifSideEffectsEnabled { self.storeChime(self.voiceWakeTriggerChime, key: voiceWakeTriggerChimeKey) } }
     }
 
     var voiceWakeSendChime: VoiceWakeChime {
-        didSet { self.ifNotPreview { self.storeChime(self.voiceWakeSendChime, key: voiceWakeSendChimeKey) } }
+        didSet { self.ifSideEffectsEnabled { self.storeChime(self.voiceWakeSendChime, key: voiceWakeSendChimeKey) } }
     }
 
     var iconAnimationsEnabled: Bool {
-        didSet { self.ifNotPreview { UserDefaults.standard.set(
+        didSet { self.ifSideEffectsEnabled { UserDefaults.standard.set(
             self.iconAnimationsEnabled,
             forKey: iconAnimationsEnabledKey) } }
     }
 
     var showDockIcon: Bool {
         didSet {
-            self.ifNotPreview {
+            self.ifSideEffectsEnabled {
                 UserDefaults.standard.set(self.showDockIcon, forKey: showDockIconKey)
                 AppActivationPolicy.apply(showDockIcon: self.showDockIcon)
             }
@@ -99,7 +109,7 @@ final class AppState {
 
     var voiceWakeMicID: String {
         didSet {
-            self.ifNotPreview {
+            self.ifSideEffectsEnabled {
                 UserDefaults.standard.set(self.voiceWakeMicID, forKey: voiceWakeMicKey)
                 if self.swabbleEnabled {
                     Task { await VoiceWakeRuntime.shared.refresh(state: self) }
@@ -109,12 +119,12 @@ final class AppState {
     }
 
     var voiceWakeMicName: String {
-        didSet { self.ifNotPreview { UserDefaults.standard.set(self.voiceWakeMicName, forKey: voiceWakeMicNameKey) } }
+        didSet { self.ifSideEffectsEnabled { UserDefaults.standard.set(self.voiceWakeMicName, forKey: voiceWakeMicNameKey) } }
     }
 
     var voiceWakeLocaleID: String {
         didSet {
-            self.ifNotPreview {
+            self.ifSideEffectsEnabled {
                 UserDefaults.standard.set(self.voiceWakeLocaleID, forKey: voiceWakeLocaleKey)
                 if self.swabbleEnabled {
                     Task { await VoiceWakeRuntime.shared.refresh(state: self) }
@@ -124,20 +134,20 @@ final class AppState {
     }
 
     var voiceWakeAdditionalLocaleIDs: [String] {
-        didSet { self.ifNotPreview { UserDefaults.standard.set(
+        didSet { self.ifSideEffectsEnabled { UserDefaults.standard.set(
             self.voiceWakeAdditionalLocaleIDs,
             forKey: voiceWakeAdditionalLocalesKey) } }
     }
 
     var voicePushToTalkEnabled: Bool {
-        didSet { self.ifNotPreview { UserDefaults.standard.set(
+        didSet { self.ifSideEffectsEnabled { UserDefaults.standard.set(
             self.voicePushToTalkEnabled,
             forKey: voicePushToTalkEnabledKey) } }
     }
 
     var talkEnabled: Bool {
         didSet {
-            self.ifNotPreview {
+            self.ifSideEffectsEnabled {
                 UserDefaults.standard.set(self.talkEnabled, forKey: talkEnabledKey)
                 Task { await TalkModeController.shared.setEnabled(self.talkEnabled) }
             }
@@ -148,7 +158,7 @@ final class AppState {
     var seamColorHex: String?
 
     var iconOverride: IconOverrideSelection {
-        didSet { self.ifNotPreview { UserDefaults.standard.set(self.iconOverride.rawValue, forKey: iconOverrideKey) } }
+        didSet { self.ifSideEffectsEnabled { UserDefaults.standard.set(self.iconOverride.rawValue, forKey: iconOverrideKey) } }
     }
 
     var isWorking: Bool = false
@@ -157,7 +167,7 @@ final class AppState {
     var sendCelebrationTick: Int = 0
     var heartbeatsEnabled: Bool {
         didSet {
-            self.ifNotPreview {
+            self.ifSideEffectsEnabled {
                 UserDefaults.standard.set(self.heartbeatsEnabled, forKey: heartbeatsEnabledKey)
                 Task { _ = await GatewayConnection.shared.setHeartbeatsEnabled(self.heartbeatsEnabled) }
             }
@@ -166,22 +176,23 @@ final class AppState {
 
     var connectionMode: ConnectionMode {
         didSet {
-            self.ifNotPreview { UserDefaults.standard.set(self.connectionMode.rawValue, forKey: connectionModeKey) }
-            self.syncGatewayConfigIfNeeded()
+            self.handleConnectionSettingChange(oldValue: oldValue, newValue: self.connectionMode) {
+                UserDefaults.standard.set(self.connectionMode.rawValue, forKey: connectionModeKey)
+            }
         }
     }
 
     var remoteTransport: RemoteTransport {
-        didSet { self.syncGatewayConfigIfNeeded() }
+        didSet { self.handleConnectionSettingChange(oldValue: oldValue, newValue: self.remoteTransport) }
     }
 
     var canvasEnabled: Bool {
-        didSet { self.ifNotPreview { UserDefaults.standard.set(self.canvasEnabled, forKey: canvasEnabledKey) } }
+        didSet { self.ifSideEffectsEnabled { UserDefaults.standard.set(self.canvasEnabled, forKey: canvasEnabledKey) } }
     }
 
     var execApprovalMode: ExecApprovalQuickMode {
         didSet {
-            self.ifNotPreview {
+            self.ifSideEffectsEnabled {
                 ExecApprovalsStore.updateDefaults { defaults in
                     defaults.security = self.execApprovalMode.security
                     defaults.ask = self.execApprovalMode.ask
@@ -195,7 +206,7 @@ final class AppState {
 
     var peekabooBridgeEnabled: Bool {
         didSet {
-            self.ifNotPreview {
+            self.ifSideEffectsEnabled {
                 UserDefaults.standard.set(self.peekabooBridgeEnabled, forKey: peekabooBridgeEnabledKey)
                 Task { await PeekabooBridgeHostCoordinator.shared.setEnabled(self.peekabooBridgeEnabled) }
             }
@@ -204,32 +215,39 @@ final class AppState {
 
     var remoteTarget: String {
         didSet {
-            self.ifNotPreview { UserDefaults.standard.set(self.remoteTarget, forKey: remoteTargetKey) }
-            self.syncGatewayConfigIfNeeded()
+            self.handleConnectionSettingChange(oldValue: oldValue, newValue: self.remoteTarget) {
+                UserDefaults.standard.set(self.remoteTarget, forKey: remoteTargetKey)
+            }
         }
     }
 
     var remoteUrl: String {
-        didSet { self.syncGatewayConfigIfNeeded() }
+        didSet { self.handleConnectionSettingChange(oldValue: oldValue, newValue: self.remoteUrl) }
     }
 
     var remoteIdentity: String {
-        didSet { self.ifNotPreview { UserDefaults.standard.set(self.remoteIdentity, forKey: remoteIdentityKey) } }
+        didSet {
+            self.handleConnectionSettingChange(oldValue: oldValue, newValue: self.remoteIdentity) {
+                UserDefaults.standard.set(self.remoteIdentity, forKey: remoteIdentityKey)
+            }
+        }
     }
 
     var remoteProjectRoot: String {
-        didSet { self.ifNotPreview { UserDefaults.standard.set(self.remoteProjectRoot, forKey: remoteProjectRootKey) } }
+        didSet { self.ifSideEffectsEnabled { UserDefaults.standard.set(self.remoteProjectRoot, forKey: remoteProjectRootKey) } }
     }
 
     var remoteCliPath: String {
-        didSet { self.ifNotPreview { UserDefaults.standard.set(self.remoteCliPath, forKey: remoteCliPathKey) } }
+        didSet { self.ifSideEffectsEnabled { UserDefaults.standard.set(self.remoteCliPath, forKey: remoteCliPathKey) } }
     }
 
     private var earBoostTask: Task<Void, Never>?
 
-    init(preview: Bool = false) {
+    init(preview: Bool = false, enableSideEffects: Bool? = nil, watchConfigChanges: Bool = true) {
         let isPreview = preview || ProcessInfo.processInfo.isRunningTests
         self.isPreview = isPreview
+        self.sideEffectsEnabled = enableSideEffects ?? !isPreview
+        self.watchConfigChanges = watchConfigChanges
         if !isPreview {
             migrateLegacyDefaults()
         }
@@ -279,24 +297,16 @@ final class AppState {
             UserDefaults.standard.set(IconOverrideSelection.system.rawValue, forKey: iconOverrideKey)
         }
 
-        let configRoot = OpenClawConfigFile.loadDict()
-        let configRemoteUrl = GatewayRemoteConfig.resolveUrlString(root: configRoot)
-        let configRemoteTransport = GatewayRemoteConfig.resolveTransport(root: configRoot)
-        let resolvedConnectionMode = ConnectionModeResolver.resolve(root: configRoot).mode
-        self.remoteTransport = configRemoteTransport
-        self.connectionMode = resolvedConnectionMode
-
         let storedRemoteTarget = UserDefaults.standard.string(forKey: remoteTargetKey) ?? ""
-        if resolvedConnectionMode == .remote,
-           configRemoteTransport != .direct,
-           storedRemoteTarget.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-           let host = AppState.remoteHost(from: configRemoteUrl)
-        {
-            self.remoteTarget = "\(NSUserName())@\(host)"
-        } else {
-            self.remoteTarget = storedRemoteTarget
-        }
-        self.remoteUrl = configRemoteUrl ?? ""
+        let configRoot = OpenClawConfigFile.loadDict()
+        let configState = Self.resolveExternalGatewayConfig(
+            root: configRoot,
+            currentRemoteTarget: storedRemoteTarget,
+            rewriteRemoteHost: false)
+        self.remoteTransport = configState.remoteTransport
+        self.connectionMode = configState.connectionMode
+        self.remoteTarget = configState.remoteTarget
+        self.remoteUrl = configState.remoteUrl
         self.remoteIdentity = UserDefaults.standard.string(forKey: remoteIdentityKey) ?? ""
         self.remoteProjectRoot = UserDefaults.standard.string(forKey: remoteProjectRootKey) ?? ""
         self.remoteCliPath = UserDefaults.standard.string(forKey: remoteCliPathKey) ?? ""
@@ -325,7 +335,7 @@ final class AppState {
         }
 
         self.isInitializing = false
-        if !self.isPreview {
+        if !self.isPreview, self.watchConfigChanges {
             self.startConfigWatcher()
         }
     }
@@ -356,6 +366,58 @@ final class AppState {
         return trimmed
     }
 
+    private static func resolvedRemoteTarget(
+        mode: ConnectionMode,
+        transport: RemoteTransport,
+        remoteUrl: String,
+        currentRemoteTarget: String,
+        rewriteRemoteHost: Bool,
+        defaultUser: String = NSUserName()) -> String
+    {
+        guard mode == .remote,
+              transport != .direct,
+              let host = self.remoteHost(from: remoteUrl)
+        else {
+            return currentRemoteTarget
+        }
+
+        let trimmed = currentRemoteTarget.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            return "\(defaultUser)@\(host)"
+        }
+        guard rewriteRemoteHost, let parsed = CommandResolver.parseSSHTarget(trimmed) else {
+            return currentRemoteTarget
+        }
+
+        let trimmedUser = parsed.user?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let user = (trimmedUser?.isEmpty ?? true) ? nil : trimmedUser
+        if let user {
+            return parsed.port == 22 ? "\(user)@\(host)" : "\(user)@\(host):\(parsed.port)"
+        }
+        return parsed.port == 22 ? host : "\(host):\(parsed.port)"
+    }
+
+    private static func resolveExternalGatewayConfig(
+        root: [String: Any],
+        currentRemoteTarget: String,
+        rewriteRemoteHost: Bool) -> ExternalGatewayConfigState
+    {
+        let remoteUrl = GatewayRemoteConfig.resolveUrlString(root: root) ?? ""
+        let remoteTransport = GatewayRemoteConfig.resolveTransport(root: root)
+        let connectionMode = ConnectionModeResolver.resolve(root: root).mode
+        let remoteTarget = self.resolvedRemoteTarget(
+            mode: connectionMode,
+            transport: remoteTransport,
+            remoteUrl: remoteUrl,
+            currentRemoteTarget: currentRemoteTarget,
+            rewriteRemoteHost: rewriteRemoteHost)
+        return ExternalGatewayConfigState(
+            connectionMode: connectionMode,
+            remoteTransport: remoteTransport,
+            remoteTarget: remoteTarget,
+            remoteUrl: remoteUrl)
+    }
+
     private func startConfigWatcher() {
         let configUrl = OpenClawConfigFile.url()
         self.configWatcher = ConfigFileWatcher(url: configUrl) { [weak self] in
@@ -368,79 +430,54 @@ final class AppState {
 
     private func applyConfigFromDisk() {
         let root = OpenClawConfigFile.loadDict()
-        self.applyConfigOverrides(root)
+        self.applyExternalGatewayConfig(root)
     }
 
-    private func applyConfigOverrides(_ root: [String: Any]) {
-        let gateway = root["gateway"] as? [String: Any]
-        let modeRaw = (gateway?["mode"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let remoteUrl = GatewayRemoteConfig.resolveUrlString(root: root)
-        let hasRemoteUrl = !(remoteUrl?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .isEmpty ?? true)
-        let remoteTransport = GatewayRemoteConfig.resolveTransport(root: root)
+    func applyExternalGatewayConfig(_ root: [String: Any]) {
+        let resolved = Self.resolveExternalGatewayConfig(
+            root: root,
+            currentRemoteTarget: self.remoteTarget,
+            rewriteRemoteHost: true)
 
-        let desiredMode: ConnectionMode? = switch modeRaw {
-        case "local":
-            .local
-        case "remote":
-            .remote
-        case "unconfigured":
-            .unconfigured
-        default:
-            nil
-        }
+        self.suppressGatewayConfigSync = true
+        defer { self.suppressGatewayConfigSync = false }
 
-        if let desiredMode {
-            if desiredMode != self.connectionMode {
-                self.connectionMode = desiredMode
-            }
-        } else if hasRemoteUrl, self.connectionMode != .remote {
-            self.connectionMode = .remote
+        if resolved.connectionMode != self.connectionMode {
+            self.connectionMode = resolved.connectionMode
         }
-
-        if remoteTransport != self.remoteTransport {
-            self.remoteTransport = remoteTransport
+        if resolved.remoteTransport != self.remoteTransport {
+            self.remoteTransport = resolved.remoteTransport
         }
-        let remoteUrlText = remoteUrl ?? ""
-        if remoteUrlText != self.remoteUrl {
-            self.remoteUrl = remoteUrlText
+        if resolved.remoteUrl != self.remoteUrl {
+            self.remoteUrl = resolved.remoteUrl
         }
-
-        let targetMode = desiredMode ?? self.connectionMode
-        if targetMode == .remote,
-           remoteTransport != .direct,
-           let host = AppState.remoteHost(from: remoteUrl)
-        {
-            self.updateRemoteTarget(host: host)
+        if resolved.remoteTarget != self.remoteTarget {
+            self.remoteTarget = resolved.remoteTarget
         }
     }
 
-    private func updateRemoteTarget(host: String) {
-        let trimmed = self.remoteTarget.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let parsed = CommandResolver.parseSSHTarget(trimmed) else { return }
-        let trimmedUser = parsed.user?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let user = (trimmedUser?.isEmpty ?? true) ? nil : trimmedUser
-        let port = parsed.port
-        let assembled: String
-        if let user {
-            assembled = port == 22 ? "\(user)@\(host)" : "\(user)@\(host):\(port)"
-        } else {
-            assembled = port == 22 ? host : "\(host):\(port)"
-        }
-        if assembled != self.remoteTarget {
-            self.remoteTarget = assembled
-        }
+    private func handleConnectionSettingChange<Value: Equatable>(
+        oldValue: Value,
+        newValue: Value,
+        persist: (() -> Void)? = nil)
+    {
+        guard oldValue != newValue else { return }
+        self.ifSideEffectsEnabled { persist?() }
+        guard !self.suppressGatewayConfigSync else { return }
+        self.syncGatewayConfigIfNeeded()
     }
 
-    private func syncGatewayConfigIfNeeded() {
-        guard !self.isPreview, !self.isInitializing else { return }
+    private static func applyGatewayConfigSync(
+        root: inout [String: Any],
+        connectionMode: ConnectionMode,
+        remoteTransport: RemoteTransport,
+        remoteTarget: String,
+        remoteUrl: String,
+        remoteIdentity: String) -> Bool
+    {
+        var gateway = root["gateway"] as? [String: Any] ?? [:]
+        var changed = false
 
-        let connectionMode = self.connectionMode
-        let remoteTarget = self.remoteTarget
-        let remoteIdentity = self.remoteIdentity
-        let remoteTransport = self.remoteTransport
-        let remoteUrl = self.remoteUrl
         let desiredMode: String? = switch connectionMode {
         case .local:
             "local"
@@ -449,102 +486,120 @@ final class AppState {
         case .unconfigured:
             nil
         }
+
+        let currentMode = (gateway["mode"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let desiredMode {
+            if currentMode != desiredMode {
+                gateway["mode"] = desiredMode
+                changed = true
+            }
+        } else if currentMode != nil {
+            gateway.removeValue(forKey: "mode")
+            changed = true
+        }
+
         let remoteHost = connectionMode == .remote
             ? CommandResolver.parseSSHTarget(remoteTarget)?.host
             : nil
 
-        Task { @MainActor in
-            // Keep app-only connection settings local to avoid overwriting remote gateway config.
-            var root = OpenClawConfigFile.loadDict()
-            var gateway = root["gateway"] as? [String: Any] ?? [:]
-            var changed = false
+        if connectionMode == .remote {
+            var remote = gateway["remote"] as? [String: Any] ?? [:]
+            var remoteChanged = false
 
-            let currentMode = (gateway["mode"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
-            if let desiredMode {
-                if currentMode != desiredMode {
-                    gateway["mode"] = desiredMode
-                    changed = true
-                }
-            } else if currentMode != nil {
-                gateway.removeValue(forKey: "mode")
-                changed = true
-            }
-
-            if connectionMode == .remote {
-                var remote = gateway["remote"] as? [String: Any] ?? [:]
-                var remoteChanged = false
-
-                if remoteTransport == .direct {
-                    let trimmedUrl = remoteUrl.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if trimmedUrl.isEmpty {
-                        if remote["url"] != nil {
-                            remote.removeValue(forKey: "url")
-                            remoteChanged = true
-                        }
-                    } else {
-                        let normalizedUrl = GatewayRemoteConfig.normalizeGatewayUrlString(trimmedUrl) ?? trimmedUrl
-                        if (remote["url"] as? String) != normalizedUrl {
-                            remote["url"] = normalizedUrl
-                            remoteChanged = true
-                        }
-                    }
-                    if (remote["transport"] as? String) != RemoteTransport.direct.rawValue {
-                        remote["transport"] = RemoteTransport.direct.rawValue
+            if remoteTransport == .direct {
+                let trimmedUrl = remoteUrl.trimmingCharacters(in: .whitespacesAndNewlines)
+                if trimmedUrl.isEmpty {
+                    if remote["url"] != nil {
+                        remote.removeValue(forKey: "url")
                         remoteChanged = true
                     }
                 } else {
-                    if remote["transport"] != nil {
-                        remote.removeValue(forKey: "transport")
-                        remoteChanged = true
-                    }
-                    if let host = remoteHost {
-                        let existingUrl = (remote["url"] as? String)?
-                            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                        let parsedExisting = existingUrl.isEmpty ? nil : URL(string: existingUrl)
-                        let scheme = parsedExisting?.scheme?.isEmpty == false ? parsedExisting?.scheme : "ws"
-                        let port = parsedExisting?.port ?? 18789
-                        let desiredUrl = "\(scheme ?? "ws")://\(host):\(port)"
-                        if existingUrl != desiredUrl {
-                            remote["url"] = desiredUrl
-                            remoteChanged = true
-                        }
-                    }
-
-                    let sanitizedTarget = Self.sanitizeSSHTarget(remoteTarget)
-                    if !sanitizedTarget.isEmpty {
-                        if (remote["sshTarget"] as? String) != sanitizedTarget {
-                            remote["sshTarget"] = sanitizedTarget
-                            remoteChanged = true
-                        }
-                    } else if remote["sshTarget"] != nil {
-                        remote.removeValue(forKey: "sshTarget")
-                        remoteChanged = true
-                    }
-
-                    let trimmedIdentity = remoteIdentity.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !trimmedIdentity.isEmpty {
-                        if (remote["sshIdentity"] as? String) != trimmedIdentity {
-                            remote["sshIdentity"] = trimmedIdentity
-                            remoteChanged = true
-                        }
-                    } else if remote["sshIdentity"] != nil {
-                        remote.removeValue(forKey: "sshIdentity")
+                    let normalizedUrl = GatewayRemoteConfig.normalizeGatewayUrlString(trimmedUrl) ?? trimmedUrl
+                    if (remote["url"] as? String) != normalizedUrl {
+                        remote["url"] = normalizedUrl
                         remoteChanged = true
                     }
                 }
-
-                if remoteChanged {
-                    gateway["remote"] = remote
-                    changed = true
+                if (remote["transport"] as? String) != RemoteTransport.direct.rawValue {
+                    remote["transport"] = RemoteTransport.direct.rawValue
+                    remoteChanged = true
                 }
-            }
-
-            guard changed else { return }
-            if gateway.isEmpty {
-                root.removeValue(forKey: "gateway")
             } else {
-                root["gateway"] = gateway
+                if remote["transport"] != nil {
+                    remote.removeValue(forKey: "transport")
+                    remoteChanged = true
+                }
+                if let host = remoteHost {
+                    let existingUrl = (remote["url"] as? String)?
+                        .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                    let parsedExisting = existingUrl.isEmpty ? nil : URL(string: existingUrl)
+                    let scheme = parsedExisting?.scheme?.isEmpty == false ? parsedExisting?.scheme : "ws"
+                    let port = parsedExisting?.port ?? 18789
+                    let desiredUrl = "\(scheme ?? "ws")://\(host):\(port)"
+                    if existingUrl != desiredUrl {
+                        remote["url"] = desiredUrl
+                        remoteChanged = true
+                    }
+                }
+
+                let sanitizedTarget = Self.sanitizeSSHTarget(remoteTarget)
+                if !sanitizedTarget.isEmpty {
+                    if (remote["sshTarget"] as? String) != sanitizedTarget {
+                        remote["sshTarget"] = sanitizedTarget
+                        remoteChanged = true
+                    }
+                } else if remote["sshTarget"] != nil {
+                    remote.removeValue(forKey: "sshTarget")
+                    remoteChanged = true
+                }
+
+                let trimmedIdentity = remoteIdentity.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmedIdentity.isEmpty {
+                    if (remote["sshIdentity"] as? String) != trimmedIdentity {
+                        remote["sshIdentity"] = trimmedIdentity
+                        remoteChanged = true
+                    }
+                } else if remote["sshIdentity"] != nil {
+                    remote.removeValue(forKey: "sshIdentity")
+                    remoteChanged = true
+                }
             }
+
+            if remoteChanged {
+                gateway["remote"] = remote
+                changed = true
+            }
+        }
+
+        guard changed else { return false }
+        if gateway.isEmpty {
+            root.removeValue(forKey: "gateway")
+        } else {
+            root["gateway"] = gateway
+        }
+        return true
+    }
+
+    private func syncGatewayConfigIfNeeded() {
+        guard self.sideEffectsEnabled, !self.isInitializing else { return }
+
+        let connectionMode = self.connectionMode
+        let remoteTarget = self.remoteTarget
+        let remoteIdentity = self.remoteIdentity
+        let remoteTransport = self.remoteTransport
+        let remoteUrl = self.remoteUrl
+
+        Task { @MainActor in
+            // Keep app-only connection settings local to avoid overwriting remote gateway config.
+            var root = OpenClawConfigFile.loadDict()
+            guard Self.applyGatewayConfigSync(
+                root: &root,
+                connectionMode: connectionMode,
+                remoteTransport: remoteTransport,
+                remoteTarget: remoteTarget,
+                remoteUrl: remoteUrl,
+                remoteIdentity: remoteIdentity)
+            else { return }
             OpenClawConfigFile.saveDict(root)
         }
     }
