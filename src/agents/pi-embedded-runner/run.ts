@@ -3,8 +3,6 @@ import type { ThinkLevel } from "../../auto-reply/thinking.js";
 import type { RunEmbeddedPiAgentParams } from "./run/params.js";
 import type { EmbeddedPiAgentMeta, EmbeddedPiRunResult } from "./types.js";
 import { enqueueCommandInLane } from "../../process/command-queue.js";
-import { isMarkdownCapableMessageChannel } from "../../utils/message-channel.js";
-import { resolveOpenClawAgentDir } from "../agent-paths.js";
 import { resolveAgentIdFromSessionKey } from "../agent-scope.js";
 import {
   isProfileInCooldown,
@@ -18,7 +16,7 @@ import {
   evaluateContextWindowGuard,
   resolveContextWindowInfo,
 } from "../context-window-guard.js";
-import { DEFAULT_CONTEXT_TOKENS, DEFAULT_MODEL, DEFAULT_PROVIDER } from "../defaults.js";
+import { DEFAULT_CONTEXT_TOKENS } from "../defaults.js";
 import { shouldEscalateThinking, type DriftLevel } from "../drift-detection.js";
 import { FailoverError, resolveFailoverStatus } from "../failover-error.js";
 import {
@@ -28,7 +26,6 @@ import {
   type ResolvedProviderAuth,
 } from "../model-auth.js";
 import { normalizeProviderId } from "../model-selection.js";
-import { ensureOpenClawModelsJson } from "../models-config.js";
 import {
   BILLING_ERROR_USER_MESSAGE,
   classifyFailoverReason,
@@ -54,19 +51,19 @@ import {
   buildLoopDetectionHint,
 } from "../tool-call-loop-detector.js";
 import { normalizeUsage, type UsageLike } from "../usage.js";
-import { redactRunIdentifier, resolveRunWorkspaceDir } from "../workspace-run.js";
-import { compactEmbeddedPiSessionDirect } from "./compact.js";
+import { redactRunIdentifier } from "../workspace-run.js";
 import { resolveGlobalLane, resolveSessionLane } from "./lanes.js";
 import { log } from "./logger.js";
-import { resolveModel } from "./model.js";
 import { hashPromptState } from "./prompt-dedup-cache.js";
-import { runEmbeddedAttempt } from "./run/attempt.js";
+import { createEmbeddedPiRunConfig } from "./run/config.js";
+import { type EmbeddedPiRunDeps, productionEmbeddedPiRunDeps } from "./run/deps.js";
+import { buildEmbeddedRunPayloads } from "./run/payloads.js";
 import {
   createEmbeddedRunRecoveryState,
   transitionEmbeddedRunRecovery,
   type EmbeddedRunRecoveryEffect,
 } from "./run/recovery-state.js";
-import { buildEmbeddedRunPayloads } from "./run/payloads.js";
+import { abortEmbeddedPiRun } from "./runs.js";
 import {
   truncateOversizedToolResultsInSession,
   sessionLikelyHasOversizedToolResults,
@@ -151,63 +148,80 @@ const toNormalizedUsage = (usage: UsageAccumulator) => {
 
 export async function runEmbeddedPiAgent(
   params: RunEmbeddedPiAgentParams,
+  depsOverrides: Partial<EmbeddedPiRunDeps> = {},
 ): Promise<EmbeddedPiRunResult> {
-  const runQueuedAt = Date.now();
-  const sessionLane = resolveSessionLane(params.sessionKey?.trim() || params.sessionId);
-  const globalLane = resolveGlobalLane(params.lane);
+  const deps = {
+    ...productionEmbeddedPiRunDeps(),
+    ...depsOverrides,
+  } satisfies EmbeddedPiRunDeps;
+  const runConfig = createEmbeddedPiRunConfig(params, deps.now);
+  const runQueuedAt = runConfig.queuedAt;
+  const sessionLane = resolveSessionLane(runConfig.sessionKey?.trim() || runConfig.sessionId);
+  const globalLane = resolveGlobalLane(runConfig.lane);
   const enqueueGlobal =
-    params.enqueue ?? ((task, opts) => enqueueCommandInLane(globalLane, task, opts));
+    runConfig.enqueue ??
+    ((task, opts) =>
+      enqueueCommandInLane(globalLane, task, {
+        ...opts,
+        provenance: opts?.provenance ?? {
+          source: "embedded-agent.global",
+          agentId: runConfig.agentId,
+          sessionId: runConfig.sessionId,
+          sessionKey: runConfig.sessionKey,
+        },
+      }));
   const enqueueSession =
-    params.enqueue ?? ((task, opts) => enqueueCommandInLane(sessionLane, task, opts));
-  const channelHint = params.messageChannel ?? params.messageProvider;
-  const resolvedToolResultFormat =
-    params.toolResultFormat ??
-    (channelHint
-      ? isMarkdownCapableMessageChannel(channelHint)
-        ? "markdown"
-        : "plain"
-      : "markdown");
-  const isProbeSession = params.sessionId?.startsWith("probe-") ?? false;
+    runConfig.enqueue ??
+    ((task, opts) =>
+      enqueueCommandInLane(sessionLane, task, {
+        ...opts,
+        provenance: opts?.provenance ?? {
+          source: "embedded-agent.session",
+          agentId: runConfig.agentId,
+          sessionId: runConfig.sessionId,
+          sessionKey: runConfig.sessionKey,
+        },
+        onInterrupt:
+          opts?.onInterrupt ??
+          (() => {
+            abortEmbeddedPiRun(runConfig.sessionId);
+          }),
+      }));
 
   const runPromise: Promise<EmbeddedPiRunResult> = enqueueSession(() =>
     enqueueGlobal(async () => {
-      const started = Date.now();
-      const workspaceResolution = resolveRunWorkspaceDir({
-        workspaceDir: params.workspaceDir,
-        sessionKey: params.sessionKey,
-        agentId: params.agentId,
-        config: params.config,
-      });
-      const resolvedWorkspace = workspaceResolution.workspaceDir;
-      const redactedSessionId = redactRunIdentifier(params.sessionId);
-      const redactedSessionKey = redactRunIdentifier(params.sessionKey);
+      const started = deps.now();
+      const workspaceResolution = runConfig.workspaceResolution;
+      const resolvedWorkspace = runConfig.workspaceDir;
+      const redactedSessionId = redactRunIdentifier(runConfig.sessionId);
+      const redactedSessionKey = redactRunIdentifier(runConfig.sessionKey);
       const redactedWorkspace = redactRunIdentifier(resolvedWorkspace);
       if (workspaceResolution.usedFallback) {
         log.warn(
-          `[workspace-fallback] caller=runEmbeddedPiAgent reason=${workspaceResolution.fallbackReason} run=${params.runId} session=${redactedSessionId} sessionKey=${redactedSessionKey} agent=${workspaceResolution.agentId} workspace=${redactedWorkspace}`,
+          `[workspace-fallback] caller=runEmbeddedPiAgent reason=${workspaceResolution.fallbackReason} run=${runConfig.runId} session=${redactedSessionId} sessionKey=${redactedSessionKey} agent=${workspaceResolution.agentId} workspace=${redactedWorkspace}`,
         );
       }
       const prevCwd = process.cwd();
 
-      const provider = (params.provider ?? DEFAULT_PROVIDER).trim() || DEFAULT_PROVIDER;
-      const modelId = (params.model ?? DEFAULT_MODEL).trim() || DEFAULT_MODEL;
-      const agentDir = params.agentDir ?? resolveOpenClawAgentDir();
+      const provider = runConfig.provider;
+      const modelId = runConfig.model;
+      const agentDir = runConfig.agentDir;
       const fallbackConfigured =
-        (params.config?.agents?.defaults?.model?.fallbacks?.length ?? 0) > 0;
-      await ensureOpenClawModelsJson(params.config, agentDir);
+        (runConfig.config?.agents?.defaults?.model?.fallbacks?.length ?? 0) > 0;
+      await deps.ensureModelsJson(runConfig.config, agentDir);
 
-      const { model, error, authStorage, modelRegistry } = resolveModel(
+      const { model, error, authStorage, modelRegistry } = deps.resolveModel(
         provider,
         modelId,
         agentDir,
-        params.config,
+        runConfig.config,
       );
       if (!model) {
         throw new Error(error ?? `Unknown model: ${provider}/${modelId}`);
       }
 
       const ctxInfo = resolveContextWindowInfo({
-        cfg: params.config,
+        cfg: runConfig.config,
         provider,
         modelId,
         modelContextWindow: model.contextWindow,
@@ -234,8 +248,9 @@ export async function runEmbeddedPiAgent(
       }
 
       const authStore = ensureAuthProfileStore(agentDir, { allowKeychainPrompt: false });
-      const preferredProfileId = params.authProfileId?.trim();
-      let lockedProfileId = params.authProfileIdSource === "user" ? preferredProfileId : undefined;
+      const preferredProfileId = runConfig.authProfileId?.trim();
+      let lockedProfileId =
+        runConfig.authProfileIdSource === "user" ? preferredProfileId : undefined;
       if (lockedProfileId) {
         const lockedProfile = authStore.profiles[lockedProfileId];
         if (
@@ -246,7 +261,7 @@ export async function runEmbeddedPiAgent(
         }
       }
       const profileOrder = resolveAuthProfileOrder({
-        cfg: params.config,
+        cfg: runConfig.config,
         store: authStore,
         provider,
         preferredProfile: preferredProfileId,
@@ -261,7 +276,7 @@ export async function runEmbeddedPiAgent(
           : [undefined];
       let profileIndex = 0;
 
-      const initialThinkLevel = params.thinkLevel ?? "off";
+      const initialThinkLevel = runConfig.thinkLevel;
       let thinkLevel = initialThinkLevel;
       const attemptedThinking = new Set<ThinkLevel>();
       let apiKeyInfo: ApiKeyInfo | null = null;
@@ -310,7 +325,7 @@ export async function runEmbeddedPiAgent(
       const resolveApiKeyForCandidate = async (candidate?: string) => {
         return getApiKeyForModel({
           model,
-          cfg: params.config,
+          cfg: runConfig.config,
           profileId: candidate,
           store: authStore,
           agentDir,
@@ -426,26 +441,26 @@ export async function runEmbeddedPiAgent(
           );
         }
 
-        const compactResult = await compactEmbeddedPiSessionDirect({
-          sessionId: params.sessionId,
-          sessionKey: params.sessionKey,
-          messageChannel: params.messageChannel,
-          messageProvider: params.messageProvider,
-          agentAccountId: params.agentAccountId,
+        const compactResult = await deps.compactSession({
+          sessionId: runConfig.sessionId,
+          sessionKey: runConfig.sessionKey,
+          messageChannel: runConfig.messageChannel,
+          messageProvider: runConfig.messageProvider,
+          agentAccountId: runConfig.agentAccountId,
           authProfileId: lastProfileId,
-          sessionFile: params.sessionFile,
+          sessionFile: runConfig.sessionFile,
           workspaceDir: resolvedWorkspace,
           agentDir,
-          config: params.config,
-          skillsSnapshot: params.skillsSnapshot,
-          senderIsOwner: params.senderIsOwner,
+          config: runConfig.config,
+          skillsSnapshot: runConfig.skillsSnapshot,
+          senderIsOwner: runConfig.senderIsOwner,
           provider,
           model: modelId,
           thinkLevel,
-          reasoningLevel: params.reasoningLevel,
-          bashElevated: params.bashElevated,
-          extraSystemPrompt: params.extraSystemPrompt,
-          ownerNumbers: params.ownerNumbers,
+          reasoningLevel: runConfig.reasoningLevel,
+          bashElevated: runConfig.bashElevated,
+          extraSystemPrompt: runConfig.extraSystemPrompt,
+          ownerNumbers: runConfig.ownerNumbers,
         });
 
         if (compactResult.compacted) {
@@ -456,7 +471,9 @@ export async function runEmbeddedPiAgent(
             log.info(`auto-compaction succeeded for ${provider}/${modelId}; retrying prompt`);
           }
         } else if (effect.reason === "proactive") {
-          log.warn(`[proactive-compaction] Failed: ${compactResult.reason ?? "nothing to compact"}`);
+          log.warn(
+            `[proactive-compaction] Failed: ${compactResult.reason ?? "nothing to compact"}`,
+          );
         } else {
           log.warn(
             `auto-compaction failed for ${provider}/${modelId}: ${compactResult.reason ?? "nothing to compact"}`,
@@ -472,10 +489,10 @@ export async function runEmbeddedPiAgent(
             `(contextWindow=${contextWindowTokens} tokens)`,
         );
         const truncResult = await truncateOversizedToolResultsInSession({
-          sessionFile: params.sessionFile,
+          sessionFile: runConfig.sessionFile,
           contextWindowTokens,
-          sessionId: params.sessionId,
-          sessionKey: params.sessionKey,
+          sessionId: runConfig.sessionId,
+          sessionKey: runConfig.sessionKey,
         });
         if (truncResult.truncated) {
           log.info(
@@ -488,6 +505,7 @@ export async function runEmbeddedPiAgent(
         }
         return truncResult.truncated;
       };
+
       try {
         while (true) {
           runTurnCounter++;
@@ -495,7 +513,9 @@ export async function runEmbeddedPiAgent(
           await fs.mkdir(resolvedWorkspace, { recursive: true });
 
           const prompt =
-            provider === "anthropic" ? scrubAnthropicRefusalMagic(params.prompt) : params.prompt;
+            provider === "anthropic"
+              ? scrubAnthropicRefusalMagic(runConfig.prompt)
+              : runConfig.prompt;
 
           // Check for tool call loops before each attempt
           const loopResult = detectToolCallLoop(toolCallFingerprints);
@@ -511,13 +531,13 @@ export async function runEmbeddedPiAgent(
           // Guardrails: cap to 1 per run, 3-turn cooldown, only in struggling/degraded posture
           if (
             !thinkingEscalationUsed &&
-            params.driftInjection?.level === "critical" &&
+            runConfig.driftInjection?.level === "critical" &&
             runTurnCounter - thinkingEscalationCooldownTurn >= 3
           ) {
             // Infer posture mode from drift level (simplified: critical drift → struggling at minimum)
             const inferredPostureMode = "struggling" as const;
             const escalatedLevel = shouldEscalateThinking({
-              driftLevel: params.driftInjection.level as DriftLevel,
+              driftLevel: runConfig.driftInjection.level as DriftLevel,
               currentThinkingLevel: thinkLevel,
               postureMode: inferredPostureMode,
               canEscalate: !thinkingEscalationUsed,
@@ -534,36 +554,36 @@ export async function runEmbeddedPiAgent(
             }
           }
 
-          const attempt = await runEmbeddedAttempt({
-            sessionId: params.sessionId,
-            sessionKey: params.sessionKey,
-            taskId: params.taskId,
-            taskTitle: params.taskTitle,
-            messageChannel: params.messageChannel,
-            messageProvider: params.messageProvider,
-            agentAccountId: params.agentAccountId,
-            messageTo: params.messageTo,
-            messageThreadId: params.messageThreadId,
-            groupId: params.groupId,
-            groupChannel: params.groupChannel,
-            groupSpace: params.groupSpace,
-            spawnedBy: params.spawnedBy,
-            senderIsOwner: params.senderIsOwner,
-            currentChannelId: params.currentChannelId,
-            currentThreadTs: params.currentThreadTs,
-            replyToMode: params.replyToMode,
-            hasRepliedRef: params.hasRepliedRef,
-            sessionFile: params.sessionFile,
+          const attempt = await deps.runAttempt({
+            sessionId: runConfig.sessionId,
+            sessionKey: runConfig.sessionKey,
+            taskId: runConfig.taskId,
+            taskTitle: runConfig.taskTitle,
+            messageChannel: runConfig.messageChannel,
+            messageProvider: runConfig.messageProvider,
+            agentAccountId: runConfig.agentAccountId,
+            messageTo: runConfig.messageTo,
+            messageThreadId: runConfig.messageThreadId,
+            groupId: runConfig.groupId,
+            groupChannel: runConfig.groupChannel,
+            groupSpace: runConfig.groupSpace,
+            spawnedBy: runConfig.spawnedBy,
+            senderIsOwner: runConfig.senderIsOwner,
+            currentChannelId: runConfig.currentChannelId,
+            currentThreadTs: runConfig.currentThreadTs,
+            replyToMode: runConfig.replyToMode,
+            hasRepliedRef: runConfig.hasRepliedRef,
+            sessionFile: runConfig.sessionFile,
             workspaceDir: resolvedWorkspace,
             agentDir,
-            config: params.config,
-            skillsSnapshot: params.skillsSnapshot,
+            config: runConfig.config,
+            skillsSnapshot: runConfig.skillsSnapshot,
             prompt,
-            images: params.images,
-            clientTools: params.clientTools,
-            structuredOutputSchema: params.structuredOutputSchema,
-            structuredOutputName: params.structuredOutputName,
-            disableTools: params.disableTools,
+            images: runConfig.images,
+            clientTools: runConfig.clientTools,
+            structuredOutputSchema: runConfig.structuredOutputSchema,
+            structuredOutputName: runConfig.structuredOutputName,
+            disableTools: runConfig.disableTools,
             provider,
             modelId,
             model,
@@ -571,32 +591,32 @@ export async function runEmbeddedPiAgent(
             modelRegistry,
             agentId: workspaceResolution.agentId,
             thinkLevel,
-            verboseLevel: params.verboseLevel,
-            reasoningLevel: params.reasoningLevel,
-            toolResultFormat: resolvedToolResultFormat,
-            execOverrides: params.execOverrides,
-            bashElevated: params.bashElevated,
-            timeoutMs: params.timeoutMs,
-            runId: params.runId,
-            abortSignal: params.abortSignal,
-            shouldEmitToolResult: params.shouldEmitToolResult,
-            shouldEmitToolOutput: params.shouldEmitToolOutput,
-            onPartialReply: params.onPartialReply,
-            onAssistantMessageStart: params.onAssistantMessageStart,
-            onBlockReply: params.onBlockReply,
-            onBlockReplyFlush: params.onBlockReplyFlush,
-            blockReplyBreak: params.blockReplyBreak,
-            blockReplyChunking: params.blockReplyChunking,
-            onReasoningStream: params.onReasoningStream,
-            onToolResult: params.onToolResult,
-            onAgentEvent: params.onAgentEvent,
-            extraSystemPrompt: params.extraSystemPrompt,
-            streamParams: params.streamParams,
-            ownerNumbers: params.ownerNumbers,
-            enforceFinalTag: params.enforceFinalTag,
-            contextPressure: params.contextPressure,
-            driftInjection: params.driftInjection,
-            coherenceIntervention: params.coherenceIntervention,
+            verboseLevel: runConfig.verboseLevel,
+            reasoningLevel: runConfig.reasoningLevel,
+            toolResultFormat: runConfig.toolResultFormat,
+            execOverrides: runConfig.execOverrides,
+            bashElevated: runConfig.bashElevated,
+            timeoutMs: runConfig.timeoutMs,
+            runId: runConfig.runId,
+            abortSignal: runConfig.abortSignal,
+            shouldEmitToolResult: runConfig.shouldEmitToolResult,
+            shouldEmitToolOutput: runConfig.shouldEmitToolOutput,
+            onPartialReply: runConfig.onPartialReply,
+            onAssistantMessageStart: runConfig.onAssistantMessageStart,
+            onBlockReply: runConfig.onBlockReply,
+            onBlockReplyFlush: runConfig.onBlockReplyFlush,
+            blockReplyBreak: runConfig.blockReplyBreak,
+            blockReplyChunking: runConfig.blockReplyChunking,
+            onReasoningStream: runConfig.onReasoningStream,
+            onToolResult: runConfig.onToolResult,
+            onAgentEvent: runConfig.onAgentEvent,
+            extraSystemPrompt: runConfig.extraSystemPrompt,
+            streamParams: runConfig.streamParams,
+            ownerNumbers: runConfig.ownerNumbers,
+            enforceFinalTag: runConfig.enforceFinalTag,
+            contextPressure: runConfig.contextPressure,
+            driftInjection: runConfig.driftInjection,
+            coherenceIntervention: runConfig.coherenceIntervention,
             loopDetectionHint: loopHint ?? undefined,
           });
 
@@ -630,7 +650,7 @@ export async function runEmbeddedPiAgent(
           let promptIsDuplicate = false;
           if (attempt.messagesSnapshot?.length) {
             try {
-              const promptHash = hashPromptState(params.prompt ?? "", attempt.messagesSnapshot);
+              const promptHash = hashPromptState(runConfig.prompt, attempt.messagesSnapshot);
               if (attemptedPromptHashes.has(promptHash)) {
                 promptIsDuplicate = true;
                 log.info(
@@ -645,7 +665,7 @@ export async function runEmbeddedPiAgent(
           }
 
           // Record tool call fingerprints for loop detection (Sustained Reasoning P1)
-          const now = Date.now();
+          const now = deps.now();
           for (const meta of attempt.toolMetas) {
             toolCallFingerprints.push({
               name: meta.toolName,
@@ -661,8 +681,8 @@ export async function runEmbeddedPiAgent(
           autoCompactionCount += Math.max(0, attempt.compactionCount ?? 0);
           const formattedAssistantErrorText = lastAssistant
             ? formatAssistantErrorText(lastAssistant, {
-                cfg: params.config,
-                sessionKey: params.sessionKey ?? params.sessionId,
+                cfg: runConfig.config,
+                sessionKey: runConfig.sessionKey ?? runConfig.sessionId,
               })
             : undefined;
           const assistantErrorText =
@@ -692,9 +712,9 @@ export async function runEmbeddedPiAgent(
             const errorText = contextOverflowError.text;
             const msgCount = attempt.messagesSnapshot?.length ?? 0;
             log.warn(
-              `[context-overflow-diag] sessionKey=${params.sessionKey ?? params.sessionId} ` +
+              `[context-overflow-diag] sessionKey=${runConfig.sessionKey ?? runConfig.sessionId} ` +
                 `provider=${provider}/${modelId} source=${contextOverflowError.source} ` +
-                `messages=${msgCount} sessionFile=${params.sessionFile} ` +
+                `messages=${msgCount} sessionFile=${runConfig.sessionFile} ` +
                 `compactionAttempts=${recoveryState.overflowCompactionAttempts} error=${errorText.slice(0, 200)}`,
             );
             const isCompactionFailure = isCompactionFailureError(errorText);
@@ -750,7 +770,7 @@ export async function runEmbeddedPiAgent(
                 },
               ],
               meta: {
-                durationMs: Date.now() - started,
+                durationMs: deps.now() - started,
                 agentMeta: {
                   sessionId: sessionIdUsed,
                   provider,
@@ -776,7 +796,7 @@ export async function runEmbeddedPiAgent(
                   },
                 ],
                 meta: {
-                  durationMs: Date.now() - started,
+                  durationMs: deps.now() - started,
                   agentMeta: {
                     sessionId: sessionIdUsed,
                     provider,
@@ -804,7 +824,7 @@ export async function runEmbeddedPiAgent(
                   },
                 ],
                 meta: {
-                  durationMs: Date.now() - started,
+                  durationMs: deps.now() - started,
                   agentMeta: {
                     sessionId: sessionIdUsed,
                     provider,
@@ -821,8 +841,8 @@ export async function runEmbeddedPiAgent(
                 store: authStore,
                 profileId: lastProfileId,
                 reason: promptFailoverReason,
-                cfg: params.config,
-                agentDir: params.agentDir,
+                cfg: runConfig.config,
+                agentDir,
               });
             }
             if (
@@ -909,10 +929,10 @@ export async function runEmbeddedPiAgent(
                 store: authStore,
                 profileId: lastProfileId,
                 reason,
-                cfg: params.config,
-                agentDir: params.agentDir,
+                cfg: runConfig.config,
+                agentDir,
               });
-              if (timedOut && !isProbeSession) {
+              if (timedOut && !runConfig.isProbeSession) {
                 log.warn(
                   `Profile ${lastProfileId} timed out (possible rate limit). Trying next account...`,
                 );
@@ -934,8 +954,8 @@ export async function runEmbeddedPiAgent(
               const message =
                 (lastAssistant
                   ? formatAssistantErrorText(lastAssistant, {
-                      cfg: params.config,
-                      sessionKey: params.sessionKey ?? params.sessionId,
+                      cfg: runConfig.config,
+                      sessionKey: runConfig.sessionKey ?? runConfig.sessionId,
                     })
                   : undefined) ||
                 lastAssistant?.errorMessage?.trim() ||
@@ -970,7 +990,7 @@ export async function runEmbeddedPiAgent(
             compactionCount: autoCompactionCount > 0 ? autoCompactionCount : undefined,
           };
 
-          const structuredOutputRequired = Boolean(params.structuredOutputSchema);
+          const structuredOutputRequired = Boolean(runConfig.structuredOutputSchema);
           const structuredOutput = attempt.structuredOutput?.payload;
           const structuredOutputError =
             structuredOutputRequired && structuredOutput === undefined
@@ -989,34 +1009,34 @@ export async function runEmbeddedPiAgent(
                 lastAssistant: attempt.lastAssistant,
                 lastToolError: attempt.lastToolError,
                 webSearchSources: attempt.webSearchSources,
-                config: params.config,
-                sessionKey: params.sessionKey ?? params.sessionId,
-                verboseLevel: params.verboseLevel,
-                reasoningLevel: params.reasoningLevel,
-                toolResultFormat: resolvedToolResultFormat,
+                config: runConfig.config,
+                sessionKey: runConfig.sessionKey ?? runConfig.sessionId,
+                verboseLevel: runConfig.verboseLevel,
+                reasoningLevel: runConfig.reasoningLevel,
+                toolResultFormat: runConfig.toolResultFormat,
                 inlineToolResultsAllowed: false,
               });
 
           log.debug(
-            `embedded run done: runId=${params.runId} sessionId=${params.sessionId} durationMs=${Date.now() - started} aborted=${aborted}`,
+            `embedded run done: runId=${runConfig.runId} sessionId=${runConfig.sessionId} durationMs=${deps.now() - started} aborted=${aborted}`,
           );
           if (lastProfileId) {
             await markAuthProfileGood({
               store: authStore,
               provider,
               profileId: lastProfileId,
-              agentDir: params.agentDir,
+              agentDir,
             });
             await markAuthProfileUsed({
               store: authStore,
               profileId: lastProfileId,
-              agentDir: params.agentDir,
+              agentDir,
             });
           }
           return {
             payloads: payloads.length ? payloads : undefined,
             meta: {
-              durationMs: Date.now() - started,
+              durationMs: deps.now() - started,
               agentMeta,
               aborted,
               systemPromptReport: attempt.systemPromptReport,
@@ -1028,7 +1048,7 @@ export async function runEmbeddedPiAgent(
               pendingToolCalls: attempt.clientToolCall
                 ? [
                     {
-                      id: `call_${Date.now()}`,
+                      id: `call_${deps.now()}`,
                       name: attempt.clientToolCall.name,
                       arguments: JSON.stringify(attempt.clientToolCall.params),
                     },
@@ -1050,7 +1070,7 @@ export async function runEmbeddedPiAgent(
 
   return runPromise
     .then((result) => {
-      const endedAt = Date.now();
+      const endedAt = deps.now();
       const durationMs = result.meta.durationMs ?? Math.max(0, endedAt - runQueuedAt);
       const startedAt = Math.max(0, endedAt - durationMs);
       const toolNames = (result.toolMetas ?? [])
@@ -1063,21 +1083,21 @@ export async function runEmbeddedPiAgent(
           : "success";
       const usage = result.meta.agentMeta?.usage;
       processSkillFactoryEpisodeDetached({
-        agentId: params.agentId ?? resolveAgentIdFromSessionKey(params.sessionKey),
-        workspaceDir: params.workspaceDir,
-        config: params.config,
-        sessionKey: params.sessionKey,
-        sessionId: params.sessionId,
-        taskId: params.taskId,
-        runId: params.runId,
+        agentId: runConfig.agentId ?? resolveAgentIdFromSessionKey(runConfig.sessionKey),
+        workspaceDir: runConfig.workspaceDir,
+        config: runConfig.config,
+        sessionKey: runConfig.sessionKey,
+        sessionId: runConfig.sessionId,
+        taskId: runConfig.taskId,
+        runId: runConfig.runId,
         source: "embedded",
-        prompt: params.prompt,
-        taskTitle: params.taskTitle,
+        prompt: runConfig.prompt,
+        taskTitle: runConfig.taskTitle,
         toolNames,
         startedAt,
         endedAt,
-        provider: result.meta.agentMeta?.provider ?? params.provider,
-        model: result.meta.agentMeta?.model ?? params.model,
+        provider: result.meta.agentMeta?.provider ?? runConfig.provider,
+        model: result.meta.agentMeta?.model ?? runConfig.model,
         usage: usage
           ? {
               input: usage.input,
@@ -1092,23 +1112,23 @@ export async function runEmbeddedPiAgent(
       return result;
     })
     .catch((error: unknown) => {
-      const endedAt = Date.now();
+      const endedAt = deps.now();
       processSkillFactoryEpisodeDetached({
-        agentId: params.agentId ?? resolveAgentIdFromSessionKey(params.sessionKey),
-        workspaceDir: params.workspaceDir,
-        config: params.config,
-        sessionKey: params.sessionKey,
-        sessionId: params.sessionId,
-        taskId: params.taskId,
-        runId: params.runId,
+        agentId: runConfig.agentId ?? resolveAgentIdFromSessionKey(runConfig.sessionKey),
+        workspaceDir: runConfig.workspaceDir,
+        config: runConfig.config,
+        sessionKey: runConfig.sessionKey,
+        sessionId: runConfig.sessionId,
+        taskId: runConfig.taskId,
+        runId: runConfig.runId,
         source: "embedded",
-        prompt: params.prompt,
-        taskTitle: params.taskTitle,
+        prompt: runConfig.prompt,
+        taskTitle: runConfig.taskTitle,
         toolNames: [],
         startedAt: runQueuedAt,
         endedAt,
-        provider: params.provider,
-        model: params.model,
+        provider: runConfig.provider,
+        model: runConfig.model,
         outcome: "error",
         errorKind: "runtime_error",
         errorMessage: error instanceof Error ? error.message : String(error),

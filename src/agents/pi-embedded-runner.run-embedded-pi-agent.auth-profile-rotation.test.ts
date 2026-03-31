@@ -2,26 +2,26 @@ import type { AssistantMessage } from "@mariozechner/pi-ai";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { OpenClawConfig } from "../config/config.js";
-import type { EmbeddedRunAttemptResult } from "./pi-embedded-runner/run/types.js";
+import type {
+  EmbeddedRunAttemptParams,
+  EmbeddedRunAttemptResult,
+} from "./pi-embedded-runner/run/types.js";
+import { runEmbeddedPiAgent } from "./pi-embedded-runner.js";
 
-const runEmbeddedAttemptMock = vi.fn<Promise<EmbeddedRunAttemptResult>, [unknown]>();
-
-vi.mock("./pi-embedded-runner/run/attempt.js", () => ({
-  runEmbeddedAttempt: (params: unknown) => runEmbeddedAttemptMock(params),
-}));
-
-let runEmbeddedPiAgent: typeof import("./pi-embedded-runner.js").runEmbeddedPiAgent;
-
-beforeAll(async () => {
-  ({ runEmbeddedPiAgent } = await import("./pi-embedded-runner.js"));
-});
+const runEmbeddedAttemptMock =
+  vi.fn<(params: EmbeddedRunAttemptParams) => Promise<EmbeddedRunAttemptResult>>();
 
 beforeEach(() => {
   vi.useRealTimers();
   runEmbeddedAttemptMock.mockReset();
 });
+
+const runWithAttemptMock = (params: Parameters<typeof runEmbeddedPiAgent>[0]) =>
+  runEmbeddedPiAgent(params, {
+    runAttempt: (attemptParams) => runEmbeddedAttemptMock(attemptParams),
+  });
 
 const baseUsage = {
   input: 0,
@@ -146,7 +146,7 @@ describe("runEmbeddedPiAgent auth profile rotation", () => {
           }),
         );
 
-      await runEmbeddedPiAgent({
+      await runWithAttemptMock({
         sessionId: "session:test",
         sessionKey: "agent:test:auto",
         sessionFile: path.join(workspaceDir, "session.jsonl"),
@@ -190,7 +190,7 @@ describe("runEmbeddedPiAgent auth profile rotation", () => {
         }),
       );
 
-      await runEmbeddedPiAgent({
+      await runWithAttemptMock({
         sessionId: "session:test",
         sessionKey: "agent:test:user",
         sessionFile: path.join(workspaceDir, "session.jsonl"),
@@ -251,7 +251,7 @@ describe("runEmbeddedPiAgent auth profile rotation", () => {
           }),
         );
 
-        await runEmbeddedPiAgent({
+        await runWithAttemptMock({
           sessionId: "session:test",
           sessionKey: "agent:test:user-cooldown",
           sessionFile: path.join(workspaceDir, "session.jsonl"),
@@ -302,7 +302,7 @@ describe("runEmbeddedPiAgent auth profile rotation", () => {
         }),
       );
 
-      await runEmbeddedPiAgent({
+      await runWithAttemptMock({
         sessionId: "session:test",
         sessionKey: "agent:test:mismatch",
         sessionFile: path.join(workspaceDir, "session.jsonl"),
@@ -358,7 +358,7 @@ describe("runEmbeddedPiAgent auth profile rotation", () => {
           }),
         );
 
-        await runEmbeddedPiAgent({
+        await runWithAttemptMock({
           sessionId: "session:test",
           sessionKey: "agent:test:skip-cooldown",
           sessionFile: path.join(workspaceDir, "session.jsonl"),
@@ -407,7 +407,7 @@ describe("runEmbeddedPiAgent auth profile rotation", () => {
         });
 
         await expect(
-          runEmbeddedPiAgent({
+          runWithAttemptMock({
             sessionId: "session:test",
             sessionKey: "agent:test:cooldown-failover",
             sessionFile: path.join(workspaceDir, "session.jsonl"),
@@ -448,7 +448,7 @@ describe("runEmbeddedPiAgent auth profile rotation", () => {
       await fs.writeFile(authPath, JSON.stringify({ version: 1, profiles: {}, usageStats: {} }));
 
       await expect(
-        runEmbeddedPiAgent({
+        runWithAttemptMock({
           sessionId: "session:test",
           sessionKey: "agent:test:auth-unavailable",
           sessionFile: path.join(workspaceDir, "session.jsonl"),
@@ -521,7 +521,7 @@ describe("runEmbeddedPiAgent auth profile rotation", () => {
             }),
           );
 
-        await runEmbeddedPiAgent({
+        await runWithAttemptMock({
           sessionId: "session:test",
           sessionKey: "agent:test:rotate-skip-cooldown",
           sessionFile: path.join(workspaceDir, "session.jsonl"),
