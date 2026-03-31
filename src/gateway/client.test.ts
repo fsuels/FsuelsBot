@@ -392,10 +392,12 @@ r1USnb+wUdA7Zoj/mQ==
     });
 
     const seen: Array<{ event: string; payload: unknown }> = [];
+    const issues: string[] = [];
 
     await new Promise<void>((resolve, reject) => {
       const client = new GatewayClient({
         url: `ws://127.0.0.1:${port}`,
+        onProtocolIssue: (issue) => issues.push(issue.code),
         onEvent: (evt) => {
           if (evt.event !== "custom") {
             return;
@@ -414,6 +416,56 @@ r1USnb+wUdA7Zoj/mQ==
     });
 
     expect(seen).toEqual([{ event: "custom", payload: { ok: true } }]);
+    expect(issues).toEqual(["invalid_json", "unsupported_frame_type"]);
+  });
+
+  test("rejects invalid hello-ok payloads during connect", async () => {
+    const port = await getFreePort();
+    wss = new WebSocketServer({ port, host: "127.0.0.1" });
+
+    wss.on("connection", (socket) => {
+      socket.once("message", (data) => {
+        const first = JSON.parse(rawDataToString(data)) as { id?: string };
+        const id = first.id ?? "connect";
+        socket.send(
+          JSON.stringify({
+            type: "res",
+            id,
+            ok: true,
+            payload: {
+              type: "hello-ok",
+              protocol: 2,
+            },
+          }),
+        );
+      });
+    });
+
+    const result = await new Promise<{ issue: string; error: string }>((resolve, reject) => {
+      const client = new GatewayClient({
+        url: `ws://127.0.0.1:${port}`,
+        onProtocolIssue: (issue) => {
+          if (issue.code !== "invalid_hello") {
+            return;
+          }
+          protocolIssue = issue.message;
+        },
+        onConnectError: (error) => {
+          clearTimeout(timeout);
+          client.stop();
+          resolve({ issue: protocolIssue, error: error.message });
+        },
+      });
+      let protocolIssue = "";
+      const timeout = setTimeout(() => {
+        client.stop();
+        reject(new Error("timeout waiting for invalid hello-ok rejection"));
+      }, 3_000);
+      client.start();
+    });
+
+    expect(result.issue).toContain("invalid hello-ok payload");
+    expect(result.error).toContain("invalid hello-ok payload");
   });
 
   test("stops reconnecting after a permanent auth failure", async () => {

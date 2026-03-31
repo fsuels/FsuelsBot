@@ -34,7 +34,6 @@ import {
   PROTOCOL_VERSION,
   type RequestFrame,
   validateRequestFrame,
-  type ResponseFrame,
 } from "./protocol/index.js";
 
 type Pending = {

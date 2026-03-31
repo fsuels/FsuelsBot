@@ -146,10 +146,17 @@ export function connectGateway(host: GatewayHost) {
       void loadDevices(host as unknown as OpenClawApp, { quiet: true });
       void refreshActiveTab(host as unknown as Parameters<typeof refreshActiveTab>[0]);
     },
+    onConnectError: (err) => {
+      host.connected = false;
+      host.lastError = err.message;
+    },
     onClose: ({ code, reason }) => {
       host.connected = false;
+      const keepSpecificConnectError = Boolean(
+        reason.startsWith("connect failed") && typeof host.lastError === "string" && host.lastError,
+      );
       // Code 1012 = Service Restart (expected during config saves, don't show as error)
-      if (code !== 1012) {
+      if (code !== 1012 && !keepSpecificConnectError) {
         host.lastError = `disconnected (${code}): ${reason || "no reason"}`;
       }
     },
