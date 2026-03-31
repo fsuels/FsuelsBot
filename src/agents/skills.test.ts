@@ -278,6 +278,92 @@ describe("buildWorkspaceSkillsPrompt", () => {
     expect(prompt).toContain("Does demo things");
     expect(prompt).toContain(path.join(skillDir, "SKILL.md"));
   });
+
+  it("discovers nested path-scoped skills from activation paths", async () => {
+    const workspaceDir = await makeWorkspace();
+    const nestedSkillDir = path.join(workspaceDir, "apps", "docs", "skills", "docs-local");
+
+    await writeSkill({
+      dir: path.join(workspaceDir, "skills", "general"),
+      name: "general",
+      description: "General helper",
+    });
+    await writeSkill({
+      dir: nestedSkillDir,
+      name: "docs-local",
+      description: "Docs feature helper",
+    });
+
+    const defaultPrompt = buildWorkspaceSkillsPrompt(workspaceDir, {
+      managedSkillsDir: path.join(workspaceDir, ".managed"),
+      bundledSkillsDir: path.join(workspaceDir, ".bundled"),
+    });
+    expect(defaultPrompt).toContain("general");
+    expect(defaultPrompt).not.toContain("docs-local");
+
+    const activePrompt = buildWorkspaceSkillsPrompt(workspaceDir, {
+      managedSkillsDir: path.join(workspaceDir, ".managed"),
+      bundledSkillsDir: path.join(workspaceDir, ".bundled"),
+      eligibility: {
+        activationPaths: ["apps/docs/src/page.ts"],
+      },
+    });
+    expect(activePrompt).toContain("general");
+    expect(activePrompt).toContain("docs-local");
+    expect(activePrompt).toContain(path.join(nestedSkillDir, "SKILL.md"));
+  });
+
+  it("prefers deeper path-scoped skills over shallower workspace skills", async () => {
+    const workspaceDir = await makeWorkspace();
+
+    await writeSkill({
+      dir: path.join(workspaceDir, "skills", "reviewer"),
+      name: "reviewer",
+      description: "Root reviewer",
+      body: "# Root reviewer\n",
+    });
+    await writeSkill({
+      dir: path.join(workspaceDir, "apps", "admin", "skills", "reviewer"),
+      name: "reviewer",
+      description: "Admin reviewer",
+      body: "# Admin reviewer\n",
+    });
+
+    const scopedEntries = loadWorkspaceSkillEntries(workspaceDir, {
+      managedSkillsDir: path.join(workspaceDir, ".managed"),
+      bundledSkillsDir: path.join(workspaceDir, ".bundled"),
+      eligibility: {
+        activationPaths: ["apps/admin/src/index.ts"],
+      },
+    });
+
+    expect(scopedEntries.filter((entry) => entry.skill.name === "reviewer")).toHaveLength(1);
+    expect(scopedEntries.find((entry) => entry.skill.name === "reviewer")?.skill.description).toBe(
+      "Admin reviewer",
+    );
+  });
+
+  it("skips gitignored path-scoped skill directories", async () => {
+    const workspaceDir = await makeWorkspace();
+    const ignoredRoot = path.join(workspaceDir, "features", "private-tools");
+    await fs.mkdir(ignoredRoot, { recursive: true });
+    await fs.writeFile(path.join(workspaceDir, ".gitignore"), "features/private-tools/\n", "utf-8");
+    await writeSkill({
+      dir: path.join(ignoredRoot, "skills", "secret-helper"),
+      name: "secret-helper",
+      description: "Should stay hidden",
+    });
+
+    const prompt = buildWorkspaceSkillsPrompt(workspaceDir, {
+      managedSkillsDir: path.join(workspaceDir, ".managed"),
+      bundledSkillsDir: path.join(workspaceDir, ".bundled"),
+      eligibility: {
+        activationPaths: ["features/private-tools/src/index.ts"],
+      },
+    });
+
+    expect(prompt).not.toContain("secret-helper");
+  });
 });
 
 describe("applySkillEnvOverrides", () => {

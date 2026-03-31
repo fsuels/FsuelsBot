@@ -33,6 +33,10 @@ const fsp = fs.promises;
 const skillsLogger = createSubsystemLogger("skills");
 const skillCommandDebugOnce = new Set<string>();
 const workspaceSkillEntriesCache = new Map<string, SkillEntry[]>();
+const pathScopedSkillDirsCache = new Map<string, string[]>();
+const ignoreRuleCache = new Map<string, IgnoreRule[]>();
+const IGNORE_FILE_NAMES = [".gitignore", ".ignore", ".fdignore"];
+const PATH_SCOPED_SKILL_DIR_PATTERNS = ["skills", path.join(".openclaw", "skills")] as const;
 
 type SkillSourceLayer = "extra" | "plugin" | "bundled" | "managed" | "workspace";
 
@@ -54,6 +58,14 @@ type LoadedSkillSource = {
   skills: Skill[];
   diagnostics: SkillLoaderDiagnostic[];
   recoveredDiagnosticPaths: Set<string>;
+};
+
+type IgnoreRule = {
+  pattern: string;
+  prefix: string;
+  anchored: boolean;
+  dirOnly: boolean;
+  negated: boolean;
 };
 
 function normalizeSkillLoaderResult(loaded: Skill[] | LoadSkillsResult | null | undefined): {
@@ -233,6 +245,258 @@ function resolveCanonicalSkillFilePath(filePath: string): string {
   }
 }
 
+function normalizePosixPath(value: string): string {
+  return value
+    .replaceAll("\\", "/")
+    .replace(/\/+/g, "/")
+    .replace(/^\.\/+/, "")
+    .replace(/\/$/, "");
+}
+
+function isPathWithin(rootDir: string, candidatePath: string): boolean {
+  const relative = path.relative(rootDir, candidatePath);
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+}
+
+function resolveCanonicalPath(filePath: string): string {
+  try {
+    return fs.realpathSync.native(filePath);
+  } catch {
+    try {
+      return fs.realpathSync(filePath);
+    } catch {
+      return resolveUserPath(filePath);
+    }
+  }
+}
+
+function resolveActivationSearchStart(workspaceDir: string, activationPath: string): string | null {
+  const trimmed = activationPath.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const absolute = path.isAbsolute(trimmed)
+    ? path.resolve(trimmed)
+    : path.resolve(workspaceDir, trimmed);
+  if (!isPathWithin(workspaceDir, absolute)) {
+    return null;
+  }
+  try {
+    const stat = fs.statSync(absolute);
+    return stat.isDirectory() ? absolute : path.dirname(absolute);
+  } catch {
+    return path.dirname(absolute);
+  }
+}
+
+function readIgnoreRulesForDir(dir: string, workspaceDir: string): IgnoreRule[] {
+  const cacheKey = `${workspaceDir}::${dir}`;
+  const cached = ignoreRuleCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+  const relativeDir = path.relative(workspaceDir, dir);
+  const prefix = relativeDir ? `${normalizePosixPath(relativeDir)}/` : "";
+  const rules: IgnoreRule[] = [];
+  for (const filename of IGNORE_FILE_NAMES) {
+    const ignorePath = path.join(dir, filename);
+    if (!fs.existsSync(ignorePath)) {
+      continue;
+    }
+    try {
+      const raw = fs.readFileSync(ignorePath, "utf-8");
+      for (const line of raw.split(/\r?\n/)) {
+        const trimmed = line.trim();
+        if (!trimmed) {
+          continue;
+        }
+        if (trimmed.startsWith("#") && !trimmed.startsWith("\\#")) {
+          continue;
+        }
+        let pattern = trimmed;
+        let negated = false;
+        if (pattern.startsWith("!")) {
+          negated = true;
+          pattern = pattern.slice(1);
+        } else if (pattern.startsWith("\\!")) {
+          pattern = pattern.slice(1);
+        }
+        if (pattern.startsWith("\\#")) {
+          pattern = pattern.slice(1);
+        }
+        const dirOnly = pattern.endsWith("/");
+        pattern = pattern.replace(/^\/+/, "").replace(/\/+$/, "");
+        pattern = normalizePosixPath(pattern);
+        if (!pattern) {
+          continue;
+        }
+        rules.push({
+          pattern,
+          prefix,
+          anchored: trimmed.replace(/^!/, "").startsWith("/"),
+          dirOnly,
+          negated,
+        });
+      }
+    } catch {
+      // Ignore malformed or unreadable ignore files and keep scanning.
+    }
+  }
+  ignoreRuleCache.set(cacheKey, rules);
+  return rules;
+}
+
+function buildIgnoreGlobCandidates(rule: IgnoreRule): string[] {
+  const prefix = rule.prefix;
+  const base = prefix ? `${prefix}${rule.pattern}` : rule.pattern;
+  const hasSlash = rule.pattern.includes("/");
+  const candidates = new Set<string>();
+
+  if (rule.anchored) {
+    candidates.add(base);
+  } else if (!hasSlash) {
+    candidates.add(base);
+    candidates.add(prefix ? `${prefix}**/${rule.pattern}` : `**/${rule.pattern}`);
+  } else {
+    candidates.add(base);
+    candidates.add(prefix ? `${prefix}**/${rule.pattern}` : `**/${rule.pattern}`);
+  }
+
+  if (rule.dirOnly) {
+    for (const candidate of [...candidates]) {
+      candidates.add(`${candidate}/**`);
+    }
+  }
+
+  return [...candidates];
+}
+
+function isPathIgnoredByRules(relativePath: string, rules: IgnoreRule[]): boolean {
+  let ignored = false;
+  const normalizedRelativePath = normalizePosixPath(relativePath);
+  for (const rule of rules) {
+    const matched = buildIgnoreGlobCandidates(rule).some((candidate) =>
+      path.posix.matchesGlob(normalizedRelativePath, candidate),
+    );
+    if (matched) {
+      ignored = !rule.negated;
+    }
+  }
+  return ignored;
+}
+
+function isIgnoredPathScopedDir(candidateDir: string, workspaceDir: string): boolean {
+  if (!isPathWithin(workspaceDir, candidateDir)) {
+    return true;
+  }
+  const relativePath = path.relative(workspaceDir, candidateDir);
+  if (!relativePath) {
+    return false;
+  }
+  const normalizedRelativePath = normalizePosixPath(relativePath);
+  const ruleSets: IgnoreRule[] = [];
+  const ancestorDirs: string[] = [];
+  let currentDir = path.dirname(candidateDir);
+  while (isPathWithin(workspaceDir, currentDir)) {
+    ancestorDirs.push(currentDir);
+    if (currentDir === workspaceDir) {
+      break;
+    }
+    const next = path.dirname(currentDir);
+    if (next === currentDir) {
+      break;
+    }
+    currentDir = next;
+  }
+
+  for (const currentDir of ancestorDirs.toReversed()) {
+    ruleSets.push(...readIgnoreRulesForDir(currentDir, workspaceDir));
+  }
+  return isPathIgnoredByRules(normalizedRelativePath, ruleSets);
+}
+
+function resolvePathScopedSkillDirs(params: {
+  workspaceDir: string;
+  activationPaths?: string[];
+  excludedDirs?: string[];
+}): string[] {
+  const activationPaths = (params.activationPaths ?? [])
+    .map((value) => value.trim())
+    .filter(Boolean);
+  if (activationPaths.length === 0) {
+    return [];
+  }
+  const cacheKey = JSON.stringify({
+    workspaceDir: params.workspaceDir,
+    activationPaths,
+    excludedDirs: params.excludedDirs ?? [],
+  });
+  const cached = pathScopedSkillDirsCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const excluded = new Set(
+    (params.excludedDirs ?? []).map((dir) => resolveCanonicalPath(resolveUserPath(dir))),
+  );
+  const discovered = new Map<string, { dir: string; depth: number }>();
+
+  for (const activationPath of activationPaths) {
+    let currentDir = resolveActivationSearchStart(params.workspaceDir, activationPath);
+    while (currentDir && isPathWithin(params.workspaceDir, currentDir)) {
+      for (const relativePattern of PATH_SCOPED_SKILL_DIR_PATTERNS) {
+        const candidateDir = path.join(currentDir, relativePattern);
+        if (!fs.existsSync(candidateDir)) {
+          continue;
+        }
+        let stats: fs.Stats;
+        try {
+          stats = fs.statSync(candidateDir);
+        } catch {
+          continue;
+        }
+        if (!stats.isDirectory()) {
+          continue;
+        }
+        if (isIgnoredPathScopedDir(candidateDir, params.workspaceDir)) {
+          continue;
+        }
+        const canonicalDir = resolveCanonicalPath(candidateDir);
+        if (excluded.has(canonicalDir)) {
+          continue;
+        }
+        const relative = path.relative(params.workspaceDir, candidateDir);
+        const depth = normalizePosixPath(relative).split("/").filter(Boolean).length;
+        const existing = discovered.get(canonicalDir);
+        if (!existing || depth > existing.depth) {
+          discovered.set(canonicalDir, { dir: candidateDir, depth });
+        }
+      }
+      if (currentDir === params.workspaceDir) {
+        break;
+      }
+      const nextDir = path.dirname(currentDir);
+      if (nextDir === currentDir) {
+        break;
+      }
+      currentDir = nextDir;
+    }
+  }
+
+  const resolved = [...discovered.values()]
+    .toSorted((left, right) => {
+      const depthDelta = left.depth - right.depth;
+      if (depthDelta !== 0) {
+        return depthDelta;
+      }
+      return left.dir.localeCompare(right.dir);
+    })
+    .map((entry) => entry.dir);
+
+  pathScopedSkillDirsCache.set(cacheKey, resolved);
+  return resolved;
+}
+
 function loadSkillSource(params: {
   dir: string;
   source: string;
@@ -280,6 +544,7 @@ function buildWorkspaceSkillEntriesCacheKey(params: {
   bundledSkillsDir: string;
   extraDirs: string[];
   pluginSkillDirs: string[];
+  pathScopedDirs: string[];
 }): string {
   return JSON.stringify({
     workspaceDir: params.workspaceDir,
@@ -287,11 +552,14 @@ function buildWorkspaceSkillEntriesCacheKey(params: {
     bundledSkillsDir: params.bundledSkillsDir,
     extraDirs: params.extraDirs,
     pluginSkillDirs: params.pluginSkillDirs,
+    pathScopedDirs: params.pathScopedDirs,
   });
 }
 
 export function clearWorkspaceSkillCaches(): void {
   workspaceSkillEntriesCache.clear();
+  pathScopedSkillDirsCache.clear();
+  ignoreRuleCache.clear();
   clearPluginManifestRegistryCache();
 }
 
@@ -371,6 +639,7 @@ function loadSkillEntries(
     config?: OpenClawConfig;
     managedSkillsDir?: string;
     bundledSkillsDir?: string;
+    eligibility?: SkillEligibilityContext;
   },
 ): SkillEntry[] {
   const resolvedWorkspaceDir = resolveUserPath(workspaceDir);
@@ -389,12 +658,24 @@ function loadSkillEntries(
     workspaceDir: resolvedWorkspaceDir,
     config: opts?.config,
   }).map((dir) => resolveUserPath(dir));
+  const pathScopedDirs = resolvePathScopedSkillDirs({
+    workspaceDir: resolvedWorkspaceDir,
+    activationPaths: opts?.eligibility?.activationPaths,
+    excludedDirs: [
+      managedSkillsDir,
+      bundledSkillsDir,
+      workspaceSkillsDir,
+      ...extraDirs,
+      ...pluginSkillDirs,
+    ],
+  });
   const cacheKey = buildWorkspaceSkillEntriesCacheKey({
     workspaceDir: resolvedWorkspaceDir,
     managedSkillsDir,
     bundledSkillsDir,
     extraDirs,
     pluginSkillDirs,
+    pathScopedDirs,
   });
   const cached = workspaceSkillEntriesCache.get(cacheKey);
   if (cached) {
@@ -448,6 +729,16 @@ function loadSkillEntries(
       sourceLabel: "workspace",
     }),
   );
+  for (const dir of pathScopedDirs) {
+    sources.push(
+      loadSkillSource({
+        dir,
+        source: "openclaw-workspace",
+        sourceLayer: "workspace",
+        sourceLabel: "path-scoped",
+      }),
+    );
+  }
 
   for (const source of sources) {
     logSkillLoaderDiagnostics(
@@ -582,6 +873,7 @@ export function loadWorkspaceSkillEntries(
     config?: OpenClawConfig;
     managedSkillsDir?: string;
     bundledSkillsDir?: string;
+    eligibility?: SkillEligibilityContext;
   },
 ): SkillEntry[] {
   return loadSkillEntries(workspaceDir, opts);
