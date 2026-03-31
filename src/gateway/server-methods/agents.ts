@@ -4,8 +4,10 @@ import type { GatewayRequestHandlers } from "./types.js";
 import {
   listAgentIds,
   resolveAgentDir,
+  resolveDefaultAgentId,
   resolveAgentWorkspaceDir,
 } from "../../agents/agent-scope.js";
+import { resolveToolCatalogForAgent } from "../../agents/tool-catalog.runtime.js";
 import {
   DEFAULT_AGENTS_FILENAME,
   DEFAULT_BOOTSTRAP_FILENAME,
@@ -27,6 +29,7 @@ import {
 } from "../../commands/agents.config.js";
 import { loadConfig, writeConfigFile } from "../../config/config.js";
 import { resolveSessionTranscriptsDirForAgent } from "../../config/sessions/paths.js";
+import { writeTextFileAtomic } from "../../infra/atomic-file.js";
 import { DEFAULT_AGENT_ID, normalizeAgentId } from "../../routing/session-key.js";
 import { resolveUserPath } from "../../utils.js";
 import {
@@ -39,6 +42,7 @@ import {
   validateAgentsFilesListParams,
   validateAgentsFilesSetParams,
   validateAgentsListParams,
+  validateAgentsToolsCatalogParams,
   validateAgentsUpdateParams,
 } from "../protocol/index.js";
 import { listAgentsForGateway } from "../session-utils.js";
@@ -181,6 +185,42 @@ export const agentsHandlers: GatewayRequestHandlers = {
     const cfg = loadConfig();
     const result = listAgentsForGateway(cfg);
     respond(true, result, undefined);
+  },
+  "agents.tools.catalog": ({ params, respond }) => {
+    if (!validateAgentsToolsCatalogParams(params)) {
+      respond(
+        false,
+        undefined,
+        errorShape(
+          ErrorCodes.INVALID_REQUEST,
+          `invalid agents.tools.catalog params: ${formatValidationErrors(
+            validateAgentsToolsCatalogParams.errors,
+          )}`,
+        ),
+      );
+      return;
+    }
+
+    const cfg = loadConfig();
+    const requestedAgentId =
+      typeof params.agentId === "string" && params.agentId.trim() ? String(params.agentId) : "";
+    const agentId = requestedAgentId
+      ? resolveAgentIdOrError(requestedAgentId, cfg)
+      : resolveDefaultAgentId(cfg);
+    if (!agentId) {
+      respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, "unknown agent id"));
+      return;
+    }
+    const catalog = resolveToolCatalogForAgent(cfg, agentId);
+    respond(
+      true,
+      {
+        agentId,
+        sections: catalog.sections,
+        tools: catalog.tools,
+      },
+      undefined,
+    );
   },
   "agents.create": async ({ params, respond }) => {
     if (!validateAgentsCreateParams(params)) {
@@ -484,7 +524,7 @@ export const agentsHandlers: GatewayRequestHandlers = {
     await fs.mkdir(workspaceDir, { recursive: true });
     const filePath = path.join(workspaceDir, name);
     const content = String(params.content ?? "");
-    await fs.writeFile(filePath, content, "utf-8");
+    await writeTextFileAtomic(filePath, content, { mode: 0o600 });
     const meta = await statFile(filePath);
     respond(
       true,
