@@ -175,4 +175,283 @@ r1USnb+wUdA7Zoj/mQ==
 
     expect(String(error)).toContain("tls fingerprint mismatch");
   });
+
+  test("ignores duplicate or stale event sequence numbers", async () => {
+    const port = await getFreePort();
+    wss = new WebSocketServer({ port, host: "127.0.0.1" });
+
+    wss.on("connection", (socket) => {
+      socket.once("message", (data) => {
+        const first = JSON.parse(rawDataToString(data)) as { id?: string };
+        const id = first.id ?? "connect";
+        socket.send(
+          JSON.stringify({
+            type: "res",
+            id,
+            ok: true,
+            payload: {
+              type: "hello-ok",
+              protocol: 2,
+              server: { version: "dev", connId: "c1" },
+              features: { methods: [], events: [] },
+              snapshot: {
+                presence: [],
+                health: {},
+                stateVersion: { presence: 1, health: 1 },
+                uptimeMs: 1,
+              },
+              policy: {
+                maxPayload: 512 * 1024,
+                maxBufferedBytes: 1024 * 1024,
+                tickIntervalMs: 30_000,
+              },
+            },
+          }),
+        );
+        socket.send(
+          JSON.stringify({
+            type: "event",
+            event: "custom",
+            payload: { value: 1 },
+            seq: 5,
+          }),
+        );
+        socket.send(
+          JSON.stringify({
+            type: "event",
+            event: "custom",
+            payload: { value: "stale" },
+            seq: 4,
+          }),
+        );
+        socket.send(
+          JSON.stringify({
+            type: "event",
+            event: "custom",
+            payload: { value: 2 },
+            seq: 6,
+          }),
+        );
+      });
+    });
+
+    const seenSeqs: number[] = [];
+    const gaps: Array<{ expected: number; received: number }> = [];
+
+    await new Promise<void>((resolve, reject) => {
+      const client = new GatewayClient({
+        url: `ws://127.0.0.1:${port}`,
+        onEvent: (evt) => {
+          if (evt.event !== "custom") {
+            return;
+          }
+          if (typeof evt.seq === "number") {
+            seenSeqs.push(evt.seq);
+          }
+          if (seenSeqs.length === 2) {
+            clearTimeout(timeout);
+            client.stop();
+            resolve();
+          }
+        },
+        onGap: (info) => gaps.push(info),
+      });
+      const timeout = setTimeout(() => {
+        client.stop();
+        reject(new Error("timeout waiting for custom events"));
+      }, 3_000);
+      client.start();
+    });
+
+    expect(seenSeqs).toEqual([5, 6]);
+    expect(gaps).toEqual([]);
+  });
+
+  test("resets sequence tracking after reconnect", async () => {
+    const port = await getFreePort();
+    wss = new WebSocketServer({ port, host: "127.0.0.1" });
+    let connectionCount = 0;
+
+    wss.on("connection", (socket) => {
+      connectionCount += 1;
+      const seq = connectionCount === 1 ? 9 : 1;
+      const connId = `c${connectionCount}`;
+      socket.once("message", (data) => {
+        const first = JSON.parse(rawDataToString(data)) as { id?: string };
+        const id = first.id ?? "connect";
+        socket.send(
+          JSON.stringify({
+            type: "res",
+            id,
+            ok: true,
+            payload: {
+              type: "hello-ok",
+              protocol: 2,
+              server: { version: "dev", connId },
+              features: { methods: [], events: [] },
+              snapshot: {
+                presence: [],
+                health: {},
+                stateVersion: { presence: 1, health: 1 },
+                uptimeMs: 1,
+              },
+              policy: {
+                maxPayload: 512 * 1024,
+                maxBufferedBytes: 1024 * 1024,
+                tickIntervalMs: 30_000,
+              },
+            },
+          }),
+        );
+        socket.send(
+          JSON.stringify({
+            type: "event",
+            event: "reconnect-test",
+            payload: { connectionCount },
+            seq,
+          }),
+        );
+        if (connectionCount === 1) {
+          setTimeout(() => socket.close(1012, "restart"), 20);
+        }
+      });
+    });
+
+    const seenSeqs: number[] = [];
+
+    await new Promise<void>((resolve, reject) => {
+      const client = new GatewayClient({
+        url: `ws://127.0.0.1:${port}`,
+        onEvent: (evt) => {
+          if (evt.event !== "reconnect-test" || typeof evt.seq !== "number") {
+            return;
+          }
+          seenSeqs.push(evt.seq);
+          if (seenSeqs.length === 2) {
+            clearTimeout(timeout);
+            client.stop();
+            resolve();
+          }
+        },
+      });
+      const timeout = setTimeout(() => {
+        client.stop();
+        reject(new Error("timeout waiting for reconnect events"));
+      }, 5_000);
+      client.start();
+    });
+
+    expect(seenSeqs).toEqual([9, 1]);
+  }, 7_000);
+
+  test("keeps running after malformed or forward-compatible frames", async () => {
+    const port = await getFreePort();
+    wss = new WebSocketServer({ port, host: "127.0.0.1" });
+
+    wss.on("connection", (socket) => {
+      socket.once("message", (data) => {
+        const first = JSON.parse(rawDataToString(data)) as { id?: string };
+        const id = first.id ?? "connect";
+        socket.send(
+          JSON.stringify({
+            type: "res",
+            id,
+            ok: true,
+            futureField: "supported",
+            payload: {
+              type: "hello-ok",
+              protocol: 2,
+              server: { version: "dev", connId: "c1" },
+              features: { methods: [], events: [] },
+              snapshot: {
+                presence: [],
+                health: {},
+                stateVersion: { presence: 1, health: 1 },
+                uptimeMs: 1,
+              },
+              policy: {
+                maxPayload: 512 * 1024,
+                maxBufferedBytes: 1024 * 1024,
+                tickIntervalMs: 30_000,
+              },
+            },
+          }),
+        );
+        socket.send("{not json");
+        socket.send(JSON.stringify({ type: "future", payload: { version: 2 } }));
+        socket.send(
+          JSON.stringify({
+            type: "event",
+            event: "custom",
+            extra: { version: 2 },
+            payload: { ok: true },
+            seq: 1,
+          }),
+        );
+      });
+    });
+
+    const seen: Array<{ event: string; payload: unknown }> = [];
+
+    await new Promise<void>((resolve, reject) => {
+      const client = new GatewayClient({
+        url: `ws://127.0.0.1:${port}`,
+        onEvent: (evt) => {
+          if (evt.event !== "custom") {
+            return;
+          }
+          seen.push({ event: evt.event, payload: evt.payload });
+          clearTimeout(timeout);
+          client.stop();
+          resolve();
+        },
+      });
+      const timeout = setTimeout(() => {
+        client.stop();
+        reject(new Error("timeout waiting for forward-compatible event"));
+      }, 3_000);
+      client.start();
+    });
+
+    expect(seen).toEqual([{ event: "custom", payload: { ok: true } }]);
+  });
+
+  test("stops reconnecting after a permanent auth failure", async () => {
+    const port = await getFreePort();
+    wss = new WebSocketServer({ port, host: "127.0.0.1" });
+    let connections = 0;
+
+    wss.on("connection", (socket) => {
+      connections += 1;
+      socket.once("message", (data) => {
+        const first = JSON.parse(rawDataToString(data)) as { id?: string };
+        const id = first.id ?? "connect";
+        socket.send(
+          JSON.stringify({
+            type: "res",
+            id,
+            ok: false,
+            error: {
+              code: "INVALID_REQUEST",
+              message: "unauthorized: gateway token mismatch",
+            },
+          }),
+        );
+        socket.close(1008, "unauthorized");
+      });
+    });
+
+    const client = new GatewayClient({
+      url: `ws://127.0.0.1:${port}`,
+      token: "bad-token",
+    });
+    (client as unknown as { backoffMs: number }).backoffMs = 10;
+    client.start();
+
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    client.stop();
+
+    expect(connections).toBe(1);
+    expect(client.getState()).toBe("closed");
+  });
 });

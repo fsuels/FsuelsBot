@@ -1,6 +1,7 @@
 import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
 import { createInterface, type Interface } from "node:readline";
 import type { RuntimeEnv } from "../runtime.js";
+import { safeNdjsonStringify } from "../infra/ndjson.js";
 import { resolveUserPath } from "../utils.js";
 import { DEFAULT_IMESSAGE_PROBE_TIMEOUT_MS } from "./constants.js";
 
@@ -149,7 +150,7 @@ export class IMessageRpcClient {
       method,
       params: params ?? {},
     };
-    const line = `${JSON.stringify(payload)}\n`;
+    const line = `${safeNdjsonStringify(payload)}\n`;
     const timeoutMs = opts?.timeoutMs ?? DEFAULT_IMESSAGE_PROBE_TIMEOUT_MS;
 
     const response = new Promise<T>((resolve, reject) => {

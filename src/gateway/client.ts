@@ -22,14 +22,19 @@ import {
 } from "../utils/message-channel.js";
 import { buildDeviceAuthPayload } from "./device-auth.js";
 import {
+  parseConnectChallengeNonce,
+  parseGatewayInboundFrame,
+  validateGatewayHelloOk,
+  type GatewayProtocolIssue,
+} from "./protocol/frame-parser.js";
+import {
   type ConnectParams,
   type EventFrame,
   type HelloOk,
   PROTOCOL_VERSION,
   type RequestFrame,
-  validateEventFrame,
   validateRequestFrame,
-  validateResponseFrame,
+  type ResponseFrame,
 } from "./protocol/index.js";
 
 type Pending = {
@@ -37,6 +42,14 @@ type Pending = {
   reject: (err: unknown) => void;
   expectFinal: boolean;
 };
+
+export type GatewayClientState =
+  | "idle"
+  | "connecting"
+  | "connected"
+  | "reconnecting"
+  | "closing"
+  | "closed";
 
 export type GatewayClientOptions = {
   url?: string; // ws://127.0.0.1:18789
@@ -62,7 +75,14 @@ export type GatewayClientOptions = {
   onHelloOk?: (hello: HelloOk) => void;
   onConnectError?: (err: Error) => void;
   onClose?: (code: number, reason: string) => void;
-  onGap?: (info: { expected: number; received: number }) => void;
+  onProtocolIssue?: (issue: GatewayProtocolIssue) => void;
+  onGap?: (info: {
+    expected: number;
+    received: number;
+    reset?: boolean;
+    latestSeq?: number;
+    bufferedFromSeq?: number;
+  }) => void;
 };
 
 export const GATEWAY_CLOSE_CODE_HINTS: Readonly<Record<number, string>> = {
@@ -76,20 +96,42 @@ export function describeGatewayCloseCode(code: number): string | undefined {
   return GATEWAY_CLOSE_CODE_HINTS[code];
 }
 
+const PERMANENT_CONNECT_ERROR_PATTERNS = [
+  /unauthorized/i,
+  /origin not allowed/i,
+  /invalid role/i,
+  /protocol mismatch/i,
+  /invalid handshake/i,
+  /tls fingerprint/i,
+  /device identity required/i,
+  /secure context/i,
+];
+
+function shouldRetryConnectError(error: Error, opts: { allowSharedTokenRetry: boolean }): boolean {
+  if (opts.allowSharedTokenRetry) {
+    return true;
+  }
+  return !PERMANENT_CONNECT_ERROR_PATTERNS.some((pattern) => pattern.test(error.message));
+}
+
 export class GatewayClient {
   private ws: WebSocket | null = null;
   private opts: GatewayClientOptions;
   private pending = new Map<string, Pending>();
   private backoffMs = 1000;
   private closed = false;
+  private state: GatewayClientState = "idle";
   private lastSeq: number | null = null;
   private connectNonce: string | null = null;
   private connectSent = false;
   private connectTimer: NodeJS.Timeout | null = null;
+  private reconnectTimer: NodeJS.Timeout | null = null;
   // Track last tick to detect silent stalls.
   private lastTick: number | null = null;
   private tickIntervalMs = 30_000;
   private tickTimer: NodeJS.Timeout | null = null;
+  private transportGeneration = 0;
+  private connectSupportsEventResume = true;
 
   constructor(opts: GatewayClientOptions) {
     this.opts = {
@@ -98,15 +140,28 @@ export class GatewayClient {
     };
   }
 
+  getState(): GatewayClientState {
+    return this.state;
+  }
+
   start() {
-    if (this.closed) {
+    this.closed = false;
+    if (
+      this.ws &&
+      (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)
+    ) {
       return;
+    }
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
     }
     const url = this.opts.url ?? "ws://127.0.0.1:18789";
     if (this.opts.tlsFingerprint && !url.startsWith("wss://")) {
       this.opts.onConnectError?.(new Error("gateway tls fingerprint requires wss:// gateway url"));
       return;
     }
+    this.state = this.state === "reconnecting" ? "reconnecting" : "connecting";
     // Allow node screen snapshots and other large responses.
     const wsOptions: ClientOptions = {
       maxPayload: 25 * 1024 * 1024,
@@ -135,9 +190,15 @@ export class GatewayClient {
         // oxlint-disable-next-line typescript/no-explicit-any
       }) as any;
     }
-    this.ws = new WebSocket(url, wsOptions);
+    const ws = new WebSocket(url, wsOptions);
+    const generation = ++this.transportGeneration;
+    this.ws = ws;
 
-    this.ws.on("open", () => {
+    ws.on("open", () => {
+      if (!this.isCurrentTransport(ws, generation)) {
+        this.safeCloseSocket(ws);
+        return;
+      }
       if (url.startsWith("wss://") && this.opts.tlsFingerprint) {
         const tlsError = this.validateTlsFingerprint();
         if (tlsError) {
@@ -148,15 +209,36 @@ export class GatewayClient {
       }
       this.queueConnect();
     });
-    this.ws.on("message", (data) => this.handleMessage(rawDataToString(data)));
-    this.ws.on("close", (code, reason) => {
+    ws.on("message", (data) => {
+      if (!this.isCurrentTransport(ws, generation)) {
+        return;
+      }
+      this.handleMessage(rawDataToString(data));
+    });
+    ws.on("close", (code, reason) => {
+      if (!this.isCurrentTransport(ws, generation)) {
+        return;
+      }
       const reasonText = rawDataToString(reason);
+      if (code === 1012) {
+        this.lastSeq = null;
+      }
       this.ws = null;
+      this.connectSent = false;
+      this.connectNonce = null;
+      this.lastTick = null;
+      if (this.connectTimer) {
+        clearTimeout(this.connectTimer);
+        this.connectTimer = null;
+      }
       this.flushPendingErrors(new Error(`gateway closed (${code}): ${reasonText}`));
       this.scheduleReconnect();
       this.opts.onClose?.(code, reasonText);
     });
-    this.ws.on("error", (err) => {
+    ws.on("error", (err) => {
+      if (!this.isCurrentTransport(ws, generation)) {
+        return;
+      }
       logDebug(`gateway client error: ${String(err)}`);
       if (!this.connectSent) {
         this.opts.onConnectError?.(err instanceof Error ? err : new Error(String(err)));
@@ -166,13 +248,25 @@ export class GatewayClient {
 
   stop() {
     this.closed = true;
+    this.state = "closing";
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    if (this.connectTimer) {
+      clearTimeout(this.connectTimer);
+      this.connectTimer = null;
+    }
     if (this.tickTimer) {
       clearInterval(this.tickTimer);
       this.tickTimer = null;
     }
-    this.ws?.close();
+    const ws = this.ws;
+    this.transportGeneration += 1;
     this.ws = null;
+    ws?.close();
     this.flushPendingErrors(new Error("gateway client stopped"));
+    this.state = "closed";
   }
 
   private sendConnect() {
@@ -246,9 +340,18 @@ export class GatewayClient {
       scopes,
       device,
     };
+    if (this.connectSupportsEventResume && this.lastSeq !== null) {
+      params.lastEventSeq = this.lastSeq;
+    }
 
-    void this.request<HelloOk>("connect", params)
-      .then((helloOk) => {
+    void this.request<unknown>("connect", params)
+      .then((helloRaw) => {
+        const helloResult = validateGatewayHelloOk(helloRaw);
+        if (!helloResult.ok) {
+          this.reportProtocolIssue(helloResult.issue);
+          throw new Error(helloResult.issue.message);
+        }
+        const helloOk = helloResult.value;
         const authInfo = helloOk?.auth;
         if (authInfo?.deviceToken && this.opts.deviceIdentity) {
           storeDeviceAuthToken({
@@ -263,76 +366,129 @@ export class GatewayClient {
           typeof helloOk.policy?.tickIntervalMs === "number"
             ? helloOk.policy.tickIntervalMs
             : 30_000;
+        const resume = helloOk.resume;
+        if (resume) {
+          if (resume.gap || resume.reset) {
+            this.opts.onGap?.({
+              expected: resume.requestedSeq + 1,
+              received: resume.bufferedFromSeq ?? resume.latestSeq,
+              reset: resume.reset,
+              latestSeq: resume.latestSeq,
+              bufferedFromSeq: resume.bufferedFromSeq,
+            });
+          }
+          if (resume.reset) {
+            this.lastSeq = resume.latestSeq > 0 ? resume.latestSeq : null;
+          } else if (typeof resume.replayedThroughSeq === "number") {
+            this.lastSeq = resume.replayedThroughSeq;
+          }
+        } else {
+          this.lastSeq = null;
+        }
         this.lastTick = Date.now();
+        this.state = "connected";
         this.startTickWatch();
         this.opts.onHelloOk?.(helloOk);
       })
       .catch((err) => {
+        const error = err instanceof Error ? err : new Error(String(err));
+        if (
+          params.lastEventSeq !== undefined &&
+          this.connectSupportsEventResume &&
+          /invalid connect params:/i.test(error.message)
+        ) {
+          this.connectSupportsEventResume = false;
+          this.connectSent = false;
+          this.backoffMs = Math.min(this.backoffMs, 250);
+          this.ws?.close(1012, "retry without event resume");
+          return;
+        }
         if (canFallbackToShared && this.opts.deviceIdentity) {
           clearDeviceAuthToken({
             deviceId: this.opts.deviceIdentity.deviceId,
             role,
           });
         }
-        this.opts.onConnectError?.(err instanceof Error ? err : new Error(String(err)));
-        const msg = `gateway connect failed: ${String(err)}`;
+        const shouldRetry = shouldRetryConnectError(error, {
+          allowSharedTokenRetry: canFallbackToShared,
+        });
+        if (!shouldRetry) {
+          this.closed = true;
+          this.state = "closed";
+        }
+        this.opts.onConnectError?.(error);
+        const msg = `gateway connect failed: ${String(error)}`;
         if (this.opts.mode === GATEWAY_CLIENT_MODES.PROBE) {
           logDebug(msg);
         } else {
           logError(msg);
         }
-        this.ws?.close(1008, "connect failed");
+        this.ws?.close(1008, shouldRetry ? "connect failed" : "connect failed: permanent");
       });
   }
 
   private handleMessage(raw: string) {
-    try {
-      const parsed = JSON.parse(raw);
-      if (validateEventFrame(parsed)) {
-        const evt = parsed;
-        if (evt.event === "connect.challenge") {
-          const payload = evt.payload as { nonce?: unknown } | undefined;
-          const nonce = payload && typeof payload.nonce === "string" ? payload.nonce : null;
-          if (nonce) {
-            this.connectNonce = nonce;
-            this.sendConnect();
-          }
+    const parsed = parseGatewayInboundFrame(raw);
+    if (!parsed.ok) {
+      this.reportProtocolIssue(parsed.issue);
+      return;
+    }
+
+    if (parsed.value.kind === "event") {
+      const evt = parsed.value.frame;
+      if (evt.event === "connect.challenge") {
+        const nonceResult = parseConnectChallengeNonce(evt);
+        if (!nonceResult.ok) {
+          this.reportProtocolIssue(nonceResult.issue);
           return;
         }
-        const seq = typeof evt.seq === "number" ? evt.seq : null;
-        if (seq !== null) {
-          if (this.lastSeq !== null && seq > this.lastSeq + 1) {
-            this.opts.onGap?.({ expected: this.lastSeq + 1, received: seq });
-          }
-          this.lastSeq = seq;
-        }
-        if (evt.event === "tick") {
-          this.lastTick = Date.now();
-        }
-        this.opts.onEvent?.(evt);
+        this.connectNonce = nonceResult.value;
+        this.sendConnect();
         return;
       }
-      if (validateResponseFrame(parsed)) {
-        const pending = this.pending.get(parsed.id);
-        if (!pending) {
-          return;
+      const seq = typeof evt.seq === "number" ? evt.seq : null;
+      if (seq !== null) {
+        if (this.lastSeq !== null) {
+          if (seq <= this.lastSeq) {
+            logDebug(`gateway client ignored duplicate/stale event seq=${seq}`);
+            return;
+          }
+          if (seq > this.lastSeq + 1) {
+            this.opts.onGap?.({ expected: this.lastSeq + 1, received: seq });
+          }
         }
-        // If the payload is an ack with status accepted, keep waiting for final.
-        const payload = parsed.payload as { status?: unknown } | undefined;
-        const status = payload?.status;
-        if (pending.expectFinal && status === "accepted") {
-          return;
-        }
-        this.pending.delete(parsed.id);
-        if (parsed.ok) {
-          pending.resolve(parsed.payload);
-        } else {
-          pending.reject(new Error(parsed.error?.message ?? "unknown error"));
-        }
+        this.lastSeq = seq;
       }
-    } catch (err) {
-      logDebug(`gateway client parse error: ${String(err)}`);
+      if (evt.event === "tick") {
+        this.lastTick = Date.now();
+      }
+      this.opts.onEvent?.(evt);
+      return;
     }
+
+    const res = parsed.value.frame;
+    const pending = this.pending.get(res.id);
+    if (!pending) {
+      return;
+    }
+    // If the payload is an ack with status accepted, keep waiting for final.
+    const payload = res.payload as { status?: unknown } | undefined;
+    const status = payload?.status;
+    if (pending.expectFinal && status === "accepted") {
+      return;
+    }
+    this.pending.delete(res.id);
+    if (res.ok) {
+      pending.resolve(res.payload);
+    } else {
+      pending.reject(new Error(res.error?.message ?? "unknown error"));
+    }
+  }
+
+  private reportProtocolIssue(issue: GatewayProtocolIssue) {
+    const frameType = issue.frameType ? ` type=${issue.frameType}` : "";
+    logDebug(`gateway client protocol issue [${issue.code}]${frameType}: ${issue.message}`);
+    this.opts.onProtocolIssue?.(issue);
   }
 
   private queueConnect() {
@@ -350,13 +506,23 @@ export class GatewayClient {
     if (this.closed) {
       return;
     }
+    this.state = "reconnecting";
     if (this.tickTimer) {
       clearInterval(this.tickTimer);
       this.tickTimer = null;
     }
-    const delay = this.backoffMs;
+    if (this.reconnectTimer) {
+      return;
+    }
+    const baseDelay = this.backoffMs;
     this.backoffMs = Math.min(this.backoffMs * 2, 30_000);
-    setTimeout(() => this.start(), delay).unref();
+    const jitter = 0.8 + Math.random() * 0.4;
+    const delay = Math.max(100, Math.round(baseDelay * jitter));
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      this.start();
+    }, delay);
+    this.reconnectTimer.unref();
   }
 
   private flushPendingErrors(err: Error) {
@@ -410,6 +576,18 @@ export class GatewayClient {
       return new Error("gateway tls fingerprint mismatch");
     }
     return null;
+  }
+
+  private isCurrentTransport(ws: WebSocket, generation: number): boolean {
+    return this.ws === ws && this.transportGeneration === generation;
+  }
+
+  private safeCloseSocket(ws: WebSocket) {
+    try {
+      ws.close();
+    } catch {
+      /* ignore */
+    }
   }
 
   async request<T = Record<string, unknown>>(
