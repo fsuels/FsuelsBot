@@ -8,6 +8,7 @@ import { renderChatControls, renderTab, renderThemeToggle } from "./app-render.h
 import { loadAgentFileContent, loadAgentFiles, saveAgentFile } from "./controllers/agent-files.ts";
 import { loadAgentIdentities, loadAgentIdentity } from "./controllers/agent-identity.ts";
 import { loadAgentSkills } from "./controllers/agent-skills.ts";
+import { loadAgentToolsCatalog } from "./controllers/agent-tools.ts";
 import { loadAgents } from "./controllers/agents.ts";
 import { loadChannels } from "./controllers/channels.ts";
 import { loadChatHistory } from "./controllers/chat.ts";
@@ -643,6 +644,9 @@ export function renderApp(state: AppViewState) {
                 agentFilesLoading: state.agentFilesLoading,
                 agentFilesError: state.agentFilesError,
                 agentFilesList: state.agentFilesList,
+                agentToolsCatalogLoading: state.agentToolsCatalogLoading,
+                agentToolsCatalogError: state.agentToolsCatalogError,
+                agentToolsCatalog: state.agentToolsCatalog,
                 agentFileActive: state.agentFileActive,
                 agentFileContents: state.agentFileContents,
                 agentFileDrafts: state.agentFileDrafts,
@@ -670,6 +674,9 @@ export function renderApp(state: AppViewState) {
                   state.agentFilesList = null;
                   state.agentFilesError = null;
                   state.agentFilesLoading = false;
+                  state.agentToolsCatalog = null;
+                  state.agentToolsCatalogError = null;
+                  state.agentToolsCatalogLoading = false;
                   state.agentFileActive = null;
                   state.agentFileContents = {};
                   state.agentFileDrafts = {};
@@ -683,6 +690,9 @@ export function renderApp(state: AppViewState) {
                   if (state.agentsPanel === "skills") {
                     void loadAgentSkills(state, agentId);
                   }
+                  if (state.agentsPanel === "tools") {
+                    void loadAgentToolsCatalog(state, agentId);
+                  }
                 },
                 onSelectPanel: (panel) => {
                   state.agentsPanel = panel;
@@ -694,6 +704,13 @@ export function renderApp(state: AppViewState) {
                       state.agentFileContents = {};
                       state.agentFileDrafts = {};
                       void loadAgentFiles(state, resolvedAgentId);
+                    }
+                  }
+                  if (panel === "tools" && resolvedAgentId) {
+                    if (state.agentToolsCatalog?.agentId !== resolvedAgentId) {
+                      state.agentToolsCatalog = null;
+                      state.agentToolsCatalogError = null;
+                      void loadAgentToolsCatalog(state, resolvedAgentId);
                     }
                   }
                   if (panel === "skills") {

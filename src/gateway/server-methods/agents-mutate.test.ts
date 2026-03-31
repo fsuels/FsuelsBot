@@ -12,6 +12,19 @@ const mocks = vi.hoisted(() => ({
   pruneAgentConfig: vi.fn(() => ({ config: {}, removedBindings: 0 })),
   writeConfigFile: vi.fn(async () => {}),
   ensureAgentWorkspace: vi.fn(async () => {}),
+  resolveToolCatalogForAgent: vi.fn(() => ({
+    sections: [{ id: "files", label: "Files", source: "core" }],
+    tools: [
+      {
+        id: "read",
+        label: "read",
+        description: "Read file contents",
+        sectionId: "files",
+        source: "core",
+      },
+    ],
+  })),
+  writeTextFileAtomic: vi.fn(async () => {}),
   resolveAgentDir: vi.fn(() => "/agents/test-agent"),
   resolveAgentWorkspaceDir: vi.fn(() => "/workspace/test-agent"),
   resolveSessionTranscriptsDirForAgent: vi.fn(() => "/transcripts/test-agent"),
@@ -55,8 +68,16 @@ vi.mock("../../agents/workspace.js", async () => {
   };
 });
 
+vi.mock("../../agents/tool-catalog.runtime.js", () => ({
+  resolveToolCatalogForAgent: mocks.resolveToolCatalogForAgent,
+}));
+
 vi.mock("../../config/sessions/paths.js", () => ({
   resolveSessionTranscriptsDirForAgent: mocks.resolveSessionTranscriptsDirForAgent,
+}));
+
+vi.mock("../../infra/atomic-file.js", () => ({
+  writeTextFileAtomic: mocks.writeTextFileAtomic,
 }));
 
 vi.mock("../../browser/trash.js", () => ({
@@ -232,6 +253,31 @@ describe("agents.create", () => {
       expect.stringContaining("IDENTITY.md"),
       expect.stringMatching(/- Name: Fancy Agent[\s\S]*- Emoji: 🤖[\s\S]*- Avatar:/),
       "utf-8",
+    );
+  });
+});
+
+describe("agents.tools.catalog", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.loadConfigReturn = {};
+  });
+
+  it("returns the live tool catalog for the requested agent", async () => {
+    const { respond, promise } = makeCall("agents.tools.catalog", {
+      agentId: "main",
+    });
+    await promise;
+
+    expect(mocks.resolveToolCatalogForAgent).toHaveBeenCalled();
+    expect(respond).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({
+        agentId: "main",
+        sections: expect.any(Array),
+        tools: expect.any(Array),
+      }),
+      undefined,
     );
   });
 });

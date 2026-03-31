@@ -354,6 +354,28 @@ export type AgentsListResult = {
   agents: GatewayAgentRow[];
 };
 
+export type AgentToolCatalogSection = {
+  id: string;
+  label: string;
+  source: "core" | "plugin";
+  pluginId?: string;
+};
+
+export type AgentToolCatalogTool = {
+  id: string;
+  label: string;
+  description: string;
+  sectionId: string;
+  source: "core" | "plugin";
+  pluginId?: string;
+};
+
+export type AgentsToolsCatalogResult = {
+  agentId: string;
+  sections: AgentToolCatalogSection[];
+  tools: AgentToolCatalogTool[];
+};
+
 export type AgentIdentityResult = {
   agentId: string;
   name: string;

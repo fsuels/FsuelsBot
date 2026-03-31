@@ -10,6 +10,10 @@ import type {
 import type {
   AgentSummarySchema,
   AgentsFileEntrySchema,
+  AgentsToolsCatalogParamsSchema,
+  AgentsToolsCatalogResultSchema,
+  AgentsToolsCatalogSectionSchema,
+  AgentsToolsCatalogToolSchema,
   AgentsCreateParamsSchema,
   AgentsCreateResultSchema,
   AgentsDeleteParamsSchema,
@@ -186,6 +190,10 @@ export type ChannelsLogoutParams = Static<typeof ChannelsLogoutParamsSchema>;
 export type WebLoginStartParams = Static<typeof WebLoginStartParamsSchema>;
 export type WebLoginWaitParams = Static<typeof WebLoginWaitParamsSchema>;
 export type AgentSummary = Static<typeof AgentSummarySchema>;
+export type AgentsToolsCatalogSection = Static<typeof AgentsToolsCatalogSectionSchema>;
+export type AgentsToolsCatalogTool = Static<typeof AgentsToolsCatalogToolSchema>;
+export type AgentsToolsCatalogParams = Static<typeof AgentsToolsCatalogParamsSchema>;
+export type AgentsToolsCatalogResult = Static<typeof AgentsToolsCatalogResultSchema>;
 export type AgentsFileEntry = Static<typeof AgentsFileEntrySchema>;
 export type AgentsCreateParams = Static<typeof AgentsCreateParamsSchema>;
 export type AgentsCreateResult = Static<typeof AgentsCreateResultSchema>;

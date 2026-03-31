@@ -1,6 +1,8 @@
 import path from "node:path";
 import type { OpenClawConfig, ConfigValidationIssue } from "./types.js";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
+import { describeToolSelectorIssue, findToolSelectorIssues } from "../agents/tool-catalog.js";
+import { resolveToolCatalogForAgent } from "../agents/tool-catalog.runtime.js";
 import { CHANNEL_IDS, normalizeChatChannelId } from "../channels/registry.js";
 import {
   normalizePluginsConfig,
@@ -133,6 +135,34 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
+type ToolPolicyLike = {
+  allow?: string[];
+  alsoAllow?: string[];
+  deny?: string[];
+};
+
+function pushToolPolicyIssues(params: {
+  policy: ToolPolicyLike | undefined;
+  pathPrefix: string;
+  catalog: ReturnType<typeof resolveToolCatalogForAgent>;
+  issues: ConfigValidationIssue[];
+}) {
+  const entries = [
+    ["allow", params.policy?.allow],
+    ["alsoAllow", params.policy?.alsoAllow],
+    ["deny", params.policy?.deny],
+  ] as const;
+  for (const [field, list] of entries) {
+    const selectorIssues = findToolSelectorIssues(list, params.catalog);
+    for (const issue of selectorIssues) {
+      params.issues.push({
+        path: `${params.pathPrefix}.${field}`,
+        message: describeToolSelectorIssue(issue),
+      });
+    }
+  }
+}
+
 export function validateConfigObjectWithPlugins(raw: unknown):
   | {
       ok: true;
@@ -152,6 +182,7 @@ export function validateConfigObjectWithPlugins(raw: unknown):
   const config = base.config;
   const issues: ConfigValidationIssue[] = [];
   const warnings: ConfigValidationIssue[] = [];
+  const toolCatalog = resolveToolCatalogForAgent(config, resolveDefaultAgentId(config));
   const pluginsConfig = config.plugins;
   const normalizedPlugins = normalizePluginsConfig(pluginsConfig);
 
@@ -287,6 +318,71 @@ export function validateConfigObjectWithPlugins(raw: unknown):
   if (Array.isArray(config.agents?.list)) {
     for (const [index, entry] of config.agents.list.entries()) {
       validateHeartbeatTarget(entry?.heartbeat?.target, `agents.list.${index}.heartbeat.target`);
+    }
+  }
+
+  pushToolPolicyIssues({
+    policy: config.tools,
+    pathPrefix: "tools",
+    catalog: toolCatalog,
+    issues,
+  });
+
+  if (config.tools?.sandbox?.tools) {
+    pushToolPolicyIssues({
+      policy: config.tools.sandbox.tools,
+      pathPrefix: "tools.sandbox.tools",
+      catalog: toolCatalog,
+      issues,
+    });
+  }
+
+  if (config.tools?.subagents?.tools) {
+    pushToolPolicyIssues({
+      policy: config.tools.subagents.tools,
+      pathPrefix: "tools.subagents.tools",
+      catalog: toolCatalog,
+      issues,
+    });
+  }
+
+  if (isRecord(config.tools?.byProvider)) {
+    for (const [providerKey, policy] of Object.entries(config.tools.byProvider)) {
+      pushToolPolicyIssues({
+        policy: isRecord(policy) ? (policy as ToolPolicyLike) : undefined,
+        pathPrefix: `tools.byProvider.${providerKey}`,
+        catalog: toolCatalog,
+        issues,
+      });
+    }
+  }
+
+  if (Array.isArray(config.agents?.list)) {
+    for (const [index, entry] of config.agents.list.entries()) {
+      pushToolPolicyIssues({
+        policy: entry?.tools,
+        pathPrefix: `agents.list.${index}.tools`,
+        catalog: toolCatalog,
+        issues,
+      });
+      if (entry?.tools?.sandbox?.tools) {
+        pushToolPolicyIssues({
+          policy: entry.tools.sandbox.tools,
+          pathPrefix: `agents.list.${index}.tools.sandbox.tools`,
+          catalog: toolCatalog,
+          issues,
+        });
+      }
+      if (isRecord(entry?.tools?.byProvider)) {
+        for (const [providerKey, policy] of Object.entries(entry.tools.byProvider)) {
+          pushToolPolicyIssues({
+            policy: isRecord(policy) ? (policy as ToolPolicyLike) : undefined,
+            pathPrefix: `agents.list.${index}.tools.byProvider.${providerKey}`,
+            catalog: toolCatalog,
+            issues,
+          });
+        }
+      }
     }
   }
 

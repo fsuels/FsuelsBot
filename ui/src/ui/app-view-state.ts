@@ -13,6 +13,7 @@ import type { ThemeTransitionContext } from "./theme-transition.ts";
 import type { ThemeMode } from "./theme.ts";
 import type {
   AgentsListResult,
+  AgentsToolsCatalogResult,
   AgentsFilesListResult,
   AgentIdentityResult,
   ChannelsStatusSnapshot,
@@ -140,6 +141,9 @@ export type AppViewState = {
   agentFilesLoading: boolean;
   agentFilesError: string | null;
   agentFilesList: AgentsFilesListResult | null;
+  agentToolsCatalogLoading: boolean;
+  agentToolsCatalogError: string | null;
+  agentToolsCatalog: AgentsToolsCatalogResult | null;
   agentFileContents: Record<string, string>;
   agentFileDrafts: Record<string, string>;
   agentFileActive: string | null;

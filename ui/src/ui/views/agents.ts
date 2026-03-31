@@ -3,6 +3,7 @@ import type {
   AgentFileEntry,
   AgentsFilesListResult,
   AgentsListResult,
+  AgentsToolsCatalogResult,
   AgentIdentityResult,
   ChannelAccountSnapshot,
   ChannelsStatusSnapshot,
@@ -47,6 +48,9 @@ export type AgentsProps = {
   agentFilesLoading: boolean;
   agentFilesError: string | null;
   agentFilesList: AgentsFilesListResult | null;
+  agentToolsCatalogLoading: boolean;
+  agentToolsCatalogError: string | null;
+  agentToolsCatalog: AgentsToolsCatalogResult | null;
   agentFileActive: string | null;
   agentFileContents: Record<string, string>;
   agentFileDrafts: Record<string, string>;
@@ -81,90 +85,6 @@ export type AgentsProps = {
   onAgentSkillsClear: (agentId: string) => void;
   onAgentSkillsDisableAll: (agentId: string) => void;
 };
-
-const TOOL_SECTIONS = [
-  {
-    id: "fs",
-    label: "Files",
-    tools: [
-      { id: "read", label: "read", description: "Read file contents" },
-      { id: "write", label: "write", description: "Create or overwrite files" },
-      { id: "edit", label: "edit", description: "Make precise edits" },
-      { id: "apply_patch", label: "apply_patch", description: "Patch files (OpenAI)" },
-    ],
-  },
-  {
-    id: "runtime",
-    label: "Runtime",
-    tools: [
-      { id: "exec", label: "exec", description: "Run shell commands" },
-      { id: "process", label: "process", description: "Manage background processes" },
-    ],
-  },
-  {
-    id: "web",
-    label: "Web",
-    tools: [
-      { id: "web_search", label: "web_search", description: "Search the web" },
-      { id: "web_fetch", label: "web_fetch", description: "Fetch web content" },
-    ],
-  },
-  {
-    id: "memory",
-    label: "Memory",
-    tools: [
-      { id: "memory_search", label: "memory_search", description: "Semantic search" },
-      { id: "memory_get", label: "memory_get", description: "Read memory files" },
-    ],
-  },
-  {
-    id: "sessions",
-    label: "Sessions",
-    tools: [
-      { id: "sessions_list", label: "sessions_list", description: "List sessions" },
-      { id: "sessions_history", label: "sessions_history", description: "Session history" },
-      { id: "sessions_send", label: "sessions_send", description: "Send to session" },
-      { id: "sessions_spawn", label: "sessions_spawn", description: "Spawn sub-agent" },
-      { id: "session_status", label: "session_status", description: "Session status" },
-    ],
-  },
-  {
-    id: "ui",
-    label: "UI",
-    tools: [
-      { id: "browser", label: "browser", description: "Control web browser" },
-      { id: "canvas", label: "canvas", description: "Control canvases" },
-    ],
-  },
-  {
-    id: "messaging",
-    label: "Messaging",
-    tools: [{ id: "message", label: "message", description: "Send messages" }],
-  },
-  {
-    id: "automation",
-    label: "Automation",
-    tools: [
-      { id: "cron", label: "cron", description: "Schedule tasks" },
-      { id: "gateway", label: "gateway", description: "Gateway control" },
-    ],
-  },
-  {
-    id: "nodes",
-    label: "Nodes",
-    tools: [{ id: "nodes", label: "nodes", description: "Nodes + devices" }],
-  },
-  {
-    id: "agents",
-    label: "Agents",
-    tools: [{ id: "agents_list", label: "agents_list", description: "List agents" }],
-  },
-  {
-    id: "media",
-    label: "Media",
-    tools: [{ id: "image", label: "image", description: "Image understanding" }],
-  },
-];
 
 const PROFILE_OPTIONS = [
   { id: "minimal", label: "Minimal" },
@@ -534,6 +454,42 @@ function matchesList(name: string, list?: string[]) {
   return false;
 }
 
+function mergeAllowIntoPolicy(policy: ToolPolicy | undefined, alsoAllow?: string[]) {
+  if (!Array.isArray(alsoAllow) || alsoAllow.length === 0) {
+    return policy;
+  }
+  return {
+    allow: Array.from(new Set([...(policy?.allow ?? []), ...alsoAllow])),
+    deny: policy?.deny,
+  };
+}
+
+function toDisplayPolicy(config?: { allow?: string[]; deny?: string[] }): ToolPolicy | undefined {
+  const allow = Array.isArray(config?.allow) && config.allow.length > 0 ? config.allow : undefined;
+  const deny = Array.isArray(config?.deny) && config.deny.length > 0 ? config.deny : undefined;
+  if (!allow && !deny) {
+    return undefined;
+  }
+  return { allow, deny };
+}
+
+function groupCatalogTools(catalog: AgentsToolsCatalogResult | null) {
+  if (!catalog) {
+    return [] as Array<{
+      id: string;
+      label: string;
+      tools: AgentsToolsCatalogResult["tools"];
+    }>;
+  }
+  return catalog.sections
+    .map((section) => ({
+      id: section.id,
+      label: section.label,
+      tools: catalog.tools.filter((tool) => tool.sectionId === section.id),
+    }))
+    .filter((section) => section.tools.length > 0);
+}
+
 export function renderAgents(props: AgentsProps) {
   const agents = props.agentsList?.agents ?? [];
   const defaultId = props.agentsList?.defaultId ?? null;
@@ -651,6 +607,12 @@ export function renderAgents(props: AgentsProps) {
                       configLoading: props.configLoading,
                       configSaving: props.configSaving,
                       configDirty: props.configDirty,
+                      agentToolsCatalogLoading: props.agentToolsCatalogLoading,
+                      agentToolsCatalogError: props.agentToolsCatalogError,
+                      agentToolsCatalog:
+                        props.agentToolsCatalog?.agentId === selectedAgent.id
+                          ? props.agentToolsCatalog
+                          : null,
                       onProfileChange: props.onToolsProfileChange,
                       onOverridesChange: props.onToolsOverridesChange,
                       onConfigReload: props.onConfigReload,
@@ -1437,6 +1399,9 @@ function renderAgentTools(params: {
   configLoading: boolean;
   configSaving: boolean;
   configDirty: boolean;
+  agentToolsCatalogLoading: boolean;
+  agentToolsCatalogError: string | null;
+  agentToolsCatalog: AgentsToolsCatalogResult | null;
   onProfileChange: (agentId: string, profile: string | null, clearAllow: boolean) => void;
   onOverridesChange: (agentId: string, alsoAllow: string[], deny: string[]) => void;
   onConfigReload: () => void;
@@ -1452,7 +1417,6 @@ function renderAgentTools(params: {
       ? "global default"
       : "default";
   const hasAgentAllow = Array.isArray(agentTools.allow) && agentTools.allow.length > 0;
-  const hasGlobalAllow = Array.isArray(globalTools.allow) && globalTools.allow.length > 0;
   const editable =
     Boolean(params.configForm) && !params.configLoading && !params.configSaving && !hasAgentAllow;
   const alsoAllow = hasAgentAllow
@@ -1461,20 +1425,36 @@ function renderAgentTools(params: {
       ? agentTools.alsoAllow
       : [];
   const deny = hasAgentAllow ? [] : Array.isArray(agentTools.deny) ? agentTools.deny : [];
+  const sections = groupCatalogTools(params.agentToolsCatalog);
+  const toolIds = sections.flatMap((section) => section.tools.map((tool) => tool.id));
   const basePolicy = hasAgentAllow
     ? { allow: agentTools.allow ?? [], deny: agentTools.deny ?? [] }
-    : (resolveToolProfilePolicy(profile) ?? undefined);
-  const toolIds = TOOL_SECTIONS.flatMap((section) => section.tools.map((tool) => tool.id));
+    : undefined;
+  const profilePolicy = hasAgentAllow
+    ? undefined
+    : mergeAllowIntoPolicy(
+        resolveToolProfilePolicy(profile) ?? undefined,
+        Array.isArray(agentTools.alsoAllow)
+          ? agentTools.alsoAllow
+          : Array.isArray(globalTools.alsoAllow)
+            ? globalTools.alsoAllow
+            : undefined,
+      );
+  const globalPolicy = hasAgentAllow ? undefined : toDisplayPolicy(globalTools);
+  const agentPolicy = hasAgentAllow ? undefined : toDisplayPolicy(agentTools);
 
   const resolveAllowed = (toolId: string) => {
-    const baseAllowed = isAllowedByPolicy(toolId, basePolicy);
-    const extraAllowed = matchesList(toolId, alsoAllow);
-    const denied = matchesList(toolId, deny);
-    const allowed = (baseAllowed || extraAllowed) && !denied;
+    const baseAllowed = hasAgentAllow
+      ? isAllowedByPolicy(toolId, basePolicy)
+      : isAllowedByPolicy(toolId, profilePolicy);
+    const globalAllowed = hasAgentAllow ? true : isAllowedByPolicy(toolId, globalPolicy);
+    const agentAllowed = hasAgentAllow ? true : isAllowedByPolicy(toolId, agentPolicy);
+    const allowed = baseAllowed && globalAllowed && agentAllowed;
     return {
       allowed,
       baseAllowed,
-      denied,
+      globalAllowed,
+      agentAllowed,
     };
   };
   const enabledCount = toolIds.filter((toolId) => resolveAllowed(toolId).allowed).length;
@@ -1583,11 +1563,21 @@ function renderAgentTools(params: {
             `
           : nothing
       }
+      <div class="callout info" style="margin-top: 12px">
+        Tool availability is resolved from the live tool catalog. Global tool policy still wins over per-agent overrides.
+      </div>
       ${
-        hasGlobalAllow
+        params.agentToolsCatalogError
+          ? html`<div class="callout danger" style="margin-top: 12px;">${
+              params.agentToolsCatalogError
+            }</div>`
+          : nothing
+      }
+      ${
+        !params.agentToolsCatalog && !params.agentToolsCatalogLoading
           ? html`
               <div class="callout info" style="margin-top: 12px">
-                Global tools.allow is set. Agent overrides cannot enable tools that are globally blocked.
+                Load the live tool catalog to review available core and plugin tools.
               </div>
             `
           : nothing
@@ -1639,25 +1629,40 @@ function renderAgentTools(params: {
       </div>
 
       <div class="agent-tools-grid" style="margin-top: 20px;">
-        ${TOOL_SECTIONS.map(
+        ${
+          params.agentToolsCatalogLoading
+            ? html`
+                <div class="muted">Loading tool catalog…</div>
+              `
+            : nothing
+        }
+        ${sections.map(
           (section) =>
             html`
             <div class="agent-tools-section">
               <div class="agent-tools-header">${section.label}</div>
               <div class="agent-tools-list">
                 ${section.tools.map((tool) => {
-                  const { allowed } = resolveAllowed(tool.id);
+                  const { allowed, globalAllowed } = resolveAllowed(tool.id);
+                  const blockedByGlobal = !hasAgentAllow && !globalAllowed;
                   return html`
                     <div class="agent-tool-row">
                       <div>
                         <div class="agent-tool-title mono">${tool.label}</div>
                         <div class="agent-tool-sub">${tool.description}</div>
+                        ${
+                          blockedByGlobal
+                            ? html`
+                                <div class="agent-tool-sub muted">Blocked by global tool policy.</div>
+                              `
+                            : nothing
+                        }
                       </div>
                       <label class="cfg-toggle">
                         <input
                           type="checkbox"
                           .checked=${allowed}
-                          ?disabled=${!editable}
+                          ?disabled=${!editable || blockedByGlobal}
                           @change=${(e: Event) =>
                             updateTool(tool.id, (e.target as HTMLInputElement).checked)}
                         />

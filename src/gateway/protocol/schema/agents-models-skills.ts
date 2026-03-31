@@ -44,6 +44,44 @@ export const AgentsListResultSchema = Type.Object(
   { additionalProperties: false },
 );
 
+export const AgentsToolsCatalogSectionSchema = Type.Object(
+  {
+    id: NonEmptyString,
+    label: NonEmptyString,
+    source: Type.Union([Type.Literal("core"), Type.Literal("plugin")]),
+    pluginId: Type.Optional(NonEmptyString),
+  },
+  { additionalProperties: false },
+);
+
+export const AgentsToolsCatalogToolSchema = Type.Object(
+  {
+    id: NonEmptyString,
+    label: NonEmptyString,
+    description: Type.String(),
+    sectionId: NonEmptyString,
+    source: Type.Union([Type.Literal("core"), Type.Literal("plugin")]),
+    pluginId: Type.Optional(NonEmptyString),
+  },
+  { additionalProperties: false },
+);
+
+export const AgentsToolsCatalogParamsSchema = Type.Object(
+  {
+    agentId: Type.Optional(NonEmptyString),
+  },
+  { additionalProperties: false },
+);
+
+export const AgentsToolsCatalogResultSchema = Type.Object(
+  {
+    agentId: NonEmptyString,
+    sections: Type.Array(AgentsToolsCatalogSectionSchema),
+    tools: Type.Array(AgentsToolsCatalogToolSchema),
+  },
+  { additionalProperties: false },
+);
+
 export const AgentsCreateParamsSchema = Type.Object(
   {
     name: NonEmptyString,

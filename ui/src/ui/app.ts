@@ -11,6 +11,7 @@ import type { Tab } from "./navigation.ts";
 import type { ResolvedTheme, ThemeMode } from "./theme.ts";
 import type {
   AgentsListResult,
+  AgentsToolsCatalogResult,
   AgentsFilesListResult,
   AgentIdentityResult,
   ConfigSnapshot,
@@ -226,6 +227,9 @@ export class OpenClawApp extends LitElement {
   @state() agentFilesLoading = false;
   @state() agentFilesError: string | null = null;
   @state() agentFilesList: AgentsFilesListResult | null = null;
+  @state() agentToolsCatalogLoading = false;
+  @state() agentToolsCatalogError: string | null = null;
+  @state() agentToolsCatalog: AgentsToolsCatalogResult | null = null;
   @state() agentFileContents: Record<string, string> = {};
   @state() agentFileDrafts: Record<string, string> = {};
   @state() agentFileActive: string | null = null;

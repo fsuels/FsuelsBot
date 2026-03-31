@@ -10,6 +10,10 @@ import {
   AgentParamsSchema,
   type AgentSummary,
   AgentSummarySchema,
+  type AgentsToolsCatalogParams,
+  AgentsToolsCatalogParamsSchema,
+  type AgentsToolsCatalogResult,
+  AgentsToolsCatalogResultSchema,
   type AgentsFileEntry,
   AgentsFileEntrySchema,
   type AgentsCreateParams,
@@ -238,6 +242,9 @@ export const validateAgentIdentityParams =
 export const validateAgentWaitParams = ajv.compile<AgentWaitParams>(AgentWaitParamsSchema);
 export const validateWakeParams = ajv.compile<WakeParams>(WakeParamsSchema);
 export const validateAgentsListParams = ajv.compile<AgentsListParams>(AgentsListParamsSchema);
+export const validateAgentsToolsCatalogParams = ajv.compile<AgentsToolsCatalogParams>(
+  AgentsToolsCatalogParamsSchema,
+);
 export const validateAgentsCreateParams = ajv.compile<AgentsCreateParams>(AgentsCreateParamsSchema);
 export const validateAgentsUpdateParams = ajv.compile<AgentsUpdateParams>(AgentsUpdateParamsSchema);
 export const validateAgentsDeleteParams = ajv.compile<AgentsDeleteParams>(AgentsDeleteParamsSchema);
@@ -452,6 +459,8 @@ export {
   WebLoginStartParamsSchema,
   WebLoginWaitParamsSchema,
   AgentSummarySchema,
+  AgentsToolsCatalogParamsSchema,
+  AgentsToolsCatalogResultSchema,
   AgentsFileEntrySchema,
   AgentsCreateParamsSchema,
   AgentsCreateResultSchema,
@@ -539,6 +548,8 @@ export type {
   WebLoginStartParams,
   WebLoginWaitParams,
   AgentSummary,
+  AgentsToolsCatalogParams,
+  AgentsToolsCatalogResult,
   AgentsFileEntry,
   AgentsCreateParams,
   AgentsCreateResult,
