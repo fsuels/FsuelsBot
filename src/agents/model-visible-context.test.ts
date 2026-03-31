@@ -91,8 +91,24 @@ describe("projectConversationForModel", () => {
 
     expect(projection.usage.branchHistoryMessages).toBe(4);
     expect(projection.usage.scopedHistoryMessages).toBe(2);
+    expect(projection.usage.sanitizedHistoryMessages).toBe(2);
+    expect(projection.usage.validatedHistoryMessages).toBe(2);
+    expect(projection.usage.limitedHistoryMessages).toBe(2);
     expect(projection.usage.projectedHistoryMessages).toBe(2);
     expect(projection.usage.taskScoped).toBe(true);
+    expect(projection.usage.historyStages.map((stage) => stage.key)).toEqual([
+      "branch",
+      "scoped",
+      "sanitized",
+      "validated",
+      "limited",
+      "projected",
+    ]);
+    expect(projection.usage.historyStages[1]).toMatchObject({
+      key: "scoped",
+      changed: true,
+      savingsTokens: projection.usage.branchHistoryTokens - projection.usage.scopedHistoryTokens,
+    });
     expect(projection.projectedMessages.map((message) => messageText(message))).toEqual([
       "task-a-1",
       "task-a-2",
@@ -120,6 +136,9 @@ describe("projectConversationForModel", () => {
     expect(projection.usage.truncatedToolResults).toBe(1);
     expect(projection.usage.systemPromptTokens).toBe(200);
     expect(projection.usage.toolSchemaTokens).toBe(100);
+    expect(projection.usage.limitedHistoryTokens).toBeGreaterThanOrEqual(
+      projection.usage.projectedHistoryTokens,
+    );
     expect(projection.usage.projectedHistoryTokens).toBeLessThan(
       projection.usage.branchHistoryTokens,
     );
@@ -132,6 +151,10 @@ describe("projectConversationForModel", () => {
       Math.min(1, projection.usage.projectedTotalTokens / 2_000),
       5,
     );
+    expect(projection.usage.historyStages.at(-1)).toMatchObject({
+      key: "projected",
+      changed: true,
+    });
     expect(messageText(projection.projectedMessages[1] as AgentMessage)).toContain(
       "Content truncated",
     );

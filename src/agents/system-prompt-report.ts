@@ -3,6 +3,7 @@ import type { SessionSystemPromptReport } from "../config/sessions/types.js";
 import type { EmbeddedContextFile } from "./pi-embedded-helpers.js";
 import type { PromptAssemblyArtifact } from "./system-prompt-sections.js";
 import type { WorkspaceBootstrapFile } from "./workspace.js";
+import { resolveSkillSourceCategory } from "./skills/registry.js";
 
 function extractBetween(
   input: string,
@@ -20,10 +21,22 @@ function extractBetween(
   return { text: input.slice(start, end), found: true };
 }
 
-function parseSkillBlocks(skillsPrompt: string): Array<{ name: string; blockChars: number }> {
+function parseSkillBlocks(
+  skillsPrompt: string,
+  resolvedSkills?: Array<{ name?: string; source?: string }>,
+): SessionSystemPromptReport["skills"]["entries"] {
   const prompt = skillsPrompt.trim();
   if (!prompt) {
     return [];
+  }
+  const sourceCategoryByName = new Map<string, ReturnType<typeof resolveSkillSourceCategory>>();
+  for (const skill of resolvedSkills ?? []) {
+    const name = typeof skill.name === "string" ? skill.name.trim() : "";
+    const source = typeof skill.source === "string" ? skill.source.trim() : "";
+    if (!name || !source || sourceCategoryByName.has(name)) {
+      continue;
+    }
+    sourceCategoryByName.set(name, resolveSkillSourceCategory(source));
   }
   const blocks = Array.from(prompt.matchAll(/<skill>[\s\S]*?<\/skill>/gi)).map(
     (match) => match[0] ?? "",
@@ -31,9 +44,33 @@ function parseSkillBlocks(skillsPrompt: string): Array<{ name: string; blockChar
   return blocks
     .map((block) => {
       const name = block.match(/<name>\s*([^<]+?)\s*<\/name>/i)?.[1]?.trim() || "(unknown)";
-      return { name, blockChars: block.length };
+      return {
+        name,
+        blockChars: block.length,
+        sourceCategory: sourceCategoryByName.get(name) ?? "unknown",
+      };
     })
     .filter((b) => b.blockChars > 0);
+}
+
+function resolveContextFileSourceGroup(
+  name: string,
+): NonNullable<SessionSystemPromptReport["injectedWorkspaceFiles"][number]["sourceGroup"]> {
+  const normalized = name.trim().toUpperCase();
+  if (normalized === "IDENTITY.MD" || normalized === "USER.MD") {
+    return "user";
+  }
+  if (
+    normalized === "HEARTBEAT.MD" ||
+    normalized === "ACTIVE_TASK" ||
+    normalized === "TASK_TRACKER"
+  ) {
+    return "managed";
+  }
+  if (!normalized) {
+    return "unknown";
+  }
+  return "project";
 }
 
 function buildInjectedWorkspaceFiles(params: {
@@ -42,7 +79,7 @@ function buildInjectedWorkspaceFiles(params: {
   bootstrapMaxChars: number;
 }): SessionSystemPromptReport["injectedWorkspaceFiles"] {
   const injectedByName = new Map(params.injectedFiles.map((f) => [f.path, f.content]));
-  return params.bootstrapFiles.map((file) => {
+  const bootstrapEntries = params.bootstrapFiles.map((file) => {
     const rawChars = file.missing ? 0 : (file.content ?? "").trimEnd().length;
     const injected = injectedByName.get(file.name);
     const injectedChars = injected ? injected.length : 0;
@@ -54,8 +91,27 @@ function buildInjectedWorkspaceFiles(params: {
       rawChars,
       injectedChars,
       truncated,
+      synthetic: false,
+      sourceGroup: resolveContextFileSourceGroup(file.name),
     };
   });
+  const seenNames = new Set<string>(bootstrapEntries.map((entry) => entry.name));
+  const syntheticEntries = params.injectedFiles
+    .filter((file) => !seenNames.has(file.path))
+    .map((file) => {
+      const injectedChars = file.content.length;
+      return {
+        name: file.path,
+        path: file.path,
+        missing: false,
+        rawChars: injectedChars,
+        injectedChars,
+        truncated: false,
+        synthetic: true,
+        sourceGroup: resolveContextFileSourceGroup(file.path),
+      };
+    });
+  return [...bootstrapEntries, ...syntheticEntries];
 }
 
 function buildToolsEntries(tools: AgentTool[]): SessionSystemPromptReport["tools"]["entries"] {
@@ -114,6 +170,9 @@ export function buildSystemPromptReport(params: {
   bootstrapFiles: WorkspaceBootstrapFile[];
   injectedFiles: EmbeddedContextFile[];
   skillsPrompt: string;
+  resolvedSkills?: Array<{ name?: string; source?: string }>;
+  availableSkillsCount?: number;
+  loadedSkillsCount?: number;
   tools: AgentTool[];
 }): SessionSystemPromptReport {
   const systemPrompt = params.systemPrompt.trim();
@@ -123,7 +182,7 @@ export function buildSystemPromptReport(params: {
   const toolListChars = toolListText.length;
   const toolsEntries = buildToolsEntries(params.tools);
   const toolsSchemaChars = toolsEntries.reduce((sum, t) => sum + (t.schemaChars ?? 0), 0);
-  const skillsEntries = parseSkillBlocks(params.skillsPrompt);
+  const skillsEntries = parseSkillBlocks(params.skillsPrompt, params.resolvedSkills);
 
   return {
     source: params.source,
@@ -160,6 +219,8 @@ export function buildSystemPromptReport(params: {
     }),
     skills: {
       promptChars: params.skillsPrompt.length,
+      availableCount: params.availableSkillsCount,
+      loadedCount: params.loadedSkillsCount,
       entries: skillsEntries,
     },
     tools: {
