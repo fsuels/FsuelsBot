@@ -1,8 +1,12 @@
 import { Container, Spacer, Text } from "@mariozechner/pi-tui";
 import { theme } from "../theme/theme.js";
 import { AssistantMessageComponent } from "./assistant-message.js";
-import { ToolExecutionComponent } from "./tool-execution.js";
+import { ToolExecutionComponent, type ToolExecutionResultOptions } from "./tool-execution.js";
 import { UserMessageComponent } from "./user-message.js";
+
+type ToolExecutionStartOptions = {
+  startedAt?: number;
+};
 
 export class ChatLog extends Container {
   private toolById = new Map<string, ToolExecutionComponent>();
@@ -56,13 +60,15 @@ export class ChatLog extends Container {
     this.addChild(new AssistantMessageComponent(text));
   }
 
-  startTool(toolCallId: string, toolName: string, args: unknown) {
+  startTool(toolCallId: string, toolName: string, args: unknown, opts?: ToolExecutionStartOptions) {
     const existing = this.toolById.get(toolCallId);
     if (existing) {
       existing.setArgs(args);
+      existing.setStartedAt(opts?.startedAt);
       return existing;
     }
     const component = new ToolExecutionComponent(toolName, args);
+    component.setStartedAt(opts?.startedAt);
     component.setExpanded(this.toolsExpanded);
     this.toolById.set(toolCallId, component);
     this.addChild(component);
@@ -80,19 +86,17 @@ export class ChatLog extends Container {
   updateToolResult(
     toolCallId: string,
     result: unknown,
-    opts?: { isError?: boolean; partial?: boolean },
+    opts?: ToolExecutionResultOptions & { partial?: boolean },
   ) {
     const existing = this.toolById.get(toolCallId);
     if (!existing) {
       return;
     }
     if (opts?.partial) {
-      existing.setPartialResult(result as Record<string, unknown>);
+      existing.setPartialResult(result as Record<string, unknown>, opts);
       return;
     }
-    existing.setResult(result as Record<string, unknown>, {
-      isError: opts?.isError,
-    });
+    existing.setResult(result as Record<string, unknown>, opts);
   }
 
   setToolsExpanded(expanded: boolean) {

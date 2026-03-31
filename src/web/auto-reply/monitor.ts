@@ -153,6 +153,7 @@ export async function monitorWebChannel(
     let handledMessages = 0;
     let _lastInboundMsg: WebInboundMsg | null = null;
     let unregisterUnhandled: (() => void) | null = null;
+    let closePromise: Promise<void> | null = null;
 
     // Watchdog to detect stuck message processing (e.g., event emitter died)
     const MESSAGE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes without any messages
@@ -243,27 +244,38 @@ export async function monitorWebChannel(
       return true;
     });
 
-    const closeListener = async () => {
-      setActiveWebListener(account.accountId, null);
-      if (unregisterUnhandled) {
-        unregisterUnhandled();
-        unregisterUnhandled = null;
+    const closeListener = () => {
+      if (closePromise) {
+        return closePromise;
       }
-      if (heartbeat) {
-        clearInterval(heartbeat);
-      }
-      if (watchdogTimer) {
-        clearInterval(watchdogTimer);
-      }
-      if (backgroundTasks.size > 0) {
-        await Promise.allSettled(backgroundTasks);
-        backgroundTasks.clear();
-      }
-      try {
-        await listener.close();
-      } catch (err) {
-        logVerbose(`Socket close failed: ${formatError(err)}`);
-      }
+      // Watchdog, abort, and onClose can all converge on shutdown at the same time.
+      // Collapse them into a single in-flight close so we do not double-close sockets
+      // or wait on background task drains more than once.
+      closePromise = (async () => {
+        setActiveWebListener(account.accountId, null);
+        if (unregisterUnhandled) {
+          unregisterUnhandled();
+          unregisterUnhandled = null;
+        }
+        if (heartbeat) {
+          clearInterval(heartbeat);
+          heartbeat = null;
+        }
+        if (watchdogTimer) {
+          clearInterval(watchdogTimer);
+          watchdogTimer = null;
+        }
+        if (backgroundTasks.size > 0) {
+          await Promise.allSettled(backgroundTasks);
+          backgroundTasks.clear();
+        }
+        try {
+          await listener.close();
+        } catch (err) {
+          logVerbose(`Socket close failed: ${formatError(err)}`);
+        }
+      })();
+      return closePromise;
     };
 
     if (keepAlive) {

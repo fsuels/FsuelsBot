@@ -151,6 +151,8 @@ describe("agent event handler", () => {
         toolCallId: "t3",
         result: { content: [{ type: "text", text: "secret" }] },
         partialResult: { content: [{ type: "text", text: "partial" }] },
+        resultStatus: "timeout",
+        elapsedMs: 1500,
       },
     });
 
@@ -158,6 +160,8 @@ describe("agent event handler", () => {
     const payload = broadcastToConnIds.mock.calls[0]?.[1] as { data?: Record<string, unknown> };
     expect(payload.data?.result).toBeUndefined();
     expect(payload.data?.partialResult).toBeUndefined();
+    expect(payload.data?.resultStatus).toBe("timeout");
+    expect(payload.data?.elapsedMs).toBe(1500);
     resetAgentRunContextForTest();
   });
 
