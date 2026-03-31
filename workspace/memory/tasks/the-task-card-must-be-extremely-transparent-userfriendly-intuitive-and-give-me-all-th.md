@@ -6,6 +6,15 @@
 **Created:** 2026-03-27  
 **Updated:** 2026-03-27 04:20 EDT
 
+## Quick Nav
+
+- [Goal](#goal)
+- [Context & Background](#context--background)
+- [60-Second Audit View](#60-second-audit-view)
+- [Checklist](#checklist)
+- [Concrete Receipts](#concrete-receipts)
+- [Handoff](#handoff)
+
 ## Goal
 
 Make this task card extremely transparent, user-friendly, intuitive, and professionally organized so Francisco can audit status, decisions, evidence, and next actions in under 60 seconds.
@@ -16,9 +25,18 @@ Francisco explicitly requested that the task card be complete, easy to understan
 
 ## Resources
 
-- **Path:** Task registry → `/Users/fsuels/Projects/FsuelsBot/workspace/memory/tasks.json`
-- **Path:** Linked card brief (this file) → `/Users/fsuels/Projects/FsuelsBot/workspace/memory/tasks/the-task-card-must-be-extremely-transparent-userfriendly-intuitive-and-give-me-all-th.md`
+- **Task registry:** [`memory/tasks.json`](../tasks.json)
+- **Linked card brief (this file):** [`memory/tasks/the-task-card-must-be-extremely-transparent-userfriendly-intuitive-and-give-me-all-th.md`](./the-task-card-must-be-extremely-transparent-userfriendly-intuitive-and-give-me-all-th.md)
 - **Missing:** N/A
+
+## 60-Second Audit View
+
+| Field                     | Status | Evidence                                                         |
+| ------------------------- | ------ | ---------------------------------------------------------------- |
+| Objective clearly defined | ✅     | `Goal` section states success condition and time-to-audit target |
+| Execution steps visible   | ✅     | `Checklist` includes step-by-step completion                     |
+| Completion proof attached | ✅     | `Concrete Receipts` lists exact file paths + updated fields      |
+| Handoff clarity           | ✅     | `Handoff` includes what is done, next action, blockers           |
 
 ## Checklist
 

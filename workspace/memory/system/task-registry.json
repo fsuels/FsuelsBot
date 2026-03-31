@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": 1771658135381,
+  "updatedAt": 1774954007097,
   "tasks": [
     {
       "taskId": "pomelli-dresses-refresh",
@@ -87,7 +87,7 @@
       "title": "research-review-heartbeat-md",
       "status": "suspended",
       "createdAt": 1771648535879,
-      "lastTouchedAt": 1771648535879,
+      "lastTouchedAt": 1774598767484,
       "links": [],
       "pinSetId": "pins:research-review-heartbeat-md",
       "schemaVersion": 1
@@ -110,6 +110,576 @@
       "lastTouchedAt": 1771658135381,
       "links": [],
       "pinSetId": "pins:research-review-heartbeat-md-3",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-4",
+      "title": "research-review-heartbeat-md-4",
+      "status": "suspended",
+      "createdAt": 1771697755810,
+      "lastTouchedAt": 1771697755810,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-4",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-5",
+      "title": "research-review-heartbeat-md-5",
+      "status": "suspended",
+      "createdAt": 1771708563688,
+      "lastTouchedAt": 1771708563688,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-5",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-1688-com-1-more",
+      "title": "research-review-1688-com-1-more",
+      "status": "suspended",
+      "createdAt": 1771771975032,
+      "lastTouchedAt": 1771771975032,
+      "links": [],
+      "pinSetId": "pins:research-review-1688-com-1-more",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-detail-1688-com-offer-1020099002207-html",
+      "title": "research-review-detail-1688-com-offer-1020099002207-html",
+      "status": "suspended",
+      "createdAt": 1771776983921,
+      "lastTouchedAt": 1771776983921,
+      "links": [],
+      "pinSetId": "pins:research-review-detail-1688-com-offer-1020099002207-html",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-admin-shopify-com-store-dresslikemommy-com",
+      "title": "research-review-admin-shopify-com-store-dresslikemommy-com",
+      "status": "suspended",
+      "createdAt": 1771777931159,
+      "lastTouchedAt": 1771777931159,
+      "links": [],
+      "pinSetId": "pins:research-review-admin-shopify-com-store-dresslikemommy-com",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-dresslikemomy-com",
+      "title": "research-review-dresslikemomy-com",
+      "status": "suspended",
+      "createdAt": 1771780637777,
+      "lastTouchedAt": 1771780637777,
+      "links": [],
+      "pinSetId": "pins:research-review-dresslikemomy-com",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-6",
+      "title": "research-review-heartbeat-md-6",
+      "status": "suspended",
+      "createdAt": 1771783034426,
+      "lastTouchedAt": 1771783034426,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-6",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-7",
+      "title": "research-review-heartbeat-md-7",
+      "status": "suspended",
+      "createdAt": 1771809335914,
+      "lastTouchedAt": 1771809335914,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-7",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-8",
+      "title": "research-review-heartbeat-md-8",
+      "status": "suspended",
+      "createdAt": 1771812939282,
+      "lastTouchedAt": 1771812939282,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-8",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-9",
+      "title": "research-review-heartbeat-md-9",
+      "status": "suspended",
+      "createdAt": 1771816537031,
+      "lastTouchedAt": 1771816537031,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-9",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-10",
+      "title": "research-review-heartbeat-md-10",
+      "status": "suspended",
+      "createdAt": 1771820205704,
+      "lastTouchedAt": 1771820205704,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-10",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-11",
+      "title": "research-review-heartbeat-md-11",
+      "status": "suspended",
+      "createdAt": 1771823867779,
+      "lastTouchedAt": 1771823867779,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-11",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-12",
+      "title": "research-review-heartbeat-md-12",
+      "status": "suspended",
+      "createdAt": 1771834545985,
+      "lastTouchedAt": 1771834545985,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-12",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-13",
+      "title": "research-review-heartbeat-md-13",
+      "status": "suspended",
+      "createdAt": 1771859740528,
+      "lastTouchedAt": 1771859740528,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-13",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-14",
+      "title": "research-review-heartbeat-md-14",
+      "status": "suspended",
+      "createdAt": 1771863364329,
+      "lastTouchedAt": 1771863364329,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-14",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-15",
+      "title": "research-review-heartbeat-md-15",
+      "status": "suspended",
+      "createdAt": 1771874135601,
+      "lastTouchedAt": 1771874135601,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-15",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-16",
+      "title": "research-review-heartbeat-md-16",
+      "status": "suspended",
+      "createdAt": 1771877771648,
+      "lastTouchedAt": 1771877771648,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-16",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-17",
+      "title": "research-review-heartbeat-md-17",
+      "status": "suspended",
+      "createdAt": 1771884966807,
+      "lastTouchedAt": 1771884966807,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-17",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-18",
+      "title": "research-review-heartbeat-md-18",
+      "status": "suspended",
+      "createdAt": 1771892166671,
+      "lastTouchedAt": 1771892166671,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-18",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-19",
+      "title": "research-review-heartbeat-md-19",
+      "status": "suspended",
+      "createdAt": 1771899377224,
+      "lastTouchedAt": 1771899377224,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-19",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-20",
+      "title": "research-review-heartbeat-md-20",
+      "status": "suspended",
+      "createdAt": 1771931734378,
+      "lastTouchedAt": 1771931734378,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-20",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-21",
+      "title": "research-review-heartbeat-md-21",
+      "status": "suspended",
+      "createdAt": 1771931767627,
+      "lastTouchedAt": 1771931767627,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-21",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-22",
+      "title": "research-review-heartbeat-md-22",
+      "status": "suspended",
+      "createdAt": 1771938932351,
+      "lastTouchedAt": 1771938932351,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-22",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-23",
+      "title": "research-review-heartbeat-md-23",
+      "status": "suspended",
+      "createdAt": 1771939001327,
+      "lastTouchedAt": 1771939001327,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-23",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-24",
+      "title": "research-review-heartbeat-md-24",
+      "status": "suspended",
+      "createdAt": 1771942599116,
+      "lastTouchedAt": 1771942599116,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-24",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-25",
+      "title": "research-review-heartbeat-md-25",
+      "status": "suspended",
+      "createdAt": 1771949794457,
+      "lastTouchedAt": 1771949794457,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-25",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-26",
+      "title": "research-review-heartbeat-md-26",
+      "status": "suspended",
+      "createdAt": 1771960545077,
+      "lastTouchedAt": 1771960545077,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-26",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-27",
+      "title": "research-review-heartbeat-md-27",
+      "status": "suspended",
+      "createdAt": 1771974938389,
+      "lastTouchedAt": 1771974938389,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-27",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-28",
+      "title": "research-review-heartbeat-md-28",
+      "status": "suspended",
+      "createdAt": 1771985735099,
+      "lastTouchedAt": 1771985735099,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-28",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-29",
+      "title": "research-review-heartbeat-md-29",
+      "status": "suspended",
+      "createdAt": 1771992936313,
+      "lastTouchedAt": 1771992936313,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-29",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-30",
+      "title": "research-review-heartbeat-md-30",
+      "status": "suspended",
+      "createdAt": 1772003749947,
+      "lastTouchedAt": 1772003749947,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-30",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-31",
+      "title": "research-review-heartbeat-md-31",
+      "status": "suspended",
+      "createdAt": 1772013644367,
+      "lastTouchedAt": 1772013644367,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-31",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-32",
+      "title": "research-review-heartbeat-md-32",
+      "status": "suspended",
+      "createdAt": 1772021748560,
+      "lastTouchedAt": 1772021748560,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-32",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-33",
+      "title": "research-review-heartbeat-md-33",
+      "status": "suspended",
+      "createdAt": 1772029007420,
+      "lastTouchedAt": 1772029007420,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-33",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-34",
+      "title": "research-review-heartbeat-md-34",
+      "status": "suspended",
+      "createdAt": 1772039731098,
+      "lastTouchedAt": 1772039731098,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-34",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-35",
+      "title": "research-review-heartbeat-md-35",
+      "status": "suspended",
+      "createdAt": 1772043332345,
+      "lastTouchedAt": 1772043332345,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-35",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-36",
+      "title": "research-review-heartbeat-md-36",
+      "status": "suspended",
+      "createdAt": 1772046967641,
+      "lastTouchedAt": 1772046967641,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-36",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-37",
+      "title": "research-review-heartbeat-md-37",
+      "status": "suspended",
+      "createdAt": 1772050592025,
+      "lastTouchedAt": 1772050592025,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-37",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-38",
+      "title": "research-review-heartbeat-md-38",
+      "status": "suspended",
+      "createdAt": 1772054191179,
+      "lastTouchedAt": 1772054191179,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-38",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-39",
+      "title": "research-review-heartbeat-md-39",
+      "status": "suspended",
+      "createdAt": 1772057786813,
+      "lastTouchedAt": 1772057786813,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-39",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-40",
+      "title": "research-review-heartbeat-md-40",
+      "status": "suspended",
+      "createdAt": 1772061386802,
+      "lastTouchedAt": 1772061386802,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-40",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-41",
+      "title": "research-review-heartbeat-md-41",
+      "status": "suspended",
+      "createdAt": 1772068539155,
+      "lastTouchedAt": 1772068539155,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-41",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-42",
+      "title": "research-review-heartbeat-md-42",
+      "status": "suspended",
+      "createdAt": 1772079329404,
+      "lastTouchedAt": 1772079329404,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-42",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-43",
+      "title": "research-review-heartbeat-md-43",
+      "status": "suspended",
+      "createdAt": 1773090948946,
+      "lastTouchedAt": 1773090948946,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-43",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-heartbeat-md-44",
+      "title": "research-review-heartbeat-md-44",
+      "status": "suspended",
+      "createdAt": 1773094568162,
+      "lastTouchedAt": 1773094568162,
+      "links": [],
+      "pinSetId": "pins:research-review-heartbeat-md-44",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-dresslikemommy-com",
+      "title": "research-review-dresslikemommy-com",
+      "status": "suspended",
+      "createdAt": 1774595906957,
+      "lastTouchedAt": 1774595906957,
+      "links": [],
+      "pinSetId": "pins:research-review-dresslikemommy-com",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-tagmanager-google-com",
+      "title": "research-review-tagmanager-google-com",
+      "status": "suspended",
+      "createdAt": 1774596700215,
+      "lastTouchedAt": 1774596700215,
+      "links": [],
+      "pinSetId": "pins:research-review-tagmanager-google-com",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-analytics-google-com-analytics-web",
+      "title": "research-review-analytics-google-com-analytics-web",
+      "status": "suspended",
+      "createdAt": 1774596961982,
+      "lastTouchedAt": 1774596961982,
+      "links": [],
+      "pinSetId": "pins:research-review-analytics-google-com-analytics-web",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-ads-google-com-aw-productlinks",
+      "title": "research-review-ads-google-com-aw-productlinks",
+      "status": "suspended",
+      "createdAt": 1774597089282,
+      "lastTouchedAt": 1774597089282,
+      "links": [],
+      "pinSetId": "pins:research-review-ads-google-com-aw-productlinks",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-merchants-google-com-mc-products",
+      "title": "research-review-merchants-google-com-mc-products",
+      "status": "suspended",
+      "createdAt": 1774597189712,
+      "lastTouchedAt": 1774597189712,
+      "links": [],
+      "pinSetId": "pins:research-review-merchants-google-com-mc-products",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "you-need-to-fix-this-immediately",
+      "title": "you need to fix this immediately",
+      "status": "active",
+      "createdAt": 1774598035794,
+      "lastTouchedAt": 1774598035794,
+      "links": [],
+      "pinSetId": "pins:you-need-to-fix-this-immediately",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "in-the-mission-control-card-i-need-to-be-able-to-know-exactly-what-text-of-what-i-wrote",
+      "title": "in-the-mission-control-card-i-need-to-be-able-to-know-exactly-what-text-of-what-i-wrote",
+      "status": "suspended",
+      "createdAt": 1774598301273,
+      "lastTouchedAt": 1774598301273,
+      "links": [],
+      "pinSetId": "pins:in-the-mission-control-card-i-need-to-be-able-to-know-exactly-what-text-of-what-i-wrote",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "the-task-card-must-be-extremely-transparent-userfriendly-intuitive-and-give-me-all-th",
+      "title": "the task card must be extremely transparent, userfriendly, intuitive and give me all th...",
+      "status": "active",
+      "createdAt": 1774599126135,
+      "lastTouchedAt": 1774599126135,
+      "links": [],
+      "pinSetId": "pins:the-task-card-must-be-extremely-transparent-userfriendly-intuitive-and-give-me-all-th",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "it-needs-to-run-locally-to-be-able-to-see",
+      "title": "It needs to run locally to be able to see",
+      "status": "active",
+      "createdAt": 1774947700522,
+      "lastTouchedAt": 1774947700522,
+      "links": [],
+      "pinSetId": "pins:it-needs-to-run-locally-to-be-able-to-see",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "do-you-understand-that-i-cannot-easily-access-the-mission-control-from-my-phone-it-s-no",
+      "title": "Do you understand that I cannot easily access the mission control from my phone it’s no...",
+      "status": "active",
+      "createdAt": 1774951746835,
+      "lastTouchedAt": 1774951746835,
+      "links": [],
+      "pinSetId": "pins:do-you-understand-that-i-cannot-easily-access-the-mission-control-from-my-phone-it-s-no",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "you-need-to-access-from-my-computer-the-google-chrome-profile-test-always-use-that-to-o",
+      "title": "You need to access from my computer the Google Chrome profile test always use that to o...",
+      "status": "completed",
+      "createdAt": 1774952980483,
+      "lastTouchedAt": 1774952980483,
+      "links": [],
+      "pinSetId": "pins:you-need-to-access-from-my-computer-the-google-chrome-profile-test-always-use-that-to-o",
+      "schemaVersion": 1
+    },
+    {
+      "taskId": "research-review-cli-js-map",
+      "title": "research-review-cli-js-map",
+      "status": "suspended",
+      "createdAt": 1774954007097,
+      "lastTouchedAt": 1774954007097,
+      "links": [],
+      "pinSetId": "pins:research-review-cli-js-map",
       "schemaVersion": 1
     }
   ]

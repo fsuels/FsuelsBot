@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "updatedAt": 1774956026660,
+  "pins": [
+    {
+      "id": "pin_f1bdf91d-6a48-478b-86c9-f4aa2ad44597",
+      "type": "fact",
+      "scope": "global",
+      "text": "what do you remember",
+      "entity": "sender:8438693397",
+      "createdAt": 1771780511174,
+      "updatedAt": 1771780511174
+    },
+    {
+      "id": "pin_42e04485-3c0a-4848-90a0-1b8911fc53b0",
+      "type": "fact",
+      "scope": "global",
+      "text": "Primary goals: - accurate data collection across GA4, Google Ads, Merchant Center, Pinterest, and other destinations - correct ecommerce and conversion tracking - minimal duplication, data loss, or firing errors - privacy-aware, consent-respecting tagging - a scalable tracking foundation that is easy to maintain Important rules: 1",
+      "entity": "sender:8438693397",
+      "createdAt": 1774596700218,
+      "updatedAt": 1774596700218
+    },
+    {
+      "id": "pin_7e4801dd-6b99-422b-93b2-7a0825956d76",
+      "type": "fact",
+      "scope": "global",
+      "text": "Primary goals: - trustworthy acquisition and revenue reporting - accurate ecommerce measurement - clear funnel and landing-page visibility - useful attribution and audience insight - analytics that directly improves traffic quality, conversion rate, and revenue Important rules: 1",
+      "entity": "sender:8438693397",
+      "createdAt": 1774596961984,
+      "updatedAt": 1774596961984
+    },
+    {
+      "id": "pin_1bcbcb21-2f33-45f6-bf38-05577fab4690",
+      "type": "fact",
+      "scope": "global",
+      "text": "Primary goals: - improve conversion quality and revenue - lower CPA/CAC where possible - increase ROAS and/or contribution margin - improve budget allocation and bidding efficiency - scale without wasting spend Important rules: 1",
+      "entity": "sender:8438693397",
+      "createdAt": 1774597089289,
+      "updatedAt": 1774597089289
+    },
+    {
+      "id": "pin_c0a105d7-b7db-4edf-b5f2-ce4a085fd7e9",
+      "type": "fact",
+      "scope": "global",
+      "text": "Primary goals: - maximize approved and eligible product visibility - improve feed quality and data completeness - reduce product-level and account-level issues - increase click quality and conversion readiness - align product data, site data, and campaign needs Important rules: 1",
+      "entity": "sender:8438693397",
+      "createdAt": 1774597189714,
+      "updatedAt": 1774597189714
+    },
+    {
+      "id": "pin_660788ff-8731-4e2a-87d4-0bb05b33a4cf",
+      "type": "fact",
+      "scope": "global",
+      "text": "I’m going to save this link so anytime I can go there and access mission control to see the status of any job",
+      "entity": "sender:8438693397",
+      "createdAt": 1774952560244,
+      "updatedAt": 1774952560244
+    },
+    {
+      "id": "pin_77e86cde-df10-4a04-983f-0cee496b0bfa",
+      "type": "constraint",
+      "scope": "task",
+      "text": "Keep that in memory remember always you need to always be able to access the Internet this way, so keep that in memory always I want any session that I start with you for you to always understand that you have full access to my computer that you can use the terminal and you can use the browser and I’m basically use any program in my computer",
+      "taskId": "you-need-to-access-from-my-computer-the-google-chrome-profile-test-always-use-that-to-o",
+      "entity": "sender:8438693397",
+      "createdAt": 1774952982964,
+      "updatedAt": 1774952982964
+    },
+    {
+      "id": "pin_558d07c0-b65e-4d2c-91a0-cab6fca9ab37",
+      "type": "constraint",
+      "scope": "global",
+      "text": "From now on: Default to Plan Mode for any task that involves code changes, architecture, or multi-step work (unless the user explicitly says \"/auto\", \"/task\", or \"/explore\")",
+      "entity": "sender:8438693397",
+      "createdAt": 1774956026657,
+      "updatedAt": 1774956026657
+    },
+    {
+      "id": "pin_5b0af2ce-d28f-48b1-abe4-744eeeb0fdad",
+      "type": "fact",
+      "scope": "global",
+      "text": ", 3-5 most important files) You are strictly prohibited from creating, editing, deleting, or moving any files while in Plan Mode",
+      "entity": "sender:8438693397",
+      "createdAt": 1774956026659,
+      "updatedAt": 1774956026659
+    },
+    {
+      "id": "pin_5b0752d2-0e8a-48b0-bb73-62d08ece348d",
+      "type": "constraint",
+      "scope": "global",
+      "text": "Confirm by showing me your new Plan Mode prompt file and explaining how you will enforce it from now on",
+      "entity": "sender:8438693397",
+      "createdAt": 1774956026660,
+      "updatedAt": 1774956026660
+    }
+  ],
+  "removeIntents": []
+}

@@ -1,0 +1,83 @@
+HTTP/2 302 
+date: Tue, 31 Mar 2026 11:27:49 GMT
+location: https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview
+report-to: {"group":"cf-nel","max_age":604800,"endpoints":[{"url":"https://a.nel.cloudflare.com/report/v4?s=Cc39SnM0I%2BaNyfAtsJ8t3QkUPcokaKrEScmcGyEQtj6Fh%2FqOQ4OA9Pl6VAlqAqd1Sbh%2FYViHx5gIYxhT7a6sVOsE6gD4CitBgtjzZjK6L4IzdxVRq1BwjcaLlzs%3D"}]}
+nel: {"report_to":"cf-nel","success_fraction":0.0,"max_age":604800}
+server: cloudflare
+cf-ray: 9e4f01cb58bfae3f-MIA
+alt-svc: h3=":443"; ma=86400
+
+HTTP/2 301 
+date: Tue, 31 Mar 2026 11:27:49 GMT
+content-type: text/html
+content-length: 167
+location: https://platform.claude.com/docs/en/docs/agents-and-tools/claude-code/overview
+cache-control: max-age=3600
+expires: Tue, 31 Mar 2026 12:27:49 GMT
+server: cloudflare
+cf-ray: 9e4f01cbcb96a101-MIA
+alt-svc: h3=":443"; ma=86400
+
+HTTP/2 307 
+date: Tue, 31 Mar 2026 11:27:49 GMT
+content-type: text/html
+cf-ray: 9e4f01cc280bbd88-MIA
+location: /docs/en/agents-and-tools/claude-code/overview
+x-cloud-trace-context: 37081bbd4e9a5908bcaa509de0edb77d
+via: 1.1 google
+alt-svc: h3=":443"; ma=86400
+cf-cache-status: BYPASS
+set-cookie: __cf_bm=gq.ECG9HEcnPMQY9LcfQh11SH_WhflMYqV6R2a2QA7Q-1774956469-1.0.1.1-ZL2zGe2y1KW2e7L_xnJtCxiNO8qMJIOs8N9SGu532Hj_mxbbaHnUZQb1zWacCgwJ0idUSZSaFxdpPHR3.LpM5jUMQCQSbmWOMYQcFpkWZF4; path=/; expires=Tue, 31-Mar-26 11:57:49 GMT; domain=.claude.com; HttpOnly; Secure; SameSite=None
+set-cookie: _cfuvid=3pQIwHtgp_HjDyuIKjK84Onf6AIBWj8TUG_bjuivsEA-1774956469280-0.0.1.1-604800000; path=/; domain=.claude.com; HttpOnly; Secure; SameSite=None
+strict-transport-security: max-age=31536000; includeSubDomains; preload
+x-content-type-options: nosniff
+server: cloudflare
+
+HTTP/2 307 
+date: Tue, 31 Mar 2026 11:27:49 GMT
+content-type: text/html
+location: https://code.claude.com/docs
+cf-ray: 9e4f01cd2a09bd88-MIA
+x-cloud-trace-context: ea2428fc6ec075da5ebfef5e578a8fc7
+via: 1.1 google
+alt-svc: h3=":443"; ma=86400
+cf-cache-status: BYPASS
+set-cookie: __cf_bm=VupBz5FdP7tWkA1PJwnlz3VHvNToFJSguh1UyMooOlc-1774956469-1.0.1.1-KrhmMrEfGal0..8xynw8A6Iwdi4lfj8jj2TWTsttcoU5fh5CeE29d7ZB6T1sasCEU6phg9gMd67u2_Jj2ca20J9bFhZGQITZ78Hl2OQLzwc; path=/; expires=Tue, 31-Mar-26 11:57:49 GMT; domain=.claude.com; HttpOnly; Secure; SameSite=None
+set-cookie: _cfuvid=AXyW8duuCk6k3rTkNlOqwO6xgW6nPGCFS2TdET4KHS0-1774956469387-0.0.1.1-604800000; path=/; domain=.claude.com; HttpOnly; Secure; SameSite=None
+strict-transport-security: max-age=31536000; includeSubDomains; preload
+x-content-type-options: nosniff
+server: cloudflare
+
+HTTP/2 200 
+date: Tue, 31 Mar 2026 11:27:49 GMT
+content-type: text/html; charset=utf-8
+server: cloudflare
+cf-ray: 9e4f01ce0fa4e55c-MIA
+cf-cache-status: DYNAMIC
+age: 17064
+cache-control: no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0
+expires: 0
+link: </llms.txt>; rel="llms-txt", </llms-full.txt>; rel="llms-full-txt"
+set-cookie: cf_geo=US-FL; Path=/docs; Secure; SameSite=Lax; Max-Age=300
+set-cookie: __cf_bm=aKZsdH_tByly1mA8IK1iLF5cyIO5m6Tp5EIEhnL3KhU-1774956469-1.0.1.1-IMTFYA0yjpANxq464RP6ondApdkmp4.4Mm.u6hXZASH8V5CVFcfD2KQgOw8rsKsr6zhar87BDkt7uWviqSo1TrSQJEoMWKEAEizeRSegBUc; path=/; expires=Tue, 31-Mar-26 11:57:49 GMT; domain=.claude.com; HttpOnly; Secure; SameSite=None
+set-cookie: _cfuvid=gQ4DZpeZy46o.LDJEPd5VwsATcWRxMcH7dngUy22GRo-1774956469657-0.0.1.1-604800000; path=/; domain=.claude.com; HttpOnly; Secure; SameSite=None
+strict-transport-security: max-age=31536000; includeSubDomains; preload
+vary: rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch, Accept-Encoding
+pragma: no-cache
+x-content-type-options: nosniff
+content-security-policy: worker-src * blob: data: 'unsafe-eval' 'unsafe-inline'; object-src data: ; base-uri 'self'; upgrade-insecure-requests; frame-ancestors 'self' https://dashboard.mintlify.com; form-action 'self' https://codesandbox.io;
+x-cache-key: claude-code/523/dpl_39u9Rk4AF1Me15g3dnMmwLosAZvQ/docs/en/overview#html=html
+x-frame-options: DENY
+x-llms-txt: /llms.txt
+x-matched-path: /_sites/[subdomain]/[[...slug]]
+x-mint-proxy-version: 1.0.0-prod
+x-mintlify-client-version: 0.0.2720
+x-nextjs-prerender: 1
+x-nextjs-stale-time: 60
+x-served-version: dpl_39u9Rk4AF1Me15g3dnMmwLosAZvQ
+x-vercel-cache: MISS
+x-vercel-id: iad1:iad1::iad1::49bbr-1774956469596-584d01dee4c9
+x-vercel-project-id: prj_ekSYngkqMLMUb1wdarxNSixTj2nj
+x-version: dpl_39u9Rk4AF1Me15g3dnMmwLosAZvQ
+alt-svc: h3=":443"; ma=86400
+

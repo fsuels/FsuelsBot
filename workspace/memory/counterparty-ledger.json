@@ -1,0 +1,176 @@
+{
+  "version": 1,
+  "updated_at": "2026-03-31T11:20:26.664Z",
+  "counterparties": {
+    "sender:8438693397": {
+      "entity": "sender:8438693397",
+      "first_seen_at": "2026-02-22T14:49:52.700Z",
+      "last_seen_at": "2026-03-31T11:20:26.664Z",
+      "interaction_count": 115,
+      "cooperative_turns": 110,
+      "conflict_turns": 5,
+      "cooperation_rate": 0.957,
+      "manipulation_signals_total": 0,
+      "trust_tier": "watch",
+      "last_outcomes": [
+        "conflict",
+        "conflict",
+        "conflict",
+        "cooperative",
+        "cooperative",
+        "cooperative",
+        "cooperative",
+        "cooperative",
+        "cooperative",
+        "conflict"
+      ],
+      "last_mode": "guarded",
+      "signal_events": [
+        {
+          "at": "2026-03-31T10:05:18.812Z",
+          "total": 0,
+          "labels": [],
+          "severe": false,
+          "message_hash": "930eb37cb9b2dd4ce56e"
+        },
+        {
+          "at": "2026-03-31T10:06:25.139Z",
+          "total": 0,
+          "labels": [],
+          "severe": false,
+          "message_hash": "8a4db7881475e40d50b6"
+        },
+        {
+          "at": "2026-03-31T10:07:28.678Z",
+          "total": 0,
+          "labels": [],
+          "severe": false,
+          "message_hash": "df19064d96673a4c6aa6"
+        },
+        {
+          "at": "2026-03-31T10:09:09.166Z",
+          "total": 0,
+          "labels": [],
+          "severe": false,
+          "message_hash": "f81453ee21e0f7b34d2d"
+        },
+        {
+          "at": "2026-03-31T10:09:13.597Z",
+          "total": 0,
+          "labels": [],
+          "severe": false,
+          "message_hash": "0dfeb29c142e9b2f746a"
+        },
+        {
+          "at": "2026-03-31T10:11:55.397Z",
+          "total": 0,
+          "labels": [],
+          "severe": false,
+          "message_hash": "832569490e26eab5a541"
+        },
+        {
+          "at": "2026-03-31T10:13:01.043Z",
+          "total": 0,
+          "labels": [],
+          "severe": false,
+          "message_hash": "2cb9209d05b964e7291f"
+        },
+        {
+          "at": "2026-03-31T10:13:36.463Z",
+          "total": 0,
+          "labels": [],
+          "severe": false,
+          "message_hash": "82ef2da3dbf708741960"
+        },
+        {
+          "at": "2026-03-31T10:16:18.282Z",
+          "total": 0,
+          "labels": [],
+          "severe": false,
+          "message_hash": "cc7c6133675bd22c476d"
+        },
+        {
+          "at": "2026-03-31T10:19:02.915Z",
+          "total": 0,
+          "labels": [],
+          "severe": false,
+          "message_hash": "f57c796bb3016129b31d"
+        },
+        {
+          "at": "2026-03-31T10:22:15.052Z",
+          "total": 0,
+          "labels": [],
+          "severe": false,
+          "message_hash": "1c91043e56b6f3babe22"
+        },
+        {
+          "at": "2026-03-31T10:22:40.246Z",
+          "total": 0,
+          "labels": [],
+          "severe": false,
+          "message_hash": "c9411c56fcf2b5e83891"
+        },
+        {
+          "at": "2026-03-31T10:24:36.117Z",
+          "total": 0,
+          "labels": [],
+          "severe": false,
+          "message_hash": "07a966197bdacba7c1cd"
+        },
+        {
+          "at": "2026-03-31T10:26:12.632Z",
+          "total": 0,
+          "labels": [],
+          "severe": false,
+          "message_hash": "0dfeb29c142e9b2f746a"
+        },
+        {
+          "at": "2026-03-31T10:29:42.966Z",
+          "total": 0,
+          "labels": [],
+          "severe": false,
+          "message_hash": "3a4742bfefc27e0baa75"
+        },
+        {
+          "at": "2026-03-31T10:38:05.035Z",
+          "total": 0,
+          "labels": [],
+          "severe": false,
+          "message_hash": "220f960aa1a06a087149"
+        },
+        {
+          "at": "2026-03-31T10:42:40.030Z",
+          "total": 0,
+          "labels": [],
+          "severe": false,
+          "message_hash": "fec8f8423e48ce67fdde"
+        },
+        {
+          "at": "2026-03-31T10:46:47.099Z",
+          "total": 0,
+          "labels": [],
+          "severe": false,
+          "message_hash": "21412d59cc31b4cb7591"
+        },
+        {
+          "at": "2026-03-31T10:55:09.734Z",
+          "total": 0,
+          "labels": [],
+          "severe": false,
+          "message_hash": "a698c01fee9bbd7b75f1"
+        },
+        {
+          "at": "2026-03-31T11:20:26.664Z",
+          "total": 0,
+          "labels": [],
+          "severe": false,
+          "message_hash": "daeb3203e2564929433c"
+        }
+      ],
+      "escalation": {
+        "pending": false,
+        "reasons": []
+      }
+    }
+  }
+}

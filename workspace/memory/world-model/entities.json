@@ -1,102 +1,2694 @@
 {
   "version": 1,
-  "updatedAt": "2026-02-21T07:15:38.676Z",
+  "updatedAt": "2026-03-31T11:32:37.825Z",
   "entities": {
+    "want": {
+      "id": "want",
+      "label": "want",
+      "mentions": 787,
+      "weight": 275.45,
+      "firstSeenAt": "2026-02-21T04:35:42.467Z",
+      "lastSeenAt": "2026-03-31T11:32:37.825Z"
+    },
     "read": {
       "id": "read",
       "label": "read",
-      "mentions": 3,
-      "weight": 1.05,
+      "mentions": 782,
+      "weight": 273.7,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T07:15:38.676Z"
-    },
-    "heartbeat": {
-      "id": "heartbeat",
-      "label": "heartbeat",
-      "mentions": 3,
-      "weight": 1.05,
-      "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T07:15:38.676Z"
-    },
-    "exists": {
-      "id": "exists",
-      "label": "exists",
-      "mentions": 3,
-      "weight": 1.05,
-      "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T07:15:38.676Z"
-    },
-    "workspace": {
-      "id": "workspace",
-      "label": "workspace",
-      "mentions": 3,
-      "weight": 1.05,
-      "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T07:15:38.676Z"
-    },
-    "context": {
-      "id": "context",
-      "label": "context",
-      "mentions": 3,
-      "weight": 1.05,
-      "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T07:15:38.676Z"
+      "lastSeenAt": "2026-03-31T11:32:37.825Z"
     },
     "follow": {
       "id": "follow",
       "label": "follow",
-      "mentions": 3,
-      "weight": 1.05,
+      "mentions": 782,
+      "weight": 273.7,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T07:15:38.676Z"
+      "lastSeenAt": "2026-03-31T11:32:37.825Z"
+    },
+    "workspace": {
+      "id": "workspace",
+      "label": "workspace",
+      "mentions": 782,
+      "weight": 273.7,
+      "firstSeenAt": "2026-02-21T04:35:42.467Z",
+      "lastSeenAt": "2026-03-31T11:32:37.825Z"
+    },
+    "heartbeat": {
+      "id": "heartbeat",
+      "label": "heartbeat",
+      "mentions": 781,
+      "weight": 273.35,
+      "firstSeenAt": "2026-02-21T04:35:42.467Z",
+      "lastSeenAt": "2026-03-31T11:32:37.825Z"
+    },
+    "exists": {
+      "id": "exists",
+      "label": "exists",
+      "mentions": 781,
+      "weight": 273.35,
+      "firstSeenAt": "2026-02-21T04:35:42.467Z",
+      "lastSeenAt": "2026-03-31T11:32:37.825Z"
+    },
+    "context": {
+      "id": "context",
+      "label": "context",
+      "mentions": 781,
+      "weight": 273.35,
+      "firstSeenAt": "2026-02-21T04:35:42.467Z",
+      "lastSeenAt": "2026-03-31T11:32:37.825Z"
     },
     "strictly": {
       "id": "strictly",
       "label": "strictly",
-      "mentions": 3,
-      "weight": 1.05,
+      "mentions": 781,
+      "weight": 273.35,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T07:15:38.676Z"
+      "lastSeenAt": "2026-03-31T11:32:37.825Z"
     },
     "infer": {
       "id": "infer",
       "label": "infer",
-      "mentions": 3,
-      "weight": 1.05,
+      "mentions": 781,
+      "weight": 273.35,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T07:15:38.676Z"
+      "lastSeenAt": "2026-03-31T11:32:37.825Z"
     },
     "voice": {
       "id": "voice",
       "label": "voice",
-      "mentions": 3,
-      "weight": 1.05,
+      "mentions": 593,
+      "weight": 207.55,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T07:15:38.676Z"
-    },
-    "want": {
-      "id": "want",
-      "label": "want",
-      "mentions": 3,
-      "weight": 1.05,
-      "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T07:15:38.676Z"
+      "lastSeenAt": "2026-03-27T07:18:29.020Z"
     },
     "assistant": {
       "id": "assistant",
       "label": "assistant",
-      "mentions": 3,
-      "weight": 1.05,
+      "mentions": 593,
+      "weight": 207.55,
       "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T07:15:38.676Z"
+      "lastSeenAt": "2026-03-27T07:18:29.020Z"
     },
     "design": {
       "id": "design",
       "label": "design",
+      "mentions": 593,
+      "weight": 207.55,
+      "firstSeenAt": "2026-02-21T04:35:42.467Z",
+      "lastSeenAt": "2026-03-27T07:18:29.020Z"
+    },
+    "mission": {
+      "id": "mission",
+      "label": "mission",
+      "mentions": 200,
+      "weight": 70,
+      "firstSeenAt": "2026-03-27T07:44:44.071Z",
+      "lastSeenAt": "2026-03-31T11:32:37.825Z"
+    },
+    "control": {
+      "id": "control",
+      "label": "control",
+      "mentions": 199,
+      "weight": 69.65,
+      "firstSeenAt": "2026-03-27T07:44:44.071Z",
+      "lastSeenAt": "2026-03-31T11:32:37.825Z"
+    },
+    "able": {
+      "id": "able",
+      "label": "able",
+      "mentions": 182,
+      "weight": 63.7,
+      "firstSeenAt": "2026-02-22T15:32:07.084Z",
+      "lastSeenAt": "2026-03-31T10:45:00.592Z"
+    },
+    "tool:exec": {
+      "id": "tool:exec",
+      "label": "tool:exec",
+      "mentions": 35,
+      "weight": 12.25,
+      "firstSeenAt": "2026-02-22T14:53:48.636Z",
+      "lastSeenAt": "2026-03-31T10:55:59.253Z"
+    },
+    "task:it-needs-to-run-locally-to-be-able-to-see": {
+      "id": "task:it-needs-to-run-locally-to-be-able-to-see",
+      "label": "task:it-needs-to-run-locally-to-be-able-to-see",
+      "mentions": 31,
+      "weight": 10.85,
+      "firstSeenAt": "2026-03-31T09:05:21.986Z",
+      "lastSeenAt": "2026-03-31T10:08:27.473Z"
+    },
+    "users": {
+      "id": "users",
+      "label": "users",
+      "mentions": 28,
+      "weight": 9.8,
+      "firstSeenAt": "2026-02-22T14:53:48.636Z",
+      "lastSeenAt": "2026-03-31T10:15:50.853Z"
+    },
+    "fsuels": {
+      "id": "fsuels",
+      "label": "fsuels",
+      "mentions": 26,
+      "weight": 9.1,
+      "firstSeenAt": "2026-02-22T16:17:30.376Z",
+      "lastSeenAt": "2026-03-31T10:15:50.853Z"
+    },
+    "task:you-need-to-access-from-my-computer-the-google-chrome-profile-test-always-use-that-to-o": {
+      "id": "task:you-need-to-access-from-my-computer-the-google-chrome-profile-test-always-use-that-to-o",
+      "label": "task:you-need-to-access-from-my-computer-the-google-chrome-profile-test-always-use-that-to-o",
+      "mentions": 22,
+      "weight": 7.7,
+      "firstSeenAt": "2026-03-31T10:33:09.964Z",
+      "lastSeenAt": "2026-03-31T10:55:59.253Z"
+    },
+    "projects": {
+      "id": "projects",
+      "label": "projects",
+      "mentions": 20,
+      "weight": 7,
+      "firstSeenAt": "2026-02-22T16:17:30.376Z",
+      "lastSeenAt": "2026-03-31T10:15:50.853Z"
+    },
+    "tool:read": {
+      "id": "tool:read",
+      "label": "tool:read",
+      "mentions": 19,
+      "weight": 6.65,
+      "firstSeenAt": "2026-02-22T14:53:48.636Z",
+      "lastSeenAt": "2026-03-31T10:15:50.853Z"
+    },
+    "user": {
+      "id": "user",
+      "label": "user",
+      "mentions": 14,
+      "weight": 4.75,
+      "firstSeenAt": "2026-03-31T10:39:31.298Z",
+      "lastSeenAt": "2026-03-31T11:32:37.825Z"
+    },
+    "task": {
+      "id": "task",
+      "label": "task",
+      "mentions": 12,
+      "weight": 4.2,
+      "firstSeenAt": "2026-03-27T07:35:43.069Z",
+      "lastSeenAt": "2026-03-31T09:01:17.328Z"
+    },
+    "open": {
+      "id": "open",
+      "label": "open",
+      "mentions": 10,
+      "weight": 3.5,
+      "firstSeenAt": "2026-02-22T15:55:11.368Z",
+      "lastSeenAt": "2026-03-31T10:33:09.964Z"
+    },
+    "tool:memory_search": {
+      "id": "tool:memory_search",
+      "label": "tool:memory_search",
+      "mentions": 10,
+      "weight": 3.5,
+      "firstSeenAt": "2026-02-22T17:14:52.096Z",
+      "lastSeenAt": "2026-03-31T10:08:27.473Z"
+    },
+    "code": {
+      "id": "code",
+      "label": "code",
+      "mentions": 8,
+      "weight": 2.8,
+      "firstSeenAt": "2026-03-31T09:26:48.892Z",
+      "lastSeenAt": "2026-03-31T11:20:36.689Z"
+    },
+    "check": {
+      "id": "check",
+      "label": "check",
+      "mentions": 7,
+      "weight": 2.45,
+      "firstSeenAt": "2026-02-22T16:52:00.003Z",
+      "lastSeenAt": "2026-03-31T10:44:04.429Z"
+    },
+    "shopify": {
+      "id": "shopify",
+      "label": "shopify",
+      "mentions": 7,
+      "weight": 2.45,
+      "firstSeenAt": "2026-02-22T16:31:57.181Z",
+      "lastSeenAt": "2026-03-27T07:42:01.551Z"
+    },
+    "memory": {
+      "id": "memory",
+      "label": "memory",
+      "mentions": 6,
+      "weight": 2.1,
+      "firstSeenAt": "2026-02-22T17:14:52.096Z",
+      "lastSeenAt": "2026-03-31T10:38:40.835Z"
+    },
+    "link": {
+      "id": "link",
+      "label": "link",
+      "mentions": 6,
+      "weight": 2.1,
+      "firstSeenAt": "2026-02-22T15:32:07.084Z",
+      "lastSeenAt": "2026-03-31T10:18:22.888Z"
+    },
+    "working": {
+      "id": "working",
+      "label": "working",
+      "mentions": 6,
+      "weight": 2.1,
+      "firstSeenAt": "2026-03-31T09:18:21.670Z",
+      "lastSeenAt": "2026-03-31T10:18:22.888Z"
+    },
+    "dresslikemommy": {
+      "id": "dresslikemommy",
+      "label": "dresslikemommy",
+      "mentions": 6,
+      "weight": 2.1,
+      "firstSeenAt": "2026-02-22T14:53:48.636Z",
+      "lastSeenAt": "2026-03-31T09:38:11.739Z"
+    },
+    "card": {
+      "id": "card",
+      "label": "card",
+      "mentions": 6,
+      "weight": 2.1,
+      "firstSeenAt": "2026-03-27T07:46:55.923Z",
+      "lastSeenAt": "2026-03-27T08:14:14.183Z"
+    },
+    "path": {
+      "id": "path",
+      "label": "path",
+      "mentions": 5,
+      "weight": 1.75,
+      "firstSeenAt": "2026-03-27T07:44:44.071Z",
+      "lastSeenAt": "2026-03-31T10:55:59.253Z"
+    },
+    "already": {
+      "id": "already",
+      "label": "already",
+      "mentions": 5,
+      "weight": 1.75,
+      "firstSeenAt": "2026-02-22T15:55:11.368Z",
+      "lastSeenAt": "2026-03-31T10:38:40.835Z"
+    },
+    "access": {
+      "id": "access",
+      "label": "access",
+      "mentions": 5,
+      "weight": 1.75,
+      "firstSeenAt": "2026-02-22T16:47:20.019Z",
+      "lastSeenAt": "2026-03-31T10:33:09.964Z"
+    },
+    "google": {
+      "id": "google",
+      "label": "google",
+      "mentions": 5,
+      "weight": 1.75,
+      "firstSeenAt": "2026-03-27T07:35:43.069Z",
+      "lastSeenAt": "2026-03-31T10:33:09.964Z"
+    },
+    "phone": {
+      "id": "phone",
+      "label": "phone",
+      "mentions": 5,
+      "weight": 1.75,
+      "firstSeenAt": "2026-03-31T09:44:05.020Z",
+      "lastSeenAt": "2026-03-31T10:18:22.888Z"
+    },
+    "getting": {
+      "id": "getting",
+      "label": "getting",
+      "mentions": 5,
+      "weight": 1.75,
+      "firstSeenAt": "2026-02-22T15:32:07.084Z",
+      "lastSeenAt": "2026-03-31T10:18:22.888Z"
+    },
+    "browser": {
+      "id": "browser",
+      "label": "browser",
+      "mentions": 5,
+      "weight": 1.75,
+      "firstSeenAt": "2026-02-22T15:32:07.084Z",
+      "lastSeenAt": "2026-03-31T10:18:22.888Z"
+    },
+    "needs": {
+      "id": "needs",
+      "label": "needs",
+      "mentions": 5,
+      "weight": 1.75,
+      "firstSeenAt": "2026-02-22T17:24:55.558Z",
+      "lastSeenAt": "2026-03-31T09:55:04.750Z"
+    },
+    "give": {
+      "id": "give",
+      "label": "give",
+      "mentions": 5,
+      "weight": 1.75,
+      "firstSeenAt": "2026-03-27T07:50:07.290Z",
+      "lastSeenAt": "2026-03-31T08:59:12.567Z"
+    },
+    "know": {
+      "id": "know",
+      "label": "know",
+      "mentions": 5,
+      "weight": 1.75,
+      "firstSeenAt": "2026-02-22T16:17:30.376Z",
+      "lastSeenAt": "2026-03-27T08:01:25.220Z"
+    },
+    "action:execute-task": {
+      "id": "action:execute-task",
+      "label": "action:execute-task",
+      "mentions": 5,
+      "weight": 1.6,
+      "firstSeenAt": "2026-03-27T07:35:43.069Z",
+      "lastSeenAt": "2026-03-31T11:20:36.689Z"
+    },
+    "pathlib": {
+      "id": "pathlib",
+      "label": "pathlib",
+      "mentions": 4,
+      "weight": 1.4,
+      "firstSeenAt": "2026-03-27T07:44:44.071Z",
+      "lastSeenAt": "2026-03-31T10:55:59.253Z"
+    },
+    "told": {
+      "id": "told",
+      "label": "told",
+      "mentions": 4,
+      "weight": 1.4,
+      "firstSeenAt": "2026-02-22T17:14:52.096Z",
+      "lastSeenAt": "2026-03-31T10:38:40.835Z"
+    },
+    "chrome": {
+      "id": "chrome",
+      "label": "chrome",
+      "mentions": 4,
+      "weight": 1.4,
+      "firstSeenAt": "2026-02-22T15:55:11.368Z",
+      "lastSeenAt": "2026-03-31T10:33:09.964Z"
+    },
+    "task:do-you-understand-that-i-cannot-easily-access-the-mission-control-from-my-phone-it-s-no": {
+      "id": "task:do-you-understand-that-i-cannot-easily-access-the-mission-control-from-my-phone-it-s-no",
+      "label": "task:do-you-understand-that-i-cannot-easily-access-the-mission-control-from-my-phone-it-s-no",
+      "mentions": 4,
+      "weight": 1.4,
+      "firstSeenAt": "2026-03-31T10:11:27.550Z",
+      "lastSeenAt": "2026-03-31T10:18:22.888Z"
+    },
+    "tool:edit": {
+      "id": "tool:edit",
+      "label": "tool:edit",
+      "mentions": 4,
+      "weight": 1.4,
+      "firstSeenAt": "2026-03-27T07:53:32.465Z",
+      "lastSeenAt": "2026-03-31T10:15:50.853Z"
+    },
+    "local": {
+      "id": "local",
+      "label": "local",
+      "mentions": 4,
+      "weight": 1.4,
+      "firstSeenAt": "2026-03-31T09:26:48.892Z",
+      "lastSeenAt": "2026-03-31T10:12:33.990Z"
+    },
+    "d594adfaf105": {
+      "id": "d594adfaf105",
+      "label": "d594adfaf105",
+      "mentions": 4,
+      "weight": 1.4,
+      "firstSeenAt": "2026-03-31T09:49:34.228Z",
+      "lastSeenAt": "2026-03-31T10:08:27.473Z"
+    },
+    "nsource": {
+      "id": "nsource",
+      "label": "nsource",
+      "mentions": 4,
+      "weight": 1.4,
+      "firstSeenAt": "2026-03-31T09:49:34.228Z",
+      "lastSeenAt": "2026-03-31T10:08:27.473Z"
+    },
+    "size": {
+      "id": "size",
+      "label": "size",
+      "mentions": 4,
+      "weight": 1.4,
+      "firstSeenAt": "2026-02-22T17:14:52.096Z",
+      "lastSeenAt": "2026-03-31T10:03:45.909Z"
+    },
+    "click": {
+      "id": "click",
+      "label": "click",
+      "mentions": 4,
+      "weight": 1.4,
+      "firstSeenAt": "2026-03-27T08:11:44.178Z",
+      "lastSeenAt": "2026-03-31T09:51:30.485Z"
+    },
+    "tool:write": {
+      "id": "tool:write",
+      "label": "tool:write",
+      "mentions": 4,
+      "weight": 1.4,
+      "firstSeenAt": "2026-02-22T17:14:52.096Z",
+      "lastSeenAt": "2026-03-31T09:46:39.000Z"
+    },
+    "collections": {
+      "id": "collections",
+      "label": "collections",
+      "mentions": 4,
+      "weight": 1.4,
+      "firstSeenAt": "2026-02-22T14:53:48.636Z",
+      "lastSeenAt": "2026-03-31T09:38:11.739Z"
+    },
+    "task:you-need-to-fix-this-immediately": {
+      "id": "task:you-need-to-fix-this-immediately",
+      "label": "task:you-need-to-fix-this-immediately",
+      "mentions": 4,
+      "weight": 1.4,
+      "firstSeenAt": "2026-03-27T07:56:05.648Z",
+      "lastSeenAt": "2026-03-27T08:04:14.342Z"
+    },
+    "current": {
+      "id": "current",
+      "label": "current",
+      "mentions": 4,
+      "weight": 1.4,
+      "firstSeenAt": "2026-03-27T07:35:43.069Z",
+      "lastSeenAt": "2026-03-27T07:57:55.899Z"
+    },
+    "tier": {
+      "id": "tier",
+      "label": "tier",
+      "mentions": 4,
+      "weight": 1.4,
+      "firstSeenAt": "2026-03-27T07:35:43.069Z",
+      "lastSeenAt": "2026-03-27T07:42:01.551Z"
+    },
+    "store": {
+      "id": "store",
+      "label": "store",
+      "mentions": 4,
+      "weight": 1.4,
+      "firstSeenAt": "2026-02-22T16:47:20.019Z",
+      "lastSeenAt": "2026-03-27T07:39:09.845Z"
+    },
+    "easy": {
+      "id": "easy",
+      "label": "easy",
       "mentions": 3,
       "weight": 1.05,
-      "firstSeenAt": "2026-02-21T04:35:42.467Z",
-      "lastSeenAt": "2026-02-21T07:15:38.676Z"
+      "firstSeenAt": "2026-03-31T09:49:34.228Z",
+      "lastSeenAt": "2026-03-31T10:38:40.835Z"
+    },
+    "computer": {
+      "id": "computer",
+      "label": "computer",
+      "mentions": 3,
+      "weight": 1.05,
+      "firstSeenAt": "2026-02-22T16:47:20.019Z",
+      "lastSeenAt": "2026-03-31T10:33:09.964Z"
+    },
+    "keep": {
+      "id": "keep",
+      "label": "keep",
+      "mentions": 3,
+      "weight": 1.05,
+      "firstSeenAt": "2026-03-31T09:59:03.437Z",
+      "lastSeenAt": "2026-03-31T10:18:22.888Z"
+    },
+    "error": {
+      "id": "error",
+      "label": "error",
+      "mentions": 3,
+      "weight": 1.05,
+      "firstSeenAt": "2026-03-31T09:51:30.485Z",
+      "lastSeenAt": "2026-03-31T10:18:22.888Z"
+    },
+    "sending": {
+      "id": "sending",
+      "label": "sending",
+      "mentions": 3,
+      "weight": 1.05,
+      "firstSeenAt": "2026-03-31T09:23:45.951Z",
+      "lastSeenAt": "2026-03-31T10:11:27.550Z"
+    },
+    "sbin": {
+      "id": "sbin",
+      "label": "sbin",
+      "mentions": 3,
+      "weight": 1.05,
+      "firstSeenAt": "2026-03-31T09:41:37.906Z",
+      "lastSeenAt": "2026-03-31T10:03:45.909Z"
+    },
+    "lsof": {
+      "id": "lsof",
+      "label": "lsof",
+      "mentions": 3,
+      "weight": 1.05,
+      "firstSeenAt": "2026-03-31T09:41:37.906Z",
+      "lastSeenAt": "2026-03-31T10:03:45.909Z"
+    },
+    "plain": {
+      "id": "plain",
+      "label": "plain",
+      "mentions": 3,
+      "weight": 1.05,
+      "firstSeenAt": "2026-03-31T09:26:48.892Z",
+      "lastSeenAt": "2026-03-31T10:03:45.909Z"
+    },
+    "work": {
+      "id": "work",
+      "label": "work",
+      "mentions": 3,
+      "weight": 1.05,
+      "firstSeenAt": "2026-02-22T16:52:35.667Z",
+      "lastSeenAt": "2026-03-31T09:55:04.750Z"
+    },
+    "d594adfaf1059c978aa3c9bdfac5e7d5": {
+      "id": "d594adfaf1059c978aa3c9bdfac5e7d5",
+      "label": "d594adfaf1059c978aa3c9bdfac5e7d5",
+      "mentions": 3,
+      "weight": 1.05,
+      "firstSeenAt": "2026-03-31T09:26:48.892Z",
+      "lastSeenAt": "2026-03-31T09:55:04.750Z"
+    },
+    "tasks": {
+      "id": "tasks",
+      "label": "tasks",
+      "mentions": 3,
+      "weight": 1.05,
+      "firstSeenAt": "2026-03-27T07:44:44.071Z",
+      "lastSeenAt": "2026-03-31T09:49:34.228Z"
+    },
+    "tool:memory_get": {
+      "id": "tool:memory_get",
+      "label": "tool:memory_get",
+      "mentions": 3,
+      "weight": 1.05,
+      "firstSeenAt": "2026-02-22T17:15:55.984Z",
+      "lastSeenAt": "2026-03-31T09:46:39.000Z"
+    },
+    "information": {
+      "id": "information",
+      "label": "information",
+      "mentions": 3,
+      "weight": 1.05,
+      "firstSeenAt": "2026-03-27T07:51:42.981Z",
+      "lastSeenAt": "2026-03-27T08:14:14.183Z"
+    },
+    "exactly": {
+      "id": "exactly",
+      "label": "exactly",
+      "mentions": 3,
+      "weight": 1.05,
+      "firstSeenAt": "2026-03-27T07:53:32.465Z",
+      "lastSeenAt": "2026-03-27T08:11:44.178Z"
+    },
+    "detail": {
+      "id": "detail",
+      "label": "detail",
+      "mentions": 3,
+      "weight": 1.05,
+      "firstSeenAt": "2026-02-22T16:17:30.376Z",
+      "lastSeenAt": "2026-03-27T07:46:55.923Z"
+    },
+    "well": {
+      "id": "well",
+      "label": "well",
+      "mentions": 3,
+      "weight": 1.05,
+      "firstSeenAt": "2026-03-27T07:37:21.497Z",
+      "lastSeenAt": "2026-03-27T07:42:01.551Z"
+    },
+    "ecommerce": {
+      "id": "ecommerce",
+      "label": "ecommerce",
+      "mentions": 3,
+      "weight": 1.05,
+      "firstSeenAt": "2026-03-27T07:35:43.069Z",
+      "lastSeenAt": "2026-03-27T07:39:09.845Z"
+    },
+    "audit": {
+      "id": "audit",
+      "label": "audit",
+      "mentions": 3,
+      "weight": 1.05,
+      "firstSeenAt": "2026-03-27T07:35:43.069Z",
+      "lastSeenAt": "2026-03-27T07:39:09.845Z"
+    },
+    "listing": {
+      "id": "listing",
+      "label": "listing",
+      "mentions": 3,
+      "weight": 1.05,
+      "firstSeenAt": "2026-02-22T15:55:11.368Z",
+      "lastSeenAt": "2026-02-22T17:24:55.558Z"
+    },
+    "products": {
+      "id": "products",
+      "label": "products",
+      "mentions": 3,
+      "weight": 1.05,
+      "firstSeenAt": "2026-02-22T14:53:48.636Z",
+      "lastSeenAt": "2026-02-22T16:52:00.003Z"
+    },
+    "tool:image": {
+      "id": "tool:image",
+      "label": "tool:image",
+      "mentions": 3,
+      "weight": 0.9,
+      "firstSeenAt": "2026-02-22T15:55:11.368Z",
+      "lastSeenAt": "2026-02-22T16:52:00.003Z"
+    },
+    "package": {
+      "id": "package",
+      "label": "package",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-03-27T08:11:44.178Z",
+      "lastSeenAt": "2026-03-31T10:55:59.253Z"
+    },
+    "anthropic": {
+      "id": "anthropic",
+      "label": "anthropic",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-03-27T06:58:59.640Z",
+      "lastSeenAt": "2026-03-31T10:55:59.253Z"
+    },
+    "understand": {
+      "id": "understand",
+      "label": "understand",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-03-31T10:11:27.550Z",
+      "lastSeenAt": "2026-03-31T10:38:40.835Z"
+    },
+    "write": {
+      "id": "write",
+      "label": "write",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-03-27T08:05:25.032Z",
+      "lastSeenAt": "2026-03-31T10:38:40.835Z"
+    },
+    "mean": {
+      "id": "mean",
+      "label": "mean",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-03-27T07:44:44.071Z",
+      "lastSeenAt": "2026-03-31T10:38:40.835Z"
+    },
+    "tell": {
+      "id": "tell",
+      "label": "tell",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-02-22T17:17:52.707Z",
+      "lastSeenAt": "2026-03-31T10:38:40.835Z"
+    },
+    "mobile": {
+      "id": "mobile",
+      "label": "mobile",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-03-31T08:59:12.567Z",
+      "lastSeenAt": "2026-03-31T10:15:50.853Z"
+    },
+    "fucking": {
+      "id": "fucking",
+      "label": "fucking",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-03-31T09:56:41.026Z",
+      "lastSeenAt": "2026-03-31T10:11:27.550Z"
+    },
+    "easily": {
+      "id": "easily",
+      "label": "easily",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-03-31T09:41:37.906Z",
+      "lastSeenAt": "2026-03-31T10:11:27.550Z"
+    },
+    "forbiden": {
+      "id": "forbiden",
+      "label": "forbiden",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-03-31T09:25:18.037Z",
+      "lastSeenAt": "2026-03-31T09:59:03.437Z"
+    },
+    "first": {
+      "id": "first",
+      "label": "first",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-03-27T07:44:44.071Z",
+      "lastSeenAt": "2026-03-31T09:56:41.026Z"
+    },
+    "send": {
+      "id": "send",
+      "label": "send",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-02-22T15:32:07.084Z",
+      "lastSeenAt": "2026-03-31T09:56:41.026Z"
+    },
+    "however": {
+      "id": "however",
+      "label": "however",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-03-27T08:11:44.178Z",
+      "lastSeenAt": "2026-03-31T09:51:30.485Z"
+    },
+    "must": {
+      "id": "must",
+      "label": "must",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-03-27T08:14:14.183Z",
+      "lastSeenAt": "2026-03-31T09:49:34.228Z"
+    },
+    "localhost": {
+      "id": "localhost",
+      "label": "localhost",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-02-22T17:15:55.984Z",
+      "lastSeenAt": "2026-03-31T09:49:34.228Z"
+    },
+    "verify": {
+      "id": "verify",
+      "label": "verify",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-03-27T08:11:44.178Z",
+      "lastSeenAt": "2026-03-31T09:23:45.951Z"
+    },
+    "complete": {
+      "id": "complete",
+      "label": "complete",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-02-22T16:31:57.181Z",
+      "lastSeenAt": "2026-03-31T09:23:45.951Z"
+    },
+    "yourself": {
+      "id": "yourself",
+      "label": "yourself",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-02-22T15:55:11.368Z",
+      "lastSeenAt": "2026-03-31T09:23:45.951Z"
+    },
+    "tool:canvas": {
+      "id": "tool:canvas",
+      "label": "tool:canvas",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-02-22T14:53:48.636Z",
+      "lastSeenAt": "2026-03-31T09:23:45.951Z"
+    },
+    "tool:nodes": {
+      "id": "tool:nodes",
+      "label": "tool:nodes",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-02-22T14:53:48.636Z",
+      "lastSeenAt": "2026-03-31T09:23:45.951Z"
+    },
+    "json": {
+      "id": "json",
+      "label": "json",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-03-27T08:05:25.032Z",
+      "lastSeenAt": "2026-03-31T09:12:52.646Z"
+    },
+    "dresses": {
+      "id": "dresses",
+      "label": "dresses",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-03-27T07:56:05.648Z",
+      "lastSeenAt": "2026-03-31T09:05:21.986Z"
+    },
+    "tool:delegate": {
+      "id": "tool:delegate",
+      "label": "tool:delegate",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-03-31T08:59:12.567Z",
+      "lastSeenAt": "2026-03-31T09:01:17.328Z"
+    },
+    "task:the-task-card-must-be-extremely-transparent-userfriendly-intuitive-and-give-me-all-th": {
+      "id": "task:the-task-card-must-be-extremely-transparent-userfriendly-intuitive-and-give-me-all-th",
+      "label": "task:the-task-card-must-be-extremely-transparent-userfriendly-intuitive-and-give-me-all-th",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-03-27T08:14:14.183Z",
+      "lastSeenAt": "2026-03-27T08:20:28.192Z"
+    },
+    "show": {
+      "id": "show",
+      "label": "show",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-03-27T07:51:42.981Z",
+      "lastSeenAt": "2026-03-27T08:20:28.192Z"
+    },
+    "everything": {
+      "id": "everything",
+      "label": "everything",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-03-27T07:53:32.465Z",
+      "lastSeenAt": "2026-03-27T08:14:14.183Z"
+    },
+    "steps": {
+      "id": "steps",
+      "label": "steps",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-03-27T07:51:42.981Z",
+      "lastSeenAt": "2026-03-27T08:11:44.178Z"
+    },
+    "remove": {
+      "id": "remove",
+      "label": "remove",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-03-27T07:57:55.899Z",
+      "lastSeenAt": "2026-03-27T08:09:45.555Z"
+    },
+    "offer": {
+      "id": "offer",
+      "label": "offer",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-02-22T16:17:30.376Z",
+      "lastSeenAt": "2026-03-27T08:09:45.555Z"
+    },
+    "improve": {
+      "id": "improve",
+      "label": "improve",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-03-27T08:04:14.342Z",
+      "lastSeenAt": "2026-03-27T08:05:25.032Z"
+    },
+    "text": {
+      "id": "text",
+      "label": "text",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-03-27T08:01:25.220Z",
+      "lastSeenAt": "2026-03-27T08:05:25.032Z"
+    },
+    "human": {
+      "id": "human",
+      "label": "human",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-03-27T07:50:07.290Z",
+      "lastSeenAt": "2026-03-27T07:57:55.899Z"
+    },
+    "care": {
+      "id": "care",
+      "label": "care",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-03-27T07:50:07.290Z",
+      "lastSeenAt": "2026-03-27T07:51:42.981Z"
+    },
+    "each": {
+      "id": "each",
+      "label": "each",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-03-27T07:46:55.923Z",
+      "lastSeenAt": "2026-03-27T07:49:02.035Z"
+    },
+    "explain": {
+      "id": "explain",
+      "label": "explain",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-02-22T17:14:52.096Z",
+      "lastSeenAt": "2026-03-27T07:46:55.923Z"
+    },
+    "sure": {
+      "id": "sure",
+      "label": "sure",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-02-22T15:55:11.368Z",
+      "lastSeenAt": "2026-03-27T07:46:55.923Z"
+    },
+    "here": {
+      "id": "here",
+      "label": "here",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-03-27T07:39:09.845Z",
+      "lastSeenAt": "2026-03-27T07:42:01.551Z"
+    },
+    "strategist": {
+      "id": "strategist",
+      "label": "strategist",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-03-27T07:37:21.497Z",
+      "lastSeenAt": "2026-03-27T07:39:09.845Z"
+    },
+    "action:memory-recall": {
+      "id": "action:memory-recall",
+      "label": "action:memory-recall",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-02-22T17:15:55.984Z",
+      "lastSeenAt": "2026-03-27T07:19:49.107Z"
+    },
+    "tool:session_status": {
+      "id": "tool:session_status",
+      "label": "tool:session_status",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-03-27T06:58:59.640Z",
+      "lastSeenAt": "2026-03-27T07:09:21.434Z"
+    },
+    "openai": {
+      "id": "openai",
+      "label": "openai",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-03-27T06:58:59.640Z",
+      "lastSeenAt": "2026-03-27T07:09:21.434Z"
+    },
+    "process": {
+      "id": "process",
+      "label": "process",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-02-22T17:17:52.707Z",
+      "lastSeenAt": "2026-02-22T17:24:55.558Z"
+    },
+    "chart": {
+      "id": "chart",
+      "label": "chart",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-02-22T17:14:52.096Z",
+      "lastSeenAt": "2026-02-22T17:24:55.558Z"
+    },
+    "tool:message": {
+      "id": "tool:message",
+      "label": "tool:message",
+      "mentions": 2,
+      "weight": 0.7,
+      "firstSeenAt": "2026-02-22T15:32:07.084Z",
+      "lastSeenAt": "2026-02-22T16:53:40.958Z"
+    },
+    "action:read-source": {
+      "id": "action:read-source",
+      "label": "action:read-source",
+      "mentions": 2,
+      "weight": 0.55,
+      "firstSeenAt": "2026-03-27T08:01:25.220Z",
+      "lastSeenAt": "2026-03-31T11:20:36.689Z"
+    },
+    "skill:workflow-read-65923756": {
+      "id": "skill:workflow-read-65923756",
+      "label": "skill:workflow-read-65923756",
+      "mentions": 2,
+      "weight": 0.55,
+      "firstSeenAt": "2026-03-27T08:01:25.220Z",
+      "lastSeenAt": "2026-03-31T11:20:36.689Z"
+    },
+    "skill:workflow-read-89330c5f": {
+      "id": "skill:workflow-read-89330c5f",
+      "label": "skill:workflow-read-89330c5f",
+      "mentions": 2,
+      "weight": 0.55,
+      "firstSeenAt": "2026-03-27T08:01:25.220Z",
+      "lastSeenAt": "2026-03-31T11:20:36.689Z"
+    },
+    "story": {
+      "id": "story",
+      "label": "story",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T11:20:36.689Z",
+      "lastSeenAt": "2026-03-31T11:20:36.689Z"
+    },
+    "carefully": {
+      "id": "carefully",
+      "label": "carefully",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T11:20:36.689Z",
+      "lastSeenAt": "2026-03-31T11:20:36.689Z"
+    },
+    "following": {
+      "id": "following",
+      "label": "following",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T11:20:36.689Z",
+      "lastSeenAt": "2026-03-31T11:20:36.689Z"
+    },
+    "looking": {
+      "id": "looking",
+      "label": "looking",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T11:20:36.689Z",
+      "lastSeenAt": "2026-03-31T11:20:36.689Z"
+    },
+    "ways": {
+      "id": "ways",
+      "label": "ways",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T11:20:36.689Z",
+      "lastSeenAt": "2026-03-31T11:20:36.689Z"
+    },
+    "learn": {
+      "id": "learn",
+      "label": "learn",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T11:20:36.689Z",
+      "lastSeenAt": "2026-03-31T11:20:36.689Z"
+    },
+    "registry": {
+      "id": "registry",
+      "label": "registry",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:55:59.253Z",
+      "lastSeenAt": "2026-03-31T10:55:59.253Z"
+    },
+    "npmjs": {
+      "id": "npmjs",
+      "label": "npmjs",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:55:59.253Z",
+      "lastSeenAt": "2026-03-31T10:55:59.253Z"
+    },
+    "root": {
+      "id": "root",
+      "label": "root",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:55:59.253Z",
+      "lastSeenAt": "2026-03-31T10:55:59.253Z"
+    },
+    "extractfile": {
+      "id": "extractfile",
+      "label": "extractfile",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:55:59.253Z",
+      "lastSeenAt": "2026-03-31T10:55:59.253Z"
+    },
+    "startswith": {
+      "id": "startswith",
+      "label": "startswith",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:55:59.253Z",
+      "lastSeenAt": "2026-03-31T10:55:59.253Z"
+    },
+    "true": {
+      "id": "true",
+      "label": "true",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:44:04.429Z",
+      "lastSeenAt": "2026-03-31T10:44:04.429Z"
+    },
+    "filtrado": {
+      "id": "filtrado",
+      "label": "filtrado",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:44:04.429Z",
+      "lastSeenAt": "2026-03-31T10:44:04.429Z"
+    },
+    "todo": {
+      "id": "todo",
+      "label": "todo",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:44:04.429Z",
+      "lastSeenAt": "2026-03-31T10:44:04.429Z"
+    },
+    "c-digo": {
+      "id": "c-digo",
+      "label": "c-digo",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:44:04.429Z",
+      "lastSeenAt": "2026-03-31T10:44:04.429Z"
+    },
+    "fuente": {
+      "id": "fuente",
+      "label": "fuente",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:44:04.429Z",
+      "lastSeenAt": "2026-03-31T10:44:04.429Z"
+    },
+    "claude": {
+      "id": "claude",
+      "label": "claude",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:44:04.429Z",
+      "lastSeenAt": "2026-03-31T10:44:04.429Z"
+    },
+    "hackeo": {
+      "id": "hackeo",
+      "label": "hackeo",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:44:04.429Z",
+      "lastSeenAt": "2026-03-31T10:44:04.429Z"
+    },
+    "sofisticado": {
+      "id": "sofisticado",
+      "label": "sofisticado",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:44:04.429Z",
+      "lastSeenAt": "2026-03-31T10:44:04.429Z"
+    },
+    "ataque": {
+      "id": "ataque",
+      "label": "ataque",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:44:04.429Z",
+      "lastSeenAt": "2026-03-31T10:44:04.429Z"
+    },
+    "subieron": {
+      "id": "subieron",
+      "label": "subieron",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:44:04.429Z",
+      "lastSeenAt": "2026-03-31T10:44:04.429Z"
+    },
+    "messages": {
+      "id": "messages",
+      "label": "messages",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:38:40.835Z",
+      "lastSeenAt": "2026-03-31T10:38:40.835Z"
+    },
+    "couldn": {
+      "id": "couldn",
+      "label": "couldn",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:38:40.835Z",
+      "lastSeenAt": "2026-03-31T10:38:40.835Z"
+    },
+    "safe": {
+      "id": "safe",
+      "label": "safe",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:38:40.835Z",
+      "lastSeenAt": "2026-03-31T10:38:40.835Z"
+    },
+    "whenever": {
+      "id": "whenever",
+      "label": "whenever",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:38:40.835Z",
+      "lastSeenAt": "2026-03-31T10:38:40.835Z"
+    },
+    "profile": {
+      "id": "profile",
+      "label": "profile",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:33:09.964Z",
+      "lastSeenAt": "2026-03-31T10:33:09.964Z"
+    },
+    "test": {
+      "id": "test",
+      "label": "test",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:33:09.964Z",
+      "lastSeenAt": "2026-03-31T10:33:09.964Z"
+    },
+    "window": {
+      "id": "window",
+      "label": "window",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:33:09.964Z",
+      "lastSeenAt": "2026-03-31T10:33:09.964Z"
+    },
+    "internet": {
+      "id": "internet",
+      "label": "internet",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:33:09.964Z",
+      "lastSeenAt": "2026-03-31T10:33:09.964Z"
+    },
+    "saved": {
+      "id": "saved",
+      "label": "saved",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:33:09.964Z",
+      "lastSeenAt": "2026-03-31T10:33:09.964Z"
+    },
+    "websites": {
+      "id": "websites",
+      "label": "websites",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:33:09.964Z",
+      "lastSeenAt": "2026-03-31T10:33:09.964Z"
+    },
+    "sent": {
+      "id": "sent",
+      "label": "sent",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:18:22.888Z",
+      "lastSeenAt": "2026-03-31T10:18:22.888Z"
+    },
+    "using": {
+      "id": "using",
+      "label": "using",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:18:22.888Z",
+      "lastSeenAt": "2026-03-31T10:18:22.888Z"
+    },
+    "safari": {
+      "id": "safari",
+      "label": "safari",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:18:22.888Z",
+      "lastSeenAt": "2026-03-31T10:18:22.888Z"
+    },
+    "dashboard": {
+      "id": "dashboard",
+      "label": "dashboard",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:15:50.853Z",
+      "lastSeenAt": "2026-03-31T10:15:50.853Z"
+    },
+    "connected": {
+      "id": "connected",
+      "label": "connected",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:12:33.990Z",
+      "lastSeenAt": "2026-03-31T10:12:33.990Z"
+    },
+    "network": {
+      "id": "network",
+      "label": "network",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:12:33.990Z",
+      "lastSeenAt": "2026-03-31T10:12:33.990Z"
+    },
+    "keeps": {
+      "id": "keeps",
+      "label": "keeps",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:12:33.990Z",
+      "lastSeenAt": "2026-03-31T10:12:33.990Z"
+    },
+    "happening": {
+      "id": "happening",
+      "label": "happening",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:12:33.990Z",
+      "lastSeenAt": "2026-03-31T10:12:33.990Z"
+    },
+    "cannot": {
+      "id": "cannot",
+      "label": "cannot",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:11:27.550Z",
+      "lastSeenAt": "2026-03-31T10:11:27.550Z"
+    },
+    "opening": {
+      "id": "opening",
+      "label": "opening",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:11:27.550Z",
+      "lastSeenAt": "2026-03-31T10:11:27.550Z"
+    },
+    "either": {
+      "id": "either",
+      "label": "either",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T10:11:27.550Z",
+      "lastSeenAt": "2026-03-31T10:11:27.550Z"
+    },
+    "restart": {
+      "id": "restart",
+      "label": "restart",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T09:56:41.026Z",
+      "lastSeenAt": "2026-03-31T09:56:41.026Z"
+    },
+    "thing": {
+      "id": "thing",
+      "label": "thing",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T09:56:41.026Z",
+      "lastSeenAt": "2026-03-31T09:56:41.026Z"
+    },
+    "easier": {
+      "id": "easier",
+      "label": "easier",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T09:55:04.750Z",
+      "lastSeenAt": "2026-03-31T09:55:04.750Z"
+    },
+    "telegram": {
+      "id": "telegram",
+      "label": "telegram",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T09:51:30.485Z",
+      "lastSeenAt": "2026-03-31T09:51:30.485Z"
+    },
+    "safary": {
+      "id": "safary",
+      "label": "safary",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T09:51:30.485Z",
+      "lastSeenAt": "2026-03-31T09:51:30.485Z"
+    },
+    "links": {
+      "id": "links",
+      "label": "links",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T09:49:34.228Z",
+      "lastSeenAt": "2026-03-31T09:49:34.228Z"
+    },
+    "betwork": {
+      "id": "betwork",
+      "label": "betwork",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T09:46:39.000Z",
+      "lastSeenAt": "2026-03-31T09:46:39.000Z"
+    },
+    "annoying": {
+      "id": "annoying",
+      "label": "annoying",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T09:41:37.906Z",
+      "lastSeenAt": "2026-03-31T09:41:37.906Z"
+    },
+    "less": {
+      "id": "less",
+      "label": "less",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T09:38:11.739Z",
+      "lastSeenAt": "2026-03-31T09:38:11.739Z"
+    },
+    "complicatedcsndceasier": {
+      "id": "complicatedcsndceasier",
+      "label": "complicatedcsndceasier",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T09:38:11.739Z",
+      "lastSeenAt": "2026-03-31T09:38:11.739Z"
+    },
+    "media": {
+      "id": "media",
+      "label": "media",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T09:28:59.803Z",
+      "lastSeenAt": "2026-03-31T09:28:59.803Z"
+    },
+    "image": {
+      "id": "image",
+      "label": "image",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T09:28:59.803Z",
+      "lastSeenAt": "2026-03-31T09:28:59.803Z"
+    },
+    "wifi": {
+      "id": "wifi",
+      "label": "wifi",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T09:26:48.892Z",
+      "lastSeenAt": "2026-03-31T09:26:48.892Z"
+    },
+    "accrds": {
+      "id": "accrds",
+      "label": "accrds",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T09:25:18.037Z",
+      "lastSeenAt": "2026-03-31T09:25:18.037Z"
+    },
+    "denied": {
+      "id": "denied",
+      "label": "denied",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T09:25:18.037Z",
+      "lastSeenAt": "2026-03-31T09:25:18.037Z"
+    },
+    "message": {
+      "id": "message",
+      "label": "message",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T09:25:18.037Z",
+      "lastSeenAt": "2026-03-31T09:25:18.037Z"
+    },
+    "still": {
+      "id": "still",
+      "label": "still",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T09:23:45.951Z",
+      "lastSeenAt": "2026-03-31T09:23:45.951Z"
+    },
+    "port": {
+      "id": "port",
+      "label": "port",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T09:18:21.670Z",
+      "lastSeenAt": "2026-03-31T09:18:21.670Z"
+    },
+    "token": {
+      "id": "token",
+      "label": "token",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T09:18:21.670Z",
+      "lastSeenAt": "2026-03-31T09:18:21.670Z"
+    },
+    "locally": {
+      "id": "locally",
+      "label": "locally",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T09:05:21.986Z",
+      "lastSeenAt": "2026-03-31T09:05:21.986Z"
+    },
+    "showing": {
+      "id": "showing",
+      "label": "showing",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T09:01:17.328Z",
+      "lastSeenAt": "2026-03-31T09:01:17.328Z"
+    },
+    "openclaw": {
+      "id": "openclaw",
+      "label": "openclaw",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T09:01:17.328Z",
+      "lastSeenAt": "2026-03-31T09:01:17.328Z"
+    },
+    "original": {
+      "id": "original",
+      "label": "original",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T09:01:17.328Z",
+      "lastSeenAt": "2026-03-31T09:01:17.328Z"
+    },
+    "taking": {
+      "id": "taking",
+      "label": "taking",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T09:01:17.328Z",
+      "lastSeenAt": "2026-03-31T09:01:17.328Z"
+    },
+    "shown": {
+      "id": "shown",
+      "label": "shown",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-31T09:01:17.328Z",
+      "lastSeenAt": "2026-03-31T09:01:17.328Z"
+    },
+    "defective": {
+      "id": "defective",
+      "label": "defective",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:20:28.192Z",
+      "lastSeenAt": "2026-03-27T08:20:28.192Z"
+    },
+    "clarify": {
+      "id": "clarify",
+      "label": "clarify",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:20:28.192Z",
+      "lastSeenAt": "2026-03-27T08:20:28.192Z"
+    },
+    "objective": {
+      "id": "objective",
+      "label": "objective",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:20:28.192Z",
+      "lastSeenAt": "2026-03-27T08:20:28.192Z"
+    },
+    "locked": {
+      "id": "locked",
+      "label": "locked",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:20:28.192Z",
+      "lastSeenAt": "2026-03-27T08:20:28.192Z"
+    },
+    "constraints": {
+      "id": "constraints",
+      "label": "constraints",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:20:28.192Z",
+      "lastSeenAt": "2026-03-27T08:20:28.192Z"
+    },
+    "clickable": {
+      "id": "clickable",
+      "label": "clickable",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:20:28.192Z",
+      "lastSeenAt": "2026-03-27T08:20:28.192Z"
+    },
+    "detals": {
+      "id": "detals",
+      "label": "detals",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:20:28.192Z",
+      "lastSeenAt": "2026-03-27T08:20:28.192Z"
+    },
+    "project": {
+      "id": "project",
+      "label": "project",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:20:28.192Z",
+      "lastSeenAt": "2026-03-27T08:20:28.192Z"
+    },
+    "edit": {
+      "id": "edit",
+      "label": "edit",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:20:28.192Z",
+      "lastSeenAt": "2026-03-27T08:20:28.192Z"
+    },
+    "extremely": {
+      "id": "extremely",
+      "label": "extremely",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:14:14.183Z",
+      "lastSeenAt": "2026-03-27T08:14:14.183Z"
+    },
+    "transparent": {
+      "id": "transparent",
+      "label": "transparent",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:14:14.183Z",
+      "lastSeenAt": "2026-03-27T08:14:14.183Z"
+    },
+    "userfriendly": {
+      "id": "userfriendly",
+      "label": "userfriendly",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:14:14.183Z",
+      "lastSeenAt": "2026-03-27T08:14:14.183Z"
+    },
+    "intuitive": {
+      "id": "intuitive",
+      "label": "intuitive",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:14:14.183Z",
+      "lastSeenAt": "2026-03-27T08:14:14.183Z"
+    },
+    "organized": {
+      "id": "organized",
+      "label": "organized",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:14:14.183Z",
+      "lastSeenAt": "2026-03-27T08:14:14.183Z"
+    },
+    "professional": {
+      "id": "professional",
+      "label": "professional",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:14:14.183Z",
+      "lastSeenAt": "2026-03-27T08:14:14.183Z"
+    },
+    "crossing": {
+      "id": "crossing",
+      "label": "crossing",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:11:44.178Z",
+      "lastSeenAt": "2026-03-27T08:11:44.178Z"
+    },
+    "done": {
+      "id": "done",
+      "label": "done",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:11:44.178Z",
+      "lastSeenAt": "2026-03-27T08:11:44.178Z"
+    },
+    "collect": {
+      "id": "collect",
+      "label": "collect",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:11:44.178Z",
+      "lastSeenAt": "2026-03-27T08:11:44.178Z"
+    },
+    "evidence": {
+      "id": "evidence",
+      "label": "evidence",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:11:44.178Z",
+      "lastSeenAt": "2026-03-27T08:11:44.178Z"
+    },
+    "artifact": {
+      "id": "artifact",
+      "label": "artifact",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:11:44.178Z",
+      "lastSeenAt": "2026-03-27T08:11:44.178Z"
+    },
+    "operating": {
+      "id": "operating",
+      "label": "operating",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:09:45.555Z",
+      "lastSeenAt": "2026-03-27T08:09:45.555Z"
+    },
+    "principle": {
+      "id": "principle",
+      "label": "principle",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:09:45.555Z",
+      "lastSeenAt": "2026-03-27T08:09:45.555Z"
+    },
+    "every": {
+      "id": "every",
+      "label": "every",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:09:45.555Z",
+      "lastSeenAt": "2026-03-27T08:09:45.555Z"
+    },
+    "response": {
+      "id": "response",
+      "label": "response",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:09:45.555Z",
+      "lastSeenAt": "2026-03-27T08:09:45.555Z"
+    },
+    "analysis": {
+      "id": "analysis",
+      "label": "analysis",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:09:45.555Z",
+      "lastSeenAt": "2026-03-27T08:09:45.555Z"
+    },
+    "recommendation": {
+      "id": "recommendation",
+      "label": "recommendation",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:09:45.555Z",
+      "lastSeenAt": "2026-03-27T08:09:45.555Z"
+    },
+    "claim": {
+      "id": "claim",
+      "label": "claim",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:09:45.555Z",
+      "lastSeenAt": "2026-03-27T08:09:45.555Z"
+    },
+    "provide": {
+      "id": "provide",
+      "label": "provide",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:05:25.032Z",
+      "lastSeenAt": "2026-03-27T08:05:25.032Z"
+    },
+    "strategies": {
+      "id": "strategies",
+      "label": "strategies",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:05:25.032Z",
+      "lastSeenAt": "2026-03-27T08:05:25.032Z"
+    },
+    "andre": {
+      "id": "andre",
+      "label": "andre",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:04:14.342Z",
+      "lastSeenAt": "2026-03-27T08:04:14.342Z"
+    },
+    "karpathy": {
+      "id": "karpathy",
+      "label": "karpathy",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:04:14.342Z",
+      "lastSeenAt": "2026-03-27T08:04:14.342Z"
+    },
+    "autoresearch": {
+      "id": "autoresearch",
+      "label": "autoresearch",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:04:14.342Z",
+      "lastSeenAt": "2026-03-27T08:04:14.342Z"
+    },
+    "strategy": {
+      "id": "strategy",
+      "label": "strategy",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:04:14.342Z",
+      "lastSeenAt": "2026-03-27T08:04:14.342Z"
+    },
+    "wrote": {
+      "id": "wrote",
+      "label": "wrote",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:01:25.220Z",
+      "lastSeenAt": "2026-03-27T08:01:25.220Z"
+    },
+    "determine": {
+      "id": "determine",
+      "label": "determine",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:01:25.220Z",
+      "lastSeenAt": "2026-03-27T08:01:25.220Z"
+    },
+    "part": {
+      "id": "part",
+      "label": "part",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T08:01:25.220Z",
+      "lastSeenAt": "2026-03-27T08:01:25.220Z"
+    },
+    "bullshit": {
+      "id": "bullshit",
+      "label": "bullshit",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:57:55.899Z",
+      "lastSeenAt": "2026-03-27T07:57:55.899Z"
+    },
+    "useless": {
+      "id": "useless",
+      "label": "useless",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:57:55.899Z",
+      "lastSeenAt": "2026-03-27T07:57:55.899Z"
+    },
+    "queued": {
+      "id": "queued",
+      "label": "queued",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:57:55.899Z",
+      "lastSeenAt": "2026-03-27T07:57:55.899Z"
+    },
+    "immediately": {
+      "id": "immediately",
+      "label": "immediately",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:56:05.648Z",
+      "lastSeenAt": "2026-03-27T07:56:05.648Z"
+    },
+    "tool:sessions_history": {
+      "id": "tool:sessions_history",
+      "label": "tool:sessions_history",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:56:05.648Z",
+      "lastSeenAt": "2026-03-27T07:56:05.648Z"
+    },
+    "labs": {
+      "id": "labs",
+      "label": "labs",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:56:05.648Z",
+      "lastSeenAt": "2026-03-27T07:56:05.648Z"
+    },
+    "uselless": {
+      "id": "uselless",
+      "label": "uselless",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:51:42.981Z",
+      "lastSeenAt": "2026-03-27T07:51:42.981Z"
+    },
+    "approve": {
+      "id": "approve",
+      "label": "approve",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:51:42.981Z",
+      "lastSeenAt": "2026-03-27T07:51:42.981Z"
+    },
+    "stop": {
+      "id": "stop",
+      "label": "stop",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:50:07.290Z",
+      "lastSeenAt": "2026-03-27T07:50:07.290Z"
+    },
+    "giving": {
+      "id": "giving",
+      "label": "giving",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:50:07.290Z",
+      "lastSeenAt": "2026-03-27T07:50:07.290Z"
+    },
+    "time": {
+      "id": "time",
+      "label": "time",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:50:07.290Z",
+      "lastSeenAt": "2026-03-27T07:50:07.290Z"
+    },
+    "estimates": {
+      "id": "estimates",
+      "label": "estimates",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:50:07.290Z",
+      "lastSeenAt": "2026-03-27T07:50:07.290Z"
+    },
+    "times": {
+      "id": "times",
+      "label": "times",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:50:07.290Z",
+      "lastSeenAt": "2026-03-27T07:50:07.290Z"
+    },
+    "accurate": {
+      "id": "accurate",
+      "label": "accurate",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:50:07.290Z",
+      "lastSeenAt": "2026-03-27T07:50:07.290Z"
+    },
+    "ever": {
+      "id": "ever",
+      "label": "ever",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:50:07.290Z",
+      "lastSeenAt": "2026-03-27T07:50:07.290Z"
+    },
+    "again": {
+      "id": "again",
+      "label": "again",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:50:07.290Z",
+      "lastSeenAt": "2026-03-27T07:50:07.290Z"
+    },
+    "progress": {
+      "id": "progress",
+      "label": "progress",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:49:02.035Z",
+      "lastSeenAt": "2026-03-27T07:49:02.035Z"
+    },
+    "made": {
+      "id": "made",
+      "label": "made",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:49:02.035Z",
+      "lastSeenAt": "2026-03-27T07:49:02.035Z"
+    },
+    "organize": {
+      "id": "organize",
+      "label": "organize",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:46:55.923Z",
+      "lastSeenAt": "2026-03-27T07:46:55.923Z"
+    },
+    "telling": {
+      "id": "telling",
+      "label": "telling",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:44:44.071Z",
+      "lastSeenAt": "2026-03-27T07:44:44.071Z"
+    },
+    "merchant": {
+      "id": "merchant",
+      "label": "merchant",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:42:01.551Z",
+      "lastSeenAt": "2026-03-27T07:42:01.551Z"
+    },
+    "center": {
+      "id": "center",
+      "label": "center",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:42:01.551Z",
+      "lastSeenAt": "2026-03-27T07:42:01.551Z"
+    },
+    "product": {
+      "id": "product",
+      "label": "product",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:42:01.551Z",
+      "lastSeenAt": "2026-03-27T07:42:01.551Z"
+    },
+    "feed": {
+      "id": "feed",
+      "label": "feed",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:42:01.551Z",
+      "lastSeenAt": "2026-03-27T07:42:01.551Z"
+    },
+    "optimization": {
+      "id": "optimization",
+      "label": "optimization",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:42:01.551Z",
+      "lastSeenAt": "2026-03-27T07:42:01.551Z"
+    },
+    "specialist": {
+      "id": "specialist",
+      "label": "specialist",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:42:01.551Z",
+      "lastSeenAt": "2026-03-27T07:42:01.551Z"
+    },
+    "performance": {
+      "id": "performance",
+      "label": "performance",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:39:09.845Z",
+      "lastSeenAt": "2026-03-27T07:39:09.845Z"
+    },
+    "analytics": {
+      "id": "analytics",
+      "label": "analytics",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:37:21.497Z",
+      "lastSeenAt": "2026-03-27T07:37:21.497Z"
+    },
+    "setup": {
+      "id": "setup",
+      "label": "setup",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:37:21.497Z",
+      "lastSeenAt": "2026-03-27T07:37:21.497Z"
+    },
+    "manager": {
+      "id": "manager",
+      "label": "manager",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:35:43.069Z",
+      "lastSeenAt": "2026-03-27T07:35:43.069Z"
+    },
+    "architect": {
+      "id": "architect",
+      "label": "architect",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:35:43.069Z",
+      "lastSeenAt": "2026-03-27T07:35:43.069Z"
+    },
+    "measurement": {
+      "id": "measurement",
+      "label": "measurement",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:35:43.069Z",
+      "lastSeenAt": "2026-03-27T07:35:43.069Z"
+    },
+    "engineer": {
+      "id": "engineer",
+      "label": "engineer",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:35:43.069Z",
+      "lastSeenAt": "2026-03-27T07:35:43.069Z"
+    },
+    "save": {
+      "id": "save",
+      "label": "save",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:27:12.466Z",
+      "lastSeenAt": "2026-03-27T07:27:12.466Z"
+    },
+    "fsuelsbot": {
+      "id": "fsuelsbot",
+      "label": "fsuelsbot",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:27:12.466Z",
+      "lastSeenAt": "2026-03-27T07:27:12.466Z"
+    },
+    "testing": {
+      "id": "testing",
+      "label": "testing",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:19:49.107Z",
+      "lastSeenAt": "2026-03-27T07:19:49.107Z"
+    },
+    "updates": {
+      "id": "updates",
+      "label": "updates",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:09:21.434Z",
+      "lastSeenAt": "2026-03-27T07:09:21.434Z"
+    },
+    "newest": {
+      "id": "newest",
+      "label": "newest",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:09:21.434Z",
+      "lastSeenAt": "2026-03-27T07:09:21.434Z"
+    },
+    "models": {
+      "id": "models",
+      "label": "models",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:09:21.434Z",
+      "lastSeenAt": "2026-03-27T07:09:21.434Z"
+    },
+    "latest": {
+      "id": "latest",
+      "label": "latest",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:09:21.434Z",
+      "lastSeenAt": "2026-03-27T07:09:21.434Z"
+    },
+    "tool:gateway": {
+      "id": "tool:gateway",
+      "label": "tool:gateway",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T07:09:21.434Z",
+      "lastSeenAt": "2026-03-27T07:09:21.434Z"
+    },
+    "hello": {
+      "id": "hello",
+      "label": "hello",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T06:58:59.640Z",
+      "lastSeenAt": "2026-03-27T06:58:59.640Z"
+    },
+    "clawdbot": {
+      "id": "clawdbot",
+      "label": "clawdbot",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T06:58:59.640Z",
+      "lastSeenAt": "2026-03-27T06:58:59.640Z"
+    },
+    "chatgpt": {
+      "id": "chatgpt",
+      "label": "chatgpt",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T06:58:59.640Z",
+      "lastSeenAt": "2026-03-27T06:58:59.640Z"
+    },
+    "backend": {
+      "id": "backend",
+      "label": "backend",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-03-27T06:58:59.640Z",
+      "lastSeenAt": "2026-03-27T06:58:59.640Z"
+    },
+    "specific": {
+      "id": "specific",
+      "label": "specific",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T17:24:55.558Z",
+      "lastSeenAt": "2026-02-22T17:24:55.558Z"
+    },
+    "regrarding": {
+      "id": "regrarding",
+      "label": "regrarding",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T17:24:55.558Z",
+      "lastSeenAt": "2026-02-22T17:24:55.558Z"
+    },
+    "particular": {
+      "id": "particular",
+      "label": "particular",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T17:24:55.558Z",
+      "lastSeenAt": "2026-02-22T17:24:55.558Z"
+    },
+    "drafting": {
+      "id": "drafting",
+      "label": "drafting",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T17:24:55.558Z",
+      "lastSeenAt": "2026-02-22T17:24:55.558Z"
+    },
+    "works": {
+      "id": "works",
+      "label": "works",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T17:24:55.558Z",
+      "lastSeenAt": "2026-02-22T17:24:55.558Z"
+    },
+    "correctly": {
+      "id": "correctly",
+      "label": "correctly",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T17:24:55.558Z",
+      "lastSeenAt": "2026-02-22T17:24:55.558Z"
+    },
+    "selection": {
+      "id": "selection",
+      "label": "selection",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T17:24:55.558Z",
+      "lastSeenAt": "2026-02-22T17:24:55.558Z"
+    },
+    "creating": {
+      "id": "creating",
+      "label": "creating",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T17:17:52.707Z",
+      "lastSeenAt": "2026-02-22T17:17:52.707Z"
+    },
+    "charts": {
+      "id": "charts",
+      "label": "charts",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T17:17:52.707Z",
+      "lastSeenAt": "2026-02-22T17:17:52.707Z"
+    },
+    "website": {
+      "id": "website",
+      "label": "website",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T17:17:52.707Z",
+      "lastSeenAt": "2026-02-22T17:17:52.707Z"
+    },
+    "dresslikemomy": {
+      "id": "dresslikemomy",
+      "label": "dresslikemomy",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T17:17:52.707Z",
+      "lastSeenAt": "2026-02-22T17:17:52.707Z"
+    },
+    "skills": {
+      "id": "skills",
+      "label": "skills",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T17:17:52.707Z",
+      "lastSeenAt": "2026-02-22T17:17:52.707Z"
+    },
+    "remember": {
+      "id": "remember",
+      "label": "remember",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T17:15:55.984Z",
+      "lastSeenAt": "2026-02-22T17:15:55.984Z"
+    },
+    "global": {
+      "id": "global",
+      "label": "global",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T17:15:55.984Z",
+      "lastSeenAt": "2026-02-22T17:15:55.984Z"
+    },
+    "family": {
+      "id": "family",
+      "label": "family",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T17:15:55.984Z",
+      "lastSeenAt": "2026-02-22T17:15:55.984Z"
+    },
+    "past": {
+      "id": "past",
+      "label": "past",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T17:14:52.096Z",
+      "lastSeenAt": "2026-02-22T17:14:52.096Z"
+    },
+    "takes": {
+      "id": "takes",
+      "label": "takes",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T16:53:40.958Z",
+      "lastSeenAt": "2026-02-22T16:53:40.958Z"
+    },
+    "long": {
+      "id": "long",
+      "label": "long",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T16:53:40.958Z",
+      "lastSeenAt": "2026-02-22T16:53:40.958Z"
+    },
+    "slow": {
+      "id": "slow",
+      "label": "slow",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T16:52:35.667Z",
+      "lastSeenAt": "2026-02-22T16:52:35.667Z"
+    },
+    "doctor": {
+      "id": "doctor",
+      "label": "doctor",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T16:52:35.667Z",
+      "lastSeenAt": "2026-02-22T16:52:35.667Z"
+    },
+    "migration": {
+      "id": "migration",
+      "label": "migration",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T16:52:35.667Z",
+      "lastSeenAt": "2026-02-22T16:52:35.667Z"
+    },
+    "value": {
+      "id": "value",
+      "label": "value",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T16:52:00.003Z",
+      "lastSeenAt": "2026-02-22T16:52:00.003Z"
+    },
+    "confirm": {
+      "id": "confirm",
+      "label": "confirm",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T16:52:00.003Z",
+      "lastSeenAt": "2026-02-22T16:52:00.003Z"
+    },
+    "null": {
+      "id": "null",
+      "label": "null",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T16:52:00.003Z",
+      "lastSeenAt": "2026-02-22T16:52:00.003Z"
+    },
+    "support": {
+      "id": "support",
+      "label": "support",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T16:52:00.003Z",
+      "lastSeenAt": "2026-02-22T16:52:00.003Z"
+    },
+    "total": {
+      "id": "total",
+      "label": "total",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T16:47:20.019Z",
+      "lastSeenAt": "2026-02-22T16:47:20.019Z"
+    },
+    "admin": {
+      "id": "admin",
+      "label": "admin",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T16:47:20.019Z",
+      "lastSeenAt": "2026-02-22T16:47:20.019Z"
+    },
+    "field": {
+      "id": "field",
+      "label": "field",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T16:31:57.181Z",
+      "lastSeenAt": "2026-02-22T16:31:57.181Z"
+    },
+    "draft": {
+      "id": "draft",
+      "label": "draft",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T16:31:57.181Z",
+      "lastSeenAt": "2026-02-22T16:31:57.181Z"
+    },
+    "nice": {
+      "id": "nice",
+      "label": "nice",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T16:31:57.181Z",
+      "lastSeenAt": "2026-02-22T16:31:57.181Z"
+    },
+    "good": {
+      "id": "good",
+      "label": "good",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T16:31:57.181Z",
+      "lastSeenAt": "2026-02-22T16:31:57.181Z"
+    },
+    "thist": {
+      "id": "thist",
+      "label": "thist",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T16:31:57.181Z",
+      "lastSeenAt": "2026-02-22T16:31:57.181Z"
+    },
+    "price": {
+      "id": "price",
+      "label": "price",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T16:31:57.181Z",
+      "lastSeenAt": "2026-02-22T16:31:57.181Z"
+    },
+    "fill": {
+      "id": "fill",
+      "label": "fill",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T16:31:57.181Z",
+      "lastSeenAt": "2026-02-22T16:31:57.181Z"
+    },
+    "much": {
+      "id": "much",
+      "label": "much",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T16:17:30.376Z",
+      "lastSeenAt": "2026-02-22T16:17:30.376Z"
+    },
+    "sell": {
+      "id": "sell",
+      "label": "sell",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T16:17:30.376Z",
+      "lastSeenAt": "2026-02-22T16:17:30.376Z"
+    },
+    "html": {
+      "id": "html",
+      "label": "html",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T16:17:30.376Z",
+      "lastSeenAt": "2026-02-22T16:17:30.376Z"
+    },
+    "opened": {
+      "id": "opened",
+      "label": "opened",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T15:55:11.368Z",
+      "lastSeenAt": "2026-02-22T15:55:11.368Z"
+    },
+    "research": {
+      "id": "research",
+      "label": "research",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T15:55:11.368Z",
+      "lastSeenAt": "2026-02-22T15:55:11.368Z"
+    },
+    "tools": {
+      "id": "tools",
+      "label": "tools",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T15:55:11.368Z",
+      "lastSeenAt": "2026-02-22T15:55:11.368Z"
+    },
+    "listings": {
+      "id": "listings",
+      "label": "listings",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T15:55:11.368Z",
+      "lastSeenAt": "2026-02-22T15:55:11.368Z"
+    },
+    "produts": {
+      "id": "produts",
+      "label": "produts",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T15:55:11.368Z",
+      "lastSeenAt": "2026-02-22T15:55:11.368Z"
+    },
+    "will": {
+      "id": "will",
+      "label": "will",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T15:32:07.084Z",
+      "lastSeenAt": "2026-02-22T15:32:07.084Z"
+    },
+    "loging": {
+      "id": "loging",
+      "label": "loging",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T15:32:07.084Z",
+      "lastSeenAt": "2026-02-22T15:32:07.084Z"
+    },
+    "search": {
+      "id": "search",
+      "label": "search",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T15:32:07.084Z",
+      "lastSeenAt": "2026-02-22T15:32:07.084Z"
+    },
+    "without": {
+      "id": "without",
+      "label": "without",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T15:32:07.084Z",
+      "lastSeenAt": "2026-02-22T15:32:07.084Z"
+    },
+    "block": {
+      "id": "block",
+      "label": "block",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T15:32:07.084Z",
+      "lastSeenAt": "2026-02-22T15:32:07.084Z"
+    },
+    "selloffer": {
+      "id": "selloffer",
+      "label": "selloffer",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T15:32:07.084Z",
+      "lastSeenAt": "2026-02-22T15:32:07.084Z"
+    },
+    "find": {
+      "id": "find",
+      "label": "find",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T14:53:48.636Z",
+      "lastSeenAt": "2026-02-22T14:53:48.636Z"
+    },
+    "potential": {
+      "id": "potential",
+      "label": "potential",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T14:53:48.636Z",
+      "lastSeenAt": "2026-02-22T14:53:48.636Z"
+    },
+    "swimsuits": {
+      "id": "swimsuits",
+      "label": "swimsuits",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T14:53:48.636Z",
+      "lastSeenAt": "2026-02-22T14:53:48.636Z"
+    },
+    "tool:sessions_spawn": {
+      "id": "tool:sessions_spawn",
+      "label": "tool:sessions_spawn",
+      "mentions": 1,
+      "weight": 0.35,
+      "firstSeenAt": "2026-02-22T14:53:48.636Z",
+      "lastSeenAt": "2026-02-22T14:53:48.636Z"
+    },
+    "architecture": {
+      "id": "architecture",
+      "label": "architecture",
+      "mentions": 1,
+      "weight": 0.2,
+      "firstSeenAt": "2026-03-31T11:20:36.689Z",
+      "lastSeenAt": "2026-03-31T11:20:36.689Z"
+    },
+    "existing": {
+      "id": "existing",
+      "label": "existing",
+      "mentions": 1,
+      "weight": 0.2,
+      "firstSeenAt": "2026-03-31T11:20:36.689Z",
+      "lastSeenAt": "2026-03-31T11:20:36.689Z"
+    },
+    "assets": {
+      "id": "assets",
+      "label": "assets",
+      "mentions": 1,
+      "weight": 0.2,
+      "firstSeenAt": "2026-03-31T11:20:36.689Z",
+      "lastSeenAt": "2026-03-31T11:20:36.689Z"
+    },
+    "skill:workflow-read-db644fd0": {
+      "id": "skill:workflow-read-db644fd0",
+      "label": "skill:workflow-read-db644fd0",
+      "mentions": 1,
+      "weight": 0.2,
+      "firstSeenAt": "2026-03-27T08:01:25.220Z",
+      "lastSeenAt": "2026-03-27T08:01:25.220Z"
+    },
+    "action:skill-dispatch": {
+      "id": "action:skill-dispatch",
+      "label": "action:skill-dispatch",
+      "mentions": 1,
+      "weight": 0.2,
+      "firstSeenAt": "2026-02-22T15:55:11.368Z",
+      "lastSeenAt": "2026-02-22T15:55:11.368Z"
+    },
+    "tool:process": {
+      "id": "tool:process",
+      "label": "tool:process",
+      "mentions": 1,
+      "weight": 0.2,
+      "firstSeenAt": "2026-02-22T15:55:11.368Z",
+      "lastSeenAt": "2026-02-22T15:55:11.368Z"
+    },
+    "skill:research": {
+      "id": "skill:research",
+      "label": "skill:research",
+      "mentions": 1,
+      "weight": 0.2,
+      "firstSeenAt": "2026-02-22T15:55:11.368Z",
+      "lastSeenAt": "2026-02-22T15:55:11.368Z"
     }
   }
 }

@@ -1,6 +1,6 @@
 # HEARTBEAT.md — Control Loop (Proactive, Non-Stop Execution)
 
-_Last reviewed: 2026-02-04_
+_Last reviewed: 2026-03-31_
 
 Purpose: The heartbeat is a fast control loop that keeps the system safe, truthful, and continuously executing tasks. It must be resilient to partial tool failure and must never claim actions without receipts.
 
@@ -10,10 +10,9 @@ Purpose: The heartbeat is a fast control loop that keeps the system safe, truthf
 
 **THIS CHECK RUNS BEFORE ALL OTHER HEARTBEAT ACTIONS.**
 
-```powershell
-# Check if bot_current has tasks
-$tasks = Get-Content "memory/tasks.json" -Raw | ConvertFrom-Json
-$botCurrent = $tasks.lanes.bot_current
+```bash
+# Check if bot_current has tasks (macOS — jq or python3)
+jq -e '.lanes.bot_current | length > 0' workspace/memory/tasks.json
 ```
 
 **If `bot_current` has ANY tasks:**
@@ -72,19 +71,23 @@ If uncertain → verify (tools/logs) or downgrade confidence. Never guess.
 
 ## 2) Tier-0 Combined Checks (EVERY heartbeat)
 
-Run the combined script once per heartbeat:
+Run inline checks (no external script required):
 
-```powershell
-powershell -ExecutionPolicy Bypass -File "C:\dev\FsuelsBot\workspace\scripts\heartbeat-checks.ps1" -Quiet
+```bash
+# Validate tasks.json is parseable JSON
+python3 -c "import json; json.load(open('workspace/memory/tasks.json'))" 2>&1
+
+# Check Mission Control is reachable (if applicable)
+curl -s -o /dev/null -w '%{http_code}' http://localhost:8765/ 2>/dev/null || echo "mc_down"
+
+# Check gateway status
+launchctl list bot.molt.gateway 2>/dev/null | head -1 || echo "gateway_unknown"
 ```
 
 Receipts rule:
 
-- Treat the returned JSON as the only source of truth for what happened.
-- If the script errors or returns invalid JSON: record the error and continue with minimal safe mode (Section 5).
-
-Expected output (example):
-`{"healthState":"updated","missionControl":"running",...}`
+- Treat the returned output as the only source of truth for what happened.
+- If checks error: record the error and continue with minimal safe mode (Section 5).
 
 ---
 
@@ -92,8 +95,19 @@ Expected output (example):
 
 Before ANY modification to tasks.json, validate integrity:
 
-```powershell
-powershell -ExecutionPolicy Bypass -File "scripts\validate-tasks-integrity.ps1"
+```bash
+# Validate tasks.json structure: all lane IDs must exist in tasks object
+python3 -c "
+import json, sys
+d = json.load(open('workspace/memory/tasks.json'))
+task_ids = set(d.get('tasks', {}).keys())
+for lane, ids in d.get('lanes', {}).items():
+    for tid in ids:
+        if tid not in task_ids:
+            print(f'ORPHAN: {lane} references missing task {tid}')
+            sys.exit(1)
+print('OK')
+"
 ```
 
 Rules:
@@ -110,11 +124,11 @@ Root cause record (2026-02-01):
 
 ## 4) Mission Control / Infra Checks (Capability-Gated)
 
-Mission Control is critical, but do not claim it’s running unless you have receipts.
+Mission Control is critical, but do not claim it's running unless you have receipts.
 
-- Prefer to trust `heartbeat-checks.ps1` output for Mission Control status.
+- Use `curl -s http://localhost:8765/` to check if Mission Control responds.
 - If port 8765 is down and the runtime supports restart:
-  - `Start-ScheduledTask -TaskName "MissionControlServer"`
+  - Check if the process exists and restart if needed.
 - If a restart occurred AND Telegram send is available:
   - Send Francisco the mobile URL.
 
@@ -129,9 +143,9 @@ Receipts rule:
 
 ---
 
-## 5) Minimal Safe Mode (when scripts/tools fail)
+## 5) Minimal Safe Mode (when checks/tools fail)
 
-If Tier-0 checks fail (PowerShell blocked, script missing, JSON invalid):
+If Tier-0 checks fail (tool missing, JSON invalid, network down):
 
 1. Do not write to tasks.json
 2. Do not claim infra status
@@ -160,7 +174,7 @@ Process tasks in this order until no runnable tasks remain:
 
 If a task hits a blocker that requires a human:
 
-- Move task to WAITING_HUMAN (“human column”)
+- Move task to WAITING_HUMAN ("human column")
 - Record the minimum needed input (1–3 items) + one direct question + two options
 - Notify Francisco concisely
 - Immediately continue to the next runnable task
@@ -212,23 +226,24 @@ Common causes:
 - Context truncation → save state more frequently
 - Network timeout → backoff/retry
 - Missing files → update references
-- Memory pressure → monitor WorkingSet64 (if available)
+- Memory pressure → monitor with `vm_stat` or `top -l 1` on macOS
 
 ---
 
 ## 9) Discussion Reply Check (every heartbeat if cheap; otherwise rotate)
 
-If available and fast, run:
+If GitHub CLI is available, check for unanswered discussion comments:
 
-```powershell
-powershell -ExecutionPolicy Bypass -File "C:\dev\FsuelsBot\workspace\scripts\check-discussion-comments.ps1" -Quiet
+```bash
+# Check for unread discussion comments (if gh CLI available)
+gh api repos/OWNER/REPO/discussions --jq '.[].comments' 2>/dev/null || echo "gh_unavailable"
 ```
 
 If unanswered comments found:
 
 - Respond in discussion + send Telegram note with [TaskID] prefix
 
-If the script is slow, rotate it (Section 10).
+If the check is slow, rotate it (Section 10).
 
 ---
 
@@ -236,10 +251,7 @@ If the script is slow, rotate it (Section 10).
 
 Run these on a rotation schedule to avoid heartbeat overload:
 
-- Memory integrity validator:
-  ```powershell
-  powershell -ExecutionPolicy Bypass -File "C:\dev\FsuelsBot\workspace\tests\validators\memory-integrity.ps1"
-  ```
+- Memory integrity: verify `workspace/memory/tasks.json` parses and all lane refs are valid
 - Backlog generator verification (daily 6 AM job exists; heartbeat only confirms output file exists)
 - AI research brief supplement (light scan if no research done today)
 - Git hygiene: check uncommitted changes; commit/push only if allowed by policy
@@ -256,9 +268,9 @@ Check `memory/complete-requests/` for pending verification files (e.g., `T006.js
 
 1. Verify the work is actually complete (receipts/system check)
 2. If complete: move to done_today in tasks.json + delete request file
-3. If not complete: message Francisco with what’s missing + delete request file
+3. If not complete: message Francisco with what's missing + delete request file
 
-This is how Mission Control “Mark Complete” works: it requests verification; you verify.
+This is how Mission Control "Mark Complete" works: it requests verification; you verify.
 
 ---
 

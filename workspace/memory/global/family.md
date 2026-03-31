@@ -5,7 +5,7 @@
 
 ## Core Family
 
-- **Spouse:** Karina Cintron (DOB: April 17, 1980)
+- **Spouse:** Karina Cintron (DOB: April 17, 1980) — dentist
   - source: ledger EVT-20260126-003 + user messages
 - **Daughter:** Giselle (DOB: Nov 30, 2012)
   - source: ledger EVT-20260126-004
