@@ -8,8 +8,12 @@ import {
   type VerboseLevel,
 } from "../../auto-reply/thinking.js";
 import {
+  classifySessionWorkspaceMatch,
   evaluateSessionFreshness,
+  formatSessionWorkspaceSummary,
   loadSessionStore,
+  type SessionWorkspaceFingerprint,
+  type SessionWorkspaceRelation,
   resolveAgentIdFromSessionKey,
   resolveChannelResetConfig,
   resolveExplicitAgentSessionKey,
@@ -30,6 +34,8 @@ export type SessionResolution = {
   isNewSession: boolean;
   persistedThinking?: ThinkLevel;
   persistedVerbose?: VerboseLevel;
+  resumeNotice?: string;
+  workspaceRelation?: SessionWorkspaceRelation;
 };
 
 type SessionKeyResolution = {
@@ -87,6 +93,7 @@ export function resolveSession(opts: {
   sessionId?: string;
   sessionKey?: string;
   agentId?: string;
+  workspaceFingerprint?: SessionWorkspaceFingerprint;
 }): SessionResolution {
   const sessionCfg = opts.cfg.session;
   const { sessionKey, sessionStore, storePath } = resolveSessionKeyForRequest({
@@ -97,8 +104,48 @@ export function resolveSession(opts: {
     agentId: opts.agentId,
   });
   const now = Date.now();
+  const explicitSessionSelector = Boolean(opts.sessionId?.trim() || opts.sessionKey?.trim());
 
-  const sessionEntry = sessionKey ? sessionStore[sessionKey] : undefined;
+  const storedSessionEntry = sessionKey ? sessionStore[sessionKey] : undefined;
+  const workspaceMatch = classifySessionWorkspaceMatch({
+    current: opts.workspaceFingerprint,
+    stored: storedSessionEntry?.workspaceFingerprint,
+  });
+  const storedWorkspaceSummary = formatSessionWorkspaceSummary(
+    storedSessionEntry?.workspaceFingerprint,
+  );
+  const currentWorkspaceSummary = formatSessionWorkspaceSummary(opts.workspaceFingerprint);
+
+  let sessionEntry = storedSessionEntry;
+  let resumeNotice: string | undefined;
+  if (storedSessionEntry) {
+    if (workspaceMatch.relation === "different") {
+      const detail = [
+        `Stored: ${storedWorkspaceSummary}`,
+        `Current: ${currentWorkspaceSummary}`,
+      ].join("\n");
+      if (explicitSessionSelector) {
+        throw new Error(
+          [
+            `Refusing to resume session "${storedSessionEntry.sessionId}" from a different workspace.`,
+            detail,
+            "Run the command from the original workspace, or start a fresh session in the current workspace.",
+          ].join("\n"),
+        );
+      }
+      sessionEntry = undefined;
+      resumeNotice = [
+        "Starting a fresh session because the previous session belongs to a different workspace.",
+        detail,
+      ].join("\n");
+    } else if (workspaceMatch.relation === "same_repo") {
+      resumeNotice = [
+        "Resuming a session from the same repository but a different workspace or worktree.",
+        `Stored: ${storedWorkspaceSummary}`,
+        `Current: ${currentWorkspaceSummary}`,
+      ].join("\n");
+    }
+  }
 
   const resetType = resolveSessionResetType({ sessionKey });
   const channelReset = resolveChannelResetConfig({
@@ -136,5 +183,7 @@ export function resolveSession(opts: {
     isNewSession,
     persistedThinking,
     persistedVerbose,
+    resumeNotice,
+    workspaceRelation: workspaceMatch.relation,
   };
 }

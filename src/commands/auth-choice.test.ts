@@ -6,6 +6,7 @@ import type { RuntimeEnv } from "../runtime.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
 import type { AuthChoice } from "./onboard-types.js";
 import { applyAuthChoice, resolvePreferredProviderForAuthChoice } from "./auth-choice.js";
+import { commitAuthConfigWritePlan, createAuthConfigWritePlan } from "./auth-config-write-plan.js";
 
 vi.mock("../providers/github-copilot-auth.js", () => ({
   githubCopilotLoginCommand: vi.fn(async () => {}),
@@ -809,6 +810,156 @@ describe("applyAuthChoice", () => {
       provider: "minimax-portal",
       access: "access",
       refresh: "refresh",
+    });
+  });
+
+  it("defers auth profile writes until the config write plan is committed", async () => {
+    tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-auth-"));
+    process.env.OPENCLAW_STATE_DIR = tempStateDir;
+    process.env.OPENCLAW_AGENT_DIR = path.join(tempStateDir, "agent");
+    process.env.PI_CODING_AGENT_DIR = process.env.OPENCLAW_AGENT_DIR;
+
+    const text = vi.fn().mockResolvedValue("sk-minimax-deferred");
+    const select: WizardPrompter["select"] = vi.fn(
+      async (params) => params.options[0]?.value as never,
+    );
+    const multiselect: WizardPrompter["multiselect"] = vi.fn(async () => []);
+    const prompter: WizardPrompter = {
+      intro: vi.fn(noopAsync),
+      outro: vi.fn(noopAsync),
+      note: vi.fn(noopAsync),
+      select,
+      multiselect,
+      text,
+      confirm: vi.fn(async () => false),
+      progress: vi.fn(() => ({ update: noop, stop: noop })),
+    };
+    const runtime: RuntimeEnv = {
+      log: vi.fn(),
+      error: vi.fn(),
+      exit: vi.fn((code: number) => {
+        throw new Error(`exit:${code}`);
+      }),
+    };
+    const writePlan = createAuthConfigWritePlan();
+
+    const result = await applyAuthChoice({
+      authChoice: "minimax-api",
+      config: {},
+      prompter,
+      runtime,
+      setDefaultModel: true,
+      writePlan,
+    });
+
+    expect(result.config.auth?.profiles?.["minimax:default"]).toMatchObject({
+      provider: "minimax",
+      mode: "api_key",
+    });
+
+    const authProfilePath = authProfilePathFor(requireAgentDir());
+    await expect(fs.access(authProfilePath)).rejects.toThrow();
+
+    await commitAuthConfigWritePlan(writePlan, {
+      commandHint: "openclaw configure",
+    });
+
+    const raw = await fs.readFile(authProfilePath, "utf8");
+    const parsed = JSON.parse(raw) as {
+      profiles?: Record<string, { key?: string }>;
+    };
+    expect(parsed.profiles?.["minimax:default"]?.key).toBe("sk-minimax-deferred");
+  });
+
+  it("applies plugin config patches with delete semantics", async () => {
+    tempStateDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-auth-"));
+    process.env.OPENCLAW_STATE_DIR = tempStateDir;
+    process.env.OPENCLAW_AGENT_DIR = path.join(tempStateDir, "agent");
+    process.env.PI_CODING_AGENT_DIR = process.env.OPENCLAW_AGENT_DIR;
+
+    resolvePluginProviders.mockReturnValue([
+      {
+        id: "qwen-portal",
+        label: "Qwen",
+        auth: [
+          {
+            id: "device",
+            label: "Qwen OAuth",
+            kind: "device_code",
+            run: vi.fn(async () => ({
+              profiles: [
+                {
+                  profileId: "qwen-portal:default",
+                  credential: {
+                    type: "oauth",
+                    provider: "qwen-portal",
+                    access: "access",
+                    refresh: "refresh",
+                    expires: Date.now() + 60 * 60 * 1000,
+                  },
+                },
+              ],
+              configPatch: {
+                models: {
+                  providers: {
+                    "qwen-portal": {
+                      baseUrl: "https://portal.qwen.ai/v2",
+                      apiKey: null,
+                      headers: null,
+                    },
+                  },
+                },
+              },
+            })),
+          },
+        ],
+      },
+    ]);
+
+    const prompter: WizardPrompter = {
+      intro: vi.fn(noopAsync),
+      outro: vi.fn(noopAsync),
+      note: vi.fn(noopAsync),
+      select: vi.fn(async () => "" as never),
+      multiselect: vi.fn(async () => []),
+      text: vi.fn(async () => ""),
+      confirm: vi.fn(async () => false),
+      progress: vi.fn(() => ({ update: noop, stop: noop })),
+    };
+    const runtime: RuntimeEnv = {
+      log: vi.fn(),
+      error: vi.fn(),
+      exit: vi.fn((code: number) => {
+        throw new Error(`exit:${code}`);
+      }),
+    };
+
+    const result = await applyAuthChoice({
+      authChoice: "qwen-portal",
+      config: {
+        models: {
+          providers: {
+            "qwen-portal": {
+              baseUrl: "https://portal.qwen.ai/v1",
+              apiKey: "stale-key",
+              api: "openai-completions",
+              models: [],
+              headers: {
+                Authorization: "Bearer stale-key",
+              },
+            },
+          },
+        },
+      },
+      prompter,
+      runtime,
+      setDefaultModel: false,
+    });
+
+    expect(result.config.models?.providers?.["qwen-portal"]).toEqual({
+      baseUrl: "https://portal.qwen.ai/v2",
+      api: "openai-completions",
+      models: [],
     });
   });
 });

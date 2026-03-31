@@ -14,6 +14,7 @@ import { note } from "../terminal/note.js";
 import { resolveUserPath } from "../utils.js";
 import { createClackPrompter } from "../wizard/clack-prompter.js";
 import { WizardCancelledError } from "../wizard/prompts.js";
+import { commitAuthConfigWritePlan, createAuthConfigWritePlan } from "./auth-config-write-plan.js";
 import { removeChannelConfigWizard } from "./configure.channels.js";
 import { maybeInstallDaemon } from "./configure.daemon.js";
 import { promptAuthConfig } from "./configure.gateway-auth.js";
@@ -275,6 +276,7 @@ export async function runConfigureWizard(
       nextConfig.gateway?.auth?.token ??
       baseConfig.gateway?.auth?.token ??
       process.env.OPENCLAW_GATEWAY_TOKEN;
+    const authWritePlan = createAuthConfigWritePlan();
 
     const persistConfig = async () => {
       nextConfig = applyWizardMetadata(nextConfig, {
@@ -282,6 +284,11 @@ export async function runConfigureWizard(
         mode,
       });
       await writeConfigFile(nextConfig);
+      await commitAuthConfigWritePlan(authWritePlan, {
+        commandHint: formatCliCommand(
+          opts.command === "update" ? "openclaw update" : "openclaw configure",
+        ),
+      });
       logConfigUpdated(runtime);
     };
 
@@ -315,7 +322,7 @@ export async function runConfigureWizard(
       }
 
       if (selected.includes("model")) {
-        nextConfig = await promptAuthConfig(nextConfig, runtime, prompter);
+        nextConfig = await promptAuthConfig(nextConfig, runtime, prompter, authWritePlan);
       }
 
       if (selected.includes("web")) {
@@ -435,7 +442,7 @@ export async function runConfigureWizard(
         }
 
         if (choice === "model") {
-          nextConfig = await promptAuthConfig(nextConfig, runtime, prompter);
+          nextConfig = await promptAuthConfig(nextConfig, runtime, prompter, authWritePlan);
           await persistConfig();
         }
 

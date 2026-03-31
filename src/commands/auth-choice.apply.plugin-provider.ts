@@ -10,8 +10,10 @@ import {
 import { upsertAuthProfile } from "../agents/auth-profiles.js";
 import { normalizeProviderId } from "../agents/model-selection.js";
 import { resolveDefaultAgentWorkspaceDir } from "../agents/workspace.js";
+import { applyMergePatch } from "../config/merge-patch.js";
 import { enablePluginInConfig } from "../plugins/enable.js";
 import { resolvePluginProviders } from "../plugins/providers.js";
+import { queueAuthProfileWrite } from "./auth-config-write-plan.js";
 import { isRemoteEnvironment } from "./oauth-env.js";
 import { createVpsAwareOAuthHandlers } from "./oauth-flow.js";
 import { applyAuthProfileConfig } from "./onboard-auth.js";
@@ -58,20 +60,10 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function mergeConfigPatch<T>(base: T, patch: unknown): T {
-  if (!isPlainRecord(base) || !isPlainRecord(patch)) {
-    return patch as T;
+  if (!isPlainRecord(patch)) {
+    return base;
   }
-
-  const next: Record<string, unknown> = { ...base };
-  for (const [key, value] of Object.entries(patch)) {
-    const existing = next[key];
-    if (isPlainRecord(existing) && isPlainRecord(value)) {
-      next[key] = mergeConfigPatch(existing, value);
-    } else {
-      next[key] = value;
-    }
-  }
-  return next as T;
+  return applyMergePatch(base, patch) as T;
 }
 
 function applyDefaultModel(cfg: OpenClawConfig, model: string): OpenClawConfig {
@@ -160,11 +152,19 @@ export async function applyAuthChoicePluginProvider(
   }
 
   for (const profile of result.profiles) {
-    upsertAuthProfile({
-      profileId: profile.profileId,
-      credential: profile.credential,
-      agentDir,
-    });
+    if (
+      !queueAuthProfileWrite(params.writePlan, {
+        profileId: profile.profileId,
+        credential: profile.credential,
+        agentDir,
+      })
+    ) {
+      upsertAuthProfile({
+        profileId: profile.profileId,
+        credential: profile.credential,
+        agentDir,
+      });
+    }
 
     nextConfig = applyAuthProfileConfig(nextConfig, {
       profileId: profile.profileId,

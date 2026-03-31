@@ -9,6 +9,7 @@ import type { ChatType } from "../../channels/chat-type.js";
 import type { ChannelId } from "../../channels/plugins/types.js";
 import type { DeliveryContext } from "../../utils/delivery-context.js";
 import type { TtsAutoMode } from "../types.tts.js";
+import type { SessionWorkspaceFingerprint } from "./workspace.js";
 
 // -- Cross-Session Event Promotion (RSC v3.1) --
 
@@ -211,6 +212,7 @@ export type SessionEntry = {
   cliSessionIds?: Record<string, string>;
   claudeCliSessionId?: string;
   label?: string;
+  tag?: string;
   displayName?: string;
   channel?: string;
   groupId?: string;
@@ -219,6 +221,7 @@ export type SessionEntry = {
   space?: string;
   origin?: SessionOrigin;
   deliveryContext?: DeliveryContext;
+  workspaceFingerprint?: SessionWorkspaceFingerprint;
   lastChannel?: SessionChannelId;
   lastTo?: string;
   lastAccountId?: string;
@@ -312,10 +315,18 @@ export type SessionSystemPromptReport = {
     rawChars: number;
     injectedChars: number;
     truncated: boolean;
+    synthetic?: boolean;
+    sourceGroup?: "project" | "user" | "managed" | "built-in" | "unknown";
   }>;
   skills: {
     promptChars: number;
-    entries: Array<{ name: string; blockChars: number }>;
+    availableCount?: number;
+    loadedCount?: number;
+    entries: Array<{
+      name: string;
+      blockChars: number;
+      sourceCategory?: "bundled" | "workspace" | "managed" | "plugin" | "extra" | "unknown";
+    }>;
   };
   tools: {
     listChars: number;
@@ -325,6 +336,37 @@ export type SessionSystemPromptReport = {
       summaryChars: number;
       schemaChars: number;
       propertiesCount?: number | null;
+    }>;
+  };
+  modelView?: {
+    branchHistoryMessages: number;
+    branchHistoryTokens: number;
+    scopedHistoryMessages: number;
+    scopedHistoryTokens: number;
+    sanitizedHistoryMessages: number;
+    sanitizedHistoryTokens: number;
+    validatedHistoryMessages: number;
+    validatedHistoryTokens: number;
+    limitedHistoryMessages: number;
+    limitedHistoryTokens: number;
+    projectedHistoryMessages: number;
+    projectedHistoryTokens: number;
+    taskScoped: boolean;
+    dmHistoryLimit?: number;
+    truncatedToolResults: number;
+    systemPromptTokens: number;
+    toolSchemaTokens: number;
+    projectedTotalTokens: number;
+    contextWindowTokens?: number;
+    contextPressure?: number;
+    historyStages?: Array<{
+      key: "branch" | "scoped" | "sanitized" | "validated" | "limited" | "projected";
+      label: string;
+      messages: number;
+      tokens: number;
+      changed: boolean;
+      savingsTokens: number;
+      reason?: string;
     }>;
   };
 };

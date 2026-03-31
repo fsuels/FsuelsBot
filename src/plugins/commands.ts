@@ -37,12 +37,15 @@ const RESERVED_COMMANDS = new Set([
   "status",
   "whoami",
   "context",
+  "files-in-context",
+  "hooks",
   // Session management
   "stop",
   "restart",
   "reset",
   "new",
   "compact",
+  "plan",
   // Configuration
   "config",
   "debug",

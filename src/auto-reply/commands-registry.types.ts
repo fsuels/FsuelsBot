@@ -53,6 +53,7 @@ export type ChatCommandDefinition = {
   key: string;
   nativeName?: string;
   description: string;
+  argumentHint?: string;
   textAliases: string[];
   acceptsArgs?: boolean;
   args?: CommandArgDefinition[];

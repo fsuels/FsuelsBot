@@ -4,7 +4,11 @@ import { lookupContextTokens } from "../../agents/context.js";
 import { DEFAULT_CONTEXT_TOKENS } from "../../agents/defaults.js";
 import { isCliProvider } from "../../agents/model-selection.js";
 import { deriveSessionTotalTokens, hasNonzeroUsage } from "../../agents/usage.js";
-import { type SessionEntry, updateSessionStore } from "../../config/sessions.js";
+import {
+  type SessionEntry,
+  type SessionWorkspaceFingerprint,
+  updateSessionStore,
+} from "../../config/sessions.js";
 
 type RunResult = Awaited<
   ReturnType<(typeof import("../../agents/pi-embedded.js"))["runEmbeddedPiAgent"]>
@@ -17,6 +21,7 @@ export async function updateSessionStoreAfterAgentRun(params: {
   sessionKey: string;
   storePath: string;
   sessionStore: Record<string, SessionEntry>;
+  workspaceFingerprint?: SessionWorkspaceFingerprint;
   defaultProvider: string;
   defaultModel: string;
   fallbackProvider?: string;
@@ -29,6 +34,7 @@ export async function updateSessionStoreAfterAgentRun(params: {
     sessionKey,
     storePath,
     sessionStore,
+    workspaceFingerprint,
     defaultProvider,
     defaultModel,
     fallbackProvider,
@@ -54,6 +60,7 @@ export async function updateSessionStoreAfterAgentRun(params: {
     modelProvider: providerUsed,
     model: modelUsed,
     contextTokens,
+    ...(workspaceFingerprint ? { workspaceFingerprint } : {}),
   };
   if (isCliProvider(providerUsed, cfg)) {
     const cliSessionId = result.meta.agentMeta?.sessionId?.trim();

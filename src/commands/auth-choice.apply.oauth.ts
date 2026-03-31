@@ -72,7 +72,7 @@ export async function applyAuthChoiceOAuth(
         typeof creds.email === "string" && creds.email.trim() ? creds.email.trim() : "default";
       const profileId = `chutes:${email}`;
 
-      await writeOAuthCredentials("chutes", creds, params.agentDir);
+      await writeOAuthCredentials("chutes", creds, params.agentDir, params.writePlan);
       nextConfig = applyAuthProfileConfig(nextConfig, {
         profileId,
         provider: "chutes",

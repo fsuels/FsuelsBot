@@ -1,6 +1,7 @@
 import type { OpenClawConfig, GatewayAuthConfig } from "../config/config.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
+import type { AuthConfigWritePlan } from "./auth-config-write-plan.js";
 import { ensureAuthProfileStore } from "../agents/auth-profiles.js";
 import { promptAuthChoiceGrouped } from "./auth-choice-prompt.js";
 import { applyAuthChoice, resolvePreferredProviderForAuthChoice } from "./auth-choice.js";
@@ -43,6 +44,7 @@ export async function promptAuthConfig(
   cfg: OpenClawConfig,
   runtime: RuntimeEnv,
   prompter: WizardPrompter,
+  writePlan?: AuthConfigWritePlan,
 ): Promise<OpenClawConfig> {
   const authChoice = await promptAuthChoiceGrouped({
     prompter,
@@ -60,6 +62,7 @@ export async function promptAuthConfig(
       prompter,
       runtime,
       setDefaultModel: true,
+      writePlan,
     });
     next = applied.config;
   } else {

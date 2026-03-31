@@ -64,7 +64,7 @@ export async function applyAuthChoiceMiniMax(
         initialValue: true,
       });
       if (useExisting) {
-        await setMinimaxApiKey(envKey.apiKey, params.agentDir);
+        await setMinimaxApiKey(envKey.apiKey, params.agentDir, params.writePlan);
         hasCredential = true;
       }
     }
@@ -73,7 +73,7 @@ export async function applyAuthChoiceMiniMax(
         message: "Enter MiniMax API key",
         validate: validateApiKeyInput,
       });
-      await setMinimaxApiKey(normalizeApiKeyInput(String(key)), params.agentDir);
+      await setMinimaxApiKey(normalizeApiKeyInput(String(key)), params.agentDir, params.writePlan);
     }
     nextConfig = applyAuthProfileConfig(nextConfig, {
       profileId: "minimax:default",

@@ -96,7 +96,8 @@ export type ProviderAuthKind = "oauth" | "api_key" | "token" | "device_code" | "
 
 export type ProviderAuthResult = {
   profiles: Array<{ profileId: string; credential: AuthProfileCredential }>;
-  configPatch?: Partial<OpenClawConfig>;
+  /** RFC 7396-style merge patch. Use `null` to delete stale keys. */
+  configPatch?: Record<string, unknown>;
   defaultModel?: string;
   notes?: string[];
 };

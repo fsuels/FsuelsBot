@@ -140,7 +140,11 @@ export async function applyAuthChoiceApiProviders(
     }
 
     if (!hasCredential && params.opts?.token && params.opts?.tokenProvider === "openrouter") {
-      await setOpenrouterApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir);
+      await setOpenrouterApiKey(
+        normalizeApiKeyInput(params.opts.token),
+        params.agentDir,
+        params.writePlan,
+      );
       hasCredential = true;
     }
 
@@ -152,7 +156,7 @@ export async function applyAuthChoiceApiProviders(
           initialValue: true,
         });
         if (useExisting) {
-          await setOpenrouterApiKey(envKey.apiKey, params.agentDir);
+          await setOpenrouterApiKey(envKey.apiKey, params.agentDir, params.writePlan);
           hasCredential = true;
         }
       }
@@ -163,7 +167,11 @@ export async function applyAuthChoiceApiProviders(
         message: "Enter OpenRouter API key",
         validate: validateApiKeyInput,
       });
-      await setOpenrouterApiKey(normalizeApiKeyInput(String(key)), params.agentDir);
+      await setOpenrouterApiKey(
+        normalizeApiKeyInput(String(key)),
+        params.agentDir,
+        params.writePlan,
+      );
       hasCredential = true;
     }
 
@@ -199,7 +207,11 @@ export async function applyAuthChoiceApiProviders(
       params.opts?.token &&
       params.opts?.tokenProvider === "vercel-ai-gateway"
     ) {
-      await setVercelAiGatewayApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir);
+      await setVercelAiGatewayApiKey(
+        normalizeApiKeyInput(params.opts.token),
+        params.agentDir,
+        params.writePlan,
+      );
       hasCredential = true;
     }
 
@@ -210,7 +222,7 @@ export async function applyAuthChoiceApiProviders(
         initialValue: true,
       });
       if (useExisting) {
-        await setVercelAiGatewayApiKey(envKey.apiKey, params.agentDir);
+        await setVercelAiGatewayApiKey(envKey.apiKey, params.agentDir, params.writePlan);
         hasCredential = true;
       }
     }
@@ -219,7 +231,11 @@ export async function applyAuthChoiceApiProviders(
         message: "Enter Vercel AI Gateway API key",
         validate: validateApiKeyInput,
       });
-      await setVercelAiGatewayApiKey(normalizeApiKeyInput(String(key)), params.agentDir);
+      await setVercelAiGatewayApiKey(
+        normalizeApiKeyInput(String(key)),
+        params.agentDir,
+        params.writePlan,
+      );
     }
     nextConfig = applyAuthProfileConfig(nextConfig, {
       profileId: "vercel-ai-gateway:default",
@@ -267,7 +283,13 @@ export async function applyAuthChoiceApiProviders(
 
     const optsApiKey = normalizeApiKeyInput(params.opts?.cloudflareAiGatewayApiKey ?? "");
     if (!hasCredential && accountId && gatewayId && optsApiKey) {
-      await setCloudflareAiGatewayConfig(accountId, gatewayId, optsApiKey, params.agentDir);
+      await setCloudflareAiGatewayConfig(
+        accountId,
+        gatewayId,
+        optsApiKey,
+        params.agentDir,
+        params.writePlan,
+      );
       hasCredential = true;
     }
 
@@ -284,6 +306,7 @@ export async function applyAuthChoiceApiProviders(
           gatewayId,
           normalizeApiKeyInput(envKey.apiKey),
           params.agentDir,
+          params.writePlan,
         );
         hasCredential = true;
       }
@@ -291,7 +314,13 @@ export async function applyAuthChoiceApiProviders(
 
     if (!hasCredential && optsApiKey) {
       await ensureAccountGateway();
-      await setCloudflareAiGatewayConfig(accountId, gatewayId, optsApiKey, params.agentDir);
+      await setCloudflareAiGatewayConfig(
+        accountId,
+        gatewayId,
+        optsApiKey,
+        params.agentDir,
+        params.writePlan,
+      );
       hasCredential = true;
     }
 
@@ -306,6 +335,7 @@ export async function applyAuthChoiceApiProviders(
         gatewayId,
         normalizeApiKeyInput(String(key)),
         params.agentDir,
+        params.writePlan,
       );
       hasCredential = true;
     }
@@ -346,7 +376,11 @@ export async function applyAuthChoiceApiProviders(
     let hasCredential = false;
 
     if (!hasCredential && params.opts?.token && params.opts?.tokenProvider === "moonshot") {
-      await setMoonshotApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir);
+      await setMoonshotApiKey(
+        normalizeApiKeyInput(params.opts.token),
+        params.agentDir,
+        params.writePlan,
+      );
       hasCredential = true;
     }
 
@@ -357,7 +391,7 @@ export async function applyAuthChoiceApiProviders(
         initialValue: true,
       });
       if (useExisting) {
-        await setMoonshotApiKey(envKey.apiKey, params.agentDir);
+        await setMoonshotApiKey(envKey.apiKey, params.agentDir, params.writePlan);
         hasCredential = true;
       }
     }
@@ -366,7 +400,7 @@ export async function applyAuthChoiceApiProviders(
         message: "Enter Moonshot API key",
         validate: validateApiKeyInput,
       });
-      await setMoonshotApiKey(normalizeApiKeyInput(String(key)), params.agentDir);
+      await setMoonshotApiKey(normalizeApiKeyInput(String(key)), params.agentDir, params.writePlan);
     }
     nextConfig = applyAuthProfileConfig(nextConfig, {
       profileId: "moonshot:default",
@@ -393,7 +427,11 @@ export async function applyAuthChoiceApiProviders(
     let hasCredential = false;
 
     if (!hasCredential && params.opts?.token && params.opts?.tokenProvider === "moonshot") {
-      await setMoonshotApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir);
+      await setMoonshotApiKey(
+        normalizeApiKeyInput(params.opts.token),
+        params.agentDir,
+        params.writePlan,
+      );
       hasCredential = true;
     }
 
@@ -404,7 +442,7 @@ export async function applyAuthChoiceApiProviders(
         initialValue: true,
       });
       if (useExisting) {
-        await setMoonshotApiKey(envKey.apiKey, params.agentDir);
+        await setMoonshotApiKey(envKey.apiKey, params.agentDir, params.writePlan);
         hasCredential = true;
       }
     }
@@ -413,7 +451,7 @@ export async function applyAuthChoiceApiProviders(
         message: "Enter Moonshot API key (.cn)",
         validate: validateApiKeyInput,
       });
-      await setMoonshotApiKey(normalizeApiKeyInput(String(key)), params.agentDir);
+      await setMoonshotApiKey(normalizeApiKeyInput(String(key)), params.agentDir, params.writePlan);
     }
     nextConfig = applyAuthProfileConfig(nextConfig, {
       profileId: "moonshot:default",
@@ -444,7 +482,11 @@ export async function applyAuthChoiceApiProviders(
       params.opts?.token &&
       (tokenProvider === "kimi-code" || tokenProvider === "kimi-coding")
     ) {
-      await setKimiCodingApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir);
+      await setKimiCodingApiKey(
+        normalizeApiKeyInput(params.opts.token),
+        params.agentDir,
+        params.writePlan,
+      );
       hasCredential = true;
     }
 
@@ -464,7 +506,7 @@ export async function applyAuthChoiceApiProviders(
         initialValue: true,
       });
       if (useExisting) {
-        await setKimiCodingApiKey(envKey.apiKey, params.agentDir);
+        await setKimiCodingApiKey(envKey.apiKey, params.agentDir, params.writePlan);
         hasCredential = true;
       }
     }
@@ -473,7 +515,11 @@ export async function applyAuthChoiceApiProviders(
         message: "Enter Kimi Coding API key",
         validate: validateApiKeyInput,
       });
-      await setKimiCodingApiKey(normalizeApiKeyInput(String(key)), params.agentDir);
+      await setKimiCodingApiKey(
+        normalizeApiKeyInput(String(key)),
+        params.agentDir,
+        params.writePlan,
+      );
     }
     nextConfig = applyAuthProfileConfig(nextConfig, {
       profileId: "kimi-coding:default",
@@ -501,7 +547,11 @@ export async function applyAuthChoiceApiProviders(
     let hasCredential = false;
 
     if (!hasCredential && params.opts?.token && params.opts?.tokenProvider === "google") {
-      await setGeminiApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir);
+      await setGeminiApiKey(
+        normalizeApiKeyInput(params.opts.token),
+        params.agentDir,
+        params.writePlan,
+      );
       hasCredential = true;
     }
 
@@ -512,7 +562,7 @@ export async function applyAuthChoiceApiProviders(
         initialValue: true,
       });
       if (useExisting) {
-        await setGeminiApiKey(envKey.apiKey, params.agentDir);
+        await setGeminiApiKey(envKey.apiKey, params.agentDir, params.writePlan);
         hasCredential = true;
       }
     }
@@ -521,7 +571,7 @@ export async function applyAuthChoiceApiProviders(
         message: "Enter Gemini API key",
         validate: validateApiKeyInput,
       });
-      await setGeminiApiKey(normalizeApiKeyInput(String(key)), params.agentDir);
+      await setGeminiApiKey(normalizeApiKeyInput(String(key)), params.agentDir, params.writePlan);
     }
     nextConfig = applyAuthProfileConfig(nextConfig, {
       profileId: "google:default",
@@ -548,7 +598,11 @@ export async function applyAuthChoiceApiProviders(
     let hasCredential = false;
 
     if (!hasCredential && params.opts?.token && params.opts?.tokenProvider === "zai") {
-      await setZaiApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir);
+      await setZaiApiKey(
+        normalizeApiKeyInput(params.opts.token),
+        params.agentDir,
+        params.writePlan,
+      );
       hasCredential = true;
     }
 
@@ -559,7 +613,7 @@ export async function applyAuthChoiceApiProviders(
         initialValue: true,
       });
       if (useExisting) {
-        await setZaiApiKey(envKey.apiKey, params.agentDir);
+        await setZaiApiKey(envKey.apiKey, params.agentDir, params.writePlan);
         hasCredential = true;
       }
     }
@@ -568,7 +622,7 @@ export async function applyAuthChoiceApiProviders(
         message: "Enter Z.AI API key",
         validate: validateApiKeyInput,
       });
-      await setZaiApiKey(normalizeApiKeyInput(String(key)), params.agentDir);
+      await setZaiApiKey(normalizeApiKeyInput(String(key)), params.agentDir, params.writePlan);
     }
     nextConfig = applyAuthProfileConfig(nextConfig, {
       profileId: "zai:default",
@@ -611,7 +665,11 @@ export async function applyAuthChoiceApiProviders(
     let hasCredential = false;
 
     if (!hasCredential && params.opts?.token && params.opts?.tokenProvider === "xiaomi") {
-      await setXiaomiApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir);
+      await setXiaomiApiKey(
+        normalizeApiKeyInput(params.opts.token),
+        params.agentDir,
+        params.writePlan,
+      );
       hasCredential = true;
     }
 
@@ -622,7 +680,7 @@ export async function applyAuthChoiceApiProviders(
         initialValue: true,
       });
       if (useExisting) {
-        await setXiaomiApiKey(envKey.apiKey, params.agentDir);
+        await setXiaomiApiKey(envKey.apiKey, params.agentDir, params.writePlan);
         hasCredential = true;
       }
     }
@@ -631,7 +689,7 @@ export async function applyAuthChoiceApiProviders(
         message: "Enter Xiaomi API key",
         validate: validateApiKeyInput,
       });
-      await setXiaomiApiKey(normalizeApiKeyInput(String(key)), params.agentDir);
+      await setXiaomiApiKey(normalizeApiKeyInput(String(key)), params.agentDir, params.writePlan);
     }
     nextConfig = applyAuthProfileConfig(nextConfig, {
       profileId: "xiaomi:default",
@@ -657,13 +715,13 @@ export async function applyAuthChoiceApiProviders(
 
   if (authChoice === "synthetic-api-key") {
     if (params.opts?.token && params.opts?.tokenProvider === "synthetic") {
-      await setSyntheticApiKey(String(params.opts.token).trim(), params.agentDir);
+      await setSyntheticApiKey(String(params.opts.token).trim(), params.agentDir, params.writePlan);
     } else {
       const key = await params.prompter.text({
         message: "Enter Synthetic API key",
         validate: (value) => (value?.trim() ? undefined : "Required"),
       });
-      await setSyntheticApiKey(String(key).trim(), params.agentDir);
+      await setSyntheticApiKey(String(key).trim(), params.agentDir, params.writePlan);
     }
     nextConfig = applyAuthProfileConfig(nextConfig, {
       profileId: "synthetic:default",
@@ -691,7 +749,11 @@ export async function applyAuthChoiceApiProviders(
     let hasCredential = false;
 
     if (!hasCredential && params.opts?.token && params.opts?.tokenProvider === "venice") {
-      await setVeniceApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir);
+      await setVeniceApiKey(
+        normalizeApiKeyInput(params.opts.token),
+        params.agentDir,
+        params.writePlan,
+      );
       hasCredential = true;
     }
 
@@ -713,7 +775,7 @@ export async function applyAuthChoiceApiProviders(
         initialValue: true,
       });
       if (useExisting) {
-        await setVeniceApiKey(envKey.apiKey, params.agentDir);
+        await setVeniceApiKey(envKey.apiKey, params.agentDir, params.writePlan);
         hasCredential = true;
       }
     }
@@ -722,7 +784,7 @@ export async function applyAuthChoiceApiProviders(
         message: "Enter Venice AI API key",
         validate: validateApiKeyInput,
       });
-      await setVeniceApiKey(normalizeApiKeyInput(String(key)), params.agentDir);
+      await setVeniceApiKey(normalizeApiKeyInput(String(key)), params.agentDir, params.writePlan);
     }
     nextConfig = applyAuthProfileConfig(nextConfig, {
       profileId: "venice:default",
@@ -749,7 +811,11 @@ export async function applyAuthChoiceApiProviders(
   if (authChoice === "opencode-zen") {
     let hasCredential = false;
     if (!hasCredential && params.opts?.token && params.opts?.tokenProvider === "opencode") {
-      await setOpencodeZenApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir);
+      await setOpencodeZenApiKey(
+        normalizeApiKeyInput(params.opts.token),
+        params.agentDir,
+        params.writePlan,
+      );
       hasCredential = true;
     }
 
@@ -770,7 +836,7 @@ export async function applyAuthChoiceApiProviders(
         initialValue: true,
       });
       if (useExisting) {
-        await setOpencodeZenApiKey(envKey.apiKey, params.agentDir);
+        await setOpencodeZenApiKey(envKey.apiKey, params.agentDir, params.writePlan);
         hasCredential = true;
       }
     }
@@ -779,7 +845,11 @@ export async function applyAuthChoiceApiProviders(
         message: "Enter OpenCode Zen API key",
         validate: validateApiKeyInput,
       });
-      await setOpencodeZenApiKey(normalizeApiKeyInput(String(key)), params.agentDir);
+      await setOpencodeZenApiKey(
+        normalizeApiKeyInput(String(key)),
+        params.agentDir,
+        params.writePlan,
+      );
     }
     nextConfig = applyAuthProfileConfig(nextConfig, {
       profileId: "opencode:default",
@@ -806,7 +876,7 @@ export async function applyAuthChoiceApiProviders(
   if (authChoice === "qianfan-api-key") {
     let hasCredential = false;
     if (!hasCredential && params.opts?.token && params.opts?.tokenProvider === "qianfan") {
-      setQianfanApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir);
+      setQianfanApiKey(normalizeApiKeyInput(params.opts.token), params.agentDir, params.writePlan);
       hasCredential = true;
     }
 
@@ -826,7 +896,7 @@ export async function applyAuthChoiceApiProviders(
         initialValue: true,
       });
       if (useExisting) {
-        setQianfanApiKey(envKey.apiKey, params.agentDir);
+        setQianfanApiKey(envKey.apiKey, params.agentDir, params.writePlan);
         hasCredential = true;
       }
     }
@@ -835,7 +905,7 @@ export async function applyAuthChoiceApiProviders(
         message: "Enter QIANFAN API key",
         validate: validateApiKeyInput,
       });
-      setQianfanApiKey(normalizeApiKeyInput(String(key)), params.agentDir);
+      setQianfanApiKey(normalizeApiKeyInput(String(key)), params.agentDir, params.writePlan);
     }
     nextConfig = applyAuthProfileConfig(nextConfig, {
       profileId: "qianfan:default",

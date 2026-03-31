@@ -9,6 +9,7 @@ import {
 } from "../agents/agent-scope.js";
 import { ensureAuthProfileStore } from "../agents/auth-profiles.js";
 import { resolveAuthStorePath } from "../agents/auth-profiles/paths.js";
+import { formatCliCommand } from "../cli/command-format.js";
 import { writeConfigFile } from "../config/config.js";
 import { logConfigUpdated } from "../config/logging.js";
 import { DEFAULT_AGENT_ID, normalizeAgentId } from "../routing/session-key.js";
@@ -26,6 +27,7 @@ import { createQuietRuntime, requireValidConfig } from "./agents.command-shared.
 import { applyAgentConfig, findAgentEntryIndex, listAgentEntries } from "./agents.config.js";
 import { promptAuthChoiceGrouped } from "./auth-choice-prompt.js";
 import { applyAuthChoice, warnIfModelConfigLooksOff } from "./auth-choice.js";
+import { commitAuthConfigWritePlan, createAuthConfigWritePlan } from "./auth-config-write-plan.js";
 import { setupChannels } from "./onboard-channels.js";
 import { ensureWorkspaceAndSessions } from "./onboard-helpers.js";
 
@@ -229,6 +231,7 @@ export async function agentsAddCommand(
       workspace: workspaceDir,
       agentDir,
     });
+    const authWritePlan = createAuthConfigWritePlan();
 
     const defaultAgentId = resolveDefaultAgentId(cfg);
     if (defaultAgentId !== agentId) {
@@ -275,6 +278,7 @@ export async function agentsAddCommand(
         agentDir,
         setDefaultModel: false,
         agentId,
+        writePlan: authWritePlan,
       });
       nextConfig = authResult.config;
       if (authResult.agentModelOverride) {
@@ -341,6 +345,9 @@ export async function agentsAddCommand(
     }
 
     await writeConfigFile(nextConfig);
+    await commitAuthConfigWritePlan(authWritePlan, {
+      commandHint: formatCliCommand("openclaw agents add"),
+    });
     logConfigUpdated(runtime);
     await ensureWorkspaceAndSessions(workspaceDir, runtime, {
       skipBootstrap: Boolean(nextConfig.agents?.defaults?.skipBootstrap),
