@@ -1,5 +1,16 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+const browserActionMocks = vi.hoisted(() => ({
+  browserAct: vi.fn(async () => ({ ok: true, targetId: "t1" })),
+  browserArmDialog: vi.fn(async () => ({ ok: true })),
+  browserArmFileChooser: vi.fn(async () => ({ ok: true })),
+  browserConsoleMessages: vi.fn(async () => ({ ok: true, messages: [] })),
+  browserNavigate: vi.fn(async () => ({ ok: true, targetId: "t1" })),
+  browserPdfSave: vi.fn(async () => ({ path: "/tmp/browser.pdf" })),
+  browserScreenshotAction: vi.fn(async () => ({ path: "/tmp/browser.png" })),
+}));
+vi.mock("../../browser/client-actions.js", () => browserActionMocks);
+
 const browserClientMocks = vi.hoisted(() => ({
   browserCloseTab: vi.fn(async () => ({})),
   browserFocusTab: vi.fn(async () => ({})),
@@ -69,6 +80,7 @@ vi.mock("./common.js", async () => {
 });
 
 import { DEFAULT_AI_SNAPSHOT_MAX_CHARS } from "../../browser/constants.js";
+import { applyToolContracts } from "../tool-contracts.js";
 import { createBrowserTool } from "./browser-tool.js";
 
 describe("browser tool snapshot maxChars", () => {
@@ -287,5 +299,103 @@ describe("browser tool snapshot labels", () => {
     expect(result?.content).toHaveLength(2);
     expect(result?.content?.[0]).toMatchObject({ type: "text", text: "label text" });
     expect(result?.content?.[1]).toMatchObject({ type: "image" });
+  });
+});
+
+describe("browser tool validation", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+    configMocks.loadConfig.mockReturnValue({ browser: {} });
+    nodesUtilsMocks.listNodes.mockResolvedValue([]);
+  });
+
+  it("returns structured invalid_input when open is missing targetUrl", async () => {
+    const tool = applyToolContracts(createBrowserTool());
+    const result = await tool.execute("call-open", { action: "open" });
+
+    expect(result.details).toMatchObject({
+      ok: false,
+      success: false,
+      tool: "browser",
+      code: "invalid_input",
+      message: "targetUrl required for action=open",
+    });
+    expect(browserClientMocks.browserOpenTab).not.toHaveBeenCalled();
+  });
+
+  it("returns structured invalid_input when act is missing a request payload", async () => {
+    const tool = applyToolContracts(createBrowserTool());
+    const result = await tool.execute("call-act-missing", { action: "act" });
+
+    expect(result.details).toMatchObject({
+      ok: false,
+      success: false,
+      tool: "browser",
+      code: "invalid_input",
+      message: "request required for action=act",
+    });
+    expect(browserActionMocks.browserAct).not.toHaveBeenCalled();
+  });
+
+  it("returns structured invalid_input for node routing conflicts", async () => {
+    const tool = applyToolContracts(createBrowserTool());
+    const result = await tool.execute("call-node-conflict", {
+      action: "status",
+      target: "host",
+      node: "node-1",
+    });
+
+    expect(result.details).toMatchObject({
+      ok: false,
+      success: false,
+      tool: "browser",
+      code: "invalid_input",
+      message: 'node is only supported with target="node".',
+    });
+    expect(browserClientMocks.browserStatus).not.toHaveBeenCalled();
+  });
+
+  it("returns structured invalid_input for scrollIntoView selector misuse", async () => {
+    const tool = applyToolContracts(createBrowserTool());
+    const result = await tool.execute("call-act-scroll", {
+      action: "act",
+      request: {
+        kind: "scrollIntoView",
+        ref: "e12",
+        selector: "button.save",
+      },
+    });
+
+    expect(result.details).toMatchObject({
+      ok: false,
+      success: false,
+      tool: "browser",
+      code: "invalid_input",
+      message: "selector is only supported for action=wait",
+    });
+    expect(browserActionMocks.browserAct).not.toHaveBeenCalled();
+  });
+
+  it("accepts scrollIntoView act requests after schema validation", async () => {
+    const tool = applyToolContracts(createBrowserTool());
+    const result = await tool.execute("call-act-valid", {
+      action: "act",
+      request: {
+        kind: "scrollIntoView",
+        ref: "e12",
+        timeoutMs: 1500,
+      },
+    });
+
+    expect(browserActionMocks.browserAct).toHaveBeenCalledWith(
+      undefined,
+      {
+        kind: "scrollIntoView",
+        ref: "e12",
+        timeoutMs: 1500,
+      },
+      { profile: undefined },
+    );
+    expect(result.details).toMatchObject({ ok: true, targetId: "t1" });
   });
 });

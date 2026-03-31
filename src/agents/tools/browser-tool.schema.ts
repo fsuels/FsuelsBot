@@ -6,6 +6,7 @@ const BROWSER_ACT_KINDS = [
   "type",
   "press",
   "hover",
+  "scrollIntoView",
   "drag",
   "select",
   "fill",
@@ -14,6 +15,10 @@ const BROWSER_ACT_KINDS = [
   "evaluate",
   "close",
 ] as const;
+
+const BROWSER_CLICK_BUTTONS = ["left", "right", "middle"] as const;
+const BROWSER_CLICK_MODIFIERS = ["Alt", "Control", "ControlOrMeta", "Meta", "Shift"] as const;
+const BROWSER_WAIT_LOAD_STATES = ["load", "domcontentloaded", "networkidle"] as const;
 
 const BROWSER_TOOL_ACTIONS = [
   "status",
@@ -50,16 +55,18 @@ const BrowserActSchema = Type.Object({
   // Common fields
   targetId: Type.Optional(Type.String()),
   ref: Type.Optional(Type.String()),
+  timeoutMs: Type.Optional(Type.Number()),
   // click
   doubleClick: Type.Optional(Type.Boolean()),
-  button: Type.Optional(Type.String()),
-  modifiers: Type.Optional(Type.Array(Type.String())),
+  button: optionalStringEnum(BROWSER_CLICK_BUTTONS),
+  modifiers: Type.Optional(Type.Array(stringEnum(BROWSER_CLICK_MODIFIERS))),
   // type
   text: Type.Optional(Type.String()),
   submit: Type.Optional(Type.Boolean()),
   slowly: Type.Optional(Type.Boolean()),
   // press
   key: Type.Optional(Type.String()),
+  delayMs: Type.Optional(Type.Number()),
   // drag
   startRef: Type.Optional(Type.String()),
   endRef: Type.Optional(Type.String()),
@@ -70,9 +77,12 @@ const BrowserActSchema = Type.Object({
   // resize
   width: Type.Optional(Type.Number()),
   height: Type.Optional(Type.Number()),
-  // wait
+  // wait also reuses `text`
   timeMs: Type.Optional(Type.Number()),
   textGone: Type.Optional(Type.String()),
+  selector: Type.Optional(Type.String()),
+  url: Type.Optional(Type.String()),
+  loadState: optionalStringEnum(BROWSER_WAIT_LOAD_STATES),
   // evaluate
   fn: Type.Optional(Type.String()),
 });

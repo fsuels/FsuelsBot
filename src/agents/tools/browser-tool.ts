@@ -21,8 +21,10 @@ import {
 } from "../../browser/client.js";
 import { resolveBrowserConfig } from "../../browser/config.js";
 import { DEFAULT_AI_SNAPSHOT_MAX_CHARS } from "../../browser/constants.js";
+import { parseClickButton, parseClickModifiers } from "../../browser/routes/agent.act.shared.js";
 import { loadConfig } from "../../config/config.js";
 import { saveMediaBuffer } from "../../media/store.js";
+import { validateFlatActionInput, type ActionValidationRule } from "./action-validation.js";
 import { BrowserToolSchema } from "./browser-tool.schema.js";
 import { type AnyAgentTool, imageResultFromFile, jsonResult, readStringParam } from "./common.js";
 import { callGatewayTool } from "./gateway.js";
@@ -40,6 +42,174 @@ type BrowserProxyResult = {
 };
 
 const DEFAULT_BROWSER_PROXY_TIMEOUT_MS = 20_000;
+const REQUEST_REQUIRED = { key: "request", label: "request", presence: "defined" } as const;
+const PATHS_REQUIRED = { key: "paths", label: "paths", presence: "defined" } as const;
+const TEXT_DEFINED = { key: "text", label: "text", presence: "defined" } as const;
+const VALUES_DEFINED = { key: "values", label: "values", presence: "defined" } as const;
+const FIELDS_DEFINED = { key: "fields", label: "fields", presence: "defined" } as const;
+const WIDTH_DEFINED = { key: "width", label: "width", presence: "defined" } as const;
+const HEIGHT_DEFINED = { key: "height", label: "height", presence: "defined" } as const;
+const WAIT_MESSAGE =
+  "wait requires at least one of: timeMs, text, textGone, selector, url, loadState, fn";
+
+const BROWSER_ACTION_RULES: Record<string, ActionValidationRule> = {
+  status: {},
+  start: {},
+  stop: {},
+  profiles: {},
+  tabs: {},
+  open: {
+    required: ["targetUrl"],
+  },
+  focus: {
+    required: ["targetId"],
+  },
+  close: {},
+  snapshot: {},
+  screenshot: {},
+  navigate: {
+    required: ["targetUrl"],
+  },
+  console: {},
+  pdf: {},
+  upload: {
+    required: [PATHS_REQUIRED],
+    custom: (input) =>
+      Array.isArray(input.paths) && input.paths.length > 0
+        ? undefined
+        : "paths required for action=upload",
+  },
+  dialog: {},
+  act: {
+    required: [REQUEST_REQUIRED],
+  },
+};
+
+const BROWSER_ACT_REQUEST_RULES: Record<string, ActionValidationRule> = {
+  click: {
+    required: ["ref"],
+  },
+  type: {
+    required: ["ref", TEXT_DEFINED],
+  },
+  press: {
+    required: ["key"],
+  },
+  hover: {
+    required: ["ref"],
+  },
+  scrollIntoView: {
+    required: ["ref"],
+  },
+  drag: {
+    required: ["startRef", "endRef"],
+  },
+  select: {
+    required: ["ref", VALUES_DEFINED],
+  },
+  fill: {
+    required: [FIELDS_DEFINED],
+  },
+  resize: {
+    required: [WIDTH_DEFINED, HEIGHT_DEFINED],
+  },
+  wait: {},
+  evaluate: {
+    required: ["fn"],
+  },
+  close: {},
+};
+
+function hasValidFillField(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.ref === "string" &&
+    record.ref.trim().length > 0 &&
+    typeof record.type === "string" &&
+    record.type.trim().length > 0
+  );
+}
+
+function validateBrowserActRequest(request: unknown): string | undefined {
+  if (!request || typeof request !== "object" || Array.isArray(request)) {
+    return "request required for action=act";
+  }
+
+  const input = request as Record<string, unknown>;
+  const kind = typeof input.kind === "string" ? input.kind : "";
+  if (!kind) {
+    return "request.kind required for action=act";
+  }
+
+  const validation = validateFlatActionInput({
+    toolName: "browser",
+    action: kind,
+    input,
+    rules: BROWSER_ACT_REQUEST_RULES,
+  });
+  if (!validation.result) {
+    return validation.message;
+  }
+
+  if (Object.hasOwn(input, "selector") && kind !== "wait") {
+    return "selector is only supported for action=wait";
+  }
+
+  switch (kind) {
+    case "click": {
+      const button = typeof input.button === "string" ? input.button : "";
+      if (button && !parseClickButton(button)) {
+        return "button must be left|right|middle for action=click";
+      }
+      if (Array.isArray(input.modifiers)) {
+        const modifiers = input.modifiers.filter(
+          (value): value is string => typeof value === "string",
+        );
+        const parsed = parseClickModifiers(modifiers);
+        if (parsed.error) {
+          return `${parsed.error} for action=click`;
+        }
+      }
+      return undefined;
+    }
+    case "select":
+      return Array.isArray(input.values) && input.values.length > 0
+        ? undefined
+        : "values required for action=select";
+    case "fill":
+      return Array.isArray(input.fields) && input.fields.some((field) => hasValidFillField(field))
+        ? undefined
+        : "fields required for action=fill";
+    case "resize": {
+      const width = input.width;
+      const height = input.height;
+      return typeof width === "number" &&
+        Number.isFinite(width) &&
+        width > 0 &&
+        typeof height === "number" &&
+        Number.isFinite(height) &&
+        height > 0
+        ? undefined
+        : "width and height required for action=resize";
+    }
+    case "wait": {
+      const hasWaitCondition =
+        (typeof input.timeMs === "number" && Number.isFinite(input.timeMs)) ||
+        (typeof input.text === "string" && input.text.trim().length > 0) ||
+        (typeof input.textGone === "string" && input.textGone.trim().length > 0) ||
+        (typeof input.selector === "string" && input.selector.trim().length > 0) ||
+        (typeof input.url === "string" && input.url.trim().length > 0) ||
+        (typeof input.loadState === "string" && input.loadState.trim().length > 0) ||
+        (typeof input.fn === "string" && input.fn.trim().length > 0);
+      return hasWaitCondition ? undefined : WAIT_MESSAGE;
+    }
+    default:
+      return undefined;
+  }
+}
 
 type BrowserNodeTarget = {
   nodeId: string;
@@ -240,6 +410,41 @@ export function createBrowserTool(opts?: {
       hostHint,
     ].join(" "),
     parameters: BrowserToolSchema,
+    validateInput: async (input, _context) => {
+      const validation = validateFlatActionInput({
+        toolName: "browser",
+        action: typeof input.action === "string" ? input.action : "",
+        input: input as Record<string, unknown>,
+        rules: BROWSER_ACTION_RULES,
+      });
+      if (!validation.result) {
+        return validation;
+      }
+      if (
+        typeof input.node === "string" &&
+        input.node.trim() &&
+        typeof input.target === "string" &&
+        input.target.trim() &&
+        input.target !== "node"
+      ) {
+        return {
+          result: false,
+          errorCode: 400,
+          message: 'node is only supported with target="node".',
+        };
+      }
+      if (input.action === "act") {
+        const error = validateBrowserActRequest(input.request);
+        if (error) {
+          return {
+            result: false,
+            errorCode: 400,
+            message: error,
+          };
+        }
+      }
+      return { result: true };
+    },
     execute: async (_toolCallId, args) => {
       const params = args as Record<string, unknown>;
       const action = readStringParam(params, "action", { required: true });
