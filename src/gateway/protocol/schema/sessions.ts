@@ -1,5 +1,5 @@
 import { Type } from "@sinclair/typebox";
-import { NonEmptyString, SessionLabelString } from "./primitives.js";
+import { NonEmptyString, SessionLabelString, SessionTagString } from "./primitives.js";
 
 export const SessionsListParamsSchema = Type.Object(
   {
@@ -18,6 +18,7 @@ export const SessionsListParamsSchema = Type.Object(
      */
     includeLastMessage: Type.Optional(Type.Boolean()),
     label: Type.Optional(SessionLabelString),
+    tag: Type.Optional(SessionTagString),
     spawnedBy: Type.Optional(NonEmptyString),
     agentId: Type.Optional(NonEmptyString),
     search: Type.Optional(Type.String()),
@@ -51,6 +52,7 @@ export const SessionsPatchParamsSchema = Type.Object(
   {
     key: NonEmptyString,
     label: Type.Optional(Type.Union([SessionLabelString, Type.Null()])),
+    tag: Type.Optional(Type.Union([SessionTagString, Type.Null()])),
     thinkingLevel: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
     verboseLevel: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
     reasoningLevel: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),

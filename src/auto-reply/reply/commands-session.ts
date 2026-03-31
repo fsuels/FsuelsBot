@@ -17,7 +17,9 @@ import { scheduleGatewaySigusr1Restart, triggerOpenClawRestart } from "../../inf
 import { loadCostUsageSummary, loadSessionCostSummary } from "../../infra/session-cost-usage.js";
 import { loadSessionPlanArtifact } from "../../infra/session-plan.js";
 import { resolveAgentIdFromSessionKey, isSubagentSessionKey } from "../../routing/session-key.js";
+import { parseSessionTag } from "../../sessions/session-tag.js";
 import { formatTokenCount, formatUsd } from "../../utils/usage-format.js";
+import { normalizeCommandBody } from "../commands-registry.js";
 import { parseActivationCommand } from "../group-activation.js";
 import { parseSendPolicyCommand } from "../send-policy.js";
 import { normalizeUsageDisplay, resolveResponseUsageMode } from "../thinking.js";
@@ -131,28 +133,6 @@ function parsePlanCommandState(
   };
 }
 
-async function ensureSessionEntry(params: {
-  sessionEntry?: SessionEntry;
-  sessionStore?: Record<string, SessionEntry>;
-  sessionKey?: string;
-  storePath?: string;
-}): Promise<SessionEntry | undefined> {
-  if (params.sessionEntry || !params.sessionStore || !params.sessionKey) {
-    return params.sessionEntry;
-  }
-  const created: SessionEntry = {
-    sessionId: randomUUID(),
-    updatedAt: Date.now(),
-  };
-  params.sessionStore[params.sessionKey] = created;
-  if (params.storePath) {
-    await updateSessionStore(params.storePath, (store) => {
-      store[params.sessionKey as string] = created;
-    });
-  }
-  return created;
-}
-
 function buildPlanContinuationBody(params: { description: string; currentPlan?: string }): string {
   const currentPlan = params.currentPlan?.trim();
   return [
@@ -183,6 +163,94 @@ function formatCurrentPlanReply(params: {
     return lines.join("\n");
   }
   return [...lines, "", plan].join("\n");
+}
+
+async function ensureSessionEntry(params: {
+  sessionEntry?: SessionEntry;
+  sessionStore?: Record<string, SessionEntry>;
+  sessionKey?: string;
+  storePath?: string;
+}): Promise<SessionEntry | undefined> {
+  const existing =
+    params.sessionEntry ??
+    (params.sessionKey ? params.sessionStore?.[params.sessionKey] : undefined);
+  if (existing || !params.sessionStore || !params.sessionKey) {
+    return existing;
+  }
+
+  const created: SessionEntry = {
+    sessionId: randomUUID(),
+    updatedAt: Date.now(),
+  };
+  params.sessionStore[params.sessionKey] = created;
+  if (params.storePath) {
+    await updateSessionStore(params.storePath, (store) => {
+      store[params.sessionKey] = created;
+    });
+  }
+  return created;
+}
+
+async function persistSessionEntry(params: {
+  entry?: SessionEntry;
+  sessionStore?: Record<string, SessionEntry>;
+  sessionKey: string;
+  storePath?: string;
+}): Promise<void> {
+  const { entry, sessionStore, sessionKey, storePath } = params;
+  if (!entry || !sessionStore) {
+    return;
+  }
+
+  entry.updatedAt = Date.now();
+  sessionStore[sessionKey] = entry;
+  if (storePath) {
+    await updateSessionStore(storePath, (store) => {
+      store[sessionKey] = entry;
+    });
+  }
+}
+
+const TAG_CONFIRM_REMOVE_FLAG = "--confirm-remove";
+
+function buildTagHelpText() {
+  return [
+    "🏷️ Session tags",
+    "Usage: /tag <name>",
+    "       /tag --help",
+    `       /tag <name> ${TAG_CONFIRM_REMOVE_FLAG}`,
+    "",
+    "Examples:",
+    "/tag billing bug",
+    "/tag sprint-42",
+    `/tag billing bug ${TAG_CONFIRM_REMOVE_FLAG}`,
+  ].join("\n");
+}
+
+function parseTagCommandArgs(ctx: { raw?: string; normalized: string }): {
+  help: boolean;
+  confirmRemove: boolean;
+  rawTag: string;
+} {
+  const body = ctx.raw?.trim() ? normalizeCommandBody(ctx.raw) : ctx.normalized;
+  const rawArgs = body === "/tag" ? "" : body.slice("/tag".length).trim();
+  if (!rawArgs) {
+    return { help: true, confirmRemove: false, rawTag: "" };
+  }
+
+  const trimmed = rawArgs.trim();
+  if (trimmed === "--help" || trimmed === "help") {
+    return { help: true, confirmRemove: false, rawTag: "" };
+  }
+
+  const confirmRemove = new RegExp(`(?:^|\\s)${TAG_CONFIRM_REMOVE_FLAG}(?=\\s|$)`, "u").test(
+    rawArgs,
+  );
+  const rawTag = rawArgs
+    .replace(new RegExp(`(?:^|\\s)${TAG_CONFIRM_REMOVE_FLAG}(?=\\s|$)`, "gu"), " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return { help: false, confirmRemove, rawTag };
 }
 
 export const handleActivationCommand: CommandHandler = async (params, allowTextCommands) => {
@@ -271,6 +339,124 @@ export const handleSendPolicyCommand: CommandHandler = async (params, allowTextC
   return {
     shouldContinue: false,
     reply: { text: `⚙️ Send policy set to ${label}.` },
+  };
+};
+
+export const handleTagCommand: CommandHandler = async (params, allowTextCommands) => {
+  if (!allowTextCommands) {
+    return null;
+  }
+  const normalized = params.command.commandBodyNormalized;
+  if (normalized !== "/tag" && !normalized.startsWith("/tag ")) {
+    return null;
+  }
+  if (!params.command.isAuthorizedSender) {
+    logVerbose(`Ignoring /tag from unauthorized sender: ${params.command.senderId || "<unknown>"}`);
+    return { shouldContinue: false };
+  }
+  if (!params.sessionStore) {
+    return {
+      shouldContinue: false,
+      reply: { text: "⚠️ Session tags are unavailable because session storage is not loaded." },
+    };
+  }
+
+  const args = parseTagCommandArgs({
+    raw:
+      params.ctx.BodyForCommands ??
+      params.ctx.CommandBody ??
+      params.ctx.RawBody ??
+      params.ctx.Body ??
+      undefined,
+    normalized,
+  });
+  if (args.help || !args.rawTag) {
+    return {
+      shouldContinue: false,
+      reply: { text: buildTagHelpText() },
+    };
+  }
+
+  const parsedTag = parseSessionTag(args.rawTag);
+  if (!parsedTag.ok) {
+    return {
+      shouldContinue: false,
+      reply: { text: `⚠️ ${parsedTag.error}\n\n${buildTagHelpText()}` },
+    };
+  }
+
+  const sessionEntry = await ensureSessionEntry({
+    sessionEntry: params.sessionEntry,
+    sessionStore: params.sessionStore,
+    sessionKey: params.sessionKey,
+    storePath: params.storePath,
+  });
+  if (sessionEntry && !params.sessionEntry) {
+    params.sessionEntry = sessionEntry;
+  }
+
+  const currentTag = sessionEntry?.tag?.trim();
+  const sanitizedSuffix = parsedTag.strippedHidden ? " Hidden characters were removed." : "";
+
+  if (currentTag && currentTag === parsedTag.tag) {
+    if (!args.confirmRemove) {
+      logVerbose(
+        `session-tag remove-cancelled session=${params.sessionKey} tag=${JSON.stringify(currentTag)}`,
+      );
+      return {
+        shouldContinue: false,
+        reply: {
+          text:
+            `⚠️ Session tag is already "${currentTag}". ` +
+            `Run \`/tag ${currentTag} ${TAG_CONFIRM_REMOVE_FLAG}\` to remove it.`,
+        },
+      };
+    }
+
+    if (sessionEntry) {
+      delete sessionEntry.tag;
+      await persistSessionEntry({
+        entry: sessionEntry,
+        sessionStore: params.sessionStore,
+        sessionKey: params.sessionKey,
+        storePath: params.storePath,
+      });
+    }
+    logVerbose(
+      `session-tag remove-confirmed session=${params.sessionKey} tag=${JSON.stringify(currentTag)}`,
+    );
+    return {
+      shouldContinue: false,
+      reply: { text: `🏷️ Session tag removed.${sanitizedSuffix}` },
+    };
+  }
+
+  if (sessionEntry) {
+    sessionEntry.tag = parsedTag.tag;
+    await persistSessionEntry({
+      entry: sessionEntry,
+      sessionStore: params.sessionStore,
+      sessionKey: params.sessionKey,
+      storePath: params.storePath,
+    });
+  }
+
+  if (currentTag) {
+    logVerbose(
+      `session-tag replace session=${params.sessionKey} from=${JSON.stringify(currentTag)} to=${JSON.stringify(parsedTag.tag)}`,
+    );
+    return {
+      shouldContinue: false,
+      reply: {
+        text: `🏷️ Session tag changed from "${currentTag}" to "${parsedTag.tag}".${sanitizedSuffix}`,
+      },
+    };
+  }
+
+  logVerbose(`session-tag add session=${params.sessionKey} tag=${JSON.stringify(parsedTag.tag)}`);
+  return {
+    shouldContinue: false,
+    reply: { text: `🏷️ Session tag set to "${parsedTag.tag}".${sanitizedSuffix}` },
   };
 };
 

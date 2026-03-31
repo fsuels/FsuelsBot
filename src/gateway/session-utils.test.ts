@@ -201,12 +201,14 @@ describe("listSessionsFromStore search", () => {
       updatedAt: Date.now(),
       displayName: "Work Project Alpha",
       label: "work",
+      tag: "incident alpha",
     } as SessionEntry,
     "agent:main:personal-chat": {
       sessionId: "sess-personal-1",
       updatedAt: Date.now() - 1000,
       displayName: "Personal Chat",
       subject: "Family Reunion Planning",
+      tag: "family",
     } as SessionEntry,
     "agent:main:discord:group:dev-team": {
       sessionId: "sess-discord-1",
@@ -260,6 +262,30 @@ describe("listSessionsFromStore search", () => {
     });
     expect(result.sessions.length).toBe(1);
     expect(result.sessions[0].subject).toBe("Family Reunion Planning");
+  });
+
+  test("filters by exact tag", () => {
+    const store = makeStore();
+    const result = listSessionsFromStore({
+      cfg: baseCfg,
+      storePath: "/tmp/sessions.json",
+      store,
+      opts: { tag: "incident alpha" },
+    });
+    expect(result.sessions).toHaveLength(1);
+    expect(result.sessions[0].tag).toBe("incident alpha");
+  });
+
+  test("search matches tags case-insensitively", () => {
+    const store = makeStore();
+    const result = listSessionsFromStore({
+      cfg: baseCfg,
+      storePath: "/tmp/sessions.json",
+      store,
+      opts: { search: "INCIDENT" },
+    });
+    expect(result.sessions).toHaveLength(1);
+    expect(result.sessions[0].tag).toBe("incident alpha");
   });
 
   test("filters by label", () => {

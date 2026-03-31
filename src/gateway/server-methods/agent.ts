@@ -255,6 +255,7 @@ export const agentHandlers: GatewayRequestHandlers = {
         modelOverride: entry?.modelOverride,
         providerOverride: entry?.providerOverride,
         label: labelValue,
+        tag: entry?.tag,
         spawnedBy: spawnedByValue,
         channel: entry?.channel ?? request.channel?.trim(),
         groupId: resolvedGroupId ?? entry?.groupId,

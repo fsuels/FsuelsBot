@@ -4,6 +4,7 @@ export type SessionStatus = {
   agentId?: string;
   key: string;
   kind: "direct" | "group" | "global" | "unknown";
+  tag?: string;
   sessionId?: string;
   updatedAt: number | null;
   age: number | null;

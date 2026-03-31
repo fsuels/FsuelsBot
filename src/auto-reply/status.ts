@@ -369,6 +369,7 @@ export function buildStatusMessage(args: StatusArgs): string {
   const updatedAt = entry?.updatedAt;
   const sessionLine = [
     `Session: ${args.sessionKey ?? "unknown"}`,
+    entry?.tag?.trim() ? `tag ${entry.tag.trim()}` : null,
     typeof updatedAt === "number" ? `updated ${formatTimeAgo(now - updatedAt)}` : "no activity",
   ]
     .filter(Boolean)
@@ -531,7 +532,7 @@ export function buildHelpMessage(cfg?: OpenClawConfig): string {
   const commands = cfg ? listChatCommandsForConfig(cfg) : listChatCommands();
   const lines = ["ℹ️ Help", ""];
   const sections = [
-    { title: "Session", keys: ["new", "reset", "plan", "compact", "stop"] },
+    { title: "Session", keys: ["new", "reset", "plan", "tag", "compact", "stop"] },
     {
       title: "Options",
       keys: ["think", "model", "verbose", "elevated", "exec", "config", "debug"],

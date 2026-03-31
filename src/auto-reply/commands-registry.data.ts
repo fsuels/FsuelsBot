@@ -510,6 +510,23 @@ function buildChatCommands(): ChatCommandDefinition[] {
       argsMenu: "auto",
     }),
     defineChatCommand({
+      key: "tag",
+      description: "Tag the current session so it is easier to find later.",
+      textAlias: "/tag",
+      scope: "text",
+      category: "session",
+      acceptsArgs: true,
+      argumentHint: "<name>",
+      args: [
+        {
+          name: "name",
+          description: "Tag text",
+          type: "string",
+          captureRemaining: true,
+        },
+      ],
+    }),
+    defineChatCommand({
       key: "mode",
       description: "Set memory guidance mode.",
       textAlias: "/mode",

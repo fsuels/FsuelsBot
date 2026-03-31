@@ -13,6 +13,7 @@ type SessionRow = {
   kind: "direct" | "group" | "global" | "unknown";
   updatedAt: number | null;
   ageMs: number | null;
+  tag?: string;
   sessionId?: string;
   systemSent?: boolean;
   abortedLastRun?: boolean;
@@ -104,6 +105,7 @@ const formatModelCell = (model: string | null | undefined, rich: boolean) => {
 const formatFlagsCell = (row: SessionRow, rich: boolean) => {
   const flags = [
     row.thinkingLevel ? `think:${row.thinkingLevel}` : null,
+    row.tag ? `tag:${row.tag}` : null,
     row.verboseLevel ? `verbose:${row.verboseLevel}` : null,
     row.reasoningLevel ? `reasoning:${row.reasoningLevel}` : null,
     row.elevatedLevel ? `elev:${row.elevatedLevel}` : null,
@@ -142,6 +144,7 @@ function toRows(store: Record<string, SessionEntry>): SessionRow[] {
         kind: classifyKey(key, entry),
         updatedAt,
         ageMs: updatedAt ? Date.now() - updatedAt : null,
+        tag: entry?.tag,
         sessionId: entry?.sessionId,
         systemSent: entry?.systemSent,
         abortedLastRun: entry?.abortedLastRun,

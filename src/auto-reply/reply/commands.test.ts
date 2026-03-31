@@ -231,6 +231,124 @@ describe("handleCommands hooks", () => {
   });
 });
 
+describe("handleCommands session tags", () => {
+  it("shows help for bare /tag", async () => {
+    const cfg = {
+      commands: { text: true },
+      channels: { whatsapp: { allowFrom: ["*"] } },
+    } as OpenClawConfig;
+    const params = buildParams("/tag", cfg, undefined, {
+      sessionEntry: { sessionId: "tag-help", updatedAt: 1 },
+      sessionStore: { "agent:main:main": { sessionId: "tag-help", updatedAt: 1 } },
+      sessionKey: "agent:main:main",
+    });
+
+    const result = await handleCommands(params);
+    expect(result.shouldContinue).toBe(false);
+    expect(result.reply?.text).toContain("Usage: /tag <name>");
+    expect(result.reply?.text).toContain("/tag --help");
+  });
+
+  it("adds and persists a session tag", async () => {
+    const cfg = {
+      commands: { text: true },
+      channels: { whatsapp: { allowFrom: ["*"] } },
+    } as OpenClawConfig;
+    const sessionEntry = { sessionId: "tag-add", updatedAt: 1 } as SessionEntry;
+    const sessionStore: Record<string, SessionEntry> = {
+      "agent:main:main": sessionEntry,
+    };
+    const storePath = path.join(testWorkspaceDir, "tag-add-store.json");
+    await fs.writeFile(storePath, JSON.stringify(sessionStore), "utf-8");
+
+    const params = buildParams("/tag Billing Bug", cfg, undefined, {
+      sessionEntry,
+      sessionStore,
+      storePath,
+      sessionKey: "agent:main:main",
+    });
+    const result = await handleCommands(params);
+
+    expect(result.shouldContinue).toBe(false);
+    expect(result.reply?.text).toContain('Session tag set to "Billing Bug"');
+    expect(sessionEntry.tag).toBe("Billing Bug");
+
+    const persisted = JSON.parse(await fs.readFile(storePath, "utf-8")) as Record<
+      string,
+      SessionEntry
+    >;
+    expect(persisted["agent:main:main"]?.tag).toBe("Billing Bug");
+  });
+
+  it("replaces and removes a session tag with confirmation", async () => {
+    const cfg = {
+      commands: { text: true },
+      channels: { whatsapp: { allowFrom: ["*"] } },
+    } as OpenClawConfig;
+    const sessionEntry = {
+      sessionId: "tag-replace",
+      updatedAt: 1,
+      tag: "Billing Bug",
+    } as SessionEntry;
+    const sessionStore: Record<string, SessionEntry> = {
+      "agent:main:main": sessionEntry,
+    };
+    const storePath = path.join(testWorkspaceDir, "tag-replace-store.json");
+    await fs.writeFile(storePath, JSON.stringify(sessionStore), "utf-8");
+
+    const replaceParams = buildParams("/tag Sprint 42", cfg, undefined, {
+      sessionEntry,
+      sessionStore,
+      storePath,
+      sessionKey: "agent:main:main",
+    });
+    const replaceResult = await handleCommands(replaceParams);
+    expect(replaceResult.reply?.text).toContain('changed from "Billing Bug" to "Sprint 42"');
+    expect(sessionEntry.tag).toBe("Sprint 42");
+
+    const cancelParams = buildParams("/tag Sprint 42", cfg, undefined, {
+      sessionEntry,
+      sessionStore,
+      storePath,
+      sessionKey: "agent:main:main",
+    });
+    const cancelResult = await handleCommands(cancelParams);
+    expect(cancelResult.reply?.text).toContain("--confirm-remove");
+    expect(sessionEntry.tag).toBe("Sprint 42");
+
+    const removeParams = buildParams("/tag Sprint 42 --confirm-remove", cfg, undefined, {
+      sessionEntry,
+      sessionStore,
+      storePath,
+      sessionKey: "agent:main:main",
+    });
+    const removeResult = await handleCommands(removeParams);
+    expect(removeResult.reply?.text).toContain("Session tag removed");
+    expect(sessionEntry.tag).toBeUndefined();
+  });
+
+  it("sanitizes hidden characters in /tag input", async () => {
+    const cfg = {
+      commands: { text: true },
+      channels: { whatsapp: { allowFrom: ["*"] } },
+    } as OpenClawConfig;
+    const sessionEntry = { sessionId: "tag-sanitize", updatedAt: 1 } as SessionEntry;
+    const sessionStore: Record<string, SessionEntry> = {
+      "agent:main:main": sessionEntry,
+    };
+
+    const params = buildParams("/tag alpha\u200B beta", cfg, undefined, {
+      sessionEntry,
+      sessionStore,
+      sessionKey: "agent:main:main",
+    });
+    const result = await handleCommands(params);
+    expect(result.reply?.text).toContain('Session tag set to "alpha beta"');
+    expect(result.reply?.text).toContain("Hidden characters were removed");
+    expect(sessionEntry.tag).toBe("alpha beta");
+  });
+});
+
 describe("handleCommands plan mode", () => {
   it("enables plan mode and persists the session state", async () => {
     const cfg = {

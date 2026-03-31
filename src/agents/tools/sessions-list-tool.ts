@@ -284,6 +284,7 @@ export function createSessionsListTool(opts?: {
           kind,
           channel: derivedChannel,
           label: typeof entry.label === "string" ? entry.label : undefined,
+          tag: typeof entry.tag === "string" ? entry.tag : undefined,
           displayName: typeof entry.displayName === "string" ? entry.displayName : undefined,
           deliveryContext:
             deliveryChannel || deliveryTo || deliveryAccountId

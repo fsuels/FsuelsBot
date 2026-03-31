@@ -29,6 +29,7 @@ export function resolveCronSession(params: {
     lastTo: entry?.lastTo,
     lastAccountId: entry?.lastAccountId,
     label: entry?.label,
+    tag: entry?.tag,
     displayName: entry?.displayName,
     skillsSnapshot: entry?.skillsSnapshot,
   };

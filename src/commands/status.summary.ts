@@ -41,6 +41,10 @@ const buildFlags = (entry?: SessionEntry): string[] => {
   if (typeof think === "string" && think.length > 0) {
     flags.push(`think:${think}`);
   }
+  const tag = entry?.tag;
+  if (typeof tag === "string" && tag.trim().length > 0) {
+    flags.push(`tag:${tag.trim()}`);
+  }
   const verbose = entry?.verboseLevel;
   if (typeof verbose === "string" && verbose.length > 0) {
     flags.push(`verbose:${verbose}`);
@@ -135,6 +139,7 @@ export async function getStatusSummary(): Promise<StatusSummary> {
           agentId,
           key,
           kind: classifyKey(key, entry),
+          tag: entry?.tag,
           sessionId: entry?.sessionId,
           updatedAt,
           age,

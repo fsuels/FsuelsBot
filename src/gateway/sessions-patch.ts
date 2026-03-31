@@ -31,6 +31,7 @@ import { applyVerboseOverride, parseVerboseOverride } from "../sessions/level-ov
 import { applyModelOverrideToSessionEntry } from "../sessions/model-overrides.js";
 import { normalizeSendPolicy } from "../sessions/send-policy.js";
 import { parseSessionLabel } from "../sessions/session-label.js";
+import { parseSessionTag } from "../sessions/session-tag.js";
 import { applySessionTaskUpdate, resolveSessionTaskId } from "../sessions/task-context.js";
 import {
   ErrorCodes,
@@ -127,6 +128,19 @@ export async function applySessionsPatchToStore(params: {
         }
       }
       next.label = parsed.label;
+    }
+  }
+
+  if ("tag" in patch) {
+    const raw = patch.tag;
+    if (raw === null) {
+      delete next.tag;
+    } else if (raw !== undefined) {
+      const parsed = parseSessionTag(raw);
+      if (!parsed.ok) {
+        return invalid(parsed.error);
+      }
+      next.tag = parsed.tag;
     }
   }
 

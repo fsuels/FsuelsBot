@@ -567,6 +567,7 @@ export function listSessionsFromStore(params: {
   const includeLastMessage = opts.includeLastMessage === true;
   const spawnedBy = typeof opts.spawnedBy === "string" ? opts.spawnedBy : "";
   const label = typeof opts.label === "string" ? opts.label.trim() : "";
+  const tag = typeof opts.tag === "string" ? opts.tag.trim() : "";
   const agentId = typeof opts.agentId === "string" ? normalizeAgentId(opts.agentId) : "";
   const search = typeof opts.search === "string" ? opts.search.trim().toLowerCase() : "";
   const activeMinutes =
@@ -612,6 +613,12 @@ export function listSessionsFromStore(params: {
       }
       return entry?.label === label;
     })
+    .filter(([, entry]) => {
+      if (!tag) {
+        return true;
+      }
+      return entry?.tag === tag;
+    })
     .map(([key, entry]) => {
       const updatedAt = entry?.updatedAt ?? null;
       const input = entry?.inputTokens ?? 0;
@@ -650,6 +657,7 @@ export function listSessionsFromStore(params: {
         entry,
         kind: classifySessionKey(key, entry),
         label: entry?.label,
+        tag: entry?.tag,
         displayName,
         channel,
         subject,
@@ -685,7 +693,7 @@ export function listSessionsFromStore(params: {
 
   if (search) {
     sessions = sessions.filter((s) => {
-      const fields = [s.displayName, s.label, s.subject, s.sessionId, s.key];
+      const fields = [s.displayName, s.label, s.tag, s.subject, s.sessionId, s.key];
       return fields.some((f) => typeof f === "string" && f.toLowerCase().includes(search));
     });
   }

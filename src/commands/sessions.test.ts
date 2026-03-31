@@ -90,6 +90,7 @@ describe("sessionsCommand", () => {
         sessionId: "xyz",
         updatedAt: Date.now() - 5 * 60_000,
         thinkingLevel: "high",
+        tag: "support",
       },
     });
 
@@ -101,6 +102,7 @@ describe("sessionsCommand", () => {
     const row = logs.find((line) => line.includes("discord:group:demo")) ?? "";
     expect(row).toContain("-".padEnd(20));
     expect(row).toContain("think:high");
+    expect(row).toContain("tag:support");
     expect(row).toContain("5m ago");
   });
 });
