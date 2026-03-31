@@ -51,6 +51,14 @@ export function createExecApprovalHandlers(
         );
         return;
       }
+      if (explicitId && manager.hasRecent(explicitId)) {
+        respond(
+          false,
+          undefined,
+          errorShape(ErrorCodes.INVALID_REQUEST, "approval id already used recently"),
+        );
+        return;
+      }
       const request = {
         command: p.command,
         cwd: p.cwd ?? null,
@@ -116,18 +124,40 @@ export function createExecApprovalHandlers(
         return;
       }
       const resolvedBy = client?.connect?.client?.displayName ?? client?.connect?.client?.id;
-      const ok = manager.resolve(p.id, decision, resolvedBy ?? null);
-      if (!ok) {
+      const resolution = manager.resolve(p.id, decision, resolvedBy ?? null);
+      if (resolution.status === "unknown") {
         respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, "unknown approval id"));
+        return;
+      }
+      if (resolution.status === "ignored") {
+        respond(
+          true,
+          {
+            ok: true,
+            ignored: true,
+            terminalState: resolution.record.terminalState,
+          },
+          undefined,
+        );
         return;
       }
       context.broadcast(
         "exec.approval.resolved",
-        { id: p.id, decision, resolvedBy, ts: Date.now() },
+        {
+          id: p.id,
+          decision,
+          resolvedBy,
+          ts: resolution.record.resolvedAtMs ?? Date.now(),
+        },
         { dropIfSlow: true },
       );
       void opts?.forwarder
-        ?.handleResolved({ id: p.id, decision, resolvedBy, ts: Date.now() })
+        ?.handleResolved({
+          id: p.id,
+          decision,
+          resolvedBy,
+          ts: resolution.record.resolvedAtMs ?? Date.now(),
+        })
         .catch((err) => {
           context.logGateway?.error?.(`exec approvals: forward resolve failed: ${String(err)}`);
         });

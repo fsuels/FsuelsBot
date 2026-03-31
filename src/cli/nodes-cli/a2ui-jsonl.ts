@@ -1,3 +1,5 @@
+import { safeNdjsonStringify } from "../../infra/ndjson.js";
+
 const A2UI_ACTION_KEYS = [
   "beginRendering",
   "surfaceUpdate",
@@ -32,7 +34,7 @@ export function buildA2UITextJsonl(text: string) {
     },
     { beginRendering: { surfaceId, root: rootId } },
   ];
-  return payloads.map((payload) => JSON.stringify(payload)).join("\n");
+  return payloads.map((payload) => safeNdjsonStringify(payload)).join("\n");
 }
 
 export function validateA2UIJsonl(jsonl: string) {

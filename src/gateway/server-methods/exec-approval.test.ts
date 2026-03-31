@@ -273,4 +273,177 @@ describe("exec approval handlers", () => {
 
     await requestPromise;
   });
+
+  it("ignores late duplicate resolves after an approval already completed", async () => {
+    const manager = new ExecApprovalManager();
+    const handlers = createExecApprovalHandlers(manager);
+    const broadcasts: Array<{ event: string; payload: unknown }> = [];
+    const context = {
+      broadcast: (event: string, payload: unknown) => {
+        broadcasts.push({ event, payload });
+      },
+    };
+
+    const requestRespond = vi.fn();
+    const requestPromise = handlers["exec.approval.request"]({
+      params: {
+        id: "approval-late-1",
+        command: "echo ok",
+        timeoutMs: 2_000,
+      },
+      respond: requestRespond,
+      context: context as unknown as Parameters<
+        (typeof handlers)["exec.approval.request"]
+      >[0]["context"],
+      client: null,
+      req: { id: "req-1", type: "req", method: "exec.approval.request" },
+      isWebchatConnect: noop,
+    });
+
+    const resolveRespond = vi.fn();
+    await handlers["exec.approval.resolve"]({
+      params: { id: "approval-late-1", decision: "allow-once" },
+      respond: resolveRespond,
+      context: context as unknown as Parameters<
+        (typeof handlers)["exec.approval.resolve"]
+      >[0]["context"],
+      client: { connect: { client: { id: "cli", displayName: "CLI" } } },
+      req: { id: "req-2", type: "req", method: "exec.approval.resolve" },
+      isWebchatConnect: noop,
+    });
+
+    await requestPromise;
+
+    const lateResolveRespond = vi.fn();
+    await handlers["exec.approval.resolve"]({
+      params: { id: "approval-late-1", decision: "allow-once" },
+      respond: lateResolveRespond,
+      context: context as unknown as Parameters<
+        (typeof handlers)["exec.approval.resolve"]
+      >[0]["context"],
+      client: { connect: { client: { id: "cli", displayName: "CLI" } } },
+      req: { id: "req-3", type: "req", method: "exec.approval.resolve" },
+      isWebchatConnect: noop,
+    });
+
+    expect(resolveRespond).toHaveBeenCalledWith(true, { ok: true }, undefined);
+    expect(lateResolveRespond).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({
+        ok: true,
+        ignored: true,
+        terminalState: "resolved",
+      }),
+      undefined,
+    );
+    expect(broadcasts.filter((entry) => entry.event === "exec.approval.resolved")).toHaveLength(1);
+  });
+
+  it("ignores resolves that arrive after the approval timed out", async () => {
+    const manager = new ExecApprovalManager();
+    const handlers = createExecApprovalHandlers(manager);
+    const context = { broadcast: noop };
+    const requestRespond = vi.fn();
+
+    await handlers["exec.approval.request"]({
+      params: {
+        id: "approval-expired-1",
+        command: "echo ok",
+        timeoutMs: 1,
+      },
+      respond: requestRespond,
+      context: context as unknown as Parameters<
+        (typeof handlers)["exec.approval.request"]
+      >[0]["context"],
+      client: null,
+      req: { id: "req-1", type: "req", method: "exec.approval.request" },
+      isWebchatConnect: noop,
+    });
+
+    const resolveRespond = vi.fn();
+    await handlers["exec.approval.resolve"]({
+      params: { id: "approval-expired-1", decision: "deny" },
+      respond: resolveRespond,
+      context: context as unknown as Parameters<
+        (typeof handlers)["exec.approval.resolve"]
+      >[0]["context"],
+      client: { connect: { client: { id: "cli", displayName: "CLI" } } },
+      req: { id: "req-2", type: "req", method: "exec.approval.resolve" },
+      isWebchatConnect: noop,
+    });
+
+    expect(requestRespond).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({
+        id: "approval-expired-1",
+        decision: null,
+      }),
+      undefined,
+    );
+    expect(resolveRespond).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({
+        ok: true,
+        ignored: true,
+        terminalState: "expired",
+      }),
+      undefined,
+    );
+  });
+
+  it("rejects reusing a recently completed explicit approval id", async () => {
+    const manager = new ExecApprovalManager();
+    const handlers = createExecApprovalHandlers(manager);
+    const context = { broadcast: noop };
+
+    const requestPromise = handlers["exec.approval.request"]({
+      params: {
+        id: "approval-reuse-1",
+        command: "echo ok",
+        timeoutMs: 2_000,
+      },
+      respond: vi.fn(),
+      context: context as unknown as Parameters<
+        (typeof handlers)["exec.approval.request"]
+      >[0]["context"],
+      client: null,
+      req: { id: "req-1", type: "req", method: "exec.approval.request" },
+      isWebchatConnect: noop,
+    });
+
+    await handlers["exec.approval.resolve"]({
+      params: { id: "approval-reuse-1", decision: "allow-once" },
+      respond: vi.fn(),
+      context: context as unknown as Parameters<
+        (typeof handlers)["exec.approval.resolve"]
+      >[0]["context"],
+      client: { connect: { client: { id: "cli", displayName: "CLI" } } },
+      req: { id: "req-2", type: "req", method: "exec.approval.resolve" },
+      isWebchatConnect: noop,
+    });
+
+    await requestPromise;
+
+    const secondRespond = vi.fn();
+    await handlers["exec.approval.request"]({
+      params: {
+        id: "approval-reuse-1",
+        command: "echo again",
+        timeoutMs: 2_000,
+      },
+      respond: secondRespond,
+      context: context as unknown as Parameters<
+        (typeof handlers)["exec.approval.request"]
+      >[0]["context"],
+      client: null,
+      req: { id: "req-3", type: "req", method: "exec.approval.request" },
+      isWebchatConnect: noop,
+    });
+
+    expect(secondRespond).toHaveBeenCalledWith(
+      false,
+      undefined,
+      expect.objectContaining({ message: "approval id already used recently" }),
+    );
+  });
 });

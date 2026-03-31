@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { resolveStateDir } from "../config/paths.js";
 import { isTruthyEnvValue } from "../infra/env.js";
+import { safeNdjsonStringify } from "../infra/ndjson.js";
 
 const RAW_STREAM_ENABLED = isTruthyEnvValue(process.env.OPENCLAW_RAW_STREAM);
 const RAW_STREAM_PATH =
@@ -23,7 +24,7 @@ export function appendRawStream(payload: Record<string, unknown>) {
     }
   }
   try {
-    void fs.promises.appendFile(RAW_STREAM_PATH, `${JSON.stringify(payload)}\n`);
+    void fs.promises.appendFile(RAW_STREAM_PATH, `${safeNdjsonStringify(payload)}\n`);
   } catch {
     // ignore raw stream write failures
   }

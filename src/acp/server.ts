@@ -8,6 +8,7 @@ import { resolveGatewayAuth } from "../gateway/auth.js";
 import { buildGatewayConnectionDetails } from "../gateway/call.js";
 import { GatewayClient } from "../gateway/client.js";
 import { isMainModule } from "../infra/is-main.js";
+import { installStdoutProtocolGuard } from "../infra/stdout-protocol-guard.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
 import { AcpGatewayAgent } from "./translator.js";
 
@@ -53,7 +54,8 @@ export function serveAcpGateway(opts: AcpServerOptions = {}): void {
     },
   });
 
-  const input = Writable.toWeb(process.stdout);
+  const stdoutGuard = installStdoutProtocolGuard();
+  const input = Writable.toWeb(stdoutGuard.protocolWritable);
   const output = Readable.toWeb(process.stdin) as unknown as ReadableStream<Uint8Array>;
   const stream = ndJsonStream(input, output);
 
