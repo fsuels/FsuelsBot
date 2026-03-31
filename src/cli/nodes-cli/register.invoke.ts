@@ -5,11 +5,15 @@ import { resolveAgentConfig, resolveDefaultAgentId } from "../../agents/agent-sc
 import { loadConfig } from "../../config/config.js";
 import { randomIdempotencyKey } from "../../gateway/call.js";
 import {
+  analyzeArgvCommand,
   type ExecApprovalsFile,
   type ExecAsk,
   type ExecSecurity,
+  evaluateExecAllowlist,
+  evaluateShellAllowlist,
   maxAsk,
   minSecurity,
+  requiresExecApproval,
   resolveExecApprovalsFromFile,
 } from "../../infra/exec-approvals.js";
 import { buildNodeShellCommand } from "../../infra/node-shell.js";
@@ -217,10 +221,11 @@ export function registerNodesInvokeCommands(nodes: Command) {
 
           let argv = Array.isArray(command) ? command : [];
           let rawCommand: string | undefined;
+          let nodePlatform: string | null = null;
           if (raw) {
             rawCommand = raw;
-            const platform = await resolveNodePlatform(opts, nodeId);
-            argv = buildNodeShellCommand(rawCommand, platform ?? undefined);
+            nodePlatform = await resolveNodePlatform(opts, nodeId);
+            argv = buildNodeShellCommand(rawCommand, nodePlatform ?? undefined);
           }
 
           const nodeEnv = env ? { ...env } : undefined;
@@ -268,7 +273,47 @@ export function registerNodesInvokeCommands(nodes: Command) {
             throw new Error("exec denied: host=node security=deny");
           }
 
-          const requiresAsk = hostAsk === "always" || hostAsk === "on-miss";
+          let analysisOk = false;
+          let allowlistSatisfied = false;
+          if (hostAsk === "on-miss" && hostSecurity === "allowlist") {
+            if (nodePlatform === null) {
+              nodePlatform = await resolveNodePlatform(opts, nodeId);
+            }
+            if (rawCommand) {
+              const allowlistEval = evaluateShellAllowlist({
+                command: rawCommand,
+                allowlist: approvals.allowlist,
+                safeBins: new Set(),
+                cwd: opts.cwd,
+                env: nodeEnv,
+                platform: nodePlatform,
+              });
+              analysisOk = allowlistEval.analysisOk;
+              allowlistSatisfied = allowlistEval.allowlistSatisfied;
+            } else {
+              const analysis = analyzeArgvCommand({
+                argv,
+                cwd: opts.cwd,
+                env: nodeEnv,
+                platform: nodePlatform,
+              });
+              const allowlistEval = evaluateExecAllowlist({
+                analysis,
+                allowlist: approvals.allowlist,
+                safeBins: new Set(),
+                cwd: opts.cwd,
+              });
+              analysisOk = analysis.ok;
+              allowlistSatisfied = allowlistEval.allowlistSatisfied;
+            }
+          }
+
+          const requiresAsk = requiresExecApproval({
+            ask: hostAsk,
+            security: hostSecurity,
+            analysisOk,
+            allowlistSatisfied,
+          });
           if (requiresAsk) {
             const decisionResult = (await callGatewayCli("exec.approval.request", opts, {
               command: rawCommand ?? argv.join(" "),

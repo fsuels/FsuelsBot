@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { describe, expect, it, vi } from "vitest";
 
-const callGateway = vi.fn(async (opts: { method?: string }) => {
+const defaultCallGatewayImpl = async (opts: { method?: string }) => {
   if (opts.method === "node.list") {
     return {
       nodes: [
@@ -47,7 +47,9 @@ const callGateway = vi.fn(async (opts: { method?: string }) => {
     return { decision: "allow-once" };
   }
   return { ok: true };
-});
+};
+
+const callGateway = vi.fn(defaultCallGatewayImpl);
 
 const randomIdempotencyKey = vi.fn(() => "rk_test");
 
@@ -170,6 +172,60 @@ describe("nodes-cli coverage", () => {
       approved: true,
       approvalDecision: "allow-once",
     });
+  });
+
+  it("skips approval requests for allowlisted node commands in on-miss mode", async () => {
+    runtimeLogs.length = 0;
+    runtimeErrors.length = 0;
+    callGateway.mockClear();
+    randomIdempotencyKey.mockClear();
+    callGateway.mockImplementation(async (opts: { method?: string }) => {
+      if (opts.method === "exec.approvals.node.get") {
+        return {
+          path: "/tmp/exec-approvals.json",
+          exists: true,
+          hash: "hash",
+          file: {
+            version: 1,
+            defaults: {
+              security: "allowlist",
+              ask: "on-miss",
+              askFallback: "deny",
+            },
+            agents: {
+              main: {
+                allowlist: [{ pattern: process.execPath }],
+              },
+            },
+          },
+        };
+      }
+      return await defaultCallGatewayImpl(opts);
+    });
+
+    const { registerNodesCli } = await import("./nodes-cli.js");
+    const program = new Command();
+    program.exitOverride();
+    registerNodesCli(program);
+
+    await program.parseAsync(
+      ["nodes", "run", "--agent", "main", "--node", "mac-1", "--", process.execPath],
+      { from: "user" },
+    );
+
+    const approvalRequest = callGateway.mock.calls.find(
+      (call) => call[0]?.method === "exec.approval.request",
+    );
+    const invoke = callGateway.mock.calls.find((call) => call[0]?.method === "node.invoke")?.[0];
+
+    expect(approvalRequest).toBeUndefined();
+    expect(invoke?.params?.params).toMatchObject({
+      command: [process.execPath],
+      agentId: "main",
+      approved: false,
+    });
+
+    callGateway.mockImplementation(defaultCallGatewayImpl);
   });
 
   it("invokes system.notify with provided fields", async () => {
