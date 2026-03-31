@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { clearWorkspaceSkillCaches, loadWorkspaceSkillEntries } from "./skills.js";
+import { bumpSkillsSnapshotVersion } from "./skills/refresh.js";
 
 const tempDirs: string[] = [];
 
@@ -182,5 +183,52 @@ description: New description
       bundledSkillsDir: path.join(workspaceDir, ".bundled"),
     });
     expect(third[0]?.skill.description).toBe("New description");
+  });
+
+  it("invalidates cached entries when the skills snapshot version is bumped", async () => {
+    const workspaceDir = await makeWorkspace();
+    const skillDir = path.join(workspaceDir, "skills", "demo-skill");
+    const skillPath = path.join(skillDir, "SKILL.md");
+
+    await writeSkillFile({
+      dir: skillDir,
+      content: `---
+name: demo-skill
+description: Old description
+---
+
+# Demo
+`,
+    });
+
+    const first = loadWorkspaceSkillEntries(workspaceDir, {
+      managedSkillsDir: path.join(workspaceDir, ".managed"),
+      bundledSkillsDir: path.join(workspaceDir, ".bundled"),
+    });
+    expect(first[0]?.skill.description).toBe("Old description");
+
+    await fs.writeFile(
+      skillPath,
+      `---
+name: demo-skill
+description: New description
+---
+
+# Demo
+`,
+      "utf-8",
+    );
+
+    bumpSkillsSnapshotVersion({
+      workspaceDir,
+      reason: "manual",
+      changedPath: skillPath,
+    });
+
+    const second = loadWorkspaceSkillEntries(workspaceDir, {
+      managedSkillsDir: path.join(workspaceDir, ".managed"),
+      bundledSkillsDir: path.join(workspaceDir, ".bundled"),
+    });
+    expect(second[0]?.skill.description).toBe("New description");
   });
 });

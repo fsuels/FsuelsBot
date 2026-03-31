@@ -25,6 +25,17 @@ const workspaceVersions = new Map<string, number>();
 const watchers = new Map<string, SkillsWatchState>();
 let globalVersion = 0;
 
+function getCacheInvalidators(): Set<(workspaceDir?: string) => void> {
+  const cacheInvalidatorsState = Symbol.for("openclaw.skills.cacheInvalidators");
+  const globalState = globalThis as typeof globalThis & {
+    [cacheInvalidatorsState]?: Set<(workspaceDir?: string) => void>;
+  };
+  if (!globalState[cacheInvalidatorsState]) {
+    globalState[cacheInvalidatorsState] = new Set();
+  }
+  return globalState[cacheInvalidatorsState];
+}
+
 export const DEFAULT_SKILLS_WATCH_IGNORED: RegExp[] = [
   /(^|[\\/])\.git([\\/]|$)/,
   /(^|[\\/])node_modules([\\/]|$)/,
@@ -79,6 +90,25 @@ export function registerSkillsChangeListener(listener: (event: SkillsChangeEvent
   };
 }
 
+export function registerSkillsCacheInvalidator(invalidator: (workspaceDir?: string) => void) {
+  const cacheInvalidators = getCacheInvalidators();
+  cacheInvalidators.add(invalidator);
+  return () => {
+    cacheInvalidators.delete(invalidator);
+  };
+}
+
+function invalidateSkillsCaches(workspaceDir?: string) {
+  const cacheInvalidators = getCacheInvalidators();
+  for (const invalidator of cacheInvalidators) {
+    try {
+      invalidator(workspaceDir);
+    } catch (err) {
+      log.warn(`skills cache invalidator failed: ${String(err)}`);
+    }
+  }
+}
+
 export function bumpSkillsSnapshotVersion(params?: {
   workspaceDir?: string;
   reason?: SkillsChangeEvent["reason"];
@@ -86,6 +116,7 @@ export function bumpSkillsSnapshotVersion(params?: {
 }): number {
   const reason = params?.reason ?? "manual";
   const changedPath = params?.changedPath;
+  invalidateSkillsCaches(params?.workspaceDir);
   if (params?.workspaceDir) {
     const current = workspaceVersions.get(params.workspaceDir) ?? 0;
     const next = bumpVersion(current);

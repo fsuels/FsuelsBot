@@ -26,6 +26,7 @@ import {
   stripFrontmatter,
 } from "./frontmatter.js";
 import { resolvePluginSkillDirs } from "./plugin-skills.js";
+import { registerSkillsCacheInvalidator } from "./refresh.js";
 import { buildBudgetedSkillsPrompt, buildDiscoverableSkills } from "./registry.js";
 import { serializeByKey } from "./serialize.js";
 
@@ -556,12 +557,39 @@ function buildWorkspaceSkillEntriesCacheKey(params: {
   });
 }
 
-export function clearWorkspaceSkillCaches(): void {
-  workspaceSkillEntriesCache.clear();
-  pathScopedSkillDirsCache.clear();
-  ignoreRuleCache.clear();
+function deleteWorkspaceScopedCacheEntries<T>(
+  cache: Map<string, T>,
+  workspaceDir: string,
+): void {
+  const marker = `"workspaceDir":${JSON.stringify(workspaceDir)}`;
+  for (const key of cache.keys()) {
+    if (key.includes(marker)) {
+      cache.delete(key);
+    }
+  }
+}
+
+export function clearWorkspaceSkillCaches(workspaceDir?: string): void {
+  const resolvedWorkspaceDir = workspaceDir?.trim() ? resolveUserPath(workspaceDir) : undefined;
+  if (!resolvedWorkspaceDir) {
+    workspaceSkillEntriesCache.clear();
+    pathScopedSkillDirsCache.clear();
+    ignoreRuleCache.clear();
+    clearPluginManifestRegistryCache();
+    return;
+  }
+
+  deleteWorkspaceScopedCacheEntries(workspaceSkillEntriesCache, resolvedWorkspaceDir);
+  deleteWorkspaceScopedCacheEntries(pathScopedSkillDirsCache, resolvedWorkspaceDir);
+  for (const key of ignoreRuleCache.keys()) {
+    if (key.startsWith(`${resolvedWorkspaceDir}::`)) {
+      ignoreRuleCache.delete(key);
+    }
+  }
   clearPluginManifestRegistryCache();
 }
+
+registerSkillsCacheInvalidator(clearWorkspaceSkillCaches);
 
 function debugSkillCommandOnce(
   messageKey: string,
