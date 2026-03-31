@@ -378,6 +378,8 @@ vi.mock("../config/config.js", async () => {
     migrateLegacyConfig: (raw: unknown) => ({
       config: testState.migrationConfig ?? (raw as Record<string, unknown>),
       changes: testState.migrationChanges,
+      events: [],
+      error: undefined,
     }),
     loadConfig: () => {
       const configPath = resolveConfigPath();

@@ -5,6 +5,7 @@ import {
   type LegacyConfigMigration,
   mergeMissing,
 } from "./legacy.shared.js";
+import { moveConfigValue, recordConfigMigrationOperation } from "./migration-helpers.js";
 
 export const LEGACY_CONFIG_MIGRATIONS_PART_1: LegacyConfigMigration[] = [
   {
@@ -132,27 +133,21 @@ export const LEGACY_CONFIG_MIGRATIONS_PART_1: LegacyConfigMigration[] = [
   {
     id: "messages.queue.byProvider->byChannel",
     describe: "Move messages.queue.byProvider to messages.queue.byChannel",
-    apply: (raw, changes) => {
-      const messages = getRecord(raw.messages);
-      if (!messages) {
+    apply: (raw, changes, recorder) => {
+      const result = moveConfigValue({
+        root: raw,
+        fromPath: ["messages", "queue", "byProvider"],
+        toPath: ["messages", "queue", "byChannel"],
+      });
+      recordConfigMigrationOperation(recorder, result);
+      if (result.status !== "applied") {
         return;
       }
-      const queue = getRecord(messages.queue);
-      if (!queue) {
-        return;
-      }
-      if (queue.byProvider === undefined) {
-        return;
-      }
-      if (queue.byChannel === undefined) {
-        queue.byChannel = queue.byProvider;
-        changes.push("Moved messages.queue.byProvider → messages.queue.byChannel.");
-      } else {
+      if (result.reason === "destination already set; removed legacy source") {
         changes.push("Removed messages.queue.byProvider (messages.queue.byChannel already set).");
+        return;
       }
-      delete queue.byProvider;
-      messages.queue = queue;
-      raw.messages = messages;
+      changes.push("Moved messages.queue.byProvider → messages.queue.byChannel.");
     },
   },
   {

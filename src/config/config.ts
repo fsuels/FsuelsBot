@@ -7,6 +7,7 @@ export {
   writeConfigFile,
 } from "./io.js";
 export { migrateLegacyConfig } from "./legacy-migrate.js";
+export type { ConfigMigrationEvent, ConfigMigrationStatus } from "./migration-helpers.js";
 export * from "./paths.js";
 export * from "./runtime-overrides.js";
 export * from "./types.js";

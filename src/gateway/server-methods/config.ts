@@ -281,6 +281,19 @@ export const configHandlers: GatewayRequestHandlers = {
       return;
     }
     const migrated = applyLegacyMigrations(restoredMerge);
+    if (migrated.error) {
+      respond(
+        false,
+        undefined,
+        errorShape(ErrorCodes.INVALID_REQUEST, "config migration failed", {
+          details: {
+            reason: migrated.error,
+            migrations: migrated.events,
+          },
+        }),
+      );
+      return;
+    }
     const resolved = migrated.next ?? restoredMerge;
     const validated = validateConfigObjectWithPlugins(resolved);
     if (!validated.ok) {

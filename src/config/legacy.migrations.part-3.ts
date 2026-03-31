@@ -8,6 +8,8 @@ import {
   mergeMissing,
   resolveDefaultAgentIdFromRaw,
 } from "./legacy.shared.js";
+import { getConfigValueAtPath } from "./config-paths.js";
+import { moveConfigValue, recordConfigMigrationOperation, remapConfigValue } from "./migration-helpers.js";
 
 // NOTE: tools.alsoAllow was introduced after legacy migrations; no legacy migration needed.
 
@@ -17,64 +19,70 @@ export const LEGACY_CONFIG_MIGRATIONS_PART_3: LegacyConfigMigration[] = [
   {
     id: "auth.anthropic-claude-cli-mode-oauth",
     describe: "Switch anthropic:claude-cli auth profile mode to oauth",
-    apply: (raw, changes) => {
-      const auth = getRecord(raw.auth);
-      const profiles = getRecord(auth?.profiles);
-      if (!profiles) {
-        return;
+    apply: (raw, changes, recorder) => {
+      const result = remapConfigValue({
+        root: raw,
+        path: ["auth", "profiles", "anthropic:claude-cli", "mode"],
+        remap: {
+          token: "oauth",
+        },
+      });
+      recordConfigMigrationOperation(recorder, result);
+      if (result.status === "applied") {
+        changes.push('Updated auth.profiles["anthropic:claude-cli"].mode → "oauth".');
       }
-      const claudeCli = getRecord(profiles["anthropic:claude-cli"]);
-      if (!claudeCli) {
-        return;
-      }
-      if (claudeCli.mode !== "token") {
-        return;
-      }
-      claudeCli.mode = "oauth";
-      changes.push('Updated auth.profiles["anthropic:claude-cli"].mode → "oauth".');
     },
   },
   // tools.alsoAllow migration removed (field not shipped in prod; enforce via schema instead).
   {
     id: "tools.bash->tools.exec",
     describe: "Move tools.bash to tools.exec",
-    apply: (raw, changes) => {
-      const tools = ensureRecord(raw, "tools");
-      const bash = getRecord(tools.bash);
-      if (!bash) {
+    apply: (raw, changes, recorder) => {
+      const result = moveConfigValue({
+        root: raw,
+        fromPath: ["tools", "bash"],
+        toPath: ["tools", "exec"],
+      });
+      recordConfigMigrationOperation(recorder, result);
+      if (result.status !== "applied") {
         return;
       }
-      if (tools.exec === undefined) {
-        tools.exec = bash;
-        changes.push("Moved tools.bash → tools.exec.");
-      } else {
+      if (result.reason === "destination already set; removed legacy source") {
         changes.push("Removed tools.bash (tools.exec already set).");
+        return;
       }
-      delete tools.bash;
+      changes.push("Moved tools.bash → tools.exec.");
     },
   },
   {
     id: "messages.tts.enabled->auto",
     describe: "Move messages.tts.enabled to messages.tts.auto",
-    apply: (raw, changes) => {
-      const messages = getRecord(raw.messages);
-      const tts = getRecord(messages?.tts);
-      if (!tts) {
+    apply: (raw, changes, recorder) => {
+      const result = moveConfigValue({
+        root: raw,
+        fromPath: ["messages", "tts", "enabled"],
+        toPath: ["messages", "tts", "auto"],
+        transform: (value) => {
+          if (typeof value !== "boolean") {
+            return { ok: false, reason: "source value is not a boolean" };
+          }
+          return {
+            ok: true,
+            value: value ? "always" : "off",
+            reason: `mapped boolean to ${value ? '"always"' : '"off"'}`,
+          };
+        },
+      });
+      recordConfigMigrationOperation(recorder, result);
+      if (result.status !== "applied") {
         return;
       }
-      if (tts.auto !== undefined) {
-        if ("enabled" in tts) {
-          delete tts.enabled;
-          changes.push("Removed messages.tts.enabled (messages.tts.auto already set).");
-        }
+      if (result.reason === "destination already set; removed legacy source") {
+        changes.push("Removed messages.tts.enabled (messages.tts.auto already set).");
         return;
       }
-      if (typeof tts.enabled !== "boolean") {
-        return;
-      }
-      tts.auto = tts.enabled ? "always" : "off";
-      delete tts.enabled;
-      changes.push(`Moved messages.tts.enabled → messages.tts.auto (${String(tts.auto)}).`);
+      const auto = getConfigValueAtPath(raw, ["messages", "tts", "auto"]);
+      changes.push(`Moved messages.tts.enabled → messages.tts.auto (${String(auto)}).`);
     },
   },
   {

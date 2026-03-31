@@ -1,3 +1,5 @@
+import type { ConfigMigrationRecorder } from "./migration-helpers.js";
+
 export type LegacyConfigRule = {
   path: string[];
   message: string;
@@ -7,7 +9,11 @@ export type LegacyConfigRule = {
 export type LegacyConfigMigration = {
   id: string;
   describe: string;
-  apply: (raw: Record<string, unknown>, changes: string[]) => void;
+  apply: (
+    raw: Record<string, unknown>,
+    changes: string[],
+    recorder?: ConfigMigrationRecorder,
+  ) => void;
 };
 
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
