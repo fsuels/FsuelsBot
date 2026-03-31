@@ -1,5 +1,12 @@
 import type { EmbeddingProvider, EmbeddingProviderOptions } from "./embeddings.js";
 import { requireApiKey, resolveApiKeyForProvider } from "../agents/model-auth.js";
+import { createSubsystemLogger } from "../logging/subsystem.js";
+import {
+  expectEmbeddingArray,
+  expectEmbeddingVector,
+  expectEmbeddingObject,
+  throwMalformedEmbeddingPayload,
+} from "./embedding-response-guards.js";
 
 export type OpenAiEmbeddingClient = {
   baseUrl: string;
@@ -9,6 +16,7 @@ export type OpenAiEmbeddingClient = {
 
 export const DEFAULT_OPENAI_EMBEDDING_MODEL = "text-embedding-3-small";
 const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1";
+const log = createSubsystemLogger("memory/embeddings");
 
 export function normalizeOpenAiModel(model: string): string {
   const trimmed = model.trim();
@@ -40,11 +48,43 @@ export async function createOpenAiEmbeddingProvider(
       const text = await res.text();
       throw new Error(`openai embeddings failed: ${res.status} ${text}`);
     }
-    const payload = (await res.json()) as {
-      data?: Array<{ embedding?: number[] }>;
-    };
-    const data = payload.data ?? [];
-    return data.map((entry) => entry.embedding ?? []);
+    const payload = await res.json();
+    const root = expectEmbeddingObject(payload, {
+      logger: log,
+      adapter: "openai",
+      operation: input.length === 1 ? "embedQuery" : "embedBatch",
+      reason: "response root was not an object",
+      payload,
+      client,
+    });
+    const data = expectEmbeddingArray(root.data, {
+      logger: log,
+      adapter: "openai",
+      operation: input.length === 1 ? "embedQuery" : "embedBatch",
+      reason: 'missing or invalid "data" array',
+      payload,
+      client,
+    });
+    if (data.length < input.length) {
+      throwMalformedEmbeddingPayload({
+        logger: log,
+        adapter: "openai",
+        operation: input.length === 1 ? "embedQuery" : "embedBatch",
+        reason: `expected ${String(input.length)} embeddings but received ${String(data.length)}`,
+        payload,
+        client,
+      });
+    }
+    return input.map((_, index) =>
+      expectEmbeddingVector(data[index]?.embedding, {
+        logger: log,
+        adapter: "openai",
+        operation: input.length === 1 ? "embedQuery" : "embedBatch",
+        reason: `missing or invalid data[${String(index)}].embedding`,
+        payload,
+        client,
+      }),
+    );
   };
 
   return {

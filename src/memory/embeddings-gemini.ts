@@ -2,6 +2,12 @@ import type { EmbeddingProvider, EmbeddingProviderOptions } from "./embeddings.j
 import { requireApiKey, resolveApiKeyForProvider } from "../agents/model-auth.js";
 import { isTruthyEnvValue } from "../infra/env.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
+import {
+  expectEmbeddingArray,
+  expectEmbeddingObject,
+  expectEmbeddingVector,
+  throwMalformedEmbeddingPayload,
+} from "./embedding-response-guards.js";
 
 export type GeminiEmbeddingClient = {
   baseUrl: string;
@@ -86,8 +92,31 @@ export async function createGeminiEmbeddingProvider(
       const payload = await res.text();
       throw new Error(`gemini embeddings failed: ${res.status} ${payload}`);
     }
-    const payload = (await res.json()) as { embedding?: { values?: number[] } };
-    return payload.embedding?.values ?? [];
+    const payload = await res.json();
+    const root = expectEmbeddingObject(payload, {
+      logger: log,
+      adapter: "gemini",
+      operation: "embedQuery",
+      reason: "response root was not an object",
+      payload,
+      client,
+    });
+    const embedding = expectEmbeddingObject(root.embedding, {
+      logger: log,
+      adapter: "gemini",
+      operation: "embedQuery",
+      reason: 'missing or invalid "embedding" object',
+      payload,
+      client,
+    });
+    return expectEmbeddingVector(embedding.values, {
+      logger: log,
+      adapter: "gemini",
+      operation: "embedQuery",
+      reason: 'missing or invalid "embedding.values" array',
+      payload,
+      client,
+    });
   };
 
   const embedBatch = async (texts: string[]): Promise<number[][]> => {
@@ -108,9 +137,43 @@ export async function createGeminiEmbeddingProvider(
       const payload = await res.text();
       throw new Error(`gemini embeddings failed: ${res.status} ${payload}`);
     }
-    const payload = (await res.json()) as { embeddings?: Array<{ values?: number[] }> };
-    const embeddings = Array.isArray(payload.embeddings) ? payload.embeddings : [];
-    return texts.map((_, index) => embeddings[index]?.values ?? []);
+    const payload = await res.json();
+    const root = expectEmbeddingObject(payload, {
+      logger: log,
+      adapter: "gemini",
+      operation: "embedBatch",
+      reason: "response root was not an object",
+      payload,
+      client,
+    });
+    const embeddings = expectEmbeddingArray(root.embeddings, {
+      logger: log,
+      adapter: "gemini",
+      operation: "embedBatch",
+      reason: 'missing or invalid "embeddings" array',
+      payload,
+      client,
+    });
+    if (embeddings.length < texts.length) {
+      throwMalformedEmbeddingPayload({
+        logger: log,
+        adapter: "gemini",
+        operation: "embedBatch",
+        reason: `expected ${String(texts.length)} embeddings but received ${String(embeddings.length)}`,
+        payload,
+        client,
+      });
+    }
+    return texts.map((_, index) =>
+      expectEmbeddingVector(embeddings[index]?.values, {
+        logger: log,
+        adapter: "gemini",
+        operation: "embedBatch",
+        reason: `missing or invalid embeddings[${String(index)}].values`,
+        payload,
+        client,
+      }),
+    );
   };
 
   return {

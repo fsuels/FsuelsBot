@@ -1,5 +1,12 @@
 import type { EmbeddingProvider, EmbeddingProviderOptions } from "./embeddings.js";
 import { requireApiKey, resolveApiKeyForProvider } from "../agents/model-auth.js";
+import { createSubsystemLogger } from "../logging/subsystem.js";
+import {
+  expectEmbeddingArray,
+  expectEmbeddingObject,
+  expectEmbeddingVector,
+  throwMalformedEmbeddingPayload,
+} from "./embedding-response-guards.js";
 
 export type VoyageEmbeddingClient = {
   baseUrl: string;
@@ -9,6 +16,7 @@ export type VoyageEmbeddingClient = {
 
 export const DEFAULT_VOYAGE_EMBEDDING_MODEL = "voyage-4-large";
 const DEFAULT_VOYAGE_BASE_URL = "https://api.voyageai.com/v1";
+const log = createSubsystemLogger("memory/embeddings");
 
 export function normalizeVoyageModel(model: string): string {
   const trimmed = model.trim();
@@ -48,11 +56,44 @@ export async function createVoyageEmbeddingProvider(
       const text = await res.text();
       throw new Error(`voyage embeddings failed: ${res.status} ${text}`);
     }
-    const payload = (await res.json()) as {
-      data?: Array<{ embedding?: number[] }>;
-    };
-    const data = payload.data ?? [];
-    return data.map((entry) => entry.embedding ?? []);
+    const payload = await res.json();
+    const operation = input_type === "query" ? "embedQuery" : "embedBatch";
+    const root = expectEmbeddingObject(payload, {
+      logger: log,
+      adapter: "voyage",
+      operation,
+      reason: "response root was not an object",
+      payload,
+      client,
+    });
+    const data = expectEmbeddingArray(root.data, {
+      logger: log,
+      adapter: "voyage",
+      operation,
+      reason: 'missing or invalid "data" array',
+      payload,
+      client,
+    });
+    if (data.length < input.length) {
+      throwMalformedEmbeddingPayload({
+        logger: log,
+        adapter: "voyage",
+        operation,
+        reason: `expected ${String(input.length)} embeddings but received ${String(data.length)}`,
+        payload,
+        client,
+      });
+    }
+    return input.map((_, index) =>
+      expectEmbeddingVector(data[index]?.embedding, {
+        logger: log,
+        adapter: "voyage",
+        operation,
+        reason: `missing or invalid data[${String(index)}].embedding`,
+        payload,
+        client,
+      }),
+    );
   };
 
   return {
