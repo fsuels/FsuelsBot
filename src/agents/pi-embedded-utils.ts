@@ -2,6 +2,7 @@ import type { AssistantMessage } from "@mariozechner/pi-ai";
 import { stripReasoningTagsFromText } from "../shared/text/reasoning-tags.js";
 import { sanitizeUserFacingText } from "./pi-embedded-helpers.js";
 import { formatToolDetail, resolveToolDisplay } from "./tool-display.js";
+import { summarizeToolArgs } from "./tool-presentation.js";
 
 /**
  * Strip malformed Minimax tool invocations that leak into text content.
@@ -415,5 +416,5 @@ export function extractThinkingFromTaggedStream(text: string): string {
 
 export function inferToolMetaFromArgs(toolName: string, args: unknown): string | undefined {
   const display = resolveToolDisplay({ name: toolName, args });
-  return formatToolDetail(display);
+  return formatToolDetail(display) ?? summarizeToolArgs(args);
 }

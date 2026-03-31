@@ -1,3 +1,4 @@
+import { renderToolOutputValue } from "./chat/tool-helpers.ts";
 import { truncateText } from "./format.ts";
 
 const TOOL_STREAM_LIMIT = 50;
@@ -34,57 +35,21 @@ type ToolStreamHost = {
   toolStreamSyncTimer: number | null;
 };
 
-function extractToolOutputText(value: unknown): string | null {
-  if (!value || typeof value !== "object") {
-    return null;
-  }
-  const record = value as Record<string, unknown>;
-  if (typeof record.text === "string") {
-    return record.text;
-  }
-  const content = record.content;
-  if (!Array.isArray(content)) {
-    return null;
-  }
-  const parts = content
-    .map((item) => {
-      if (!item || typeof item !== "object") {
-        return null;
-      }
-      const entry = item as Record<string, unknown>;
-      if (entry.type === "text" && typeof entry.text === "string") {
-        return entry.text;
-      }
-      return null;
-    })
-    .filter((part): part is string => Boolean(part));
-  if (parts.length === 0) {
-    return null;
-  }
-  return parts.join("\n");
-}
-
-function formatToolOutput(value: unknown): string | null {
+function formatToolOutput(value: unknown, toolName?: string): string | null {
   if (value === null || value === undefined) {
     return null;
   }
-  if (typeof value === "number" || typeof value === "boolean") {
-    return String(value);
-  }
-  const contentText = extractToolOutputText(value);
-  let text: string;
-  if (typeof value === "string") {
-    text = value;
-  } else if (contentText) {
-    text = contentText;
-  } else {
-    try {
-      text = JSON.stringify(value, null, 2);
-    } catch {
-      // oxlint-disable typescript/no-base-to-string
-      text = String(value);
-    }
-  }
+  const rendered = renderToolOutputValue(value, { toolName, markdown: false });
+  const text =
+    rendered ??
+    (() => {
+      try {
+        return JSON.stringify(value, null, 2);
+      } catch {
+        // oxlint-disable typescript/no-base-to-string
+        return String(value);
+      }
+    })();
   const truncated = truncateText(text, TOOL_OUTPUT_CHAR_LIMIT);
   if (!truncated.truncated) {
     return truncated.text;
@@ -243,9 +208,9 @@ export function handleAgentEvent(host: ToolStreamHost, payload?: AgentEventPaylo
   const args = phase === "start" ? data.args : undefined;
   const output =
     phase === "update"
-      ? formatToolOutput(data.partialResult)
+      ? formatToolOutput(data.partialResult, name)
       : phase === "result"
-        ? formatToolOutput(data.result)
+        ? formatToolOutput(data.result, name)
         : undefined;
 
   const now = Date.now();

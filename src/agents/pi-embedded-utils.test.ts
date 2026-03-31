@@ -1,8 +1,22 @@
 import type { AssistantMessage } from "@mariozechner/pi-ai";
 import { describe, expect, it } from "vitest";
-import { extractAssistantText, formatReasoningMessage } from "./pi-embedded-utils.js";
+import {
+  extractAssistantText,
+  formatReasoningMessage,
+  inferToolMetaFromArgs,
+} from "./pi-embedded-utils.js";
 
 describe("extractAssistantText", () => {
+  it("falls back to compact arg summaries when a tool has no configured detail keys", () => {
+    const meta = inferToolMetaFromArgs("custom_tool", {
+      destination: "https://example.com/path",
+      count: 3,
+    });
+
+    expect(meta).toContain('destination: "https://example.com/path"');
+    expect(meta).toContain("count: 3");
+  });
+
   it("strips Minimax tool invocation XML from text", () => {
     const msg: AssistantMessage = {
       role: "assistant",

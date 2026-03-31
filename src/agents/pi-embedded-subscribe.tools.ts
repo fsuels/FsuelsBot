@@ -2,6 +2,7 @@ import { getChannelPlugin, normalizeChannelId } from "../channels/plugins/index.
 import { normalizeTargetForProvider } from "../infra/outbound/target-normalization.js";
 import { truncateUtf16Safe } from "../utils.js";
 import { type MessagingToolSend } from "./pi-embedded-messaging.js";
+import { renderToolResultText } from "./tool-presentation.js";
 
 const TOOL_RESULT_MAX_CHARS = 8000;
 const TOOL_ERROR_MAX_CHARS = 400;
@@ -90,7 +91,7 @@ export function sanitizeToolResult(result: unknown): unknown {
   return { ...record, content: sanitized };
 }
 
-export function extractToolResultText(result: unknown): string | undefined {
+function extractRawToolResultText(result: unknown): string | undefined {
   if (!result || typeof result !== "object") {
     return undefined;
   }
@@ -118,6 +119,15 @@ export function extractToolResultText(result: unknown): string | undefined {
   return texts.join("\n");
 }
 
+export function extractToolResultText(
+  result: unknown,
+  options?: { toolName?: string },
+): string | undefined {
+  return renderToolResultText(result, {
+    toolName: options?.toolName,
+  });
+}
+
 export function isToolResultError(result: unknown): boolean {
   if (!result || typeof result !== "object") {
     return false;
@@ -136,6 +146,9 @@ export function isToolResultError(result: unknown): boolean {
 }
 
 export function extractToolErrorMessage(result: unknown): string | undefined {
+  if (typeof result === "string") {
+    return normalizeToolErrorText(result);
+  }
   if (!result || typeof result !== "object") {
     return undefined;
   }
@@ -148,7 +161,7 @@ export function extractToolErrorMessage(result: unknown): string | undefined {
   if (fromRoot) {
     return fromRoot;
   }
-  const text = extractToolResultText(result);
+  const text = extractRawToolResultText(result);
   if (!text) {
     return undefined;
   }

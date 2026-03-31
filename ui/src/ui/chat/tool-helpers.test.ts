@@ -1,18 +1,20 @@
 import { describe, it, expect } from "vitest";
-import { formatToolOutputForSidebar, getTruncatedPreview } from "./tool-helpers.ts";
+import {
+  formatToolOutputForSidebar,
+  getTruncatedPreview,
+  renderToolOutputValue,
+} from "./tool-helpers.ts";
 
 describe("tool-helpers", () => {
   describe("formatToolOutputForSidebar", () => {
-    it("formats valid JSON object as code block", () => {
+    it("flattens small JSON objects into readable rows", () => {
       const input = '{"name":"test","value":123}';
       const result = formatToolOutputForSidebar(input);
 
-      expect(result).toBe(`\`\`\`json
-{
-  "name": "test",
-  "value": 123
-}
-\`\`\``);
+      expect(result).toContain("name");
+      expect(result).toContain("test");
+      expect(result).toContain("value");
+      expect(result).not.toContain("```json");
     });
 
     it("formats valid JSON array as code block", () => {
@@ -28,12 +30,23 @@ describe("tool-helpers", () => {
 \`\`\``);
     });
 
+    it("unwraps dominant text payloads and linkifies urls", () => {
+      const input =
+        '{"status":"ok","url":"https://example.com","text":"Line one\\nLine two\\nLine three\\nLine four\\nLine five\\nLine six"}';
+      const result = formatToolOutputForSidebar(input);
+
+      expect(result).toContain("status");
+      expect(result).toContain("ok");
+      expect(result).toContain("<https://example.com>");
+      expect(result).toContain("Line one");
+      expect(result).not.toContain("```json");
+    });
+
     it("handles nested JSON objects", () => {
       const input = '{"outer":{"inner":"value"}}';
       const result = formatToolOutputForSidebar(input);
 
-      expect(result).toContain("```json");
-      expect(result).toContain('"outer"');
+      expect(result).toContain("outer");
       expect(result).toContain('"inner"');
     });
 
@@ -62,8 +75,45 @@ describe("tool-helpers", () => {
       const input = '   {"trimmed": true}   ';
       const result = formatToolOutputForSidebar(input);
 
+      expect(result).toContain("trimmed");
+      expect(result).toContain("true");
+    });
+
+    it("uses structured details instead of the compact machine payload when available", () => {
+      const input = '{"count":2,"sessions":[{"key":"main"}],"truncated":true}';
+      const details = {
+        count: 2,
+        sessions: [
+          { key: "main", kind: "main" },
+          { key: "cron:job-1", kind: "cron", channel: "cron" },
+        ],
+      };
+      const result = formatToolOutputForSidebar(input, details, "sessions_list");
+
+      expect(result).not.toBe(input);
       expect(result).toContain("```json");
-      expect(result).toContain('"trimmed"');
+      expect(result).toContain('"cron:job-1"');
+      expect(result).not.toContain('"truncated": true');
+    });
+
+    it("fails closed on ambiguous two-dominant-field JSON", () => {
+      const input = JSON.stringify({
+        stdout: "a".repeat(240),
+        stderr: "b".repeat(240),
+        status: "error",
+      });
+      const result = formatToolOutputForSidebar(input);
+
+      expect(result).toContain("```json");
+      expect(result).toContain('"stdout"');
+      expect(result).toContain('"stderr"');
+    });
+
+    it("skips JSON parsing once the guard threshold is exceeded", () => {
+      const input = `{"text":"${"x".repeat(200_100)}"}`;
+      const result = formatToolOutputForSidebar(input);
+
+      expect(result).toBe(input);
     });
 
     it("handles empty string", () => {
@@ -74,6 +124,41 @@ describe("tool-helpers", () => {
     it("handles whitespace-only string", () => {
       const result = formatToolOutputForSidebar("   ");
       expect(result).toBe("   ");
+    });
+  });
+
+  describe("renderToolOutputValue", () => {
+    it("renders block arrays with image placeholders", () => {
+      const result = renderToolOutputValue(
+        {
+          content: [
+            { type: "text", text: "hello" },
+            { type: "image", data: "abc", mimeType: "image/png" },
+          ],
+        },
+        { markdown: false },
+      );
+
+      expect(result).toBe("hello\n[Image]");
+    });
+
+    it("renders progress updates and compact success summaries", () => {
+      expect(
+        renderToolOutputValue({ details: { progress: 3, total: 5 } }, { markdown: false }),
+      ).toBe("Processing… 3/5 (60%)");
+      expect(
+        renderToolOutputValue(
+          {
+            details: {
+              status: "sent",
+              to: "channel:C1",
+              channel: "discord",
+              messageId: "m1",
+            },
+          },
+          { markdown: false, toolName: "message" },
+        ),
+      ).toBe("Sent to channel:C1 via discord (m1)");
     });
   });
 

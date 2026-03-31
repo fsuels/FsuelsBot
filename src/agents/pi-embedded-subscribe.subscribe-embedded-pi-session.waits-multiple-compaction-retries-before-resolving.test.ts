@@ -175,6 +175,46 @@ describe("subscribeEmbeddedPiSession", () => {
     expect(payload.text).toContain("https://example.com");
   });
 
+  it("emits rendered plain-string tool results in full verbose mode", async () => {
+    let handler: ((evt: unknown) => void) | undefined;
+    const session: StubSession = {
+      subscribe: (fn) => {
+        handler = fn;
+        return () => {};
+      },
+    };
+
+    const onToolResult = vi.fn();
+
+    subscribeEmbeddedPiSession({
+      session: session as unknown as Parameters<typeof subscribeEmbeddedPiSession>[0]["session"],
+      runId: "run-tool-string",
+      verboseLevel: "full",
+      onToolResult,
+    });
+
+    handler?.({
+      type: "tool_execution_start",
+      toolName: "message",
+      toolCallId: "tool-msg-1",
+      args: { action: "send", to: "channel:C1" },
+    });
+    await Promise.resolve();
+
+    handler?.({
+      type: "tool_execution_end",
+      toolName: "message",
+      toolCallId: "tool-msg-1",
+      isError: false,
+      result: '{"status":"sent","to":"channel:C1","channel":"discord","messageId":"m1"}',
+    });
+    await Promise.resolve();
+
+    expect(onToolResult).toHaveBeenCalledTimes(2);
+    const payload = onToolResult.mock.calls[1][0];
+    expect(payload.text).toContain("Sent to channel:C1 via discord (m1)");
+  });
+
   it("emits exec output in full verbose mode and includes PTY indicator", async () => {
     let handler: ((evt: unknown) => void) | undefined;
     const session: StubSession = {

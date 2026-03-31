@@ -257,7 +257,7 @@ export function handleToolExecutionEnd(
   );
 
   if (ctx.params.onToolResult && ctx.shouldEmitToolOutput()) {
-    const outputText = extractToolResultText(sanitizedResult);
+    const outputText = extractToolResultText(sanitizedResult, { toolName });
     if (outputText) {
       ctx.emitToolOutput(toolName, meta, outputText);
     }
