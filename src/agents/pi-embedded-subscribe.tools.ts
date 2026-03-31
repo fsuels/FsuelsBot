@@ -2,6 +2,7 @@ import { getChannelPlugin, normalizeChannelId } from "../channels/plugins/index.
 import { normalizeTargetForProvider } from "../infra/outbound/target-normalization.js";
 import { truncateUtf16Safe } from "../utils.js";
 import { type MessagingToolSend } from "./pi-embedded-messaging.js";
+import { presentToolError, type PresentedToolError } from "./tool-error-presenter.js";
 import { renderToolResultText } from "./tool-presentation.js";
 
 const TOOL_RESULT_MAX_CHARS = 8000;
@@ -26,39 +27,6 @@ function normalizeToolErrorText(text: string): string | undefined {
   return firstLine.length > TOOL_ERROR_MAX_CHARS
     ? `${truncateUtf16Safe(firstLine, TOOL_ERROR_MAX_CHARS)}…`
     : firstLine;
-}
-
-function readErrorCandidate(value: unknown): string | undefined {
-  if (typeof value === "string") {
-    return normalizeToolErrorText(value);
-  }
-  if (!value || typeof value !== "object") {
-    return undefined;
-  }
-  const record = value as Record<string, unknown>;
-  if (typeof record.message === "string") {
-    return normalizeToolErrorText(record.message);
-  }
-  if (typeof record.error === "string") {
-    return normalizeToolErrorText(record.error);
-  }
-  return undefined;
-}
-
-function extractErrorField(value: unknown): string | undefined {
-  if (!value || typeof value !== "object") {
-    return undefined;
-  }
-  const record = value as Record<string, unknown>;
-  const direct =
-    readErrorCandidate(record.error) ??
-    readErrorCandidate(record.message) ??
-    readErrorCandidate(record.reason);
-  if (direct) {
-    return direct;
-  }
-  const status = typeof record.status === "string" ? record.status.trim() : "";
-  return status ? normalizeToolErrorText(status) : undefined;
 }
 
 export function sanitizeToolResult(result: unknown): unknown {
@@ -119,6 +87,23 @@ function extractRawToolResultText(result: unknown): string | undefined {
   return texts.join("\n");
 }
 
+export function extractToolResultStatus(result: unknown): string | undefined {
+  if (!result || typeof result !== "object") {
+    return undefined;
+  }
+  const record = result as Record<string, unknown>;
+  const fromDetails =
+    record.details && typeof record.details === "object"
+      ? (record.details as Record<string, unknown>).status
+      : undefined;
+  const candidate = typeof fromDetails === "string" ? fromDetails : record.status;
+  if (typeof candidate !== "string") {
+    return undefined;
+  }
+  const trimmed = candidate.trim();
+  return trimmed || undefined;
+}
+
 export function extractToolResultText(
   result: unknown,
   options?: { toolName?: string },
@@ -129,52 +114,30 @@ export function extractToolResultText(
 }
 
 export function isToolResultError(result: unknown): boolean {
-  if (!result || typeof result !== "object") {
+  const normalized = extractToolResultStatus(result)?.toLowerCase();
+  if (!normalized) {
     return false;
   }
-  const record = result as { details?: unknown };
-  const details = record.details;
-  if (!details || typeof details !== "object") {
-    return false;
-  }
-  const status = (details as { status?: unknown }).status;
-  if (typeof status !== "string") {
-    return false;
-  }
-  const normalized = status.trim().toLowerCase();
   return normalized === "error" || normalized === "timeout";
 }
 
 export function extractToolErrorMessage(result: unknown): string | undefined {
+  const presented = presentToolError(result);
+  if (presented) {
+    return presented.text;
+  }
   if (typeof result === "string") {
     return normalizeToolErrorText(result);
   }
   if (!result || typeof result !== "object") {
     return undefined;
   }
-  const record = result as Record<string, unknown>;
-  const fromDetails = extractErrorField(record.details);
-  if (fromDetails) {
-    return fromDetails;
-  }
-  const fromRoot = extractErrorField(record);
-  if (fromRoot) {
-    return fromRoot;
-  }
   const text = extractRawToolResultText(result);
-  if (!text) {
-    return undefined;
-  }
-  try {
-    const parsed = JSON.parse(text) as unknown;
-    const fromJson = extractErrorField(parsed);
-    if (fromJson) {
-      return fromJson;
-    }
-  } catch {
-    // Fall through to first-line text fallback.
-  }
-  return normalizeToolErrorText(text);
+  return text ? normalizeToolErrorText(text) : undefined;
+}
+
+export function extractToolErrorPresentation(result: unknown): PresentedToolError | undefined {
+  return presentToolError(result) ?? undefined;
 }
 
 export function extractMessagingToolSend(

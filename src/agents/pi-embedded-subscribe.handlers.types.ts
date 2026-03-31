@@ -20,12 +20,14 @@ export type ToolErrorSummary = {
   toolName: string;
   meta?: string;
   error?: string;
+  classification?: "validation" | "cancelled" | "generic";
 };
 
 export type EmbeddedPiSubscribeState = {
   assistantTexts: string[];
   toolMetas: Array<{ toolName?: string; meta?: string }>;
   toolMetaById: Map<string, string | undefined>;
+  toolStartedAtById: Map<string, number>;
   toolSummaryById: Set<string>;
   lastToolError?: ToolErrorSummary;
 

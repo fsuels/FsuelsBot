@@ -5,6 +5,8 @@ import { normalizeTextForComparison } from "./pi-embedded-helpers.js";
 import { isMessagingTool, isMessagingToolSendAction } from "./pi-embedded-messaging.js";
 import {
   extractToolErrorMessage,
+  extractToolErrorPresentation,
+  extractToolResultStatus,
   extractToolResultText,
   extractMessagingToolSend,
   isToolResultError,
@@ -51,6 +53,7 @@ export async function handleToolExecutionStart(
   const toolName = normalizeToolName(rawToolName);
   const toolCallId = String(evt.toolCallId);
   const args = evt.args;
+  const startedAt = Date.now();
 
   if (toolName === "read") {
     const record = args && typeof args === "object" ? (args as Record<string, unknown>) : {};
@@ -65,6 +68,7 @@ export async function handleToolExecutionStart(
 
   const meta = extendExecMeta(toolName, args, inferToolMetaFromArgs(toolName, args));
   ctx.state.toolMetaById.set(toolCallId, meta);
+  ctx.state.toolStartedAtById.set(toolCallId, startedAt);
   if (toolName === "web_search") {
     const argsRecord = args && typeof args === "object" ? (args as Record<string, unknown>) : {};
     const query = typeof argsRecord.query === "string" ? argsRecord.query.trim() : "";
@@ -85,12 +89,13 @@ export async function handleToolExecutionStart(
       name: toolName,
       toolCallId,
       args: args as Record<string, unknown>,
+      startedAt,
     },
   });
   // Best-effort typing signal; do not block tool summaries on slow emitters.
   void ctx.params.onAgentEvent?.({
     stream: "tool",
-    data: { phase: "start", name: toolName, toolCallId },
+    data: { phase: "start", name: toolName, toolCallId, startedAt },
   });
 
   if (
@@ -177,8 +182,12 @@ export function handleToolExecutionEnd(
   const toolCallId = String(evt.toolCallId);
   const isError = Boolean(evt.isError);
   const result = evt.result;
+  const endedAt = Date.now();
+  const startedAt = ctx.state.toolStartedAtById.get(toolCallId);
   const isToolError = isError || isToolResultError(result);
   const sanitizedResult = sanitizeToolResult(result);
+  const resultStatus = extractToolResultStatus(result);
+  const elapsedMs = typeof startedAt === "number" ? Math.max(0, endedAt - startedAt) : undefined;
   const rawResultDetails =
     result && typeof result === "object" && "details" in result
       ? (result as { details?: unknown }).details
@@ -186,15 +195,19 @@ export function handleToolExecutionEnd(
   const meta = ctx.state.toolMetaById.get(toolCallId);
   ctx.state.toolMetas.push({ toolName, meta });
   ctx.state.toolMetaById.delete(toolCallId);
+  ctx.state.toolStartedAtById.delete(toolCallId);
   const trackedWebSearchQuery = ctx.state.webSearchQueryById.get(toolCallId);
   ctx.state.webSearchQueryById.delete(toolCallId);
   ctx.state.toolSummaryById.delete(toolCallId);
+  let errorSummary: string | undefined;
   if (isToolError) {
-    const errorMessage = extractToolErrorMessage(sanitizedResult);
+    const errorPresentation = extractToolErrorPresentation(sanitizedResult);
+    errorSummary = errorPresentation?.text ?? extractToolErrorMessage(sanitizedResult);
     ctx.state.lastToolError = {
       toolName,
       meta,
-      error: errorMessage,
+      error: errorSummary,
+      classification: errorPresentation?.classification,
     };
   }
   if (toolName === "web_search" && !isToolError && isWebSearchResultPayload(rawResultDetails)) {
@@ -239,6 +252,11 @@ export function handleToolExecutionEnd(
       meta,
       isError: isToolError,
       result: sanitizedResult,
+      startedAt,
+      endedAt,
+      elapsedMs,
+      resultStatus,
+      errorSummary,
     },
   });
   void ctx.params.onAgentEvent?.({
@@ -249,6 +267,11 @@ export function handleToolExecutionEnd(
       toolCallId,
       meta,
       isError: isToolError,
+      startedAt,
+      endedAt,
+      elapsedMs,
+      resultStatus,
+      errorSummary,
     },
   });
 
