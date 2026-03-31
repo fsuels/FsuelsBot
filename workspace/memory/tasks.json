@@ -1,6 +1,6 @@
 {
   "version": 99,
-  "updated_at": "2026-03-31T18:21:46Z",
+  "updated_at": "2026-03-31T19:23:48Z",
   "updated_by": "heartbeat",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
@@ -75,7 +75,8 @@
       "research-review-heartbeat-md-5",
       "research-review-heartbeat-md-6",
       "research-review-heartbeat-md-7",
-      "research-review-heartbeat-md-8"
+      "research-review-heartbeat-md-8",
+      "research-review-heartbeat-md-9"
     ],
     "trash": ["fix-that-and-make-sure-that-never-happens-again"],
     "paused": ["pomelli-dresses-refresh"]
@@ -172,7 +173,7 @@
           "procedure": [
             "Search Shopify by OriginalImageFilename first, then fallback to product title.",
             "Confirm correct product and Active status; skip if Draft/Archived.",
-            "Upload 4 Pomelli images and set alt text format: [Full Product Title] — [template descriptor].",
+            "Upload 4 Pomelli images and set alt text format: [Full Product Title] \u2014 [template descriptor].",
             "Save and confirm no unsaved changes indicator remains."
           ],
           "definitionOfDone": "Shopify product saved with 4 new images and complete alt text."
@@ -329,14 +330,14 @@
       "lane": "done_today",
       "updated_at": "2026-02-20T13:27:00Z",
       "created_at": "2026-02-20T07:15:15.007Z",
-      "summary": "Created MEMORY.md, fixed USER.md standing orders, killed 3 broken crons, cleaned ledger (198→64), verified all memory files, overnight consolidation confirmed clean. Cross-session recall verified working.",
+      "summary": "Created MEMORY.md, fixed USER.md standing orders, killed 3 broken crons, cleaned ledger (198\u219264), verified all memory files, overnight consolidation confirmed clean. Cross-session recall verified working.",
       "next_action": "Complete",
       "project": "unassigned",
       "project_source": "explicit",
-      "goal": "Complete: Created MEMORY.md, fixed USER.md standing orders, killed 3 broken crons, cleaned ledger (198→64), verified all memory files, overnight consolidation confirmed clean. Cross-session recall verified working.",
+      "goal": "Complete: Created MEMORY.md, fixed USER.md standing orders, killed 3 broken crons, cleaned ledger (198\u219264), verified all memory files, overnight consolidation confirmed clean. Cross-session recall verified working.",
       "context": {
-        "summary": "Created MEMORY.md, fixed USER.md standing orders, killed 3 broken crons, cleaned ledger (198→64), verified all memory files, overnight consolidation confirmed clean. Cross-session recall verified working.",
-        "goal": "Complete: Created MEMORY.md, fixed USER.md standing orders, killed 3 broken crons, cleaned ledger (198→64), verified all memory files, overnight consolidation confirmed clean. Cross-session recall verified working."
+        "summary": "Created MEMORY.md, fixed USER.md standing orders, killed 3 broken crons, cleaned ledger (198\u219264), verified all memory files, overnight consolidation confirmed clean. Cross-session recall verified working.",
+        "goal": "Complete: Created MEMORY.md, fixed USER.md standing orders, killed 3 broken crons, cleaned ledger (198\u219264), verified all memory files, overnight consolidation confirmed clean. Cross-session recall verified working."
       },
       "steps": [
         {
@@ -348,7 +349,7 @@
         },
         {
           "id": "step-2",
-          "text": "Execute implementation: Created MEMORY.md, fixed USER.md standing orders, killed 3 broken crons, cleaned ledger (198→64), verified all memory files, overnight consolidation confirmed clean. Cross-session recall verified working.",
+          "text": "Execute implementation: Created MEMORY.md, fixed USER.md standing orders, killed 3 broken crons, cleaned ledger (198\u219264), verified all memory files, overnight consolidation confirmed clean. Cross-session recall verified working.",
           "status": "done",
           "checked": true,
           "definitionOfDone": "Step output is complete and verified."
@@ -764,9 +765,9 @@
           "risk": 0
         }
       },
-      "executor_id": "francisco’s Mac mini",
+      "executor_id": "francisco\u2019s Mac mini",
       "lease_expires_at": "2026-02-21T05:52:02.634Z",
-      "worker_id": "francisco’s Mac mini",
+      "worker_id": "francisco\u2019s Mac mini",
       "lease_acquired_at": "2026-02-21T05:37:02.634Z",
       "lease_ttl_ms": 900000
     },
@@ -1887,7 +1888,7 @@
       "completed_at": "2026-03-17T17:00:51.172048+00:00"
     },
     "GB-TRUST-directory-copy-fix": {
-      "title": "Directory: remove/qualify ‘verified’ claims or implement real verification",
+      "title": "Directory: remove/qualify \u2018verified\u2019 claims or implement real verification",
       "status": "done",
       "lane": "done_today",
       "created_at": "2026-03-17T15:03:13.662617+00:00",
@@ -1960,7 +1961,7 @@
       },
       "learnings": {
         "question": "What did Epistemic Review - Evening (9 PM) produce?",
-        "verdict": "Gemini web review complete: 1 minor evidence-risk flagged (don’t over-infer from competitor fetch failures); otherwise logic/hygiene good.",
+        "verdict": "Gemini web review complete: 1 minor evidence-risk flagged (don\u2019t over-infer from competitor fetch failures); otherwise logic/hygiene good.",
         "outcomes": [
           {
             "ts": "2026-03-18T01:06:43.747176+00:00",
@@ -2717,9 +2718,9 @@
       "completed_at": "2026-03-31T16:20:06.528290Z",
       "decision": "IGNORE",
       "decision_reason": "Source URL unreachable (HTTP 521). No content to review.",
-      "executor_id": "francisco’s Mac mini",
+      "executor_id": "francisco\u2019s Mac mini",
       "lease_expires_at": "2026-03-31T16:35:46.828Z",
-      "worker_id": "francisco’s Mac mini",
+      "worker_id": "francisco\u2019s Mac mini",
       "lease_acquired_at": "2026-03-31T16:20:46.828Z",
       "lease_ttl_ms": 900000
     },
@@ -2882,6 +2883,97 @@
           "http_status": 521,
           "body_head": "error code: 521"
         }
+      }
+    },
+    "research-review-heartbeat-md-9": {
+      "title": "Research review: heartbeat.md",
+      "status": "completed",
+      "lane": "done_today",
+      "updated_at": "2026-03-31T19:23:48Z",
+      "created_at": "2026-03-31T19:21:14.317Z",
+      "kind": "research_review",
+      "requirements": {
+        "goals": ["Research review: heartbeat.md"],
+        "constraints": [],
+        "assumptions": [],
+        "exclusions": ["Do not infer or repeat old tasks from prior chats."],
+        "acceptance_criteria": ["Provide at least one concrete receipt proving completion."],
+        "updated_at": "2026-03-31T19:21:14.317Z",
+        "source": "task-board.turn-sync"
+      },
+      "steps": [
+        {
+          "id": "credibility",
+          "text": "Classify source credibility tier and validate claims",
+          "status": "done",
+          "checked": true,
+          "updated_at": "2026-03-31T19:23:48Z"
+        },
+        {
+          "id": "score",
+          "text": "Score impact/cost/risk and decide ADOPT, EXPERIMENT, or IGNORE",
+          "status": "done",
+          "checked": true,
+          "updated_at": "2026-03-31T19:23:48Z"
+        },
+        {
+          "id": "plan",
+          "text": "If ADOPT/EXPERIMENT, define KPI, affected modules, and rollback plan",
+          "status": "done",
+          "checked": true,
+          "updated_at": "2026-03-31T19:23:48Z"
+        }
+      ],
+      "current_step": 0,
+      "next_action": "Run structured URL research review and choose ADOPT, EXPERIMENT, or IGNORE.",
+      "source_urls": ["https://heartbeat.md/"],
+      "review_template": {
+        "protocol": "research_review_v1",
+        "source_urls": ["https://heartbeat.md/"],
+        "required_sections": [
+          "credibility_gate",
+          "actionable_extraction",
+          "system_comparison",
+          "feasibility_filter",
+          "impact_scoring",
+          "decision",
+          "execution_plan"
+        ],
+        "scoring": {
+          "scale": "0-5",
+          "dimensions": [
+            "revenue_generation_potential",
+            "autonomy_improvement",
+            "reliability_improvement",
+            "implementation_cost",
+            "risk"
+          ]
+        },
+        "decisions": ["ADOPT", "EXPERIMENT", "IGNORE"],
+        "decision_rule": "Choose exactly one: ADOPT, EXPERIMENT, or IGNORE.",
+        "adopt_or_experiment_requirements": ["kpi", "affected_modules", "rollback_strategy"]
+      },
+      "started_at": "2026-03-31T19:21:59.485037+00:00",
+      "completed_at": "2026-03-31T19:23:48Z",
+      "decision": "IGNORE",
+      "decision_reason": "Source URL unreachable (HTTP 521 - origin server down). No content available to evaluate mechanisms.",
+      "result": {
+        "decision": "IGNORE",
+        "reason": "heartbeat.md returned HTTP 521 (origin server down) at review time; no page content available to extract actionable mechanisms.",
+        "scores": {
+          "revenue_potential": 0,
+          "autonomy_gain": 0,
+          "reliability_gain": 0,
+          "implementation_cost": 0,
+          "risk": 0
+        },
+        "evidence": {
+          "url": "https://heartbeat.md/",
+          "checked_at": "2026-03-31T19:23:48Z",
+          "http_status": 521,
+          "body_head": "error code: 521"
+        },
+        "credibility_tier": "Tier 4 (unverifiable/unavailable source at review time)"
       }
     }
   },
