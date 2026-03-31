@@ -1,11 +1,11 @@
 {
   "version": 99,
-  "updated_at": "2026-03-31T16:19:08.324Z",
+  "updated_at": "2026-03-31T16:21:02.359Z",
   "updated_by": "heartbeat",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
     "bot_current": [],
-    "bot_queue": ["research-review-heartbeat-md-6"],
+    "bot_queue": [],
     "human": [
       "GB-DIR-live-verified-claim",
       "CRON-20260318-openclaw-x-engagement-1030",
@@ -73,7 +73,8 @@
       "CRON-20260316-consolidation",
       "research-review-heartbeat-md-4",
       "research-review-heartbeat-md-5",
-      "research-review-heartbeat-md-6"
+      "research-review-heartbeat-md-6",
+      "research-review-heartbeat-md-7"
     ],
     "trash": ["fix-that-and-make-sure-that-never-happens-again"],
     "paused": ["pomelli-dresses-refresh"]
@@ -2647,7 +2648,7 @@
       "title": "Research review: heartbeat.md",
       "status": "done",
       "lane": "done_today",
-      "updated_at": "2026-03-31T16:20:06.528006Z",
+      "updated_at": "2026-03-31T16:20:46.828Z",
       "created_at": "2026-03-31T15:19:09.708Z",
       "kind": "research_review",
       "requirements": {
@@ -2714,7 +2715,85 @@
       "started_at": "2026-03-31T15:19:59.452872+00:00",
       "completed_at": "2026-03-31T16:20:06.528290Z",
       "decision": "IGNORE",
-      "decision_reason": "Source URL unreachable (HTTP 521). No content to review."
+      "decision_reason": "Source URL unreachable (HTTP 521). No content to review.",
+      "executor_id": "francisco\u2019s Mac mini",
+      "lease_expires_at": "2026-03-31T16:35:46.828Z",
+      "worker_id": "francisco\u2019s Mac mini",
+      "lease_acquired_at": "2026-03-31T16:20:46.828Z",
+      "lease_ttl_ms": 900000
+    },
+    "research-review-heartbeat-md-7": {
+      "title": "Research review: heartbeat.md",
+      "status": "done",
+      "lane": "done_today",
+      "updated_at": "2026-03-31T16:21:46.925825Z",
+      "created_at": "2026-03-31T16:21:02.359Z",
+      "kind": "research_review",
+      "requirements": {
+        "goals": ["Research review: heartbeat.md"],
+        "constraints": [],
+        "assumptions": [],
+        "exclusions": [],
+        "acceptance_criteria": ["Provide at least one concrete receipt proving completion."],
+        "updated_at": "2026-03-31T16:21:02.359Z",
+        "source": "task-board.turn-sync"
+      },
+      "steps": [
+        {
+          "id": "credibility",
+          "text": "Classify source credibility tier and validate claims",
+          "status": "done",
+          "checked": true,
+          "updated_at": "2026-03-31T16:21:46.925825Z"
+        },
+        {
+          "id": "score",
+          "text": "Score impact/cost/risk and decide ADOPT, EXPERIMENT, or IGNORE",
+          "status": "done",
+          "checked": true,
+          "updated_at": "2026-03-31T16:21:46.925825Z"
+        },
+        {
+          "id": "plan",
+          "text": "If ADOPT/EXPERIMENT, define KPI, affected modules, and rollback plan",
+          "status": "done",
+          "checked": true,
+          "updated_at": "2026-03-31T16:21:46.925825Z"
+        }
+      ],
+      "current_step": 0,
+      "next_action": "Run structured URL research review and choose ADOPT, EXPERIMENT, or IGNORE.",
+      "source_urls": ["https://heartbeat.md/"],
+      "review_template": {
+        "protocol": "research_review_v1",
+        "source_urls": ["https://heartbeat.md/"],
+        "required_sections": [
+          "credibility_gate",
+          "actionable_extraction",
+          "system_comparison",
+          "feasibility_filter",
+          "impact_scoring",
+          "decision",
+          "execution_plan"
+        ],
+        "scoring": {
+          "scale": "0-5",
+          "dimensions": [
+            "revenue_generation_potential",
+            "autonomy_improvement",
+            "reliability_improvement",
+            "implementation_cost",
+            "risk"
+          ]
+        },
+        "decisions": ["ADOPT", "EXPERIMENT", "IGNORE"],
+        "decision_rule": "Choose exactly one: ADOPT, EXPERIMENT, or IGNORE.",
+        "adopt_or_experiment_requirements": ["kpi", "affected_modules", "rollback_strategy"]
+      },
+      "started_at": "2026-03-31T16:21:33.590188Z",
+      "completed_at": "2026-03-31T16:21:46.925825Z",
+      "decision": "IGNORE",
+      "decision_reason": "Source URL unreachable (HTTP 521 - origin server down). No content to review."
     }
   },
   "active_project": "fsuelsbot"
