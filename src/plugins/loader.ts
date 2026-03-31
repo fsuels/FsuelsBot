@@ -7,6 +7,7 @@ import type { GatewayRequestHandler } from "../gateway/server-methods/types.js";
 import type {
   OpenClawPluginDefinition,
   OpenClawPluginModule,
+  OpenClawPluginAvailabilityResult,
   PluginDiagnostic,
   PluginLogger,
 } from "./types.js";
@@ -76,9 +77,10 @@ const resolvePluginSdkAlias = (): string | null => {
 function buildCacheKey(params: {
   workspaceDir?: string;
   plugins: NormalizedPluginsConfig;
+  mode: NonNullable<PluginLoadOptions["mode"]>;
 }): string {
   const workspaceKey = params.workspaceDir ? resolveUserPath(params.workspaceDir) : "";
-  return `${workspaceKey}::${JSON.stringify(params.plugins)}`;
+  return `${params.mode}::${workspaceKey}::${JSON.stringify(params.plugins)}`;
 }
 
 function validatePluginConfig(params: {
@@ -125,6 +127,22 @@ function resolvePluginModuleExport(moduleExport: unknown): {
   return {};
 }
 
+function normalizeAvailabilityResult(
+  result: OpenClawPluginAvailabilityResult | undefined,
+): { available: boolean; reason?: string } {
+  if (typeof result === "boolean") {
+    return { available: result };
+  }
+  if (!result || typeof result !== "object") {
+    return { available: true };
+  }
+  const reason = typeof result.reason === "string" ? result.reason.trim() : "";
+  return {
+    available: result.available !== false,
+    reason: reason || undefined,
+  };
+}
+
 function createPluginRecord(params: {
   id: string;
   name?: string;
@@ -145,7 +163,9 @@ function createPluginRecord(params: {
     origin: params.origin,
     workspaceDir: params.workspaceDir,
     enabled: params.enabled,
+    available: true,
     status: params.enabled ? "loaded" : "disabled",
+    reason: undefined,
     toolNames: [],
     hookNames: [],
     channelIds: [],
@@ -154,6 +174,7 @@ function createPluginRecord(params: {
     cliCommands: [],
     services: [],
     commands: [],
+    skillDirs: [],
     httpHandlers: 0,
     hookCount: 0,
     configSchema: params.configSchema,
@@ -170,22 +191,28 @@ export function loadOpenClawPlugins(options: PluginLoadOptions = {}): PluginRegi
   const cfg = options.config ?? {};
   const logger = options.logger ?? defaultLogger();
   const validateOnly = options.mode === "validate";
+  const mode = options.mode ?? "full";
   const normalized = normalizePluginsConfig(cfg.plugins);
   const cacheKey = buildCacheKey({
     workspaceDir: options.workspaceDir,
     plugins: normalized,
+    mode,
   });
   const cacheEnabled = options.cache !== false;
   if (cacheEnabled) {
     const cached = registryCache.get(cacheKey);
     if (cached) {
-      setActivePluginRegistry(cached, cacheKey);
+      if (!validateOnly) {
+        setActivePluginRegistry(cached, cacheKey);
+      }
       return cached;
     }
   }
 
-  // Clear previously registered plugin commands before reloading
-  clearPluginCommands();
+  if (!validateOnly) {
+    // Clear previously registered plugin commands before reloading
+    clearPluginCommands();
+  }
 
   const runtime = createPluginRuntime();
   const { registry, createApi } = createPluginRegistry({
@@ -247,7 +274,7 @@ export function loadOpenClawPlugins(options: PluginLoadOptions = {}): PluginRegi
         configSchema: Boolean(manifestRecord.configSchema),
       });
       record.status = "disabled";
-      record.error = `overridden by ${existingOrigin} plugin`;
+      record.reason = `overridden by ${existingOrigin} plugin`;
       registry.plugins.push(record);
       continue;
     }
@@ -268,10 +295,34 @@ export function loadOpenClawPlugins(options: PluginLoadOptions = {}): PluginRegi
     record.kind = manifestRecord.kind;
     record.configUiHints = manifestRecord.configUiHints;
     record.configJsonSchema = manifestRecord.configSchema;
+    if (Array.isArray(manifestRecord.skills)) {
+      const seenSkillDirs = new Set<string>();
+      for (const rawSkillDir of manifestRecord.skills) {
+        const trimmed = rawSkillDir.trim();
+        if (!trimmed) {
+          continue;
+        }
+        const resolvedSkillDir = path.resolve(manifestRecord.rootDir, trimmed);
+        if (!fs.existsSync(resolvedSkillDir)) {
+          registry.diagnostics.push({
+            level: "warn",
+            pluginId: record.id,
+            source: manifestRecord.manifestPath,
+            message: `plugin skill path not found: ${resolvedSkillDir}`,
+          });
+          continue;
+        }
+        if (seenSkillDirs.has(resolvedSkillDir)) {
+          continue;
+        }
+        seenSkillDirs.add(resolvedSkillDir);
+        record.skillDirs.push(resolvedSkillDir);
+      }
+    }
 
     if (!enableState.enabled) {
       record.status = "disabled";
-      record.error = enableState.reason;
+      record.reason = enableState.reason;
       registry.plugins.push(record);
       seenIds.set(pluginId, candidate.origin);
       continue;
@@ -351,7 +402,7 @@ export function loadOpenClawPlugins(options: PluginLoadOptions = {}): PluginRegi
     if (!memoryDecision.enabled) {
       record.enabled = false;
       record.status = "disabled";
-      record.error = memoryDecision.reason;
+      record.reason = memoryDecision.reason;
       registry.plugins.push(record);
       seenIds.set(pluginId, candidate.origin);
       continue;
@@ -382,12 +433,6 @@ export function loadOpenClawPlugins(options: PluginLoadOptions = {}): PluginRegi
       continue;
     }
 
-    if (validateOnly) {
-      registry.plugins.push(record);
-      seenIds.set(pluginId, candidate.origin);
-      continue;
-    }
-
     if (typeof register !== "function") {
       logger.error(`[plugins] ${record.id} missing register/activate export`);
       record.status = "error";
@@ -400,6 +445,50 @@ export function loadOpenClawPlugins(options: PluginLoadOptions = {}): PluginRegi
         source: record.source,
         message: record.error,
       });
+      continue;
+    }
+
+    let availability: { available: boolean; reason?: string };
+    try {
+      availability = normalizeAvailabilityResult(
+        definition?.isAvailable?.({
+          config: cfg,
+          pluginConfig: validatedConfig.value,
+          runtime,
+          logger,
+          workspaceDir: candidate.workspaceDir,
+          source: record.source,
+          origin: record.origin,
+        }),
+      );
+    } catch (err) {
+      logger.error(
+        `[plugins] ${record.id} availability check failed from ${record.source}: ${String(err)}`,
+      );
+      record.status = "error";
+      record.error = `plugin availability check failed: ${String(err)}`;
+      registry.plugins.push(record);
+      seenIds.set(pluginId, candidate.origin);
+      registry.diagnostics.push({
+        level: "error",
+        pluginId: record.id,
+        source: record.source,
+        message: record.error,
+      });
+      continue;
+    }
+    record.available = availability.available;
+    if (!availability.available) {
+      record.status = "unavailable";
+      record.reason = availability.reason ?? "plugin unavailable in this environment";
+      registry.plugins.push(record);
+      seenIds.set(pluginId, candidate.origin);
+      continue;
+    }
+
+    if (validateOnly) {
+      registry.plugins.push(record);
+      seenIds.set(pluginId, candidate.origin);
       continue;
     }
 
@@ -447,7 +536,9 @@ export function loadOpenClawPlugins(options: PluginLoadOptions = {}): PluginRegi
   if (cacheEnabled) {
     registryCache.set(cacheKey, registry);
   }
-  setActivePluginRegistry(registry, cacheKey);
-  initializeGlobalHookRunner(registry);
+  if (!validateOnly) {
+    setActivePluginRegistry(registry, cacheKey);
+    initializeGlobalHookRunner(registry);
+  }
   return registry;
 }

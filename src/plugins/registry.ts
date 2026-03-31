@@ -105,7 +105,9 @@ export type PluginRecord = {
   origin: PluginOrigin;
   workspaceDir?: string;
   enabled: boolean;
-  status: "loaded" | "disabled" | "error";
+  available: boolean;
+  status: "loaded" | "disabled" | "unavailable" | "error";
+  reason?: string;
   error?: string;
   toolNames: string[];
   hookNames: string[];
@@ -115,6 +117,7 @@ export type PluginRecord = {
   cliCommands: string[];
   services: string[];
   commands: string[];
+  skillDirs: string[];
   httpHandlers: number;
   hookCount: number;
   configSchema: boolean;

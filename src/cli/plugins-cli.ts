@@ -37,6 +37,8 @@ function formatPluginLine(plugin: PluginRecord, verbose = false): string {
       ? theme.success("loaded")
       : plugin.status === "disabled"
         ? theme.warn("disabled")
+        : plugin.status === "unavailable"
+          ? theme.warn("unavailable")
         : theme.error("error");
   const name = theme.command(plugin.name || plugin.id);
   const idSuffix = plugin.name && plugin.name !== plugin.id ? theme.muted(` (${plugin.id})`) : "";
@@ -62,6 +64,9 @@ function formatPluginLine(plugin: PluginRecord, verbose = false): string {
   }
   if (plugin.providerIds.length > 0) {
     parts.push(`  providers: ${plugin.providerIds.join(", ")}`);
+  }
+  if (plugin.reason) {
+    parts.push(theme.warn(`  reason: ${plugin.reason}`));
   }
   if (plugin.error) {
     parts.push(theme.error(`  error: ${plugin.error}`));
@@ -115,7 +120,7 @@ export function registerPluginsCli(program: Command) {
     .action((opts: PluginsListOptions) => {
       const report = buildPluginStatusReport();
       const list = opts.enabled
-        ? report.plugins.filter((p) => p.status === "loaded")
+        ? report.plugins.filter((p) => p.enabled)
         : report.plugins;
 
       if (opts.json) {
@@ -151,6 +156,8 @@ export function registerPluginsCli(program: Command) {
                 ? theme.success("loaded")
                 : plugin.status === "disabled"
                   ? theme.warn("disabled")
+                  : plugin.status === "unavailable"
+                    ? theme.warn("unavailable")
                   : theme.error("error"),
             Source: sourceLine,
             Version: plugin.version ?? "",
@@ -235,6 +242,9 @@ export function registerPluginsCli(program: Command) {
       }
       if (plugin.error) {
         lines.push(`${theme.error("Error:")} ${plugin.error}`);
+      }
+      if (plugin.reason) {
+        lines.push(`${theme.muted("Reason:")} ${plugin.reason}`);
       }
       if (install) {
         lines.push("");
@@ -517,9 +527,10 @@ export function registerPluginsCli(program: Command) {
     .action(() => {
       const report = buildPluginStatusReport();
       const errors = report.plugins.filter((p) => p.status === "error");
+      const unavailable = report.plugins.filter((p) => p.status === "unavailable");
       const diags = report.diagnostics.filter((d) => d.level === "error");
 
-      if (errors.length === 0 && diags.length === 0) {
+      if (errors.length === 0 && unavailable.length === 0 && diags.length === 0) {
         defaultRuntime.log("No plugin issues detected.");
         return;
       }
@@ -529,6 +540,15 @@ export function registerPluginsCli(program: Command) {
         lines.push(theme.error("Plugin errors:"));
         for (const entry of errors) {
           lines.push(`- ${entry.id}: ${entry.error ?? "failed to load"} (${entry.source})`);
+        }
+      }
+      if (unavailable.length > 0) {
+        if (lines.length > 0) {
+          lines.push("");
+        }
+        lines.push(theme.warn("Unavailable plugins:"));
+        for (const entry of unavailable) {
+          lines.push(`- ${entry.id}: ${entry.reason ?? "unavailable"} (${entry.source})`);
         }
       }
       if (diags.length > 0) {

@@ -145,6 +145,19 @@ const voiceCallPlugin = {
   name: "Voice Call",
   description: "Voice-call plugin with Telnyx/Twilio/Plivo providers",
   configSchema: voiceCallConfigSchema,
+  isAvailable(ctx: {
+    pluginConfig?: Record<string, unknown>;
+  }) {
+    const config = resolveVoiceCallConfig(voiceCallConfigSchema.parse(ctx.pluginConfig));
+    const validation = validateProviderConfig(config);
+    if (validation.valid) {
+      return { available: true };
+    }
+    return {
+      available: false,
+      reason: validation.errors.join("; "),
+    };
+  },
   register(api: OpenClawPluginApi) {
     const config = resolveVoiceCallConfig(voiceCallConfigSchema.parse(api.pluginConfig));
     const validation = validateProviderConfig(config);

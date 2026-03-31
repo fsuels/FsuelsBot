@@ -232,6 +232,37 @@ describe("loadOpenClawPlugins", () => {
     expect(Object.keys(registry.gatewayHandlers)).toContain("allowed.ping");
   });
 
+  it("keeps validate-mode caches separate from full-mode loading", () => {
+    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
+    const plugin = writePlugin({
+      id: "cached",
+      body: `export default { id: "cached", register(api) { api.registerGatewayMethod("cached.ping", ({ respond }) => respond(true, { ok: true })); } };`,
+    });
+
+    const validateRegistry = loadOpenClawPlugins({
+      config: {
+        plugins: {
+          load: { paths: [plugin.file] },
+          allow: ["cached"],
+        },
+      },
+      workspaceDir: plugin.dir,
+      mode: "validate",
+    });
+    expect(Object.keys(validateRegistry.gatewayHandlers)).not.toContain("cached.ping");
+
+    const fullRegistry = loadOpenClawPlugins({
+      config: {
+        plugins: {
+          load: { paths: [plugin.file] },
+          allow: ["cached"],
+        },
+      },
+      workspaceDir: plugin.dir,
+    });
+    expect(Object.keys(fullRegistry.gatewayHandlers)).toContain("cached.ping");
+  });
+
   it("denylist disables plugins even if allowed", () => {
     process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
     const plugin = writePlugin({
@@ -280,6 +311,40 @@ describe("loadOpenClawPlugins", () => {
     const configurable = registry.plugins.find((entry) => entry.id === "configurable");
     expect(configurable?.status).toBe("error");
     expect(registry.diagnostics.some((d) => d.level === "error")).toBe(true);
+  });
+
+  it("marks enabled plugins unavailable when availability checks fail", () => {
+    process.env.OPENCLAW_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
+    const plugin = writePlugin({
+      id: "needs-env",
+      body: `export default {
+  id: "needs-env",
+  isAvailable() {
+    return { available: false, reason: "missing API key" };
+  },
+  register(api) {
+    api.registerGatewayMethod("needs-env.ping", ({ respond }) => respond(true, { ok: true }));
+  }
+};`,
+    });
+
+    const registry = loadOpenClawPlugins({
+      cache: false,
+      workspaceDir: plugin.dir,
+      config: {
+        plugins: {
+          load: { paths: [plugin.file] },
+          allow: ["needs-env"],
+        },
+      },
+    });
+
+    const unavailable = registry.plugins.find((entry) => entry.id === "needs-env");
+    expect(unavailable?.enabled).toBe(true);
+    expect(unavailable?.available).toBe(false);
+    expect(unavailable?.status).toBe("unavailable");
+    expect(unavailable?.reason).toBe("missing API key");
+    expect(Object.keys(registry.gatewayHandlers)).not.toContain("needs-env.ping");
   });
 
   it("registers channel plugins", () => {

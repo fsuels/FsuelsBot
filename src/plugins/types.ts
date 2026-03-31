@@ -244,6 +244,7 @@ export type OpenClawPluginDefinition = {
   kind?: PluginKind;
   configSchema?: OpenClawPluginConfigSchema;
   register?: (api: OpenClawPluginApi) => void | Promise<void>;
+  isAvailable?: (ctx: OpenClawPluginAvailabilityContext) => OpenClawPluginAvailabilityResult;
   activate?: (api: OpenClawPluginApi) => void | Promise<void>;
 };
 
@@ -298,6 +299,23 @@ export type PluginDiagnostic = {
   level: "warn" | "error";
   message: string;
   pluginId?: string;
+export type OpenClawPluginAvailabilityResult =
+  | boolean
+  | {
+      available: boolean;
+      reason?: string;
+    };
+
+export type OpenClawPluginAvailabilityContext = {
+  config: OpenClawConfig;
+  pluginConfig?: Record<string, unknown>;
+  runtime: PluginRuntime;
+  logger: PluginLogger;
+  workspaceDir?: string;
+  source: string;
+  origin: PluginOrigin;
+};
+
   source?: string;
 };
 
