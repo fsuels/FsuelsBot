@@ -56,6 +56,7 @@ import {
   handleFirstUpdated,
   handleUpdated,
 } from "./app-lifecycle.ts";
+import { createOverlayCoordinator, handleAppEscapeKey, syncAppOverlays } from "./app-overlays.ts";
 import { renderApp } from "./app-render.ts";
 import {
   exportLogs as exportLogsInternal,
@@ -80,7 +81,12 @@ import {
 } from "./app-tool-stream.ts";
 import { resolveInjectedAssistantIdentity } from "./assistant-identity.ts";
 import { loadAssistantIdentity as loadAssistantIdentityInternal } from "./controllers/assistant-identity.ts";
+import {
+  createChatLifecycleGuard,
+  type ChatLifecycleSnapshot,
+} from "./controllers/chat-lifecycle-guard.ts";
 import { loadSettings, type UiSettings } from "./storage.ts";
+import { createUiTelemetry } from "./telemetry.ts";
 import { type ChatAttachment, type ChatQueueItem, type CronFormState } from "./ui-types.ts";
 
 declare global {
@@ -118,8 +124,17 @@ export class OpenClawApp extends LitElement {
   @state() eventLog: EventLogEntry[] = [];
   private eventLogBuffer: EventLogEntry[] = [];
   private toolStreamSyncTimer: number | null = null;
-  private chatReactionClearTimer: number | null = null;
   private sidebarCloseTimer: number | null = null;
+  readonly overlayCoordinator = createOverlayCoordinator();
+  readonly telemetry = createUiTelemetry();
+  readonly chatLifecycleGuard = createChatLifecycleGuard();
+  private readonly syncChatLifecycleState = (snapshot: ChatLifecycleSnapshot) => {
+    this.chatSending = snapshot.phase === "reserved";
+    this.chatRunId = snapshot.runId;
+  };
+  private readonly keydownHandler = (event: KeyboardEvent) => {
+    handleAppEscapeKey(this, event);
+  };
 
   @state() assistantName = injectedAssistantIdentity.name;
   @state() assistantAvatar = injectedAssistantIdentity.avatar;
@@ -343,6 +358,7 @@ export class OpenClawApp extends LitElement {
   private logsScrollFrame: number | null = null;
   private toolStreamById = new Map<string, ToolStreamEntry>();
   private toolStreamOrder: string[] = [];
+  private chatReactionClearTimer: number | null = null;
   refreshSessionsAfterChat = new Set<string>();
   basePath = "";
   private popStateHandler = () =>
@@ -351,12 +367,20 @@ export class OpenClawApp extends LitElement {
   private themeMediaHandler: ((event: MediaQueryListEvent) => void) | null = null;
   private topbarObserver: ResizeObserver | null = null;
 
+  constructor() {
+    super();
+    this.chatLifecycleGuard.subscribe(this.syncChatLifecycleState);
+  }
+
   createRenderRoot() {
     return this;
   }
 
   connectedCallback() {
     super.connectedCallback();
+    this.telemetry.start();
+    window.addEventListener("keydown", this.keydownHandler);
+    this.syncOverlays();
     handleConnected(this as unknown as Parameters<typeof handleConnected>[0]);
   }
 
@@ -364,7 +388,19 @@ export class OpenClawApp extends LitElement {
     handleFirstUpdated(this as unknown as Parameters<typeof handleFirstUpdated>[0]);
   }
 
+  protected willUpdate(changed: Map<PropertyKey, unknown>) {
+    if (
+      changed.has("sidebarOpen") ||
+      changed.has("execApprovalQueue") ||
+      changed.has("pendingGatewayUrl")
+    ) {
+      this.syncOverlays();
+    }
+  }
+
   disconnectedCallback() {
+    window.removeEventListener("keydown", this.keydownHandler);
+    this.telemetry.stop();
     handleDisconnected(this as unknown as Parameters<typeof handleDisconnected>[0]);
     super.disconnectedCallback();
   }
@@ -444,6 +480,38 @@ export class OpenClawApp extends LitElement {
     await handleAbortChatInternal(this as unknown as Parameters<typeof handleAbortChatInternal>[0]);
   }
 
+  forceEndChatRun() {
+    this.chatLifecycleGuard.forceEnd();
+  }
+
+  syncOverlays() {
+    syncAppOverlays(this);
+  }
+
+  hasActiveOverlay() {
+    return this.overlayCoordinator.isOverlayActive();
+  }
+
+  hasModalOverlay() {
+    return this.overlayCoordinator.isModalOverlayActive();
+  }
+
+  getActiveOverlayIds() {
+    return this.overlayCoordinator.getSnapshot().activeIds;
+  }
+
+  getModalOverlayIds() {
+    return this.overlayCoordinator.getSnapshot().modalIds;
+  }
+
+  getTelemetrySnapshot() {
+    return this.telemetry.getAll();
+  }
+
+  getLastTelemetrySnapshot() {
+    return this.telemetry.getLastSessionSnapshot();
+  }
+
   removeQueuedMessage(id: string) {
     removeQueuedMessageInternal(
       this as unknown as Parameters<typeof removeQueuedMessageInternal>[0],
@@ -519,6 +587,7 @@ export class OpenClawApp extends LitElement {
         decision,
       });
       this.execApprovalQueue = this.execApprovalQueue.filter((entry) => entry.id !== active.id);
+      this.syncOverlays();
     } catch (err) {
       this.execApprovalError = `Exec approval failed: ${String(err)}`;
     } finally {
@@ -532,6 +601,7 @@ export class OpenClawApp extends LitElement {
       return;
     }
     this.pendingGatewayUrl = null;
+    this.syncOverlays();
     applySettingsInternal(this as unknown as Parameters<typeof applySettingsInternal>[0], {
       ...this.settings,
       gatewayUrl: nextGatewayUrl,
@@ -541,6 +611,7 @@ export class OpenClawApp extends LitElement {
 
   handleGatewayUrlCancel() {
     this.pendingGatewayUrl = null;
+    this.syncOverlays();
   }
 
   // Sidebar handlers for tool output viewing
@@ -552,10 +623,12 @@ export class OpenClawApp extends LitElement {
     this.sidebarContent = content;
     this.sidebarError = null;
     this.sidebarOpen = true;
+    this.syncOverlays();
   }
 
   handleCloseSidebar() {
     this.sidebarOpen = false;
+    this.syncOverlays();
     // Clear content after transition
     if (this.sidebarCloseTimer != null) {
       window.clearTimeout(this.sidebarCloseTimer);

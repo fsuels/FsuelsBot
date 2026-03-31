@@ -8,6 +8,7 @@ export type HybridVectorResult = {
   source: HybridSource;
   snippet: string;
   vectorScore: number;
+  mtimeMs?: number;
 };
 
 export type HybridKeywordResult = {
@@ -18,6 +19,7 @@ export type HybridKeywordResult = {
   source: HybridSource;
   snippet: string;
   textScore: number;
+  mtimeMs?: number;
 };
 
 export function buildFtsQuery(raw: string): string | null {
@@ -62,6 +64,7 @@ export function mergeHybridResults(params: {
       snippet: string;
       vectorScore: number;
       textScore: number;
+      mtimeMs?: number;
     }
   >();
 
@@ -75,6 +78,7 @@ export function mergeHybridResults(params: {
       snippet: r.snippet,
       vectorScore: r.vectorScore,
       textScore: 0,
+      mtimeMs: r.mtimeMs,
     });
   }
 
@@ -82,6 +86,7 @@ export function mergeHybridResults(params: {
     const existing = byId.get(r.id);
     if (existing) {
       existing.textScore = r.textScore;
+      existing.mtimeMs ??= r.mtimeMs;
       if (r.snippet && r.snippet.length > 0) {
         existing.snippet = r.snippet;
       }
@@ -95,6 +100,7 @@ export function mergeHybridResults(params: {
         snippet: r.snippet,
         vectorScore: 0,
         textScore: r.textScore,
+        mtimeMs: r.mtimeMs,
       });
     }
   }
@@ -108,6 +114,7 @@ export function mergeHybridResults(params: {
       score,
       snippet: entry.snippet,
       source: entry.source,
+      mtimeMs: entry.mtimeMs,
     };
   });
 

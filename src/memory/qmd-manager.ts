@@ -15,6 +15,7 @@ import { resolveAgentWorkspaceDir } from "../agents/agent-scope.js";
 import { resolveStateDir } from "../config/paths.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { parseAgentSessionKey } from "../sessions/session-key-utils.js";
+import { assertPathContainedWithRealpath, sanitizeMemoryInputPath } from "./internal.js";
 import {
   listSessionFilesForAgent,
   buildSessionEntry,
@@ -322,28 +323,26 @@ export class QmdMemoryManager implements MemorySearchManager {
     relPath: string;
     from?: number;
     lines?: number;
-  }): Promise<{ text: string; path: string }> {
-    const relPath = params.relPath?.trim();
-    if (!relPath) {
-      throw new Error("path required");
-    }
+  }): Promise<{ text: string; path: string; mtimeMs?: number }> {
+    const relPath = sanitizeMemoryInputPath(params.relPath);
     const absPath = this.resolveReadPath(relPath);
     if (!absPath.endsWith(".md")) {
       throw new Error("path required");
     }
+    await this.assertReadPathContained(relPath, absPath);
     const stat = await fs.lstat(absPath);
     if (stat.isSymbolicLink() || !stat.isFile()) {
       throw new Error("path required");
     }
     const content = await fs.readFile(absPath, "utf-8");
     if (!params.from && !params.lines) {
-      return { text: content, path: relPath };
+      return { text: content, path: relPath, mtimeMs: stat.mtimeMs };
     }
     const lines = content.split("\n");
     const start = Math.max(1, params.from ?? 1);
     const count = Math.max(1, params.lines ?? lines.length);
     const slice = lines.slice(start - 1, start - 1 + count);
-    return { text: slice.join("\n"), path: relPath };
+    return { text: slice.join("\n"), path: relPath, mtimeMs: stat.mtimeMs };
   }
 
   status(): MemoryProviderStatus {
@@ -894,6 +893,19 @@ export class QmdMemoryManager implements MemorySearchManager {
       throw new Error("path escapes workspace");
     }
     return absPath;
+  }
+
+  private async assertReadPathContained(relPath: string, absPath: string): Promise<void> {
+    if (relPath.startsWith("qmd/")) {
+      const [, collection] = relPath.split("/");
+      const root = collection ? this.collectionRoots.get(collection) : undefined;
+      if (!root) {
+        throw new Error(`unknown qmd collection: ${collection ?? ""}`);
+      }
+      await assertPathContainedWithRealpath(root.path, absPath);
+      return;
+    }
+    await assertPathContainedWithRealpath(this.workspaceDir, absPath);
   }
 
   private isWithinWorkspace(absPath: string): boolean {

@@ -10,6 +10,7 @@ const stubManager = {
       score: 0.9,
       snippet: "@@ -5,3 @@\nAssistant: noted",
       source: "memory" as const,
+      mtimeMs: Date.parse("2026-03-28T12:00:00.000Z"),
     },
   ]),
   readFile: vi.fn(),
@@ -54,6 +55,8 @@ describe("memory search citations", () => {
     const result = await tool.execute("call_citations_on", { query: "notes" });
     const details = result.details as { results: Array<{ snippet: string; citation?: string }> };
     expect(details.results[0]?.snippet).toMatch(/Source: MEMORY.md#L5-L7/);
+    expect(details.results[0]?.snippet).toMatch(/Age: /);
+    expect(details.results[0]?.snippet).toMatch(/Point-in-time observation/);
     expect(details.results[0]?.citation).toBe("MEMORY.md#L5-L7");
   });
 

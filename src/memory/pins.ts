@@ -4,7 +4,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import lockfile from "proper-lockfile";
 import { DEFAULT_SESSION_TASK_ID } from "../sessions/task-context.js";
-import { ensureDir } from "./internal.js";
+import { assertPathContainedWithRealpath, ensureDir } from "./internal.js";
 import { normalizeMemoryTaskId, resolveTaskMemoryDirPath } from "./namespaces.js";
 
 export type MemoryPinType = "fact" | "preference" | "constraint" | "temporary";
@@ -168,9 +168,11 @@ async function readStore(workspaceDir: string): Promise<MemoryPinsStore> {
 
 async function writeStore(workspaceDir: string, store: MemoryPinsStore): Promise<void> {
   const filePath = path.join(workspaceDir, PINS_STORE_REL_PATH);
+  await assertPathContainedWithRealpath(workspaceDir, filePath);
   const dir = path.dirname(filePath);
   ensureDir(dir);
   const tmpPath = path.join(dir, `${path.basename(filePath)}.${process.pid}.${randomUUID()}.tmp`);
+  await assertPathContainedWithRealpath(workspaceDir, tmpPath);
   await fs.writeFile(tmpPath, `${JSON.stringify(store, null, 2)}\n`, "utf-8");
   try {
     await fs.rename(tmpPath, filePath);
@@ -182,6 +184,7 @@ async function writeStore(workspaceDir: string, store: MemoryPinsStore): Promise
 
 async function ensureStoreFile(workspaceDir: string): Promise<void> {
   const filePath = path.join(workspaceDir, PINS_STORE_REL_PATH);
+  await assertPathContainedWithRealpath(workspaceDir, filePath);
   ensureDir(path.dirname(filePath));
   try {
     await fs.access(filePath);
@@ -264,6 +267,7 @@ function buildPinsMarkdown(pins: MemoryPinRecord[]): string {
 async function writePinMarkdownFiles(workspaceDir: string, pins: MemoryPinRecord[]): Promise<void> {
   const globalPins = pins.filter((pin) => pin.scope === "global");
   const globalPath = path.join(workspaceDir, GLOBAL_PINS_REL_PATH);
+  await assertPathContainedWithRealpath(workspaceDir, globalPath);
   ensureDir(path.dirname(globalPath));
   await fs.writeFile(globalPath, buildPinsMarkdown(globalPins), "utf-8");
 
@@ -281,6 +285,7 @@ async function writePinMarkdownFiles(workspaceDir: string, pins: MemoryPinRecord
   for (const [taskId, taskPins] of byTask.entries()) {
     const relPath = resolveTaskPinPath(taskId);
     const absPath = path.join(workspaceDir, relPath);
+    await assertPathContainedWithRealpath(workspaceDir, absPath);
     ensureDir(path.dirname(absPath));
     await fs.writeFile(absPath, buildPinsMarkdown(taskPins), "utf-8");
   }
@@ -307,6 +312,7 @@ async function writePinMarkdownFiles(workspaceDir: string, pins: MemoryPinRecord
     }
     const stalePinPath = path.join(tasksRoot, entry.name, "pins.md");
     try {
+      await assertPathContainedWithRealpath(workspaceDir, stalePinPath);
       await fs.rm(stalePinPath, { force: true });
     } catch {}
   }
@@ -677,7 +683,9 @@ export async function validateMemoryPinRemoveIntent(params: {
   const store = await readStore(params.workspaceDir);
   const now = params.now ?? Date.now();
   const token = params.token.trim();
-  if (!token) return { valid: false };
+  if (!token) {
+    return { valid: false };
+  }
   const intents = store.removeIntents ?? [];
   const intent = intents.find((entry) => entry.token === token);
   if (!intent) {

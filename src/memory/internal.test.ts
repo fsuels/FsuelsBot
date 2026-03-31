@@ -2,7 +2,13 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { chunkMarkdown, listMemoryFiles, normalizeExtraMemoryPaths } from "./internal.js";
+import {
+  assertPathContainedWithRealpath,
+  chunkMarkdown,
+  listMemoryFiles,
+  normalizeExtraMemoryPaths,
+  sanitizeMemoryInputPath,
+} from "./internal.js";
 
 describe("normalizeExtraMemoryPaths", () => {
   it("trims, resolves, and dedupes paths", () => {
@@ -16,6 +22,15 @@ describe("normalizeExtraMemoryPaths", () => {
       "",
     ]);
     expect(result).toEqual([path.resolve(workspaceDir, "notes"), absPath]);
+  });
+});
+
+describe("sanitizeMemoryInputPath", () => {
+  it("rejects absolute, encoded, unicode-normalized, and null-byte paths", () => {
+    expect(() => sanitizeMemoryInputPath("/tmp/secret.md")).toThrow("path required");
+    expect(() => sanitizeMemoryInputPath("%2e%2e%2fsecret.md")).toThrow("path required");
+    expect(() => sanitizeMemoryInputPath("\uFF0E\uFF0E\uFF0Fsecret.md")).toThrow("path required");
+    expect(() => sanitizeMemoryInputPath("note\0.md")).toThrow("path required");
   });
 });
 
@@ -121,5 +136,35 @@ describe("chunkMarkdown", () => {
     for (const chunk of chunks) {
       expect(chunk.text.length).toBeLessThanOrEqual(maxChars);
     }
+  });
+});
+
+describe("assertPathContainedWithRealpath", () => {
+  it("rejects symlink ancestor escapes", async () => {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "memory-realpath-"));
+    const rootDir = path.join(tmpDir, "root");
+    const outsideDir = path.join(tmpDir, "outside");
+    await fs.mkdir(rootDir, { recursive: true });
+    await fs.mkdir(outsideDir, { recursive: true });
+    const targetFile = path.join(outsideDir, "secret.md");
+    await fs.writeFile(targetFile, "secret", "utf-8");
+    const linkDir = path.join(rootDir, "linked");
+
+    try {
+      await fs.symlink(outsideDir, linkDir, "dir");
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code === "EPERM" || code === "EACCES") {
+        await fs.rm(tmpDir, { recursive: true, force: true });
+        return;
+      }
+      throw err;
+    }
+
+    await expect(
+      assertPathContainedWithRealpath(rootDir, path.join(linkDir, "secret.md")),
+    ).rejects.toThrow("path required");
+
+    await fs.rm(tmpDir, { recursive: true, force: true });
   });
 });

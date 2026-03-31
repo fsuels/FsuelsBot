@@ -15,7 +15,7 @@ export type SearchRowResult = {
   score: number;
   snippet: string;
   source: SearchSource;
-  provenanceTs?: number;
+  mtimeMs?: number;
 };
 
 export async function searchVector(params: {
@@ -72,7 +72,7 @@ export async function searchVector(params: {
       score: 1 - row.dist,
       snippet: truncateUtf16Safe(row.text, params.snippetMaxChars),
       source: row.source,
-      provenanceTs: row.provenance_ts,
+      mtimeMs: row.provenance_ts,
     }));
   }
 
@@ -99,7 +99,7 @@ export async function searchVector(params: {
       score: entry.score,
       snippet: truncateUtf16Safe(entry.chunk.text, params.snippetMaxChars),
       source: entry.chunk.source,
-      provenanceTs: entry.chunk.updatedAt,
+      mtimeMs: entry.chunk.updatedAt,
     }));
 }
 
@@ -216,7 +216,7 @@ export async function searchKeyword(params: {
       textScore,
       snippet: truncateUtf16Safe(row.text, params.snippetMaxChars),
       source: row.source,
-      provenanceTs: row.provenance_ts,
+      mtimeMs: row.provenance_ts,
     };
   });
 }

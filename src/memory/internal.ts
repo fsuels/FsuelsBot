@@ -30,14 +30,145 @@ export function normalizeRelPath(value: string): string {
   return trimmed.replace(/\\/g, "/");
 }
 
-export function isPathWithinRoot(rootPath: string, targetPath: string): boolean {
-  const resolvedRoot = path.resolve(rootPath);
-  const resolvedTarget = path.resolve(targetPath);
-  const relative = path.relative(resolvedRoot, resolvedTarget);
-  if (!relative) {
+const NOT_FOUND_PATH_CODES = new Set(["ENOENT", "ENOTDIR"]);
+
+function ensureTrailingSep(value: string): string {
+  return value.endsWith(path.sep) ? value : `${value}${path.sep}`;
+}
+
+function normalizeAbsoluteRoot(rootPath: string): string {
+  const resolved = path.resolve(rootPath);
+  if (!path.isAbsolute(resolved)) {
+    throw new Error("path required");
+  }
+  return path.normalize(resolved);
+}
+
+function hasNotFoundCode(error: unknown): boolean {
+  const code = (error as NodeJS.ErrnoException)?.code;
+  return typeof code === "string" && NOT_FOUND_PATH_CODES.has(code);
+}
+
+function containsTraversalRisk(value: string): boolean {
+  const normalized = value.replace(/\\/g, "/");
+  if (path.posix.isAbsolute(normalized)) {
     return true;
   }
-  return !relative.startsWith("..") && !path.isAbsolute(relative);
+  const segments = normalized.split("/");
+  return segments.some((segment) => segment === "..");
+}
+
+function hasEncodedTraversalRisk(value: string): boolean {
+  if (!/%[0-9a-f]{2}/i.test(value)) {
+    return false;
+  }
+  try {
+    const decoded = decodeURIComponent(value);
+    if (decoded === value) {
+      return false;
+    }
+    return containsTraversalRisk(decoded) || decoded.includes("\\");
+  } catch {
+    return true;
+  }
+}
+
+function hasUnicodeTraversalRisk(value: string): boolean {
+  const normalized = value.normalize("NFKC");
+  if (normalized === value) {
+    return false;
+  }
+  return containsTraversalRisk(normalized) || normalized.includes("\\");
+}
+
+export function sanitizeMemoryInputPath(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    throw new Error("path required");
+  }
+  if (trimmed.includes("\0")) {
+    throw new Error("path required");
+  }
+  if (path.isAbsolute(trimmed)) {
+    throw new Error("path required");
+  }
+  if (trimmed.includes("\\")) {
+    throw new Error("path required");
+  }
+  if (hasEncodedTraversalRisk(trimmed)) {
+    throw new Error("path required");
+  }
+  if (hasUnicodeTraversalRisk(trimmed)) {
+    throw new Error("path required");
+  }
+  return trimmed;
+}
+
+export function isPathWithinRoot(rootPath: string, targetPath: string): boolean {
+  const resolvedRoot = normalizeAbsoluteRoot(rootPath);
+  const resolvedTarget = path.resolve(targetPath);
+  if (resolvedTarget === resolvedRoot) {
+    return true;
+  }
+  return ensureTrailingSep(resolvedTarget).startsWith(ensureTrailingSep(resolvedRoot));
+}
+
+async function findDeepestExistingAncestor(
+  candidatePath: string,
+  rootPath: string,
+): Promise<string> {
+  const normalizedRoot = normalizeAbsoluteRoot(rootPath);
+  let current = path.resolve(candidatePath);
+  while (true) {
+    try {
+      await fs.lstat(current);
+      return current;
+    } catch (error) {
+      if (!hasNotFoundCode(error)) {
+        throw error;
+      }
+      const parent = path.dirname(current);
+      if (parent === current) {
+        throw error;
+      }
+      current = parent;
+      if (!isPathWithinRoot(normalizedRoot, current)) {
+        throw new Error("path required", { cause: error });
+      }
+    }
+  }
+}
+
+export async function assertPathContainedWithRealpath(
+  rootPath: string,
+  candidatePath: string,
+): Promise<void> {
+  const normalizedRoot = normalizeAbsoluteRoot(rootPath);
+  const resolvedCandidate = path.resolve(candidatePath);
+  if (!isPathWithinRoot(normalizedRoot, resolvedCandidate)) {
+    throw new Error("path required");
+  }
+  let realRoot: string;
+  try {
+    realRoot = await fs.realpath(normalizedRoot);
+  } catch {
+    throw new Error("path required");
+  }
+  let existingAncestor: string;
+  try {
+    existingAncestor = await findDeepestExistingAncestor(resolvedCandidate, normalizedRoot);
+  } catch {
+    throw new Error("path required");
+  }
+  let realAncestor: string;
+  try {
+    realAncestor = await fs.realpath(existingAncestor);
+  } catch {
+    throw new Error("path required");
+  }
+  if (!isPathWithinRoot(realRoot, realAncestor)) {
+    throw new Error("path required");
+  }
 }
 
 export function normalizeExtraMemoryPaths(workspaceDir: string, extraPaths?: string[]): string[] {

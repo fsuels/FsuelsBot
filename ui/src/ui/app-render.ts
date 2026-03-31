@@ -1,5 +1,6 @@
 import { html, nothing } from "lit";
 import type { AppViewState } from "./app-view-state.ts";
+import type { OpenClawApp } from "./app.ts";
 import type { UsageState } from "./controllers/usage.ts";
 import { parseAgentSessionKey } from "../../../src/routing/session-key.js";
 import { refreshChatAvatar } from "./app-chat.ts";
@@ -116,6 +117,7 @@ export function renderApp(state: AppViewState) {
     state.agentsList?.defaultId ??
     state.agentsList?.agents?.[0]?.id ??
     null;
+  const topModalOverlayId = state.getModalOverlayIds().at(-1) ?? null;
 
   return html`
     <div class="shell ${isChat ? "shell--chat" : ""} ${chatFocus ? "shell--chat-focus" : ""} ${state.settings.navCollapsed ? "shell--nav-collapsed" : ""} ${state.onboarding ? "shell--onboarding" : ""}">
@@ -1074,7 +1076,7 @@ export function renderApp(state: AppViewState) {
                   state.chatAttachments = [];
                   state.chatStream = null;
                   state.chatStreamStartedAt = null;
-                  state.chatRunId = null;
+                  (state as unknown as OpenClawApp).forceEndChatRun();
                   state.chatQueue = [];
                   state.resetToolStream();
                   state.resetChatScroll();
@@ -1101,6 +1103,7 @@ export function renderApp(state: AppViewState) {
                 queue: state.chatQueue,
                 connected: state.connected,
                 canSend: state.connected,
+                composeBlocked: state.hasModalOverlay(),
                 disabledReason: chatDisabledReason,
                 error: state.lastError,
                 sessions: state.sessionsResult,
@@ -1192,6 +1195,8 @@ export function renderApp(state: AppViewState) {
                 models: state.debugModels,
                 heartbeat: state.debugHeartbeat,
                 eventLog: state.eventLog,
+                telemetry: state.getTelemetrySnapshot(),
+                lastTelemetry: state.getLastTelemetrySnapshot(),
                 callMethod: state.debugCallMethod,
                 callParams: state.debugCallParams,
                 callResult: state.debugCallResult,
@@ -1227,8 +1232,12 @@ export function renderApp(state: AppViewState) {
             : nothing
         }
       </main>
-      ${renderExecApprovalPrompt(state)}
-      ${renderGatewayUrlConfirmation(state)}
+      ${topModalOverlayId === "exec-approval" ? renderExecApprovalPrompt(state) : nothing}
+      ${
+        topModalOverlayId === "gateway-url-confirmation"
+          ? renderGatewayUrlConfirmation(state)
+          : nothing
+      }
     </div>
   `;
 }

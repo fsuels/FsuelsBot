@@ -11,7 +11,12 @@ export const DEFAULT_MEMORY_FLUSH_PROMPT = [
   "Pre-compaction memory flush.",
   "Store task-local durable memory in memory/tasks/<taskId>.md.",
   "Store cross-task durable memory in memory/global/*.md.",
+  "Store only non-derivable durable context: decisions, durable constraints, user preferences, validated facts, external system pointers, and open questions that still matter.",
+  "Do not store repo structure, file listings, git history, transient debugging steps, temporary task chatter, or facts already obvious from current code or task artifacts.",
   "Use deterministic merge rules: Goal/Current state replace; Decisions append + dedupe; Open questions append (mark resolved with RESOLVED:); Next actions replace snapshot; Key entities merge by stable key; Pinned items are immutable unless explicitly unpinned.",
+  "Prefer updating existing memory over creating duplicates.",
+  "Convert relative dates to absolute dates before saving.",
+  "Save positive confirmations when they materially validate a decision or fact, not only corrections.",
   "Pins must be typed: fact | preference | constraint | temporary (expire stale temporary pins).",
   `If nothing to store, reply with ${SILENT_REPLY_TOKEN}.`,
 ].join(" ");

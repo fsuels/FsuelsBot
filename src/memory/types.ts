@@ -8,6 +8,10 @@ export type MemorySearchResult = {
   snippet: string;
   source: MemorySource;
   citation?: string;
+  mtimeMs?: number;
+  age?: string;
+  freshnessText?: string;
+  freshnessNote?: string;
 };
 
 export type MemoryEmbeddingProbeResult = {
@@ -67,7 +71,7 @@ export interface MemorySearchManager {
     relPath: string;
     from?: number;
     lines?: number;
-  }): Promise<{ text: string; path: string }>;
+  }): Promise<{ text: string; path: string; mtimeMs?: number }>;
   status(): MemoryProviderStatus;
   sync?(params?: {
     reason?: string;

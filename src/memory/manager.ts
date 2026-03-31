@@ -27,6 +27,7 @@ import {
   runOpenAiEmbeddingBatches,
 } from "./batch-openai.js";
 import { type VoyageBatchRequest, runVoyageEmbeddingBatches } from "./batch-voyage.js";
+import { EmbeddingCircuitBreaker } from "./circuit-breaker.js";
 import { DEFAULT_GEMINI_EMBEDDING_MODEL } from "./embeddings-gemini.js";
 import { DEFAULT_OPENAI_EMBEDDING_MODEL } from "./embeddings-openai.js";
 import { DEFAULT_VOYAGE_EMBEDDING_MODEL } from "./embeddings-voyage.js";
@@ -38,9 +39,9 @@ import {
   type OpenAiEmbeddingClient,
   type VoyageEmbeddingClient,
 } from "./embeddings.js";
-import { EmbeddingCircuitBreaker } from "./circuit-breaker.js";
 import { bm25RankToScore, buildFtsQuery, mergeHybridResults } from "./hybrid.js";
 import {
+  assertPathContainedWithRealpath,
   buildFileEntry,
   chunkMarkdown,
   ensureDir,
@@ -48,6 +49,7 @@ import {
   isMemoryPath,
   listMemoryFiles,
   normalizeExtraMemoryPaths,
+  sanitizeMemoryInputPath,
   type MemoryChunk,
   type MemoryFileEntry,
   parseEmbedding,
@@ -400,6 +402,7 @@ export class MemoryIndexManager implements MemorySearchManager {
         source: r.source,
         snippet: r.snippet,
         vectorScore: r.score,
+        mtimeMs: r.mtimeMs,
       })),
       keyword: params.keyword.map((r) => ({
         id: r.id,
@@ -409,6 +412,7 @@ export class MemoryIndexManager implements MemorySearchManager {
         source: r.source,
         snippet: r.snippet,
         textScore: r.textScore,
+        mtimeMs: r.mtimeMs,
       })),
       vectorWeight: params.vectorWeight,
       textWeight: params.textWeight,
@@ -434,19 +438,15 @@ export class MemoryIndexManager implements MemorySearchManager {
     relPath: string;
     from?: number;
     lines?: number;
-  }): Promise<{ text: string; path: string }> {
-    const rawPath = params.relPath.trim();
-    if (!rawPath) {
-      throw new Error("path required");
-    }
-    const absPath = path.isAbsolute(rawPath)
-      ? path.resolve(rawPath)
-      : path.resolve(this.workspaceDir, rawPath);
+  }): Promise<{ text: string; path: string; mtimeMs?: number }> {
+    const rawPath = sanitizeMemoryInputPath(params.relPath);
+    const absPath = path.resolve(this.workspaceDir, rawPath);
     const relPath = path.relative(this.workspaceDir, absPath).replace(/\\/g, "/");
     const inWorkspace =
       relPath.length > 0 && !relPath.startsWith("..") && !path.isAbsolute(relPath);
     const allowedWorkspace = inWorkspace && isMemoryPath(relPath);
     let allowedAdditional = false;
+    let allowedRoot = this.workspaceDir;
     if (!allowedWorkspace && this.settings.extraPaths.length > 0) {
       const additionalPaths = normalizeExtraMemoryPaths(
         this.workspaceDir,
@@ -461,6 +461,7 @@ export class MemoryIndexManager implements MemorySearchManager {
           if (stat.isDirectory()) {
             if (absPath === additionalPath || absPath.startsWith(`${additionalPath}${path.sep}`)) {
               allowedAdditional = true;
+              allowedRoot = additionalPath;
               break;
             }
             continue;
@@ -468,6 +469,7 @@ export class MemoryIndexManager implements MemorySearchManager {
           if (stat.isFile()) {
             if (absPath === additionalPath && absPath.endsWith(".md")) {
               allowedAdditional = true;
+              allowedRoot = additionalPath;
               break;
             }
           }
@@ -480,19 +482,20 @@ export class MemoryIndexManager implements MemorySearchManager {
     if (!absPath.endsWith(".md")) {
       throw new Error("path required");
     }
+    await assertPathContainedWithRealpath(allowedRoot, absPath);
     const stat = await fs.lstat(absPath);
     if (stat.isSymbolicLink() || !stat.isFile()) {
       throw new Error("path required");
     }
     const content = await fs.readFile(absPath, "utf-8");
     if (!params.from && !params.lines) {
-      return { text: content, path: relPath };
+      return { text: content, path: relPath, mtimeMs: stat.mtimeMs };
     }
     const lines = content.split("\n");
     const start = Math.max(1, params.from ?? 1);
     const count = Math.max(1, params.lines ?? lines.length);
     const slice = lines.slice(start - 1, start - 1 + count);
-    return { text: slice.join("\n"), path: relPath };
+    return { text: slice.join("\n"), path: relPath, mtimeMs: stat.mtimeMs };
   }
 
   status(): MemoryProviderStatus {

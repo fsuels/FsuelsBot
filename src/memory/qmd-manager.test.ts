@@ -538,6 +538,36 @@ describe("QmdMemoryManager", () => {
       "path required",
     );
 
+    await expect(manager.readFile({ relPath: "%2e%2e%2fsecret.md" })).rejects.toThrow(
+      "path required",
+    );
+    await expect(manager.readFile({ relPath: "\uFF0E\uFF0E\uFF0Fsecret.md" })).rejects.toThrow(
+      "path required",
+    );
+
+    const outsideDir = await fs.mkdtemp(path.join(os.tmpdir(), "qmd-outside-"));
+    await fs.mkdir(outsideDir, { recursive: true });
+    await fs.writeFile(path.join(outsideDir, "escaped.md"), "escaped", "utf-8");
+    const linkedDir = path.join(workspaceDir, "linked-dir");
+    let dirSymlinkOk = true;
+    try {
+      await fs.symlink(outsideDir, linkedDir, "dir");
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code === "EPERM" || code === "EACCES") {
+        dirSymlinkOk = false;
+      } else {
+        throw err;
+      }
+    }
+    if (dirSymlinkOk) {
+      await expect(manager.readFile({ relPath: "linked-dir/escaped.md" })).rejects.toThrow(
+        "path required",
+      );
+    }
+
+    await fs.rm(outsideDir, { recursive: true, force: true });
+
     await manager.close();
   });
 

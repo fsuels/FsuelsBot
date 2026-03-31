@@ -1,3 +1,4 @@
+import type { TelemetrySnapshot } from "../../../src/shared/telemetry-store.ts";
 import type { EventLogEntry } from "./app-events.ts";
 import type { AgentReaction } from "./app-tool-stream.ts";
 import type { DevicePairingList } from "./controllers/devices.ts";
@@ -75,6 +76,12 @@ export type AppViewState = {
   sidebarError: string | null;
   splitRatio: number;
   scrollToBottom: (opts?: { smooth?: boolean }) => void;
+  hasActiveOverlay: () => boolean;
+  hasModalOverlay: () => boolean;
+  getActiveOverlayIds: () => string[];
+  getModalOverlayIds: () => string[];
+  getTelemetrySnapshot: () => TelemetrySnapshot;
+  getLastTelemetrySnapshot: () => TelemetrySnapshot | null;
   devicesLoading: boolean;
   devicesError: string | null;
   devicesList: DevicePairingList | null;

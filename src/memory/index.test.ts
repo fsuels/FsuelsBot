@@ -483,10 +483,13 @@ describe("memory index", () => {
       throw new Error("manager missing");
     }
     manager = result.manager;
-    await expect(result.manager.readFile({ relPath: "extra/extra.md" })).resolves.toEqual({
-      path: "extra/extra.md",
-      text: "Extra content.",
-    });
+    await expect(result.manager.readFile({ relPath: "extra/extra.md" })).resolves.toEqual(
+      expect.objectContaining({
+        path: "extra/extra.md",
+        text: "Extra content.",
+        mtimeMs: expect.any(Number),
+      }),
+    );
 
     const linkPath = path.join(extraDir, "linked.md");
     let symlinkOk = true;
@@ -505,5 +508,63 @@ describe("memory index", () => {
         "path required",
       );
     }
+  });
+
+  it("blocks traversal encodings and symlinked ancestor escapes", async () => {
+    const cfg = {
+      agents: {
+        defaults: {
+          workspace: workspaceDir,
+          memorySearch: {
+            provider: "openai",
+            model: "mock-embed",
+            store: { path: indexPath },
+            sync: { watch: false, onSessionStart: false, onSearch: true },
+          },
+        },
+        list: [{ id: "main", default: true }],
+      },
+    };
+    const result = await getMemorySearchManager({ cfg, agentId: "main" });
+    expect(result.manager).not.toBeNull();
+    if (!result.manager) {
+      throw new Error("manager missing");
+    }
+    manager = result.manager;
+
+    await expect(result.manager.readFile({ relPath: "../secret.md" })).rejects.toThrow(
+      "path required",
+    );
+    await expect(result.manager.readFile({ relPath: "%2e%2e%2fsecret.md" })).rejects.toThrow(
+      "path required",
+    );
+    await expect(
+      result.manager.readFile({ relPath: "\uFF0E\uFF0E\uFF0Fsecret.md" }),
+    ).rejects.toThrow("path required");
+
+    const outsideDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-mem-outside-"));
+    await fs.mkdir(outsideDir, { recursive: true });
+    await fs.writeFile(path.join(outsideDir, "escaped.md"), "escaped", "utf-8");
+    const memoryLink = path.join(workspaceDir, "memory", "linked-dir");
+
+    let symlinkOk = true;
+    try {
+      await fs.symlink(outsideDir, memoryLink, "dir");
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code === "EPERM" || code === "EACCES") {
+        symlinkOk = false;
+      } else {
+        throw err;
+      }
+    }
+
+    if (symlinkOk) {
+      await expect(
+        result.manager.readFile({ relPath: "memory/linked-dir/escaped.md" }),
+      ).rejects.toThrow("path required");
+    }
+
+    await fs.rm(outsideDir, { recursive: true, force: true });
   });
 });

@@ -4,12 +4,16 @@ import type { MemoryCitationsMode } from "../../config/types.memory.js";
 import type { MemorySearchResult } from "../../memory/types.js";
 import type { AnyAgentTool } from "./common.js";
 import { emitDiagnosticEvent, isDiagnosticsEnabled } from "../../infra/diagnostic-events.js";
-import { detectMemorySuspiciousPatterns, wrapMemoryContent } from "../../security/external-content.js";
 import { resolveMemoryBackendConfig } from "../../memory/backend-config.js";
+import { memoryAge, memoryFreshnessNote, memoryFreshnessText } from "../../memory/freshness.js";
 import { getMemorySearchManager } from "../../memory/index.js";
 import { normalizeMemoryTaskId } from "../../memory/namespaces.js";
 import { getTaskRegistryTask } from "../../memory/task-memory-system.js";
 import { parseAgentSessionKey } from "../../routing/session-key.js";
+import {
+  detectMemorySuspiciousPatterns,
+  wrapMemoryContent,
+} from "../../security/external-content.js";
 import { resolveSessionAgentId } from "../agent-scope.js";
 import { resolveAgentWorkspaceDir } from "../agent-scope.js";
 import { resolveMemorySearchConfig } from "../memory-search.js";
@@ -138,7 +142,7 @@ export function createMemorySearchTool(options: {
           }
         }
         const status = manager.status();
-        const decorated = decorateCitations(results, includeCitations);
+        const decorated = decorateFreshness(decorateCitations(results, includeCitations));
         const resolvedBackend = resolveMemoryBackendConfig({ cfg, agentId });
         const clamped =
           status.backend === "qmd"
@@ -213,7 +217,8 @@ export function createMemoryGetTool(options: {
           from: from ?? undefined,
           lines: lines ?? undefined,
         });
-        const wrappedText = wrapMemoryContent(result.text);
+        const freshness = describeMemoryFreshness(result.mtimeMs);
+        const wrappedText = wrapMemoryContent(prependMemoryFreshness(result.text, freshness));
         if (isDiagnosticsEnabled(cfg)) {
           const suspicious = detectMemorySuspiciousPatterns(result.text);
           if (suspicious.length > 0) {
@@ -228,7 +233,7 @@ export function createMemoryGetTool(options: {
             });
           }
         }
-        return jsonResult({ ...result, text: wrappedText });
+        return jsonResult({ ...result, ...freshness, text: wrappedText });
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         return jsonResult({ path: relPath, text: "", disabled: true, error: message });
@@ -256,12 +261,63 @@ function decorateCitations(results: MemorySearchResult[], include: boolean): Mem
   });
 }
 
+function decorateFreshness(results: MemorySearchResult[]): MemorySearchResult[] {
+  return results.map((entry) => {
+    const freshness = describeMemoryFreshness(entry.mtimeMs);
+    if (!freshness.age || !freshness.freshnessText) {
+      return entry;
+    }
+    const lines = [entry.snippet.trim(), "", `Age: ${freshness.age}`];
+    const freshnessLine = freshness.freshnessNote
+      ? `${freshness.freshnessText} ${freshness.freshnessNote}`
+      : freshness.freshnessText;
+    lines.push(`Freshness: ${freshnessLine}`);
+    return {
+      ...entry,
+      ...freshness,
+      snippet: lines.join("\n"),
+    };
+  });
+}
+
 function formatCitation(entry: MemorySearchResult): string {
   const lineRange =
     entry.startLine === entry.endLine
       ? `#L${entry.startLine}`
       : `#L${entry.startLine}-L${entry.endLine}`;
   return `${entry.path}${lineRange}`;
+}
+
+function describeMemoryFreshness(mtimeMs?: number): {
+  mtimeMs?: number;
+  age?: string;
+  freshnessText?: string;
+  freshnessNote?: string;
+} {
+  if (typeof mtimeMs !== "number" || !Number.isFinite(mtimeMs)) {
+    return {};
+  }
+  return {
+    mtimeMs,
+    age: memoryAge(mtimeMs),
+    freshnessText: memoryFreshnessText(mtimeMs),
+    freshnessNote: memoryFreshnessNote(mtimeMs),
+  };
+}
+
+function prependMemoryFreshness(
+  content: string,
+  freshness: { age?: string; freshnessText?: string; freshnessNote?: string },
+): string {
+  if (!freshness.age || !freshness.freshnessText) {
+    return content;
+  }
+  const lines = [`Age: ${freshness.age}`];
+  const freshnessLine = freshness.freshnessNote
+    ? `${freshness.freshnessText} ${freshness.freshnessNote}`
+    : freshness.freshnessText;
+  lines.push(`Freshness: ${freshnessLine}`, "", content);
+  return lines.join("\n");
 }
 
 function clampResultsByInjectedChars(

@@ -1,3 +1,4 @@
+import type { UiTelemetry } from "./types/internal.ts";
 import { renderToolOutputValue } from "./chat/tool-helpers.ts";
 import { truncateText } from "./format.ts";
 
@@ -41,6 +42,7 @@ type ToolStreamHost = {
   toolStreamOrder: string[];
   chatToolMessages: Record<string, unknown>[];
   toolStreamSyncTimer: number | null;
+  telemetry: Pick<UiTelemetry, "noteToolStarted" | "noteToolFinished">;
 };
 
 function formatToolOutput(value: unknown, toolName?: string): string | null {
@@ -303,6 +305,12 @@ export function handleAgentEvent(host: ToolStreamHost, payload?: AgentEventPaylo
       entry.output = output || undefined;
     }
     entry.updatedAt = now;
+  }
+
+  if (phase === "start") {
+    host.telemetry.noteToolStarted(toolCallId, name, entry.startedAt);
+  } else if (phase === "result") {
+    host.telemetry.noteToolFinished(toolCallId, now);
   }
 
   entry.message = buildToolStreamMessage(entry);

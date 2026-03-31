@@ -13,6 +13,7 @@ import type { HookHandler } from "../../hooks.js";
 import { resolveAgentWorkspaceDir } from "../../../agents/agent-scope.js";
 import { resolveStateDir } from "../../../config/paths.js";
 import { createSubsystemLogger } from "../../../logging/subsystem.js";
+import { assertPathContainedWithRealpath } from "../../../memory/internal.js";
 import { resolveAgentIdFromSessionKey } from "../../../routing/session-key.js";
 import { resolveHookConfig } from "../../config.js";
 import { generateSlugViaLLM } from "../../llm-slug-generator.js";
@@ -82,6 +83,7 @@ const saveSessionToMemory: HookHandler = async (event) => {
       ? resolveAgentWorkspaceDir(cfg, agentId)
       : path.join(resolveStateDir(process.env, os.homedir), "workspace");
     const memoryDir = path.join(workspaceDir, "memory");
+    await assertPathContainedWithRealpath(workspaceDir, memoryDir);
     await fs.mkdir(memoryDir, { recursive: true });
 
     // Get today's date for filename
@@ -141,6 +143,7 @@ const saveSessionToMemory: HookHandler = async (event) => {
     // Create filename with date and slug
     const filename = `${dateStr}-${slug}.md`;
     const memoryFilePath = path.join(memoryDir, filename);
+    await assertPathContainedWithRealpath(workspaceDir, memoryFilePath);
     log.debug("Memory file path resolved", {
       filename,
       path: memoryFilePath.replace(os.homedir(), "~"),
