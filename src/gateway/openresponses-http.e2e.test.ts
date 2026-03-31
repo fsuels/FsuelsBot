@@ -228,6 +228,10 @@ describe("OpenResponses HTTP API (e2e)", () => {
       const instructionPrompt =
         (optsInstructions as { extraSystemPrompt?: string } | undefined)?.extraSystemPrompt ?? "";
       expect(instructionPrompt).toContain("Always respond in French.");
+      expect(
+        (optsInstructions as { structuredOutputSchema?: unknown } | undefined)
+          ?.structuredOutputSchema,
+      ).toBeUndefined();
       await ensureResponseConsumed(resInstructions);
 
       mockAgentOnce([{ text: "I am Claude" }]);
@@ -502,6 +506,127 @@ describe("OpenResponses HTTP API (e2e)", () => {
       }
     } finally {
       // shared server
+    }
+  });
+
+  it("passes structured-output mode to the agent and returns structured_output", async () => {
+    const port = enabledPort;
+    try {
+      agentCommand.mockReset();
+      agentCommand.mockResolvedValueOnce({
+        payloads: [{ text: "Structured output captured." }],
+        meta: {
+          structuredOutput: { summary: "bonjour" },
+          structuredOutputRequired: true,
+        },
+      } as never);
+
+      const res = await postResponses(port, {
+        model: "openclaw",
+        input: "hi",
+        text: {
+          format: {
+            type: "json_schema",
+            name: "final_payload",
+            schema: {
+              type: "object",
+              properties: {
+                summary: { type: "string" },
+              },
+              required: ["summary"],
+              additionalProperties: false,
+            },
+          },
+        },
+      });
+
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as Record<string, unknown>;
+      expect(json.structured_output).toEqual({ summary: "bonjour" });
+      const [opts] = agentCommand.mock.calls[0] ?? [];
+      expect((opts as { structuredOutputName?: string } | undefined)?.structuredOutputName).toBe(
+        "final_payload",
+      );
+      expect(
+        (opts as { structuredOutputSchema?: Record<string, unknown> } | undefined)
+          ?.structuredOutputSchema?.type,
+      ).toBe("object");
+      expect(
+        (opts as { extraSystemPrompt?: string } | undefined)?.extraSystemPrompt ?? "",
+      ).toContain("call the `final_payload` tool exactly once at the end");
+      await ensureResponseConsumed(res);
+    } finally {
+      agentCommand.mockReset();
+    }
+  });
+
+  it("rejects invalid structured-output schemas before the agent run", async () => {
+    const port = enabledPort;
+    try {
+      agentCommand.mockReset();
+      const res = await postResponses(port, {
+        model: "openclaw",
+        input: "hi",
+        text: {
+          format: {
+            type: "json_schema",
+            schema: {
+              type: "object",
+              properties: {
+                summary: { type: 1 },
+              },
+            },
+          },
+        },
+      });
+
+      expect(res.status).toBe(400);
+      const json = (await res.json()) as Record<string, unknown>;
+      expect((json.error as Record<string, unknown> | undefined)?.type).toBe(
+        "invalid_request_error",
+      );
+      expect(agentCommand).not.toHaveBeenCalled();
+      await ensureResponseConsumed(res);
+    } finally {
+      agentCommand.mockReset();
+    }
+  });
+
+  it("fails when structured output is required but missing from the run result", async () => {
+    const port = enabledPort;
+    try {
+      agentCommand.mockReset();
+      agentCommand.mockResolvedValueOnce({
+        payloads: [{ text: "No response from OpenClaw." }],
+        meta: { structuredOutputRequired: true },
+      } as never);
+
+      const res = await postResponses(port, {
+        model: "openclaw",
+        input: "hi",
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "structured_output",
+            schema: {
+              type: "object",
+              properties: {
+                summary: { type: "string" },
+              },
+              required: ["summary"],
+            },
+          },
+        },
+      });
+
+      expect(res.status).toBe(500);
+      const json = (await res.json()) as Record<string, unknown>;
+      expect((json.error as Record<string, unknown> | undefined)?.code).toBe(
+        "structured_output_missing",
+      );
+      await ensureResponseConsumed(res);
+    } finally {
+      agentCommand.mockReset();
     }
   });
 });

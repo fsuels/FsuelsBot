@@ -35,6 +35,16 @@
       "title": "Process",
       "detailKeys": ["sessionId", "shell_id"]
     },
+    "get_task_output": {
+      "icon": "fileSearch",
+      "title": "Task Output",
+      "detailKeys": ["task_id", "taskId", "block", "timeout_ms", "timeoutMs"]
+    },
+    "task_output": {
+      "icon": "fileSearch",
+      "title": "Task Output",
+      "detailKeys": ["task_id", "taskId", "block", "timeout_ms", "timeoutMs"]
+    },
     "read": {
       "icon": "fileText",
       "title": "Read",
@@ -49,6 +59,11 @@
       "icon": "penLine",
       "title": "Edit",
       "detailKeys": ["path"]
+    },
+    "find": {
+      "icon": "fileSearch",
+      "title": "Find",
+      "detailKeys": ["pattern", "path", "limit"]
     },
     "attach": {
       "icon": "paperclip",

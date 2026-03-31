@@ -1,7 +1,8 @@
-import fs from "node:fs/promises";
 import type { AgentToolResult } from "@mariozechner/pi-agent-core";
-import { detectMime } from "../../media/mime.js";
+import fs from "node:fs/promises";
 import type { OpenClawTool } from "../tool-contract.js";
+import { detectMime } from "../../media/mime.js";
+import { truncateUtf16Safe } from "../../utils.js";
 import { sanitizeToolResultImages } from "../tool-images.js";
 
 // oxlint-disable-next-line typescript/no-explicit-any
@@ -313,6 +314,54 @@ export function jsonResult(payload: unknown): AgentToolResult<unknown> {
     ],
     details: payload,
   };
+}
+
+const DEFAULT_MODEL_RESULT_MAX_CHARS = 8_000;
+const FALLBACK_TRUNCATED_RESULT = {
+  truncated: true,
+  message: "Tool result truncated. Narrow the query and try again.",
+} as const;
+
+function safeJsonStringify(value: unknown): string | undefined {
+  try {
+    const serialized = JSON.stringify(value);
+    return typeof serialized === "string" ? serialized : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function formatStructuredResultForModel<T>(
+  payload: T,
+  options?: {
+    emptyMessage?: string;
+    isEmpty?: (payload: T) => boolean;
+    maxChars?: number;
+    summarize?: (payload: T) => unknown;
+  },
+): string {
+  if (options?.isEmpty?.(payload)) {
+    return options.emptyMessage?.trim() || "No results.";
+  }
+
+  const maxChars = Math.max(64, Math.floor(options?.maxChars ?? DEFAULT_MODEL_RESULT_MAX_CHARS));
+  const direct = safeJsonStringify(payload);
+  if (direct && direct.length <= maxChars) {
+    return direct;
+  }
+
+  const summaryPayload = options?.summarize?.(payload) ?? FALLBACK_TRUNCATED_RESULT;
+  const summary = safeJsonStringify(summaryPayload);
+  if (summary && summary.length <= maxChars) {
+    return summary;
+  }
+
+  const fallback = safeJsonStringify(FALLBACK_TRUNCATED_RESULT);
+  if (fallback && fallback.length <= maxChars) {
+    return fallback;
+  }
+
+  return truncateUtf16Safe(fallback ?? FALLBACK_TRUNCATED_RESULT.message, maxChars);
 }
 
 export async function imageResult(params: {

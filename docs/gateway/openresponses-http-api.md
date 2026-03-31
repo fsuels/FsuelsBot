@@ -89,6 +89,7 @@ The request follows the OpenResponses API with item-based input. Current support
 
 - `input`: string or array of item objects.
 - `instructions`: merged into the system prompt.
+- `text.format` or `response_format` with `type: "json_schema"`: require a final validated structured output.
 - `tools`: client tool definitions (function tools).
 - `tool_choice`: filter or require client tools.
 - `stream`: enables SSE streaming.
@@ -103,6 +104,57 @@ Accepted but **currently ignored**:
 - `store`
 - `previous_response_id`
 - `truncation`
+
+## Structured output
+
+For machine-consumed calls, you can require the final answer to match a JSON Schema.
+
+Either field works:
+
+```json
+{
+  "text": {
+    "format": {
+      "type": "json_schema",
+      "name": "final_payload",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "summary": { "type": "string" }
+        },
+        "required": ["summary"],
+        "additionalProperties": false
+      }
+    }
+  }
+}
+```
+
+```json
+{
+  "response_format": {
+    "type": "json_schema",
+    "json_schema": {
+      "name": "final_payload",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "summary": { "type": "string" }
+        },
+        "required": ["summary"],
+        "additionalProperties": false
+      }
+    }
+  }
+}
+```
+
+Behavior:
+
+- The Gateway injects a synthetic finalization tool only for that request.
+- The model must finish by calling that tool with native JSON args.
+- The response includes a top-level `structured_output` field with the validated payload.
+- Invalid schemas are rejected up front with `400 invalid_request_error`.
 
 ## Items (input)
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   assertKnownParams,
   createActionGate,
+  formatStructuredResultForModel,
   readAliasedStringParam,
   readNumberParam,
   readReactionParams,
@@ -163,5 +164,54 @@ describe("readReactionParams", () => {
     });
     expect(result.remove).toBe(true);
     expect(result.emoji).toBe("✅");
+  });
+});
+
+describe("formatStructuredResultForModel", () => {
+  it("returns a concise empty-state message when configured", () => {
+    const text = formatStructuredResultForModel(
+      { count: 0, items: [] },
+      {
+        isEmpty: (payload) => payload.count === 0,
+        emptyMessage: "No sessions matched the current filters.",
+      },
+    );
+
+    expect(text).toBe("No sessions matched the current filters.");
+  });
+
+  it("returns compact JSON when the payload fits", () => {
+    const text = formatStructuredResultForModel({
+      requester: "main",
+      agents: [{ id: "main" }],
+    });
+
+    expect(text).toBe('{"requester":"main","agents":[{"id":"main"}]}');
+  });
+
+  it("uses a summary payload when the full result is too large", () => {
+    const text = formatStructuredResultForModel(
+      {
+        count: 20,
+        sessions: Array.from({ length: 20 }, (_, index) => ({
+          key: `session-${index}`,
+          text: "x".repeat(400),
+        })),
+      },
+      {
+        maxChars: 120,
+        summarize: (payload) => ({
+          count: payload.count,
+          truncated: true,
+          sessions: payload.sessions.slice(0, 2).map((session) => session.key),
+        }),
+      },
+    );
+
+    expect(JSON.parse(text)).toEqual({
+      count: 20,
+      truncated: true,
+      sessions: ["session-0", "session-1"],
+    });
   });
 });

@@ -24,6 +24,7 @@ import { listChannelAgentTools } from "./channel-tools.js";
 import { createOpenClawTools } from "./openclaw-tools.js";
 import { wrapToolWithAbortSignal } from "./pi-tools.abort.js";
 import { wrapToolWithBeforeToolCallHook } from "./pi-tools.before-tool-call.js";
+import { createOpenClawFindTool } from "./pi-tools.find.js";
 import {
   filterToolsByPolicy,
   isToolAllowedByPolicies,
@@ -44,7 +45,9 @@ import {
   wrapToolParamNormalization,
 } from "./pi-tools.read.js";
 import { cleanToolSchemaForGemini, normalizeToolParameters } from "./pi-tools.schema.js";
+import { applyToolContracts } from "./tool-contracts.js";
 import {
+  assertUniqueToolNames,
   applyOwnerOnlyToolPolicy,
   buildPluginToolGroups,
   collectExplicitAllowlist,
@@ -53,6 +56,7 @@ import {
   resolveToolProfilePolicy,
   stripPluginOnlyAllowlist,
 } from "./tool-policy.js";
+import { createGrepTool } from "./tools/grep-tool.js";
 
 function isOpenAIProvider(provider?: string) {
   const normalized = provider?.trim().toLowerCase();
@@ -237,6 +241,7 @@ export function createOpenClawCodingTools(options?: {
   const sandboxRoot = sandbox?.workspaceDir;
   const allowWorkspaceWrites = sandbox?.workspaceAccess !== "ro";
   const workspaceRoot = options?.workspaceDir ?? process.cwd();
+  const fileToolRoot = sandboxRoot ?? workspaceRoot;
   const applyPatchConfig = options?.config?.tools?.exec?.applyPatch;
   const applyPatchEnabled =
     !!applyPatchConfig?.enabled &&
@@ -318,6 +323,14 @@ export function createOpenClawCodingTools(options?: {
         });
   const tools: AnyAgentTool[] = [
     ...base,
+    createGrepTool({
+      cwd: fileToolRoot,
+      ...(sandboxRoot ? { sandboxRoot: fileToolRoot } : {}),
+    }),
+    createOpenClawFindTool({
+      workspaceRoot: fileToolRoot,
+      ...(sandboxRoot ? { sandboxRoot: fileToolRoot } : {}),
+    }),
     ...(sandboxRoot
       ? allowWorkspaceWrites
         ? [createSandboxedEditTool(sandboxRoot), createSandboxedWriteTool(sandboxRoot)]
@@ -366,6 +379,9 @@ export function createOpenClawCodingTools(options?: {
       requesterAgentIdOverride: agentId,
     }),
   ];
+  // Hard execution-policy guarantee: tool visibility/policy logic assumes canonical tool ids.
+  // Fail fast on duplicate names instead of silently dispatching an ambiguous tool surface.
+  assertUniqueToolNames(tools, "createOpenClawCodingTools");
   // Security: treat unknown/undefined as unauthorized (opt-in, not opt-out)
   const senderIsOwner = options?.senderIsOwner === true;
   const toolsByAuthorization = applyOwnerOnlyToolPolicy(tools, senderIsOwner);
@@ -450,7 +466,8 @@ export function createOpenClawCodingTools(options?: {
   // Always normalize tool JSON Schemas before handing them to pi-agent/pi-ai.
   // Without this, some providers (notably OpenAI) will reject root-level union schemas.
   const normalized = subagentFiltered.map(normalizeToolParameters);
-  const withHooks = normalized.map((tool) =>
+  const withContracts = normalized.map(applyToolContracts);
+  const withHooks = withContracts.map((tool) =>
     wrapToolWithBeforeToolCallHook(tool, {
       agentId,
       sessionKey: options?.sessionKey,

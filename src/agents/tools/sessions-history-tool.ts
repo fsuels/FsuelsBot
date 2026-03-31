@@ -204,27 +204,15 @@ export function createSessionsHistoryTool(opts?: {
     parameters: SessionsHistoryToolSchema,
     execute: async (_toolCallId, args) => {
       const params = args as Record<string, unknown>;
-      let sessionKeyParam = "";
-      try {
-        assertKnownParams(params, ["sessionKey", "sessionId", "limit", "includeTools"], {
-          label: "sessions_history",
-        });
-        sessionKeyParam = readAliasedStringParam(params, {
-          primaryKey: "sessionKey",
-          aliasKeys: ["sessionId"],
-          required: true,
-          label: "sessionKey",
-        }).value;
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        return jsonResult({
-          ok: false,
-          success: false,
-          status: "error",
-          code: "invalid_input",
-          error: message,
-        });
-      }
+      assertKnownParams(params, ["sessionKey", "sessionId", "limit", "includeTools"], {
+        label: "sessions_history",
+      });
+      const sessionKeyParam = readAliasedStringParam(params, {
+        primaryKey: "sessionKey",
+        aliasKeys: ["sessionId"],
+        required: true,
+        label: "sessionKey",
+      }).value;
       const cfg = loadConfig();
       const { mainKey, alias } = resolveMainSessionAlias(cfg);
       const visibility = resolveSandboxSessionToolsVisibility(cfg);

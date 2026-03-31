@@ -6,8 +6,8 @@ import { resolveChannelGroupToolsPolicy } from "../config/group-policy.js";
 import { resolveThreadParentSessionKey } from "../sessions/session-key-utils.js";
 import { normalizeMessageChannel } from "../utils/message-channel.js";
 import { resolveAgentConfig, resolveAgentIdFromSessionKey } from "./agent-scope.js";
-import { getSubagentRunBySessionKey } from "./subagent-registry.js";
 import { normalizeSubagentSessionToolPolicy } from "./subagent-policy.js";
+import { getSubagentRunBySessionKey } from "./subagent-registry.js";
 import { expandToolGroups, normalizeToolName } from "./tool-policy.js";
 
 type CompiledPattern =
@@ -108,9 +108,13 @@ export function resolveSubagentToolPolicy(cfg?: OpenClawConfig): SandboxToolPoli
 }
 
 export function resolveSubagentSessionToolPolicy(
-  sessionKey: string,
+  sessionKey?: string | null,
 ): SandboxToolPolicy | undefined {
-  const run = getSubagentRunBySessionKey(sessionKey);
+  const key = sessionKey?.trim();
+  if (!key) {
+    return undefined;
+  }
+  const run = getSubagentRunBySessionKey(key);
   return normalizeSubagentSessionToolPolicy(run?.sessionToolPolicy);
 }
 

@@ -132,6 +132,32 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).not.toContain("another worker could execute the task");
   });
 
+  it("includes task board guidance when task tools are available", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/clawd",
+      toolNames: ["tasks_list", "task_get"],
+    });
+
+    expect(prompt).toContain("## Task Board");
+    expect(prompt).toContain("Use `tasks_list`");
+    expect(prompt).toContain("lowest-ID task where `isAvailableToClaim` is true");
+    expect(prompt).toContain("call `task_get` before acting");
+  });
+
+  it("includes cooperative waiting guidance when the sleep tool is available", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/clawd",
+      toolNames: ["sleep", "get_task_output"],
+    });
+
+    expect(prompt).toContain("## Waiting & Idle Work");
+    expect(prompt).toContain(
+      "Prefer `sleep` over shell `sleep`, `timeout`, or ad-hoc polling loops",
+    );
+    expect(prompt).toContain("Periodic sleep wakeups are check-ins");
+    expect(prompt).toContain("`get_task_output`");
+  });
+
   it("adds reasoning tag hint when enabled", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/openclaw",
@@ -180,16 +206,31 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain("Anti-patterns: do not use for immediate work.");
   });
 
-  it("includes subagent orchestration guidance when worker tools are available", () => {
+  it("includes usage-policy guidance for tool manuals", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/openclaw",
-      toolNames: ["delegate", "sessions_spawn", "sessions_send", "sessions_history"],
+      toolNames: ["cron"],
+    });
+
+    expect(prompt).toContain("If a tool operator manual says `Usage policy: explicit_only`");
+    expect(prompt).toContain("If a tool operator manual says `Usage policy: semantic_ok`");
+  });
+
+  it("includes subagent orchestration guidance when sessions_spawn is available", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/openclaw",
+      toolNames: ["sessions_spawn", "sessions_send", "sessions_history", "delegate"],
     });
 
     expect(prompt).toContain("## Subagent Orchestration");
     expect(prompt).toContain("Use `delegate` for one-shot tasks");
-    expect(prompt).toContain("Capability profiles: `research`");
-    expect(prompt).toContain("Silence from a subagent after it finishes is normal.");
+    expect(prompt).toContain("Communication contract");
+    expect(prompt).toContain("Capability profiles");
+    expect(prompt).toContain("requiredTools");
+    expect(prompt).toContain("sessions_send");
+    expect(prompt).toContain('sessions_send({ label: "schema-audit"');
+    expect(prompt).toContain('sessions_spawn({ label: "schema-audit"');
+    expect(prompt).toContain("Use `sessions_history` only when you need raw output");
   });
 
   it("preserves tool casing in the prompt", () => {

@@ -4,7 +4,13 @@ import type { AnyAgentTool } from "./common.js";
 import { loadConfig } from "../../config/config.js";
 import { callGateway } from "../../gateway/call.js";
 import { isSubagentSessionKey, resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
-import { assertKnownParams, jsonResult, readStringArrayParam } from "./common.js";
+import { defineOpenClawTool } from "../tool-contract.js";
+import {
+  assertKnownParams,
+  formatStructuredResultForModel,
+  jsonResult,
+  readStringArrayParam,
+} from "./common.js";
 import {
   createAgentToAgentPolicy,
   classifySessionKind,
@@ -52,31 +58,115 @@ function resolveSandboxSessionToolsVisibility(cfg: ReturnType<typeof loadConfig>
   return cfg.agents?.defaults?.sandbox?.sessionToolsVisibility ?? "spawned";
 }
 
+type SessionsListWarning = {
+  sessionKey: string;
+  reason: string;
+};
+
+type SessionsListToolPayload = {
+  count: number;
+  sessions: SessionListRow[];
+  partial?: boolean;
+  warnings?: SessionsListWarning[];
+};
+
+const SessionsListWarningSchema = Type.Object(
+  {
+    sessionKey: Type.String(),
+    reason: Type.String(),
+  },
+  { additionalProperties: false },
+);
+
+const SessionListRowSchema = Type.Object(
+  {
+    key: Type.String(),
+    kind: Type.String(),
+  },
+  { additionalProperties: true },
+);
+
+const SessionsListToolOutputSchema = Type.Object(
+  {
+    count: Type.Number({ minimum: 0 }),
+    sessions: Type.Array(SessionListRowSchema),
+    partial: Type.Optional(Type.Boolean()),
+    warnings: Type.Optional(Type.Array(SessionsListWarningSchema)),
+  },
+  { additionalProperties: false },
+);
+
+function buildSessionsListOperatorManual() {
+  return [
+    "Read-only discovery across main, group, cron, hook, node, and sub-agent sessions.",
+    "Examples:",
+    '- `{"kinds":["cron"],"limit":10}` -> recent cron sessions only',
+    '- `{"activeMinutes":30,"messageLimit":2}` -> active sessions with up to 2 recent non-tool messages',
+    "If `partial=true`, some per-session history lookups failed; inspect `warnings`.",
+  ].join("\n");
+}
+
+function extractErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message || String(error);
+  }
+  if (typeof error === "string") {
+    return error;
+  }
+  return String(error);
+}
+
+function summarizeSessionPreview(row: SessionListRow): Record<string, unknown> {
+  return {
+    key: row.key,
+    kind: row.kind,
+    ...(row.channel ? { channel: row.channel } : {}),
+    ...(typeof row.updatedAt === "number" ? { updatedAt: row.updatedAt } : {}),
+    ...(Array.isArray(row.messages) && row.messages.length > 0
+      ? { messages: row.messages.slice(-2) }
+      : {}),
+  };
+}
+
+function formatSessionsListForModel(payload: SessionsListToolPayload): string {
+  return formatStructuredResultForModel(payload, {
+    emptyMessage: "No sessions matched the current filters.",
+    isEmpty: (value) => value.count === 0,
+    maxChars: 8_000,
+    summarize: (value) => ({
+      count: value.count,
+      partial: value.partial === true,
+      warnings: value.warnings?.slice(0, 5),
+      truncated: true,
+      message: "Sessions list preview truncated. Narrow filters or lower messageLimit.",
+      sessions: value.sessions.slice(0, 10).map(summarizeSessionPreview),
+    }),
+  });
+}
+
 export function createSessionsListTool(opts?: {
   agentSessionKey?: string;
   sandboxed?: boolean;
 }): AnyAgentTool {
-  return {
+  return defineOpenClawTool({
     label: "Sessions",
     name: "sessions_list",
     description: "List sessions with optional filters and last messages.",
     parameters: SessionsListToolSchema,
+    inputSchema: SessionsListToolSchema,
+    outputSchema: SessionsListToolOutputSchema,
+    operatorManual: buildSessionsListOperatorManual,
+    userFacingName: () => "Sessions",
+    isReadOnly: () => true,
+    isConcurrencySafe: () => true,
+    maxResultSizeChars: 24_000,
+    mapToolResultToText: async (result) =>
+      formatSessionsListForModel(result.details as SessionsListToolPayload),
     execute: async (_toolCallId, args) => {
       const params = args as Record<string, unknown>;
-      try {
-        assertKnownParams(params, ["kinds", "limit", "activeMinutes", "messageLimit"], {
-          label: "sessions_list",
-        });
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        return jsonResult({
-          ok: false,
-          success: false,
-          status: "error",
-          code: "invalid_input",
-          error: message,
-        });
-      }
+      assertKnownParams(params, ["kinds", "limit", "activeMinutes", "messageLimit"], {
+        label: "sessions_list",
+      });
       const cfg = loadConfig();
       const { mainKey, alias } = resolveMainSessionAlias(cfg);
       const visibility = resolveSandboxSessionToolsVisibility(cfg);
@@ -227,28 +317,60 @@ export function createSessionsListTool(opts?: {
           transcriptPath,
         };
 
-        if (messageLimit > 0) {
-          const resolvedKey = resolveInternalSessionKey({
-            key: displayKey,
-            alias,
-            mainKey,
-          });
-          const history = await callGateway<{ messages: Array<unknown> }>({
-            method: "chat.history",
-            params: { sessionKey: resolvedKey, limit: messageLimit },
-          });
-          const rawMessages = Array.isArray(history?.messages) ? history.messages : [];
-          const filtered = stripToolMessages(rawMessages);
-          row.messages = filtered.length > messageLimit ? filtered.slice(-messageLimit) : filtered;
-        }
-
         rows.push(row);
       }
 
-      return jsonResult({
+      const warnings: SessionsListWarning[] = [];
+      if (messageLimit > 0 && rows.length > 0) {
+        const historyResults = await Promise.all(
+          rows.map(async (row) => {
+            const resolvedKey = resolveInternalSessionKey({
+              key: row.key,
+              alias,
+              mainKey,
+            });
+            try {
+              const history = await callGateway<{ messages: Array<unknown> }>({
+                method: "chat.history",
+                params: { sessionKey: resolvedKey, limit: messageLimit },
+              });
+              const rawMessages = Array.isArray(history?.messages) ? history.messages : [];
+              const filtered = stripToolMessages(rawMessages);
+              return {
+                sessionKey: row.key,
+                messages: filtered.length > messageLimit ? filtered.slice(-messageLimit) : filtered,
+              };
+            } catch (error) {
+              return {
+                sessionKey: row.key,
+                warning: {
+                  sessionKey: row.key,
+                  reason: extractErrorMessage(error),
+                } satisfies SessionsListWarning,
+              };
+            }
+          }),
+        );
+
+        for (const result of historyResults) {
+          const row = rows.find((entry) => entry.key === result.sessionKey);
+          if (!row) {
+            continue;
+          }
+          if ("warning" in result) {
+            warnings.push(result.warning);
+            continue;
+          }
+          row.messages = result.messages;
+        }
+      }
+
+      const payload: SessionsListToolPayload = {
         count: rows.length,
         sessions: rows,
-      });
+        ...(warnings.length > 0 ? { partial: true, warnings } : {}),
+      };
+      return jsonResult(payload);
     },
-  };
+  });
 }

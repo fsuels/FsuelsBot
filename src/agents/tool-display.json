@@ -35,6 +35,21 @@
       "title": "Process",
       "detailKeys": ["sessionId", "shell_id"]
     },
+    "get_task_output": {
+      "emoji": "📦",
+      "title": "Task Output",
+      "detailKeys": ["task_id", "taskId", "block", "timeout_ms", "timeoutMs"]
+    },
+    "sleep": {
+      "emoji": "⏳",
+      "title": "Sleep",
+      "detailKeys": ["durationMs", "until", "reason"]
+    },
+    "task_output": {
+      "emoji": "📦",
+      "title": "Task Output",
+      "detailKeys": ["task_id", "taskId", "block", "timeout_ms", "timeoutMs"]
+    },
     "read": {
       "emoji": "📖",
       "title": "Read",
@@ -54,6 +69,11 @@
       "emoji": "🩹",
       "title": "Apply Patch",
       "detailKeys": []
+    },
+    "find": {
+      "emoji": "🔎",
+      "title": "Find",
+      "detailKeys": ["pattern", "path", "limit"]
     },
     "attach": {
       "emoji": "📎",
@@ -275,6 +295,11 @@
       "emoji": "📊",
       "title": "Session Status",
       "detailKeys": ["sessionKey", "sessionId", "model"]
+    },
+    "task_tracker": {
+      "emoji": "🗃️",
+      "title": "Task Tracker",
+      "detailKeys": ["action"]
     },
     "task_tracker": {
       "emoji": "🗃️",

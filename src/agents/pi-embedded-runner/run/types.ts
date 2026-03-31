@@ -53,6 +53,10 @@ export type EmbeddedRunAttemptParams = {
   images?: ImageContent[];
   /** Optional client-provided tools (OpenResponses hosted tools). */
   clientTools?: ClientToolDefinition[];
+  /** Optional JSON Schema for machine-consumed final structured output. */
+  structuredOutputSchema?: Record<string, unknown>;
+  /** Optional tool name override for structured output mode. */
+  structuredOutputName?: string;
   /** Disable built-in tools for this run (LLM-only mode). */
   disableTools?: boolean;
   provider: string;
@@ -129,6 +133,11 @@ export type EmbeddedRunAttemptResult = {
   compactionCount?: number;
   /** Client tool call detected (OpenResponses hosted tools). */
   clientToolCall?: { name: string; params: Record<string, unknown> };
+  /** Validated final structured output captured via the synthetic output tool. */
+  structuredOutput?: {
+    payload: unknown;
+    statusText: string;
+  };
   /** Proactive compaction needed — estimated tokens exceed 80% of context window. */
   proactiveCompactionNeeded?: boolean;
 };

@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import path from "node:path";
+import type { SandboxToolPolicy } from "./sandbox.js";
 import { resolveQueueSettings } from "../auto-reply/reply/queue.js";
 import { loadConfig } from "../config/config.js";
 import {
@@ -23,12 +24,11 @@ import {
   queueEmbeddedPiMessage,
   waitForEmbeddedPiRunEnd,
 } from "./pi-embedded.js";
+import { type AnnounceQueueItem, enqueueAnnounce } from "./subagent-announce-queue.js";
 import {
   buildSubagentCapabilityContext,
   type SubagentCapabilityProfileId,
 } from "./subagent-policy.js";
-import type { SandboxToolPolicy } from "./sandbox.js";
-import { type AnnounceQueueItem, enqueueAnnounce } from "./subagent-announce-queue.js";
 import { readLatestAssistantReply } from "./tools/agent-step.js";
 
 function formatTokenCount(value?: number) {

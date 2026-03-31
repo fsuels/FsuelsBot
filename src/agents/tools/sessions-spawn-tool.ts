@@ -1,8 +1,6 @@
 import { Type } from "@sinclair/typebox";
-import crypto from "node:crypto";
 import type { GatewayMessageChannel } from "../../utils/message-channel.js";
 import type { AnyAgentTool } from "./common.js";
-import { formatThinkingLevels, normalizeThinkLevel } from "../../auto-reply/thinking.js";
 import { loadConfig } from "../../config/config.js";
 import { callGateway } from "../../gateway/call.js";
 import {
@@ -10,18 +8,28 @@ import {
   normalizeAgentId,
   parseAgentSessionKey,
 } from "../../routing/session-key.js";
+import { SESSION_LABEL_MAX_LENGTH, parseSessionLabel } from "../../sessions/session-label.js";
 import { normalizeDeliveryContext } from "../../utils/delivery-context.js";
 import { resolveAgentConfig } from "../agent-scope.js";
 import { AGENT_LANE_SUBAGENT } from "../lanes.js";
 import { isToolAllowedByPolicies, resolveSubagentToolPolicy } from "../pi-tools.policy.js";
 import { optionalStringEnum } from "../schema/typebox.js";
+import { buildSubagentSystemPrompt } from "../subagent-announce.js";
+import {
+  reserveSubagentSessionSettings,
+  resolveSubagentLaunchConfig,
+} from "../subagent-launch-config.js";
 import {
   buildSubagentSessionToolPolicy,
   normalizeSubagentCapabilityProfile,
   normalizeSubagentRequiredTools,
 } from "../subagent-policy.js";
-import { buildSubagentSystemPrompt } from "../subagent-announce.js";
-import { registerSubagentRun } from "../subagent-registry.js";
+import { getSubagentRun, registerSubagentRun } from "../subagent-registry.js";
+import {
+  type ToolInvocationContract,
+  toolValidationError,
+  toolValidationOk,
+} from "../tool-contract.js";
 import { assertKnownParams, jsonResult, readStringParam } from "./common.js";
 import {
   resolveDisplaySessionKey,
@@ -36,22 +44,28 @@ const SessionsSpawnToolSchema = Type.Object(
     }),
     label: Type.Optional(
       Type.String({
+        minLength: 1,
+        maxLength: SESSION_LABEL_MAX_LENGTH,
         description: "Optional human-readable label for the spawned session.",
       }),
     ),
     agentId: Type.Optional(
       Type.String({
+        minLength: 1,
+        maxLength: 64,
         description: "Optional target agent id. Defaults to the requester agent.",
       }),
     ),
     model: Type.Optional(
       Type.String({
-        description: "Optional provider/model override for the child session.",
+        description:
+          'Optional provider/model override for the child session. Use "inherit" to force the caller\'s effective model.',
       }),
     ),
     thinking: Type.Optional(
       Type.String({
-        description: "Optional child-session thinking level override.",
+        description:
+          'Optional child-session thinking level override. Use "inherit" to reuse the caller\'s effective thinking level.',
       }),
     ),
     runTimeoutSeconds: Type.Optional(
@@ -69,45 +83,66 @@ const SessionsSpawnToolSchema = Type.Object(
       }),
     ),
     cleanup: optionalStringEnum(["delete", "keep"] as const),
-    profile: optionalStringEnum(
-      ["research", "implementation", "test-runner", "planner", "custom"] as const,
+    profile: optionalStringEnum([
+      "research",
+      "implementation",
+      "test-runner",
+      "planner",
+      "custom",
+    ] as const),
+    requiredTools: Type.Optional(
+      Type.Array(
+        Type.String({
+          description: "Tool name required for the spawned sub-agent session.",
+        }),
+      ),
     ),
-    requiredTools: Type.Optional(Type.Array(Type.String())),
-    toolAllow: Type.Optional(Type.Array(Type.String())),
-    toolDeny: Type.Optional(Type.Array(Type.String())),
+    toolAllow: Type.Optional(
+      Type.Array(
+        Type.String({
+          description: "Tool name to allow in the spawned sub-agent session.",
+        }),
+      ),
+    ),
+    toolDeny: Type.Optional(
+      Type.Array(
+        Type.String({
+          description: "Tool name to deny in the spawned sub-agent session.",
+        }),
+      ),
+    ),
   },
   { additionalProperties: false },
 );
 
-function splitModelRef(ref?: string) {
-  if (!ref) {
-    return { provider: undefined, model: undefined };
-  }
-  const trimmed = ref.trim();
-  if (!trimmed) {
-    return { provider: undefined, model: undefined };
-  }
-  const [provider, model] = trimmed.split("/", 2);
-  if (model) {
-    return { provider, model };
-  }
-  return { provider: undefined, model: trimmed };
-}
-
-function normalizeModelSelection(value: unknown): string | undefined {
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    return trimmed || undefined;
-  }
-  if (!value || typeof value !== "object") {
-    return undefined;
-  }
-  const primary = (value as { primary?: unknown }).primary;
-  if (typeof primary === "string" && primary.trim()) {
-    return primary.trim();
-  }
-  return undefined;
-}
+const SESSIONS_SPAWN_INVOCATION_CONTRACT: ToolInvocationContract = {
+  usagePolicy: "explicit_only",
+  sideEffectLevel: "high",
+  whenToUse: [
+    "The user explicitly asks you to spawn, create, start, or hand work to a separate worker/sub-agent session.",
+    "You need parallel or durable background work in another session.",
+  ],
+  whenNotToUse: [
+    "Do not use for local work you can do in the current session.",
+    "Do not infer a sub-agent spawn from requests like switch branch, inspect files, or fix a bug unless the user also asked for delegation/parallel work.",
+    "Do not use from inside an existing sub-agent session.",
+  ],
+  preconditions: [
+    "A concrete child task is ready.",
+    "If targeting another agent, that agent must be allowlisted for the requester.",
+    "Pick a capability profile or requiredTools when the worker's scope is obvious.",
+  ],
+  behaviorSummary:
+    "Starts a background child agent run in a separate session, records task-output metadata, and can clean up the child session after completion.",
+  parametersSummary: [
+    "task: required worker instruction.",
+    "label: optional stable name for follow-up sends.",
+    "agentId: optional cross-agent target when allowlisted.",
+    "profile, requiredTools, toolAllow, toolDeny: worker capability controls.",
+    "runTimeoutSeconds: optional wait timeout for the child run.",
+    "cleanup: keep or delete the child session after it finishes.",
+  ],
+};
 
 export function createSessionsSpawnTool(opts?: {
   agentSessionKey?: string;
@@ -128,39 +163,40 @@ export function createSessionsSpawnTool(opts?: {
     description:
       "Spawn a background sub-agent run in a new isolated child session. The current requester session/agent are inferred from runtime context; omit agentId unless you need an allowlisted cross-agent handoff. cleanup=delete removes the child session only after the run finishes and its result is safely announced.",
     parameters: SessionsSpawnToolSchema,
+    invocationContract: SESSIONS_SPAWN_INVOCATION_CONTRACT,
+    validateInput: async (input, _context) => {
+      if (typeof input.label === "string") {
+        const parsed = parseSessionLabel(input.label);
+        if (!parsed.ok) {
+          return toolValidationError({
+            code: "invalid_input",
+            message: parsed.error,
+          });
+        }
+      }
+      return toolValidationOk();
+    },
     execute: async (_toolCallId, args) => {
       const params = args as Record<string, unknown>;
-      let task = "";
-      try {
-        assertKnownParams(
-          params,
-          [
-            "task",
-            "label",
-            "agentId",
-            "model",
-            "thinking",
-            "runTimeoutSeconds",
-            "timeoutSeconds",
-            "cleanup",
-            "profile",
-            "requiredTools",
-            "toolAllow",
-            "toolDeny",
-          ],
-          { label: "sessions_spawn" },
-        );
-        task = readStringParam(params, "task", { required: true });
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        return jsonResult({
-          status: "error",
-          ok: false,
-          success: false,
-          code: "invalid_input",
-          error: message,
-        });
-      }
+      assertKnownParams(
+        params,
+        [
+          "task",
+          "label",
+          "agentId",
+          "model",
+          "thinking",
+          "runTimeoutSeconds",
+          "timeoutSeconds",
+          "cleanup",
+          "profile",
+          "requiredTools",
+          "toolAllow",
+          "toolDeny",
+        ],
+        { label: "sessions_spawn" },
+      );
+      const task = readStringParam(params, "task", { required: true });
       const label = typeof params.label === "string" ? params.label.trim() : "";
       const requestedAgentId = readStringParam(params, "agentId");
       const modelOverride = readStringParam(params, "model");
@@ -256,12 +292,10 @@ export function createSessionsSpawnTool(opts?: {
           });
         }
       }
+      const spawnedByKey = requesterInternalKey;
       const blockedRequiredTools = (requiredTools ?? []).filter(
         (toolName) =>
-          !isToolAllowedByPolicies(toolName, [
-            resolveSubagentToolPolicy(cfg),
-            sessionToolPolicy,
-          ]),
+          !isToolAllowedByPolicies(toolName, [resolveSubagentToolPolicy(cfg), sessionToolPolicy]),
       );
       if (blockedRequiredTools.length > 0) {
         const profileLabel = profile ?? "default";
@@ -272,88 +306,61 @@ export function createSessionsSpawnTool(opts?: {
             blockedRequiredTools.join(", "),
         });
       }
-      const childSessionKey = `agent:${targetAgentId}:subagent:${crypto.randomUUID()}`;
-      const spawnedByKey = requesterInternalKey;
-      const targetAgentConfig = resolveAgentConfig(cfg, targetAgentId);
-      const resolvedModel =
-        normalizeModelSelection(modelOverride) ??
-        normalizeModelSelection(targetAgentConfig?.subagents?.model) ??
-        normalizeModelSelection(cfg.agents?.defaults?.subagents?.model);
 
-      const resolvedThinkingDefaultRaw =
-        readStringParam(targetAgentConfig?.subagents ?? {}, "thinking") ??
-        readStringParam(cfg.agents?.defaults?.subagents ?? {}, "thinking");
+      const launch = resolveSubagentLaunchConfig({
+        cfg,
+        requesterSessionKey: requesterInternalKey,
+        requesterAgentId,
+        targetAgentId,
+        task,
+        label: label || undefined,
+        toolCallId: _toolCallId,
+        requestedModel: modelOverride,
+        requestedThinking: thinkingOverrideRaw,
+      });
+      if (!launch.ok) {
+        return jsonResult({
+          status: "error",
+          error: launch.error,
+        });
+      }
 
-      let thinkingOverride: string | undefined;
-      const thinkingCandidateRaw = thinkingOverrideRaw || resolvedThinkingDefaultRaw;
-      if (thinkingCandidateRaw) {
-        const normalized = normalizeThinkLevel(thinkingCandidateRaw);
-        if (!normalized) {
-          const { provider, model } = splitModelRef(resolvedModel);
-          const hint = formatThinkingLevels(provider, model);
-          return jsonResult({
-            status: "error",
-            error: `Invalid thinking level "${thinkingCandidateRaw}". Use one of: ${hint}.`,
-          });
-        }
-        thinkingOverride = normalized;
+      const { childSessionKey, childIdempotencyKey, resolvedModel, resolvedThinking } =
+        launch.value;
+
+      let appliedLabel = label || undefined;
+      try {
+        const reserved = await reserveSubagentSessionSettings({
+          childSessionKey,
+          label: label || undefined,
+          resolvedModel,
+          resolvedThinking,
+        });
+        appliedLabel = reserved.appliedLabel ?? appliedLabel;
+        modelApplied = reserved.modelApplied ?? false;
+        modelWarning = reserved.modelWarning;
+      } catch (err) {
+        const messageText =
+          err instanceof Error ? err.message : typeof err === "string" ? err : "error";
+        return jsonResult({
+          status: "error",
+          error: messageText,
+          childSessionKey,
+        });
       }
-      if (resolvedModel) {
-        try {
-          await callGateway({
-            method: "sessions.patch",
-            params: { key: childSessionKey, model: resolvedModel },
-            timeoutMs: 10_000,
-          });
-          modelApplied = true;
-        } catch (err) {
-          const messageText =
-            err instanceof Error ? err.message : typeof err === "string" ? err : "error";
-          const recoverable =
-            messageText.includes("invalid model") || messageText.includes("model not allowed");
-          if (!recoverable) {
-            return jsonResult({
-              status: "error",
-              error: messageText,
-              childSessionKey,
-            });
-          }
-          modelWarning = messageText;
-        }
-      }
-      if (thinkingOverride !== undefined) {
-        try {
-          await callGateway({
-            method: "sessions.patch",
-            params: {
-              key: childSessionKey,
-              thinkingLevel: thinkingOverride === "off" ? null : thinkingOverride,
-            },
-            timeoutMs: 10_000,
-          });
-        } catch (err) {
-          const messageText =
-            err instanceof Error ? err.message : typeof err === "string" ? err : "error";
-          return jsonResult({
-            status: "error",
-            error: messageText,
-            childSessionKey,
-          });
-        }
-      }
+
       const childSystemPrompt = buildSubagentSystemPrompt({
         requesterSessionKey,
         requesterOrigin,
         childSessionKey,
-        label: label || undefined,
+        label: appliedLabel,
         task,
         profile,
         requiredTools,
         sessionToolPolicy,
       });
 
-      const childIdem = crypto.randomUUID();
-      let childRunId: string = childIdem;
+      let childRunId: string = childIdempotencyKey;
       try {
         const response = await callGateway<{ runId: string }>({
           method: "agent",
@@ -365,13 +372,12 @@ export function createSessionsSpawnTool(opts?: {
             accountId: requesterOrigin?.accountId ?? undefined,
             threadId:
               requesterOrigin?.threadId != null ? String(requesterOrigin.threadId) : undefined,
-            idempotencyKey: childIdem,
+            idempotencyKey: childIdempotencyKey,
             deliver: false,
             lane: AGENT_LANE_SUBAGENT,
             extraSystemPrompt: childSystemPrompt,
-            thinking: thinkingOverride,
+            thinking: resolvedThinking,
             timeout: runTimeoutSeconds > 0 ? runTimeoutSeconds : undefined,
-            label: label || undefined,
             spawnedBy: spawnedByKey,
             groupId: opts?.agentGroupId ?? undefined,
             groupChannel: opts?.agentGroupChannel ?? undefined,
@@ -401,19 +407,28 @@ export function createSessionsSpawnTool(opts?: {
         requesterDisplayKey,
         task,
         cleanup,
-        label: label || undefined,
-        runTimeoutSeconds,
+        label: appliedLabel,
         profile,
         requiredTools,
         sessionToolPolicy,
+        runTimeoutSeconds,
       });
+      const taskEntry = getSubagentRun(childRunId);
 
       return jsonResult({
         status: "accepted",
+        task_id: childRunId,
+        task_type: "agent",
         childSessionKey,
         runId: childRunId,
+        output_path: taskEntry?.outputPath,
+        transcript_path: taskEntry?.transcriptPath,
+        notified: taskEntry?.notified ?? false,
         profile,
+        labelApplied: appliedLabel,
         modelApplied: resolvedModel ? modelApplied : undefined,
+        modelResolved: resolvedModel,
+        thinkingResolved: resolvedThinking,
         warning: modelWarning,
       });
     },

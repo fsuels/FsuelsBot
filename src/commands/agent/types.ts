@@ -32,6 +32,10 @@ export type AgentCommandOpts = {
   images?: ImageContent[];
   /** Optional client-provided tools (OpenResponses hosted tools). */
   clientTools?: ClientToolDefinition[];
+  /** Optional JSON Schema for machine-consumed final structured output. */
+  structuredOutputSchema?: Record<string, unknown>;
+  /** Optional tool name override for structured output mode. */
+  structuredOutputName?: string;
   /** Agent id override (must exist in config). */
   agentId?: string;
   to?: string;

@@ -171,11 +171,41 @@ export const ToolChoiceSchema = z.union([
   }),
 ]);
 
+export const StructuredOutputTextFormatSchema = z
+  .object({
+    type: z.literal("json_schema"),
+    name: z.string().min(1).optional(),
+    schema: z.record(z.string(), z.unknown()),
+    strict: z.boolean().optional(),
+  })
+  .strict();
+
+export const TextConfigSchema = z
+  .object({
+    format: StructuredOutputTextFormatSchema.optional(),
+  })
+  .strict();
+
+export const StructuredOutputResponseFormatSchema = z
+  .object({
+    type: z.literal("json_schema"),
+    json_schema: z
+      .object({
+        name: z.string().min(1).optional(),
+        schema: z.record(z.string(), z.unknown()),
+        strict: z.boolean().optional(),
+      })
+      .strict(),
+  })
+  .strict();
+
 export const CreateResponseBodySchema = z
   .object({
     model: z.string(),
     input: z.union([z.string(), z.array(ItemParamSchema)]),
     instructions: z.string().optional(),
+    text: TextConfigSchema.optional(),
+    response_format: StructuredOutputResponseFormatSchema.optional(),
     tools: z.array(ToolDefinitionSchema).optional(),
     tool_choice: ToolChoiceSchema.optional(),
     stream: z.boolean().optional(),
@@ -262,6 +292,7 @@ export const ResponseResourceSchema = z.object({
   model: z.string(),
   output: z.array(OutputItemSchema),
   usage: UsageSchema,
+  structured_output: z.unknown().optional(),
   // Optional fields for future phases
   error: z
     .object({

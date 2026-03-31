@@ -1,3 +1,7 @@
+import path from "node:path";
+import type { SandboxToolPolicy } from "./sandbox.js";
+import type { SubagentCapabilityProfileId } from "./subagent-policy.js";
+import type { TaskOutput, TaskOutputStatus } from "./task-output-contract.js";
 import { loadConfig } from "../config/config.js";
 import { loadSessionStore, resolveStorePath } from "../config/sessions.js";
 import { callGateway } from "../gateway/call.js";
@@ -15,9 +19,9 @@ import {
   loadSubagentRegistryFromDisk,
   saveSubagentRegistryToDisk,
 } from "./subagent-registry.store.js";
-import type { SubagentCapabilityProfileId } from "./subagent-policy.js";
-import type { SandboxToolPolicy } from "./sandbox.js";
+import { resolveTaskOutputPath, writeTaskOutputArtifact } from "./task-output-artifacts.js";
 import { resolveAgentTimeoutMs } from "./timeout.js";
+import { readLatestAssistantReply } from "./tools/agent-step.js";
 
 export type SubagentRunRecord = {
   runId: string;
@@ -28,6 +32,9 @@ export type SubagentRunRecord = {
   task: string;
   cleanup: "delete" | "keep";
   label?: string;
+  profile?: SubagentCapabilityProfileId;
+  requiredTools?: string[];
+  sessionToolPolicy?: SandboxToolPolicy;
   createdAt: number;
   startedAt?: number;
   endedAt?: number;
@@ -40,9 +47,10 @@ export type SubagentRunRecord = {
   cleanupError?: string;
   cleanupAttempts?: number;
   cleanupLastAttemptAt?: number;
-  profile?: SubagentCapabilityProfileId;
-  requiredTools?: string[];
-  sessionToolPolicy?: SandboxToolPolicy;
+  outputPath?: string;
+  transcriptPath?: string;
+  finalText?: string;
+  notified?: boolean;
 };
 
 const subagentRuns = new Map<string, SubagentRunRecord>();
@@ -50,6 +58,7 @@ let sweeper: NodeJS.Timeout | null = null;
 let listenerStarted = false;
 let listenerStop: (() => void) | null = null;
 const cleanupTransitions = new Map<string, Promise<void>>();
+const taskWaiters = new Map<string, Set<() => void>>();
 // Use var to avoid TDZ when init runs across circular imports during bootstrap.
 var restoreAttempted = false;
 const SUBAGENT_ANNOUNCE_TIMEOUT_MS = 120_000;
@@ -108,6 +117,7 @@ function forgetSubagentRun(runId: string) {
   if (didDelete) {
     persistSubagentRuns();
   }
+  notifyTaskWaiters(runId);
   if (subagentRuns.size === 0) {
     stopSweeper();
   }
@@ -123,6 +133,73 @@ function resolveChildSessionId(childSessionKey: string): string | undefined {
   }
   const sessionId = entry.sessionId.trim();
   return sessionId || undefined;
+}
+
+function resolveChildTranscriptPath(childSessionKey: string): string | undefined {
+  const cfg = loadConfig();
+  const agentId = resolveAgentIdFromSessionKey(childSessionKey);
+  const storePath = resolveStorePath(cfg.session?.store, { agentId });
+  const entry = loadSessionStore(storePath)[childSessionKey];
+  const sessionId =
+    entry && typeof entry.sessionId === "string" ? entry.sessionId.trim() : undefined;
+  if (!storePath || !sessionId) {
+    return undefined;
+  }
+  return path.join(path.dirname(storePath), `${sessionId}.jsonl`);
+}
+
+function resolveSubagentTaskStatus(entry: SubagentRunRecord): TaskOutputStatus {
+  switch (entry.outcome?.status) {
+    case "ok":
+      return "success";
+    case "timeout":
+      return "timeout";
+    case "error":
+      return "error";
+    default:
+      return entry.startedAt ? "running" : "pending";
+  }
+}
+
+export function buildTaskOutputFromSubagentRun(entry: SubagentRunRecord): TaskOutput {
+  return {
+    task_id: entry.runId,
+    task_type: "agent",
+    status: resolveSubagentTaskStatus(entry),
+    description: entry.label?.trim() || entry.task,
+    output_path: entry.outputPath,
+    transcript_path: entry.transcriptPath,
+    final_text: entry.finalText,
+    error: entry.outcome?.error,
+    prompt: entry.task,
+    notified: entry.notified ?? false,
+  };
+}
+
+function syncSubagentTaskArtifact(entry: SubagentRunRecord) {
+  entry.outputPath ??= resolveTaskOutputPath({ taskId: entry.runId, taskType: "agent" });
+  entry.transcriptPath ??= resolveChildTranscriptPath(entry.childSessionKey);
+  entry.notified ??= false;
+  writeTaskOutputArtifact(buildTaskOutputFromSubagentRun(entry));
+}
+
+function persistAndSyncSubagentRun(runId: string) {
+  persistSubagentRuns();
+  const entry = subagentRuns.get(runId);
+  if (entry) {
+    syncSubagentTaskArtifact(entry);
+  }
+  notifyTaskWaiters(runId);
+}
+
+function notifyTaskWaiters(runId: string) {
+  const waiters = taskWaiters.get(runId);
+  if (!waiters || waiters.size === 0) {
+    return;
+  }
+  for (const waiter of waiters) {
+    waiter();
+  }
 }
 
 function markCleanupPending(entry: SubagentRunRecord) {
@@ -146,7 +223,7 @@ function scheduleSubagentCleanup(runId: string, source: "resume" | "lifecycle" |
       return;
     }
     markCleanupPending(current);
-    persistSubagentRuns();
+    persistAndSyncSubagentRun(runId);
     logCleanupEvent("debug", "cleanup_started", current, {
       source,
       cleanupAttempt: current.cleanupAttempts,
@@ -281,8 +358,7 @@ function stopSweeper() {
 
 async function sweepSubagentRuns() {
   const now = Date.now();
-  const runsToSweep = Array.from(subagentRuns.entries());
-  for (const [runId, entry] of runsToSweep) {
+  for (const [runId, entry] of [...subagentRuns.entries()]) {
     if (!entry.archiveAtMs || entry.archiveAtMs > now) {
       continue;
     }
@@ -295,7 +371,7 @@ async function sweepSubagentRuns() {
         current.cleanupState = "blocked";
         current.cleanupReason = "archive_waiting_for_cleanup";
         current.cleanupError = undefined;
-        persistSubagentRuns();
+        persistAndSyncSubagentRun(runId);
         return;
       }
       const childSessionId = resolveChildSessionId(current.childSessionKey);
@@ -303,7 +379,7 @@ async function sweepSubagentRuns() {
         current.cleanupState = "blocked";
         current.cleanupReason = "active_run_still_processing";
         current.cleanupError = undefined;
-        persistSubagentRuns();
+        persistAndSyncSubagentRun(runId);
         logCleanupEvent("warn", "cleanup_blocked_active_run", current, {
           source: "archive",
           childSessionId,
@@ -326,7 +402,7 @@ async function sweepSubagentRuns() {
         current.cleanupState = "failed";
         current.cleanupReason = "archive_delete_failed";
         current.cleanupError = err instanceof Error ? err.message : String(err);
-        persistSubagentRuns();
+        persistAndSyncSubagentRun(runId);
         logCleanupEvent("error", "cleanup_failed", current, {
           source: "archive",
           archive: true,
@@ -358,7 +434,7 @@ function ensureListener() {
       const startedAt = typeof evt.data?.startedAt === "number" ? evt.data.startedAt : undefined;
       if (startedAt) {
         entry.startedAt = startedAt;
-        persistSubagentRuns();
+        persistAndSyncSubagentRun(evt.runId);
       }
       return;
     }
@@ -373,7 +449,7 @@ function ensureListener() {
     } else {
       entry.outcome = { status: "ok" };
     }
-    persistSubagentRuns();
+    persistAndSyncSubagentRun(evt.runId);
     scheduleSubagentCleanup(evt.runId, "lifecycle");
   });
 }
@@ -392,7 +468,7 @@ function finalizeSubagentCleanup(
     entry.cleanupState = "blocked";
     entry.cleanupReason = result.reason;
     entry.cleanupError = result.error;
-    persistSubagentRuns();
+    persistAndSyncSubagentRun(runId);
     logCleanupEvent("warn", "cleanup_blocked_active_run", entry, {
       reason: result.reason,
       cleanupResult: result.childSessionCleanup,
@@ -404,7 +480,7 @@ function finalizeSubagentCleanup(
     entry.cleanupState = "failed";
     entry.cleanupReason = result.reason;
     entry.cleanupError = result.error;
-    persistSubagentRuns();
+    persistAndSyncSubagentRun(runId);
     logCleanupEvent("error", "cleanup_failed", entry, {
       reason: result.reason,
       error: result.error,
@@ -424,7 +500,7 @@ function finalizeSubagentCleanup(
     return;
   }
   entry.cleanupCompletedAt = Date.now();
-  persistSubagentRuns();
+  persistAndSyncSubagentRun(runId);
   logCleanupEvent("debug", "cleanup_completed", entry, {
     reason: result.reason,
     cleanupResult: result.childSessionCleanup,
@@ -440,10 +516,10 @@ export function registerSubagentRun(params: {
   task: string;
   cleanup: "delete" | "keep";
   label?: string;
-  runTimeoutSeconds?: number;
   profile?: SubagentCapabilityProfileId;
   requiredTools?: string[];
   sessionToolPolicy?: SandboxToolPolicy;
+  runTimeoutSeconds?: number;
 }) {
   const now = Date.now();
   const cfg = loadConfig();
@@ -460,18 +536,22 @@ export function registerSubagentRun(params: {
     task: params.task,
     cleanup: params.cleanup,
     label: params.label,
+    profile: params.profile,
+    requiredTools: params.requiredTools,
+    sessionToolPolicy: params.sessionToolPolicy,
     createdAt: now,
     startedAt: now,
     archiveAtMs,
     cleanupHandled: false,
     cleanupState: "pending",
     cleanupAttempts: 0,
-    profile: params.profile,
-    requiredTools: params.requiredTools,
-    sessionToolPolicy: params.sessionToolPolicy,
+    outputPath: resolveTaskOutputPath({ taskId: params.runId, taskType: "agent" }),
+    transcriptPath: resolveChildTranscriptPath(params.childSessionKey),
+    finalText: undefined,
+    notified: false,
   });
   ensureListener();
-  persistSubagentRuns();
+  persistAndSyncSubagentRun(params.runId);
   if (archiveAfterMs) {
     startSweeper();
   }
@@ -502,7 +582,7 @@ async function waitForSubagentCompletion(runId: string, waitTimeoutMs: number) {
         entry.cleanupState = "blocked";
         entry.cleanupReason = "run_still_active";
         entry.cleanupError = undefined;
-        persistSubagentRuns();
+        persistAndSyncSubagentRun(runId);
       }
       return;
     }
@@ -529,8 +609,15 @@ async function waitForSubagentCompletion(runId: string, waitTimeoutMs: number) {
     entry.outcome =
       wait.status === "error" ? { status: "error", error: waitError } : { status: "ok" };
     mutated = true;
+    const finalText = await readLatestAssistantReply({ sessionKey: entry.childSessionKey }).catch(
+      () => undefined,
+    );
+    if (finalText?.trim()) {
+      entry.finalText = finalText.trim();
+      mutated = true;
+    }
     if (mutated) {
-      persistSubagentRuns();
+      persistAndSyncSubagentRun(runId);
     }
     scheduleSubagentCleanup(runId, "wait");
   } catch (err) {
@@ -539,7 +626,7 @@ async function waitForSubagentCompletion(runId: string, waitTimeoutMs: number) {
       entry.cleanupState = "failed";
       entry.cleanupReason = "wait_failed";
       entry.cleanupError = err instanceof Error ? err.message : String(err);
-      persistSubagentRuns();
+      persistAndSyncSubagentRun(runId);
     }
   }
 }
@@ -548,6 +635,7 @@ export function resetSubagentRegistryForTests() {
   subagentRuns.clear();
   resumedRuns.clear();
   cleanupTransitions.clear();
+  taskWaiters.clear();
   stopSweeper();
   restoreAttempted = false;
   if (listenerStop) {
@@ -560,7 +648,7 @@ export function resetSubagentRegistryForTests() {
 
 export function addSubagentRunForTests(entry: SubagentRunRecord) {
   subagentRuns.set(entry.runId, entry);
-  persistSubagentRuns();
+  persistAndSyncSubagentRun(entry.runId);
 }
 
 export function releaseSubagentRun(runId: string) {
@@ -583,6 +671,113 @@ export function getSubagentRunBySessionKey(childSessionKey: string): SubagentRun
     return undefined;
   }
   return [...subagentRuns.values()].find((entry) => entry.childSessionKey === key);
+}
+
+export function getSubagentRun(runId: string): SubagentRunRecord | undefined {
+  restoreSubagentRunsOnce();
+  const key = runId.trim();
+  if (!key) {
+    return undefined;
+  }
+  const entry = subagentRuns.get(key);
+  if (!entry) {
+    return undefined;
+  }
+  const transcriptPath = resolveChildTranscriptPath(entry.childSessionKey);
+  if (transcriptPath && entry.transcriptPath !== transcriptPath) {
+    entry.transcriptPath = transcriptPath;
+    persistAndSyncSubagentRun(key);
+  }
+  return entry;
+}
+
+export function setSubagentRunFinalText(runId: string, finalText?: string) {
+  const entry = getSubagentRun(runId);
+  if (!entry) {
+    return undefined;
+  }
+  const normalized = finalText?.trim();
+  entry.finalText = normalized ? normalized : undefined;
+  persistAndSyncSubagentRun(runId);
+  return entry;
+}
+
+export function setSubagentRunNotified(runId: string, notified = true) {
+  const entry = getSubagentRun(runId);
+  if (!entry) {
+    return false;
+  }
+  entry.notified = notified;
+  persistAndSyncSubagentRun(runId);
+  return true;
+}
+
+export async function waitForSubagentTerminal(params: {
+  runId: string;
+  timeoutMs: number;
+  signal?: AbortSignal;
+}): Promise<SubagentRunRecord | null> {
+  const existing = getSubagentRun(params.runId);
+  if (!existing) {
+    return null;
+  }
+  const status = resolveSubagentTaskStatus(existing);
+  if (
+    status === "success" ||
+    status === "error" ||
+    status === "cancelled" ||
+    status === "timeout"
+  ) {
+    return existing;
+  }
+  if (params.timeoutMs <= 0) {
+    return existing;
+  }
+  return await new Promise((resolve) => {
+    let settled = false;
+    const finish = (value: SubagentRunRecord | null) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timer);
+      params.signal?.removeEventListener("abort", onAbort);
+      waiters?.delete(onUpdate);
+      if (waiters && waiters.size === 0) {
+        taskWaiters.delete(params.runId);
+      }
+      resolve(value);
+    };
+    const onAbort = () => finish(getSubagentRun(params.runId) ?? null);
+    const onUpdate = () => {
+      const next = getSubagentRun(params.runId);
+      if (!next) {
+        finish(null);
+        return;
+      }
+      const nextStatus = resolveSubagentTaskStatus(next);
+      if (
+        nextStatus === "success" ||
+        nextStatus === "error" ||
+        nextStatus === "cancelled" ||
+        nextStatus === "timeout"
+      ) {
+        finish(next);
+      }
+    };
+    const waiters = taskWaiters.get(params.runId) ?? new Set<() => void>();
+    waiters.add(onUpdate);
+    taskWaiters.set(params.runId, waiters);
+    const timer = setTimeout(
+      () => finish(getSubagentRun(params.runId) ?? null),
+      Math.max(1, Math.floor(params.timeoutMs)),
+    );
+    if (params.signal?.aborted) {
+      onAbort();
+      return;
+    }
+    params.signal?.addEventListener("abort", onAbort, { once: true });
+  });
 }
 
 export function initSubagentRegistry() {

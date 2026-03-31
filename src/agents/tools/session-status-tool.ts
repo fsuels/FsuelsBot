@@ -40,12 +40,8 @@ import {
   resolveDefaultModelForAgent,
   resolveModelRefFromString,
 } from "../model-selection.js";
-import {
-  assertKnownParams,
-  jsonResult,
-  readAliasedStringParam,
-  readStringParam,
-} from "./common.js";
+import { createStructuredToolFailureResult } from "../tool-contracts.js";
+import { assertKnownParams, readAliasedStringParam, readStringParam } from "./common.js";
 import {
   shouldResolveSessionIdInput,
   resolveInternalSessionKey,
@@ -282,39 +278,19 @@ export function createSessionStatusTool(opts?: {
     parameters: SessionStatusToolSchema,
     execute: async (_toolCallId, args) => {
       const params = args as Record<string, unknown>;
-      let requestedKeyParam: string | undefined;
-      try {
-        assertKnownParams(params, ["sessionKey", "sessionId", "model"], {
-          label: "session_status",
-        });
-        requestedKeyParam = readAliasedStringParam(params, {
-          primaryKey: "sessionKey",
-          aliasKeys: ["sessionId"],
-          label: "sessionKey",
-        }).value;
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        return jsonResult({
-          ok: false,
-          success: false,
-          status: "error",
-          code: "invalid_input",
-          error: message,
-        });
-      }
+      assertKnownParams(params, ["sessionKey", "sessionId", "model"], { label: "session_status" });
       const cfg = opts?.config ?? loadConfig();
       const { mainKey, alias } = resolveMainSessionAlias(cfg);
       const a2aPolicy = createAgentToAgentPolicy(cfg);
 
+      const requestedKeyParam = readAliasedStringParam(params, {
+        primaryKey: "sessionKey",
+        aliasKeys: ["sessionId"],
+        label: "sessionKey",
+      }).value;
       let requestedKeyRaw = requestedKeyParam ?? opts?.agentSessionKey;
       if (!requestedKeyRaw?.trim()) {
-        return jsonResult({
-          ok: false,
-          success: false,
-          status: "error",
-          code: "invalid_input",
-          error: "sessionKey required",
-        });
+        throw new Error("sessionKey required");
       }
 
       const requesterAgentId = resolveAgentIdFromSessionKey(
@@ -378,14 +354,14 @@ export function createSessionStatusTool(opts?: {
 
       if (!resolved) {
         const kind = shouldResolveSessionIdInput(requestedKeyRaw) ? "sessionId" : "sessionKey";
-        return jsonResult({
-          ok: false,
-          success: false,
-          found: false,
+        return createStructuredToolFailureResult({
+          toolName: "session_status",
           code: "not_found",
-          kind,
-          sessionKey: requestedKeyRaw,
-          error: `Unknown ${kind}: ${requestedKeyRaw}`,
+          message: `Unknown ${kind}: ${requestedKeyRaw}`,
+          details: {
+            kind,
+            sessionKey: requestedKeyRaw,
+          },
         });
       }
 

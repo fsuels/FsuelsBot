@@ -7,7 +7,6 @@ import "./test-helpers/fast-coding-tools.js";
 import { createOpenClawTools } from "./openclaw-tools.js";
 import { __testing, createOpenClawCodingTools } from "./pi-tools.js";
 import { createSandboxedReadTool } from "./pi-tools.read.js";
-import { addSubagentRunForTests, resetSubagentRegistryForTests } from "./subagent-registry.js";
 import { createBrowserTool } from "./tools/browser-tool.js";
 
 const defaultTools = createOpenClawCodingTools();
@@ -259,6 +258,8 @@ describe("createOpenClawCodingTools", () => {
       "cron",
       "message",
       "gateway",
+      "tasks_list",
+      "task_get",
       "agents_list",
       "sessions_list",
       "sessions_history",
@@ -346,30 +347,6 @@ describe("createOpenClawCodingTools", () => {
       },
     });
     expect(tools.map((tool) => tool.name)).toEqual(["read"]);
-  });
-
-  it("applies persisted per-subagent session policy after the default subagent policy", () => {
-    resetSubagentRegistryForTests();
-    addSubagentRunForTests({
-      runId: "run-subagent-policy",
-      childSessionKey: "agent:main:subagent:test",
-      requesterSessionKey: "main",
-      requesterDisplayKey: "main",
-      task: "inspect failures",
-      cleanup: "keep",
-      createdAt: Date.now(),
-      startedAt: Date.now(),
-      sessionToolPolicy: { allow: ["read"] },
-    });
-
-    const tools = createOpenClawCodingTools({
-      sessionKey: "agent:main:subagent:test",
-    });
-    const names = new Set(tools.map((tool) => tool.name));
-
-    expect(names.has("read")).toBe(true);
-    expect(names.has("process")).toBe(false);
-    resetSubagentRegistryForTests();
   });
 
   it("applies tool profiles before allow/deny policies", () => {

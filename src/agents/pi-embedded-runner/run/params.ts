@@ -67,6 +67,10 @@ export type RunEmbeddedPiAgentParams = {
   images?: ImageContent[];
   /** Optional client-provided tools (OpenResponses hosted tools). */
   clientTools?: ClientToolDefinition[];
+  /** Optional JSON Schema for a machine-consumed final structured output. */
+  structuredOutputSchema?: Record<string, unknown>;
+  /** Optional tool name override for structured output mode. */
+  structuredOutputName?: string;
   /** Disable built-in tools for this run (LLM-only mode). */
   disableTools?: boolean;
   provider?: string;

@@ -2,30 +2,72 @@ import type { AnyAgentTool } from "./tools/common.js";
 
 export type ToolProfileId = "minimal" | "coding" | "messaging" | "full";
 
-type ToolProfilePolicy = {
-  allow?: string[];
-  deny?: string[];
-};
-
 const TOOL_NAME_ALIASES: Record<string, string> = {
   bash: "exec",
   "apply-patch": "apply_patch",
+  task_output: "get_task_output",
 };
 
-export const TOOL_GROUPS: Record<string, string[]> = {
+const EXPLICIT_TOOL_ALIAS_IDS: Record<string, readonly string[]> = {
+  get_task_output: ["task_output"],
+};
+
+export const CORE_TOOL_IDS = [
+  "read",
+  "write",
+  "edit",
+  "apply_patch",
+  "grep",
+  "find",
+  "ls",
+  "exec",
+  "process",
+  "get_task_output",
+  "sleep",
+  "browser",
+  "canvas",
+  "nodes",
+  "cron",
+  "message",
+  "tts",
+  "gateway",
+  "tasks_list",
+  "task_get",
+  "agents_list",
+  "sessions_list",
+  "sessions_history",
+  "sessions_send",
+  "sessions_spawn",
+  "session_status",
+  "task_tracker",
+  "delegate",
+  "memory_search",
+  "memory_get",
+  "web_search",
+  "web_fetch",
+  "image",
+  "whatsapp_login",
+] as const;
+
+export type CoreToolId = (typeof CORE_TOOL_IDS)[number];
+
+export const TOOL_GROUPS = {
   // NOTE: Keep canonical (lowercase) tool names here.
   "group:memory": ["memory_search", "memory_get"],
   "group:web": ["web_search", "web_fetch"],
   // Basic workspace/file tools
-  "group:fs": ["read", "write", "edit", "apply_patch"],
+  "group:fs": ["read", "write", "edit", "apply_patch", "find"],
   // Host/runtime execution tools
-  "group:runtime": ["exec", "process"],
+  "group:runtime": ["exec", "process", "get_task_output", "sleep"],
   // Session management tools
   "group:sessions": [
+    "tasks_list",
+    "task_get",
     "sessions_list",
     "sessions_history",
     "sessions_send",
     "sessions_spawn",
+    "get_task_output",
     "session_status",
     "task_tracker",
   ],
@@ -44,30 +86,46 @@ export const TOOL_GROUPS: Record<string, string[]> = {
     "nodes",
     "cron",
     "message",
+    "tts",
     "gateway",
+    "sleep",
+    "tasks_list",
+    "task_get",
     "agents_list",
     "sessions_list",
     "sessions_history",
     "sessions_send",
     "sessions_spawn",
+    "get_task_output",
     "session_status",
     "task_tracker",
+    "delegate",
     "memory_search",
     "memory_get",
     "web_search",
     "web_fetch",
     "image",
   ],
+} as const satisfies Record<string, readonly CoreToolId[]>;
+
+export type ToolGroupId = keyof typeof TOOL_GROUPS;
+
+type ToolPolicyEntry = CoreToolId | ToolGroupId | "*";
+
+type ToolProfilePolicy = {
+  allow?: ToolPolicyEntry[];
+  deny?: ToolPolicyEntry[];
 };
 
 const OWNER_ONLY_TOOL_NAMES = new Set<string>(["whatsapp_login"]);
+const OWNER_ONLY_TOOL_NAME_PATTERNS = [/_(?:login|authenticate)$/];
 
 const TOOL_PROFILES: Record<ToolProfileId, ToolProfilePolicy> = {
   minimal: {
     allow: ["session_status"],
   },
   coding: {
-    allow: ["group:fs", "group:runtime", "group:sessions", "group:memory", "image"],
+    allow: ["group:fs", "group:runtime", "group:sessions", "group:memory", "grep", "image"],
   },
   messaging: {
     allow: [
@@ -86,8 +144,114 @@ export function normalizeToolName(name: string) {
   return TOOL_NAME_ALIASES[normalized] ?? normalized;
 }
 
+type StaticToolPolicyConfig = {
+  toolIds: readonly string[];
+  toolGroups: Record<string, readonly string[]>;
+  toolProfiles: Record<string, { allow?: readonly string[]; deny?: readonly string[] }>;
+  ownerOnlyToolNames?: Iterable<string>;
+};
+
+function validateStaticToolPolicyConfig(config: StaticToolPolicyConfig): void {
+  const seenToolIds = new Map<string, string>();
+  for (const rawToolId of config.toolIds) {
+    const normalizedToolId = normalizeToolName(rawToolId);
+    if (!normalizedToolId) {
+      throw new Error("Tool registry contains an empty tool id.");
+    }
+    const existing = seenToolIds.get(normalizedToolId);
+    if (existing) {
+      throw new Error(
+        `Tool registry contains duplicate tool id "${normalizedToolId}" via "${existing}" and "${rawToolId}".`,
+      );
+    }
+    seenToolIds.set(normalizedToolId, rawToolId);
+  }
+
+  const knownToolIds = new Set(seenToolIds.keys());
+  const knownGroups = new Set(Object.keys(config.toolGroups).map(normalizeToolName));
+  const validateEntries = (entries: readonly string[] | undefined, label: string) => {
+    if (!entries) {
+      return;
+    }
+    for (const entry of entries) {
+      const normalizedEntry = normalizeToolName(entry);
+      if (!normalizedEntry) {
+        throw new Error(`${label} contains an empty tool policy entry.`);
+      }
+      if (normalizedEntry === "*") {
+        continue;
+      }
+      if (normalizedEntry.startsWith("group:")) {
+        if (!knownGroups.has(normalizedEntry)) {
+          throw new Error(`${label} references unknown tool group "${normalizedEntry}".`);
+        }
+        continue;
+      }
+      if (!knownToolIds.has(normalizedEntry)) {
+        throw new Error(`${label} references unknown tool id "${normalizedEntry}".`);
+      }
+    }
+  };
+
+  for (const [groupName, entries] of Object.entries(config.toolGroups)) {
+    validateEntries(entries, `Tool group ${groupName}`);
+  }
+  for (const [profileName, policy] of Object.entries(config.toolProfiles)) {
+    validateEntries(policy.allow, `Tool profile ${profileName}.allow`);
+    validateEntries(policy.deny, `Tool profile ${profileName}.deny`);
+  }
+  validateEntries(
+    config.ownerOnlyToolNames ? Array.from(config.ownerOnlyToolNames) : undefined,
+    "Owner-only tool policy",
+  );
+}
+
+export function assertUniqueToolNames<T extends { name: string }>(
+  tools: readonly T[],
+  label = "tools",
+): void {
+  const seen = new Map<string, Set<string>>();
+  for (const tool of tools) {
+    const rawName = typeof tool.name === "string" ? tool.name : "";
+    const normalizedName = normalizeToolName(rawName);
+    if (!normalizedName) {
+      throw new Error(`${label} contains a tool with an empty name.`);
+    }
+    const rawKey = rawName.trim().toLowerCase();
+    const existing = seen.get(normalizedName);
+    if (existing) {
+      const allowedAliases = new Set(EXPLICIT_TOOL_ALIAS_IDS[normalizedName] ?? []);
+      const allowedRawNames = new Set([normalizedName, ...allowedAliases]);
+      const canCoexist =
+        allowedAliases.size > 0 &&
+        Array.from(existing).every((name) => allowedRawNames.has(name)) &&
+        allowedRawNames.has(rawKey);
+      if (canCoexist) {
+        existing.add(rawKey);
+        continue;
+      }
+      const prior = Array.from(existing)[0] ?? normalizedName;
+      throw new Error(
+        `${label} contains duplicate tool id "${normalizedName}" via "${prior}" and "${rawName}".`,
+      );
+    }
+    seen.set(normalizedName, new Set([rawKey]));
+  }
+}
+
+validateStaticToolPolicyConfig({
+  toolIds: CORE_TOOL_IDS,
+  toolGroups: TOOL_GROUPS,
+  toolProfiles: TOOL_PROFILES,
+  ownerOnlyToolNames: OWNER_ONLY_TOOL_NAMES,
+});
+
 export function isOwnerOnlyToolName(name: string) {
-  return OWNER_ONLY_TOOL_NAMES.has(normalizeToolName(name));
+  const normalized = normalizeToolName(name);
+  return (
+    OWNER_ONLY_TOOL_NAMES.has(normalized) ||
+    OWNER_ONLY_TOOL_NAME_PATTERNS.some((pattern) => pattern.test(normalized))
+  );
 }
 
 export function applyOwnerOnlyToolPolicy(tools: AnyAgentTool[], senderIsOwner: boolean) {
@@ -138,7 +302,7 @@ export function expandToolGroups(list?: string[]) {
   const normalized = normalizeToolList(list);
   const expanded: string[] = [];
   for (const value of normalized) {
-    const group = TOOL_GROUPS[value];
+    const group = TOOL_GROUPS[value as keyof typeof TOOL_GROUPS];
     if (group) {
       expanded.push(...group);
       continue;
@@ -291,3 +455,8 @@ export function resolveToolProfilePolicy(profile?: string): ToolProfilePolicy | 
     deny: resolved.deny ? [...resolved.deny] : undefined,
   };
 }
+
+export const __testing = {
+  validateStaticToolPolicyConfig,
+  assertUniqueToolNames,
+} as const;

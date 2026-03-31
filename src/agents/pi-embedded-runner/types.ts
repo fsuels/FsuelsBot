@@ -21,7 +21,12 @@ export type EmbeddedPiRunMeta = {
   aborted?: boolean;
   systemPromptReport?: SessionSystemPromptReport;
   error?: {
-    kind: "context_overflow" | "compaction_failure" | "role_ordering" | "image_size";
+    kind:
+      | "context_overflow"
+      | "compaction_failure"
+      | "role_ordering"
+      | "image_size"
+      | "structured_output";
     message: string;
   };
   /** Stop reason for the agent run (e.g., "completed", "tool_calls"). */
@@ -32,6 +37,10 @@ export type EmbeddedPiRunMeta = {
     name: string;
     arguments: string;
   }>;
+  /** Validated machine-consumed structured output captured via the finalization tool. */
+  structuredOutput?: unknown;
+  /** True when the caller required structured output for this run. */
+  structuredOutputRequired?: boolean;
 };
 
 export type EmbeddedPiRunResult = {

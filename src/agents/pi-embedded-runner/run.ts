@@ -481,6 +481,9 @@ export async function runEmbeddedPiAgent(
             skillsSnapshot: params.skillsSnapshot,
             prompt,
             images: params.images,
+            clientTools: params.clientTools,
+            structuredOutputSchema: params.structuredOutputSchema,
+            structuredOutputName: params.structuredOutputName,
             disableTools: params.disableTools,
             provider,
             modelId,
@@ -946,19 +949,32 @@ export async function runEmbeddedPiAgent(
             compactionCount: autoCompactionCount > 0 ? autoCompactionCount : undefined,
           };
 
-          const payloads = buildEmbeddedRunPayloads({
-            assistantTexts: attempt.assistantTexts,
-            toolMetas: attempt.toolMetas,
-            lastAssistant: attempt.lastAssistant,
-            lastToolError: attempt.lastToolError,
-            webSearchSources: attempt.webSearchSources,
-            config: params.config,
-            sessionKey: params.sessionKey ?? params.sessionId,
-            verboseLevel: params.verboseLevel,
-            reasoningLevel: params.reasoningLevel,
-            toolResultFormat: resolvedToolResultFormat,
-            inlineToolResultsAllowed: false,
-          });
+          const structuredOutputRequired = Boolean(params.structuredOutputSchema);
+          const structuredOutput = attempt.structuredOutput?.payload;
+          const structuredOutputError =
+            structuredOutputRequired && structuredOutput === undefined
+              ? {
+                  kind: "structured_output" as const,
+                  message:
+                    "Structured output was required for this run, but the model did not successfully finalize it.",
+                }
+              : undefined;
+
+          const payloads = attempt.structuredOutput
+            ? [{ text: attempt.structuredOutput.statusText }]
+            : buildEmbeddedRunPayloads({
+                assistantTexts: attempt.assistantTexts,
+                toolMetas: attempt.toolMetas,
+                lastAssistant: attempt.lastAssistant,
+                lastToolError: attempt.lastToolError,
+                webSearchSources: attempt.webSearchSources,
+                config: params.config,
+                sessionKey: params.sessionKey ?? params.sessionId,
+                verboseLevel: params.verboseLevel,
+                reasoningLevel: params.reasoningLevel,
+                toolResultFormat: resolvedToolResultFormat,
+                inlineToolResultsAllowed: false,
+              });
 
           log.debug(
             `embedded run done: runId=${params.runId} sessionId=${params.sessionId} durationMs=${Date.now() - started} aborted=${aborted}`,
@@ -983,6 +999,9 @@ export async function runEmbeddedPiAgent(
               agentMeta,
               aborted,
               systemPromptReport: attempt.systemPromptReport,
+              error: structuredOutputError,
+              structuredOutput,
+              structuredOutputRequired: structuredOutputRequired || undefined,
               // Handle client tool calls (OpenResponses hosted tools)
               stopReason: attempt.clientToolCall ? "tool_calls" : undefined,
               pendingToolCalls: attempt.clientToolCall

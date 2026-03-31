@@ -5,8 +5,8 @@ import type { ResolvedTimeFormat } from "./date-time.js";
 import type { DriftPromptInjection } from "./drift-detection.js";
 import type { EmbeddedContextFile } from "./pi-embedded-helpers.js";
 import { SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
-import { buildSubagentOrchestrationSection } from "./subagent-policy.js";
 import { listDeliverableMessageChannels } from "../utils/message-channel.js";
+import { buildSubagentOrchestrationSection } from "./subagent-policy.js";
 
 /**
  * Controls which hardcoded sections are included in the system prompt.
@@ -89,6 +89,44 @@ function buildTaskTrackerSection(params: { isMinimal: boolean; availableTools: S
   ].filter(Boolean);
 }
 
+function buildTaskBoardSection(params: { isMinimal: boolean; availableTools: Set<string> }) {
+  if (params.isMinimal || !params.availableTools.has("tasks_list")) {
+    return [];
+  }
+  const hasTaskGet = params.availableTools.has("task_get");
+  return [
+    "## Task Board",
+    "Use `tasks_list` when you need to inspect the shared workspace task board, choose available work, or understand what is blocked.",
+    "Field meanings: `status` is a derived runtime state, `lane` is reconciled from top-level board lanes, `blockedBy` lists unfinished task-id dependencies, `blockers` lists unresolved blocker notes, `owner` shows the current claimant when present, `hasOwner` / `isBlocked` are explicit booleans, and `isAvailableToClaim` / `isReady` means the task is ready now.",
+    "When choosing work from the shared board, prefer the lowest-ID task where `isAvailableToClaim` is true.",
+    hasTaskGet
+      ? "After picking a task, call `task_get` before acting so you have the full normalized card, files, steps, and next action."
+      : "After picking a task, inspect its task card files before acting so you have the full context.",
+    "If work finishes or becomes blocked, update the relevant task artifacts with receipts and the concrete missing input so the board stays trustworthy.",
+    "",
+  ];
+}
+
+function buildWaitingSection(params: {
+  isMinimal: boolean;
+  availableTools: Set<string>;
+  sleepToolName: string;
+  getTaskOutputToolName: string;
+}) {
+  if (params.isMinimal || !params.availableTools.has("sleep")) {
+    return [];
+  }
+  return [
+    "## Waiting & Idle Work",
+    `Use \`${params.sleepToolName}\` for explicit waiting, idling, reminders-to-self, or when the user asks you to wait.`,
+    `Prefer \`${params.sleepToolName}\` over shell \`sleep\`, \`timeout\`, or ad-hoc polling loops in \`exec\`.`,
+    `If you are waiting on external work, background shells, or sub-agents, sleep cooperatively and check structured task state with \`${params.getTaskOutputToolName}\` when you wake.`,
+    `Periodic sleep wakeups are check-ins, not automatic work. Reevaluate pending system events and useful follow-up before choosing to sleep again.`,
+    "If there is genuinely no productive work to do right now, sleeping is better than burning tool/process slots with no-op polling.",
+    "",
+  ];
+}
+
 function buildUserIdentitySection(ownerLine: string | undefined, isMinimal: boolean) {
   if (!ownerLine || isMinimal) {
     return [];
@@ -133,7 +171,7 @@ function buildMessagingSection(params: {
     "## Messaging",
     "- Reply in current session → automatically routes to the source channel (Signal, Telegram, etc.)",
     "- Cross-session messaging → use `sessions_send({ label, message })` when a worker has a stable label; otherwise use `sessions_send({ sessionKey, message })`.",
-    "- Cross-session collaboration is plain text. Send only the next action or delta, not a full transcript re-quote unless the other session truly needs fresh context.",
+    "- Cross-session collaboration is plain text. Send only the delta or action needed, not a full transcript re-quote unless the other session truly needs fresh context.",
     "- Never use exec/curl for provider messaging; OpenClaw handles all routing internally.",
     params.availableTools.has("message")
       ? [
@@ -258,10 +296,14 @@ export function buildAgentSystemPrompt(params: {
     edit: "Make precise edits to files",
     apply_patch: "Apply multi-file patches",
     grep: "Search file contents for patterns",
-    find: "Find files by glob pattern",
+    find: "Find files by glob pattern for targeted filename/path discovery; use it when you already have a specific pattern or subtree, not for broad multi-pass repo exploration",
     ls: "List directory contents",
     exec: "Run shell commands (pty available for TTY-required CLIs)",
     process: "Manage background exec sessions",
+    get_task_output:
+      "Read typed output for a background shell or sub-agent task without parsing raw transcripts",
+    sleep:
+      "Register a non-blocking wait for this session; prefer over shell sleep or polling loops",
     web_search: "Search the web (Brave API)",
     web_fetch: "Fetch and extract readable content from a URL",
     // Channel docking: add login tools here when a channel needs interactive linking.
@@ -271,6 +313,9 @@ export function buildAgentSystemPrompt(params: {
     cron: "Manage cron jobs and wake events (use for reminders; when scheduling a reminder, write the systemEvent text as something that will read like a reminder when it fires, and mention that it is a reminder depending on the time gap between setting and firing; include recent context in reminder text if appropriate)",
     message: "Send messages and channel actions",
     gateway: "Restart, apply config, or run updates on the running OpenClaw process",
+    tasks_list:
+      "List shared workspace tasks with derived readiness, blocker cleanup, and lane reconciliation",
+    task_get: "Fetch the full normalized task card for one shared workspace task",
     agents_list: "List agent ids allowed for sessions_spawn",
     sessions_list: "List other sessions (incl. sub-agents) with filters/last",
     sessions_history: "Fetch history for another session/sub-agent",
@@ -293,6 +338,8 @@ export function buildAgentSystemPrompt(params: {
     "ls",
     "exec",
     "process",
+    "get_task_output",
+    "sleep",
     "web_search",
     "web_fetch",
     "browser",
@@ -301,6 +348,8 @@ export function buildAgentSystemPrompt(params: {
     "cron",
     "message",
     "gateway",
+    "tasks_list",
+    "task_get",
     "agents_list",
     "sessions_list",
     "sessions_history",
@@ -368,6 +417,8 @@ export function buildAgentSystemPrompt(params: {
   const readToolName = resolveToolName("read");
   const execToolName = resolveToolName("exec");
   const processToolName = resolveToolName("process");
+  const getTaskOutputToolName = resolveToolName("get_task_output");
+  const sleepToolName = resolveToolName("sleep");
   const extraSystemPrompt = params.extraSystemPrompt?.trim();
   const ownerNumbers = (params.ownerNumbers ?? []).map((value) => value.trim()).filter(Boolean);
   const ownerLine =
@@ -420,14 +471,24 @@ export function buildAgentSystemPrompt(params: {
     availableTools,
     citationsMode: params.memoryCitationsMode,
   });
-  const taskTrackerSection = buildTaskTrackerSection({
-    isMinimal,
-    availableTools,
-  });
   const docsSection = buildDocsSection({
     docsPath: params.docsPath,
     isMinimal,
     readToolName,
+  });
+  const taskTrackerSection = buildTaskTrackerSection({
+    isMinimal,
+    availableTools,
+  });
+  const taskBoardSection = buildTaskBoardSection({
+    isMinimal,
+    availableTools,
+  });
+  const waitingSection = buildWaitingSection({
+    isMinimal,
+    availableTools,
+    sleepToolName,
+    getTaskOutputToolName,
   });
   const workspaceNotes = (params.workspaceNotes ?? []).map((note) => note.trim()).filter(Boolean);
 
@@ -452,10 +513,14 @@ export function buildAgentSystemPrompt(params: {
           "- apply_patch: apply multi-file patches",
           `- ${execToolName}: run shell commands (supports background via yieldMs/background)`,
           `- ${processToolName}: manage background exec sessions`,
+          `- ${getTaskOutputToolName}: read structured output for background tasks`,
+          `- ${sleepToolName}: register a non-blocking wait for this session`,
           "- browser: control OpenClaw's dedicated browser",
           "- canvas: present/eval/snapshot the Canvas",
           "- nodes: list/describe/notify/camera/screen on paired nodes",
           "- cron: manage cron jobs and wake events (use for reminders; when scheduling a reminder, write the systemEvent text as something that will read like a reminder when it fires, and mention that it is a reminder depending on the time gap between setting and firing; include recent context in reminder text if appropriate)",
+          "- tasks_list: list shared workspace tasks with derived readiness/blockers",
+          "- task_get: fetch the full normalized task card for a task id",
           "- sessions_list: list sessions",
           "- sessions_history: fetch session history",
           "- sessions_send: send to another session",
@@ -470,6 +535,14 @@ export function buildAgentSystemPrompt(params: {
     "Narrate only when it helps: multi-step work, complex/challenging problems, sensitive actions (e.g., deletions), or when the user explicitly asks.",
     "Keep narration brief and value-dense; avoid repeating obvious steps.",
     "Use plain human language for narration unless in a technical context.",
+    "If a tool operator manual says `Usage policy: explicit_only`, call it only when the user directly requested that action class.",
+    "If a tool operator manual says `Usage policy: semantic_ok`, you may infer it only when the action is clearly necessary, low-risk, and reversible.",
+    ...(availableTools.has("grep")
+      ? [
+          "For workspace file-content search, prefer `grep` over raw shell `rg`/`grep` through exec.",
+          "Use `grep` output modes to choose between filenames, counts, and matching content.",
+        ]
+      : []),
     "",
     ...(!isMinimal && toolManualLines.length > 0
       ? ["## Tool Operator Manuals", ...toolManualLines]
@@ -514,6 +587,8 @@ export function buildAgentSystemPrompt(params: {
     ...skillsSection,
     ...memorySection,
     ...taskTrackerSection,
+    ...taskBoardSection,
+    ...waitingSection,
     // TaskClarity removed — upstream memory section handles this now
     // Skip self-update for subagent/none modes
     hasGateway && !isMinimal ? "## OpenClaw Self-Update" : "",

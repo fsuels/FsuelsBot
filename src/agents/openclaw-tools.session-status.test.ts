@@ -182,34 +182,6 @@ describe("session_status tool", () => {
     expect(details.sessionKey).toBe("agent:main:main");
   });
 
-  it("rejects unknown input keys with structured invalid_input errors", async () => {
-    loadSessionStoreMock.mockReset();
-    updateSessionStoreMock.mockReset();
-    loadSessionStoreMock.mockReturnValue({
-      main: {
-        sessionId: "s1",
-        updatedAt: 10,
-      },
-    });
-
-    const tool = createOpenClawTools({ agentSessionKey: "main" }).find(
-      (candidate) => candidate.name === "session_status",
-    );
-    if (!tool) {
-      throw new Error("missing session_status tool");
-    }
-
-    const result = await tool.execute("call3-invalid", {
-      sessionKey: "main",
-      extra: true,
-    });
-    expect(result.details).toMatchObject({
-      ok: false,
-      success: false,
-      code: "invalid_input",
-    });
-  });
-
   it("uses non-standard session keys without sessionId resolution", async () => {
     loadSessionStoreMock.mockReset();
     updateSessionStoreMock.mockReset();
@@ -331,5 +303,30 @@ describe("session_status tool", () => {
     expect(saved.providerOverride).toBeUndefined();
     expect(saved.modelOverride).toBeUndefined();
     expect(saved.authProfileOverride).toBeUndefined();
+  });
+
+  it("rejects unknown keys with strict validation", async () => {
+    loadSessionStoreMock.mockReset();
+    updateSessionStoreMock.mockReset();
+    loadSessionStoreMock.mockReturnValue({
+      main: {
+        sessionId: "s1",
+        updatedAt: 10,
+      },
+    });
+
+    const tool = createOpenClawTools({ agentSessionKey: "main" }).find(
+      (candidate) => candidate.name === "session_status",
+    );
+    if (!tool) {
+      throw new Error("missing session_status tool");
+    }
+
+    const result = await tool.execute("call-extra", { bogus: true });
+    expect(result.details).toMatchObject({
+      ok: false,
+      code: "invalid_input",
+    });
+    expect((result.details as { error?: string }).error).toContain('unexpected property "bogus"');
   });
 });

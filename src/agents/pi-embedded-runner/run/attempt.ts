@@ -65,6 +65,7 @@ import {
   loadWorkspaceSkillEntries,
   resolveSkillsPromptForRun,
 } from "../../skills.js";
+import { createStructuredOutputTool } from "../../structured-output-tool.js";
 import { buildSystemPromptParams } from "../../system-prompt-params.js";
 import { buildSystemPromptReport } from "../../system-prompt-report.js";
 import { resolveTranscriptPolicy } from "../../transcript-policy.js";
@@ -500,6 +501,40 @@ export async function runEmbeddedAttempt(
         sandboxEnabled: !!sandbox?.enabled,
       });
 
+      let capturedStructuredOutput:
+        | {
+            payload: unknown;
+            statusText: string;
+          }
+        | undefined;
+      const structuredOutputToolResult = params.structuredOutputSchema
+        ? createStructuredOutputTool({
+            jsonSchema: params.structuredOutputSchema,
+            provider: params.provider,
+            name: params.structuredOutputName,
+            onCapture: (payload) => {
+              if (capturedStructuredOutput) {
+                return {
+                  ok: false,
+                  statusText:
+                    "Structured output already captured. Call this tool exactly once and only when you are ready to finish.",
+                } as const;
+              }
+              capturedStructuredOutput = {
+                payload,
+                statusText: "Structured output captured.",
+              };
+              return {
+                ok: true,
+                statusText: capturedStructuredOutput.statusText,
+              } as const;
+            },
+          })
+        : null;
+      if (structuredOutputToolResult && "error" in structuredOutputToolResult) {
+        throw new Error(structuredOutputToolResult.error.message);
+      }
+
       // Add client tools (OpenResponses hosted tools) to customTools
       let clientToolCallDetected: { name: string; params: Record<string, unknown> } | null = null;
       const clientToolDefs = params.clientTools
@@ -514,8 +549,12 @@ export async function runEmbeddedAttempt(
             },
           )
         : [];
+      const structuredOutputToolDefs =
+        structuredOutputToolResult && "tool" in structuredOutputToolResult
+          ? [structuredOutputToolResult.tool]
+          : [];
 
-      const allCustomTools = [...customTools, ...clientToolDefs];
+      const allCustomTools = [...customTools, ...structuredOutputToolDefs, ...clientToolDefs];
 
       ({ session } = await createAgentSession({
         cwd: resolvedWorkspace,
@@ -1051,6 +1090,7 @@ export async function runEmbeddedAttempt(
         compactionCount: getCompactionCount(),
         // Client tool call detected (OpenResponses hosted tools)
         clientToolCall: clientToolCallDetected ?? undefined,
+        structuredOutput: capturedStructuredOutput,
       };
     } finally {
       // Always tear down the session (and release the lock) before we leave this attempt.

@@ -185,4 +185,45 @@ export default { register(api) {
 
     expect(tools.map((tool) => tool.name)).toEqual(["other_tool"]);
   });
+
+  it("treats normalized aliases as conflicts", () => {
+    const plugin = writePlugin({
+      id: "alias-conflict",
+      body: `
+export default { register(api) {
+  api.registerTool({
+    name: "bash",
+    description: "alias conflict",
+    parameters: { type: "object", properties: {} },
+    async execute() {
+      return { content: [{ type: "text", text: "nope" }] };
+    },
+  });
+  api.registerTool({
+    name: "other_tool",
+    description: "ok",
+    parameters: { type: "object", properties: {} },
+    async execute() {
+      return { content: [{ type: "text", text: "ok" }] };
+    },
+  });
+} }
+`,
+    });
+
+    const tools = resolvePluginTools({
+      context: {
+        config: {
+          plugins: {
+            load: { paths: [plugin.file] },
+            allow: [plugin.id],
+          },
+        },
+        workspaceDir: plugin.dir,
+      },
+      existingToolNames: new Set(["exec"]),
+    });
+
+    expect(tools.map((tool) => tool.name)).toEqual(["other_tool"]);
+  });
 });

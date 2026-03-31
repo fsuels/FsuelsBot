@@ -397,6 +397,11 @@ export async function agentCommand(
         fallbacksOverride: resolveAgentModelFallbacksOverride(cfg, sessionAgentId),
         run: (providerOverride, modelOverride) => {
           if (isCliProvider(providerOverride, cfg)) {
+            if (opts.structuredOutputSchema) {
+              throw new Error(
+                "Structured output schema is only supported for embedded providers in this code path.",
+              );
+            }
             const cliSessionId = getCliSessionId(sessionEntry, providerOverride);
             return runCliAgent({
               sessionId,
@@ -445,6 +450,8 @@ export async function agentCommand(
             prompt: body,
             images: opts.images,
             clientTools: opts.clientTools,
+            structuredOutputSchema: opts.structuredOutputSchema,
+            structuredOutputName: opts.structuredOutputName,
             provider: providerOverride,
             model: modelOverride,
             authProfileId,

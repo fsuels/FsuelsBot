@@ -11,6 +11,7 @@ import { randomUUID } from "node:crypto";
 import type { ClientToolDefinition } from "../agents/pi-embedded-runner/run/params.js";
 import type { ImageContent } from "../commands/agent/types.js";
 import type { GatewayHttpResponsesConfig } from "../config/types.gateway.js";
+import { prepareStructuredOutputSchema } from "../agents/structured-output-tool.js";
 import { buildHistoryContextFromEntries, type HistoryEntry } from "../auto-reply/reply/history.js";
 import { createDefaultDeps } from "../cli/deps.js";
 import { agentCommand } from "../commands/agent.js";
@@ -168,6 +169,52 @@ function applyToolChoice(params: {
   return { tools };
 }
 
+type StructuredOutputRequest = {
+  name: string;
+  schema: Record<string, unknown>;
+};
+
+function resolveStructuredOutputRequest(
+  body: CreateResponseBody,
+): StructuredOutputRequest | undefined {
+  const textFormat =
+    body.text?.format?.type === "json_schema"
+      ? {
+          name: body.text.format.name?.trim() || "structured_output",
+          schema: body.text.format.schema,
+        }
+      : undefined;
+  const responseFormat =
+    body.response_format?.type === "json_schema"
+      ? {
+          name: body.response_format.json_schema.name?.trim() || "structured_output",
+          schema: body.response_format.json_schema.schema,
+        }
+      : undefined;
+
+  if (!textFormat) {
+    return responseFormat;
+  }
+  if (!responseFormat) {
+    return textFormat;
+  }
+
+  const textJson = JSON.stringify(textFormat);
+  const responseJson = JSON.stringify(responseFormat);
+  if (textJson !== responseJson) {
+    throw new Error("text.format and response_format define conflicting structured output schemas");
+  }
+  return textFormat;
+}
+
+function buildStructuredOutputPrompt(toolName: string): string {
+  return [
+    `When you are ready to finish, call the \`${toolName}\` tool exactly once at the end.`,
+    "Return the final machine-consumed answer through that tool only.",
+    "Do not provide the final answer as plain text outside the tool call.",
+  ].join(" ");
+}
+
 export function buildAgentPrompt(input: string | ItemParam[]): {
   message: string;
   extraSystemPrompt?: string;
@@ -300,6 +347,7 @@ function createResponseResource(params: {
   output: OutputItem[];
   usage?: Usage;
   error?: { code: string; message: string };
+  structuredOutput?: unknown;
 }): ResponseResource {
   return {
     id: params.id,
@@ -309,6 +357,7 @@ function createResponseResource(params: {
     model: params.model,
     output: params.output,
     usage: params.usage ?? createEmptyUsage(),
+    structured_output: params.structuredOutput,
     error: params.error,
   };
 }
@@ -380,6 +429,24 @@ export async function handleOpenResponsesHttpRequest(
   const stream = Boolean(payload.stream);
   const model = payload.model;
   const user = payload.user;
+  let structuredOutputRequest: StructuredOutputRequest | undefined;
+  try {
+    structuredOutputRequest = resolveStructuredOutputRequest(payload);
+  } catch (err) {
+    sendJson(res, 400, {
+      error: { message: String(err), type: "invalid_request_error" },
+    });
+    return true;
+  }
+  if (structuredOutputRequest) {
+    const prepared = prepareStructuredOutputSchema(structuredOutputRequest.schema);
+    if (!prepared.ok) {
+      sendJson(res, 400, {
+        error: { message: prepared.error.message, type: "invalid_request_error" },
+      });
+      return true;
+    }
+  }
 
   // Extract images + files from input (Phase 2)
   let images: ImageContent[] = [];
@@ -487,6 +554,7 @@ export async function handleOpenResponsesHttpRequest(
     payload.instructions,
     prompt.extraSystemPrompt,
     toolChoiceContext,
+    structuredOutputRequest ? buildStructuredOutputPrompt(structuredOutputRequest.name) : undefined,
     fileContext,
   ]
     .filter(Boolean)
@@ -517,6 +585,8 @@ export async function handleOpenResponsesHttpRequest(
           message: prompt.message,
           images: images.length > 0 ? images : undefined,
           clientTools: resolvedClientTools.length > 0 ? resolvedClientTools : undefined,
+          structuredOutputSchema: structuredOutputRequest?.schema,
+          structuredOutputName: structuredOutputRequest?.name,
           extraSystemPrompt: extraSystemPrompt || undefined,
           streamParams: streamParams ?? undefined,
           sessionKey,
@@ -539,6 +609,14 @@ export async function handleOpenResponsesHttpRequest(
           ? (meta as { pendingToolCalls?: Array<{ id: string; name: string; arguments: string }> })
               .pendingToolCalls
           : undefined;
+      const structuredOutput =
+        meta && typeof meta === "object"
+          ? (meta as { structuredOutput?: unknown }).structuredOutput
+          : undefined;
+      const structuredOutputRequired =
+        meta && typeof meta === "object"
+          ? Boolean((meta as { structuredOutputRequired?: unknown }).structuredOutputRequired)
+          : false;
 
       // If agent called a client tool, return function_call instead of text
       if (stopReason === "tool_calls" && pendingToolCalls && pendingToolCalls.length > 0) {
@@ -563,6 +641,23 @@ export async function handleOpenResponsesHttpRequest(
         return true;
       }
 
+      if (structuredOutputRequired && structuredOutput === undefined) {
+        const response = createResponseResource({
+          id: responseId,
+          model,
+          status: "failed",
+          output: [],
+          error: {
+            code: "structured_output_missing",
+            message:
+              "Structured output was required for this request, but the model did not successfully finalize it.",
+          },
+          usage,
+        });
+        sendJson(res, 500, response);
+        return true;
+      }
+
       const content =
         Array.isArray(payloads) && payloads.length > 0
           ? payloads
@@ -579,6 +674,7 @@ export async function handleOpenResponsesHttpRequest(
           createAssistantOutputItem({ id: outputItemId, text: content, status: "completed" }),
         ],
         usage,
+        structuredOutput,
       });
 
       sendJson(res, 200, response);
@@ -607,6 +703,8 @@ export async function handleOpenResponsesHttpRequest(
   let unsubscribe = () => {};
   let finalUsage: Usage | undefined;
   let finalizeRequested: { status: ResponseResource["status"]; text: string } | null = null;
+  let finalStructuredOutput: unknown;
+  const structuredOutputRequired = Boolean(structuredOutputRequest);
 
   const maybeFinalize = () => {
     if (closed) {
@@ -657,6 +755,7 @@ export async function handleOpenResponsesHttpRequest(
       status: finalizeRequested.status,
       output: [completedItem],
       usage,
+      structuredOutput: finalStructuredOutput,
     });
 
     writeSseEvent(res, { type: "response.completed", response: finalResponse });
@@ -756,6 +855,8 @@ export async function handleOpenResponsesHttpRequest(
           message: prompt.message,
           images: images.length > 0 ? images : undefined,
           clientTools: resolvedClientTools.length > 0 ? resolvedClientTools : undefined,
+          structuredOutputSchema: structuredOutputRequest?.schema,
+          structuredOutputName: structuredOutputRequest?.name,
           extraSystemPrompt: extraSystemPrompt || undefined,
           streamParams: streamParams ?? undefined,
           sessionKey,
@@ -768,18 +869,44 @@ export async function handleOpenResponsesHttpRequest(
         deps,
       );
 
+      const resultAny = result as { payloads?: Array<{ text?: string }>; meta?: unknown };
+      const meta = resultAny.meta;
       finalUsage = extractUsageFromResult(result);
+      finalStructuredOutput =
+        meta && typeof meta === "object"
+          ? (meta as { structuredOutput?: unknown }).structuredOutput
+          : undefined;
       maybeFinalize();
 
       if (closed) {
         return;
       }
 
+      if (structuredOutputRequired && finalStructuredOutput === undefined) {
+        const usage = finalUsage ?? createEmptyUsage();
+        const errorResponse = createResponseResource({
+          id: responseId,
+          model,
+          status: "failed",
+          output: [],
+          error: {
+            code: "structured_output_missing",
+            message:
+              "Structured output was required for this request, but the model did not successfully finalize it.",
+          },
+          usage,
+        });
+        closed = true;
+        unsubscribe();
+        writeSseEvent(res, { type: "response.failed", response: errorResponse });
+        writeDone(res);
+        res.end();
+        return;
+      }
+
       // Fallback: if no streaming deltas were received, send the full response
       if (!sawAssistantDelta) {
-        const resultAny = result as { payloads?: Array<{ text?: string }>; meta?: unknown };
         const payloads = resultAny.payloads;
-        const meta = resultAny.meta;
         const stopReason =
           meta && typeof meta === "object"
             ? (meta as { stopReason?: string }).stopReason

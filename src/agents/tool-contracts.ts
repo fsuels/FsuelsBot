@@ -1,11 +1,13 @@
 import type { ErrorObject, ValidateFunction } from "ajv";
 import Ajv from "ajv";
 import type {
+  AnyOpenClawTool,
   ToolExecutionContext,
   ToolFailureCode,
   ToolValidationResult,
 } from "./tool-contract.js";
 import type { AnyAgentTool } from "./tools/common.js";
+import { finalizeToolExecutionResult } from "./tool-contract.js";
 import { normalizeToolName } from "./tool-policy.js";
 import { jsonResult } from "./tools/common.js";
 
@@ -272,6 +274,12 @@ export function applyToolContracts<T extends ContractAwareTool>(tool: T): T {
       signal?: AbortSignal,
       onUpdate?: Parameters<T["execute"]>[3],
     ) => {
+      const context: ToolExecutionContext = {
+        toolCallId,
+        source: "direct",
+        signal,
+        onUpdate,
+      };
       const schemaValidation = validateSchemaInput(tool, input);
       if (!schemaValidation.ok) {
         return schemaValidation.result;
@@ -298,7 +306,17 @@ export function applyToolContracts<T extends ContractAwareTool>(tool: T): T {
         }
       }
 
-      return await execute(toolCallId, nextInput as Parameters<T["execute"]>[1], signal, onUpdate);
+      const result = await execute(
+        toolCallId,
+        nextInput as Parameters<T["execute"]>[1],
+        signal,
+        onUpdate,
+      );
+      return await finalizeToolExecutionResult({
+        tool: tool as unknown as AnyOpenClawTool,
+        result,
+        context,
+      });
     },
   };
   return wrapped as T;
