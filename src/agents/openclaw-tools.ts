@@ -17,7 +17,9 @@ import { createSessionsHistoryTool } from "./tools/sessions-history-tool.js";
 import { createSessionsListTool } from "./tools/sessions-list-tool.js";
 import { createSessionsSendTool } from "./tools/sessions-send-tool.js";
 import { createSessionsSpawnTool } from "./tools/sessions-spawn-tool.js";
+import { createTaskGetTool } from "./tools/task-get-tool.js";
 import { createTaskTrackerTool } from "./tools/task-tracker-tool.js";
+import { createTasksListTool } from "./tools/tasks-list-tool.js";
 import { createTtsTool } from "./tools/tts-tool.js";
 import { createWebFetchTool, createWebSearchTool } from "./tools/web-tools.js";
 
@@ -111,6 +113,16 @@ export function createOpenClawTools(options?: {
     }),
     createGatewayTool({
       agentSessionKey: options?.agentSessionKey,
+      config: options?.config,
+    }),
+    createTasksListTool({
+      agentSessionKey: options?.agentSessionKey,
+      workspaceDir: options?.workspaceDir,
+      config: options?.config,
+    }),
+    createTaskGetTool({
+      agentSessionKey: options?.agentSessionKey,
+      workspaceDir: options?.workspaceDir,
       config: options?.config,
     }),
     createAgentsListTool({

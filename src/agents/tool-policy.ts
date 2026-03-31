@@ -22,6 +22,8 @@ export const TOOL_GROUPS: Record<string, string[]> = {
   "group:runtime": ["exec", "process"],
   // Session management tools
   "group:sessions": [
+    "tasks_list",
+    "task_get",
     "sessions_list",
     "sessions_history",
     "sessions_send",
@@ -45,6 +47,8 @@ export const TOOL_GROUPS: Record<string, string[]> = {
     "cron",
     "message",
     "gateway",
+    "tasks_list",
+    "task_get",
     "agents_list",
     "sessions_list",
     "sessions_history",

@@ -108,7 +108,7 @@ const CRON_EVENT_PROMPT =
 function buildTaskPromotionPrompt(taskId: string): string {
   return (
     `A task was moved from bot_queue to bot_current in memory/tasks.json (task: ${taskId}). ` +
-    "Read HEARTBEAT.md and the task board, then execute that task immediately. " +
+    "Read HEARTBEAT.md, call tasks_list to confirm the active shared-board state, then call task_get for that task before executing it. " +
     "If there is nothing user-facing to report, reply HEARTBEAT_OK."
   );
 }

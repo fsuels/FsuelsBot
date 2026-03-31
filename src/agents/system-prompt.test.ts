@@ -103,6 +103,18 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain("call `task_tracker` with `action=get`");
   });
 
+  it("includes task board guidance when task tools are available", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/clawd",
+      toolNames: ["tasks_list", "task_get"],
+    });
+
+    expect(prompt).toContain("## Task Board");
+    expect(prompt).toContain("Use `tasks_list`");
+    expect(prompt).toContain("lowest-ID task where `isAvailableToClaim` is true");
+    expect(prompt).toContain("call `task_get` before acting");
+  });
+
   it("adds reasoning tag hint when enabled", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/openclaw",

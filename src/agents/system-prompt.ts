@@ -81,6 +81,24 @@ function buildTaskTrackerSection(params: { isMinimal: boolean; availableTools: S
   ];
 }
 
+function buildTaskBoardSection(params: { isMinimal: boolean; availableTools: Set<string> }) {
+  if (params.isMinimal || !params.availableTools.has("tasks_list")) {
+    return [];
+  }
+  const hasTaskGet = params.availableTools.has("task_get");
+  return [
+    "## Task Board",
+    "Use `tasks_list` when you need to inspect the shared workspace task board, choose available work, or understand what is blocked.",
+    "Field meanings: `status` is a derived runtime state, `lane` is reconciled from top-level board lanes, `blockedBy` lists unfinished task-id dependencies, `blockers` lists unresolved blocker notes, `owner` shows the current claimant when present, `hasOwner` / `isBlocked` are explicit booleans, and `isAvailableToClaim` / `isReady` means the task is ready now.",
+    "When choosing work from the shared board, prefer the lowest-ID task where `isAvailableToClaim` is true.",
+    hasTaskGet
+      ? "After picking a task, call `task_get` before acting so you have the full normalized card, files, steps, and next action."
+      : "After picking a task, inspect its task card files before acting so you have the full context.",
+    "If work finishes or becomes blocked, update the relevant task artifacts with receipts and the concrete missing input so the board stays trustworthy.",
+    "",
+  ];
+}
+
 function buildUserIdentitySection(ownerLine: string | undefined, isMinimal: boolean) {
   if (!ownerLine || isMinimal) {
     return [];
@@ -261,6 +279,9 @@ export function buildAgentSystemPrompt(params: {
     cron: "Manage cron jobs and wake events (use for reminders; when scheduling a reminder, write the systemEvent text as something that will read like a reminder when it fires, and mention that it is a reminder depending on the time gap between setting and firing; include recent context in reminder text if appropriate)",
     message: "Send messages and channel actions",
     gateway: "Restart, apply config, or run updates on the running OpenClaw process",
+    tasks_list:
+      "List shared workspace tasks with derived readiness, blocker cleanup, and lane reconciliation",
+    task_get: "Fetch the full normalized task card for one shared workspace task",
     agents_list: "List agent ids allowed for sessions_spawn",
     sessions_list: "List other sessions (incl. sub-agents) with filters/last",
     sessions_history: "Fetch history for another session/sub-agent",
@@ -291,6 +312,8 @@ export function buildAgentSystemPrompt(params: {
     "cron",
     "message",
     "gateway",
+    "tasks_list",
+    "task_get",
     "agents_list",
     "sessions_list",
     "sessions_history",
@@ -398,6 +421,10 @@ export function buildAgentSystemPrompt(params: {
     isMinimal,
     availableTools,
   });
+  const taskBoardSection = buildTaskBoardSection({
+    isMinimal,
+    availableTools,
+  });
   const docsSection = buildDocsSection({
     docsPath: params.docsPath,
     isMinimal,
@@ -430,6 +457,8 @@ export function buildAgentSystemPrompt(params: {
           "- canvas: present/eval/snapshot the Canvas",
           "- nodes: list/describe/notify/camera/screen on paired nodes",
           "- cron: manage cron jobs and wake events (use for reminders; when scheduling a reminder, write the systemEvent text as something that will read like a reminder when it fires, and mention that it is a reminder depending on the time gap between setting and firing; include recent context in reminder text if appropriate)",
+          "- tasks_list: list shared workspace tasks with derived readiness/blockers",
+          "- task_get: fetch the full normalized task card for a task id",
           "- sessions_list: list sessions",
           "- sessions_history: fetch session history",
           "- sessions_send: send to another session",
@@ -477,6 +506,7 @@ export function buildAgentSystemPrompt(params: {
     ...skillsSection,
     ...memorySection,
     ...taskTrackerSection,
+    ...taskBoardSection,
     // TaskClarity removed — upstream memory section handles this now
     // Skip self-update for subagent/none modes
     hasGateway && !isMinimal ? "## OpenClaw Self-Update" : "",
