@@ -17,6 +17,10 @@ import {
   extractAssistantThinking,
   formatReasoningMessage,
 } from "../../pi-embedded-utils.js";
+import {
+  formatWebSearchSourcesSection,
+  type WebSearchSource,
+} from "../../tools/web-search-shared.js";
 
 type ToolMetaEntry = { toolName: string; meta?: string };
 
@@ -25,6 +29,7 @@ export function buildEmbeddedRunPayloads(params: {
   toolMetas: ToolMetaEntry[];
   lastAssistant: AssistantMessage | undefined;
   lastToolError?: { toolName: string; meta?: string; error?: string };
+  webSearchSources?: WebSearchSource[];
   config?: OpenClawConfig;
   sessionKey: string;
   verboseLevel?: VerboseLevel;
@@ -167,6 +172,7 @@ export function buildEmbeddedRunPayloads(params: {
         ? [fallbackAnswerText]
         : []
   ).filter((text) => !shouldSuppressRawErrorText(text));
+  const answerItemIndexes: number[] = [];
 
   for (const text of answerTexts) {
     const {
@@ -188,6 +194,20 @@ export function buildEmbeddedRunPayloads(params: {
       replyToTag,
       replyToCurrent,
     });
+    answerItemIndexes.push(replyItems.length - 1);
+  }
+
+  const sourcesSection = formatWebSearchSourcesSection(params.webSearchSources ?? []);
+  if (sourcesSection && answerItemIndexes.length > 0) {
+    const lastAnswerIndex = answerItemIndexes.at(-1);
+    if (lastAnswerIndex !== undefined) {
+      const previous = replyItems[lastAnswerIndex];
+      const priorText = previous?.text?.trim() ?? "";
+      replyItems[lastAnswerIndex] = {
+        ...previous,
+        text: priorText ? `${priorText}\n\n${sourcesSection}` : sourcesSection,
+      };
+    }
   }
 
   if (params.lastToolError) {

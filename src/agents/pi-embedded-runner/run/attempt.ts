@@ -33,6 +33,8 @@ import {
   listChannelSupportedActions,
   resolveChannelMessageToolHints,
 } from "../../channel-tools.js";
+import { estimateMessagesTokens } from "../../compaction.js";
+import { shouldTriggerProactiveCompaction } from "../../context-budget.js";
 import { resolveOpenClawDocsPath } from "../../docs-path.js";
 import { isTimeoutError } from "../../failover-error.js";
 import { resolveModelAuthMode } from "../../model-auth.js";
@@ -95,8 +97,6 @@ import {
 import { truncateOversizedToolResultsInMessages } from "../tool-result-truncation.js";
 import { splitSdkTools } from "../tool-split.js";
 import { describeUnknownError, mapThinkingLevel } from "../utils.js";
-import { shouldTriggerProactiveCompaction } from "../../context-budget.js";
-import { estimateMessagesTokens } from "../../compaction.js";
 import { tryDelegateRoute } from "./delegate-router.js";
 import { detectAndLoadPromptImages } from "./images.js";
 
@@ -367,9 +367,15 @@ export async function runEmbeddedAttempt(
     const effectiveCoherenceIntervention = (() => {
       const base = params.coherenceIntervention;
       const hint = params.loopDetectionHint;
-      if (!base && !hint) return undefined;
-      if (!hint) return base;
-      if (!base) return { text: hint };
+      if (!base && !hint) {
+        return undefined;
+      }
+      if (!hint) {
+        return base;
+      }
+      if (!base) {
+        return { text: hint };
+      }
       return { text: `${base.text}\n\n${hint}` };
     })();
 
@@ -641,6 +647,7 @@ export async function runEmbeddedAttempt(
               assistantTexts: [],
               toolMetas: [],
               lastAssistant: undefined,
+              webSearchSources: [],
               didSendViaMessagingTool: false,
               messagingToolSentTexts: [],
               messagingToolSentTargets: [],
@@ -733,6 +740,7 @@ export async function runEmbeddedAttempt(
         waitForCompactionRetry,
         getMessagingToolSentTexts,
         getMessagingToolSentTargets,
+        getWebSearchSources,
         didSendViaMessagingTool,
         getLastToolError,
         getUsageTotals,
@@ -1032,6 +1040,7 @@ export async function runEmbeddedAttempt(
         toolMetas: toolMetasNormalized,
         lastAssistant,
         lastToolError: getLastToolError?.(),
+        webSearchSources: getWebSearchSources(),
         didSendViaMessagingTool: didSendViaMessagingTool(),
         messagingToolSentTexts: getMessagingToolSentTexts(),
         messagingToolSentTargets: getMessagingToolSentTargets(),

@@ -8,6 +8,7 @@ import type {
   BlockReplyChunking,
   SubscribeEmbeddedPiSessionParams,
 } from "./pi-embedded-subscribe.types.js";
+import type { WebSearchSource } from "./tools/web-search-shared.js";
 import type { NormalizedUsage } from "./usage.js";
 
 export type EmbeddedSubscribeLogger = {
@@ -61,6 +62,8 @@ export type EmbeddedPiSubscribeState = {
   messagingToolSentTargets: MessagingToolSend[];
   pendingMessagingTexts: Map<string, string>;
   pendingMessagingTargets: Map<string, MessagingToolSend>;
+  webSearchQueryById: Map<string, string>;
+  webSearchSources: WebSearchSource[];
 };
 
 export type EmbeddedPiSubscribeContext = {

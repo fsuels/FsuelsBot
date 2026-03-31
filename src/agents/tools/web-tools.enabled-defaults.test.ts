@@ -1,5 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { WebSearchResultPayload } from "./web-search-shared.js";
 import { createWebFetchTool, createWebSearchTool } from "./web-tools.js";
+
+function extractToolText(
+  result: { content?: Array<{ type?: string; text?: string }> } | undefined,
+): string {
+  return (
+    result?.content
+      ?.filter((item) => item?.type === "text" && typeof item.text === "string")
+      .map((item) => item.text ?? "")
+      .join("\n") ?? ""
+  );
+}
 
 describe("web tools defaults", () => {
   it("enables web_fetch by default (non-sandbox)", () => {
@@ -119,7 +131,8 @@ describe("web_search country and language parameters", () => {
     const result = await tool?.execute?.(1, { query: "test", freshness: "yesterday" });
 
     expect(mockFetch).not.toHaveBeenCalled();
-    expect(result?.details).toMatchObject({ error: "invalid_freshness" });
+    const details = result?.details as WebSearchResultPayload;
+    expect(details.errors[0]).toContain("freshness must be one of pd, pw, pm, py");
   });
 });
 
@@ -177,7 +190,10 @@ describe("web_search perplexity baseUrl defaults", () => {
     const result = await tool?.execute?.(1, { query: "test", freshness: "pw" });
 
     expect(mockFetch).not.toHaveBeenCalled();
-    expect(result?.details).toMatchObject({ error: "unsupported_freshness" });
+    const details = result?.details as WebSearchResultPayload;
+    expect(details.errors[0]).toContain(
+      "freshness is only supported by the Brave web_search provider",
+    );
   });
 
   it("defaults to OpenRouter when OPENROUTER_API_KEY is set", async () => {
@@ -352,10 +368,10 @@ describe("web_search external content wrapping", () => {
 
     const tool = createWebSearchTool({ config: undefined, sandboxed: true });
     const result = await tool?.execute?.(1, { query: "test" });
-    const details = result?.details as { results?: Array<{ description?: string }> };
+    const text = extractToolText(result);
 
-    expect(details.results?.[0]?.description).toContain("<<<EXTERNAL_UNTRUSTED_CONTENT>>>");
-    expect(details.results?.[0]?.description).toContain("Ignore previous instructions");
+    expect(text).toContain("<<<EXTERNAL_UNTRUSTED_CONTENT>>>");
+    expect(text).toContain("Ignore previous instructions");
   });
 
   it("does not wrap Brave result urls (raw for tool chaining)", async () => {
@@ -383,72 +399,32 @@ describe("web_search external content wrapping", () => {
 
     const tool = createWebSearchTool({ config: undefined, sandboxed: true });
     const result = await tool?.execute?.(1, { query: "unique-test-url-not-wrapped" });
-    const details = result?.details as { results?: Array<{ url?: string }> };
+    const details = result?.details as WebSearchResultPayload;
 
     // URL should NOT be wrapped - kept raw for tool chaining (e.g., web_fetch)
-    expect(details.results?.[0]?.url).toBe(url);
-    expect(details.results?.[0]?.url).not.toContain("<<<EXTERNAL_UNTRUSTED_CONTENT>>>");
+    expect(details.rawSearches[0]?.hits[0]?.url).toBe(url);
+    expect(details.rawSearches[0]?.hits[0]?.url).not.toContain("<<<EXTERNAL_UNTRUSTED_CONTENT>>>");
   });
 
-  it("does not wrap Brave site names", async () => {
+  it("returns an empty structured payload for empty Brave result sets", async () => {
     vi.stubEnv("BRAVE_API_KEY", "test-key");
     const mockFetch = vi.fn(() =>
       Promise.resolve({
         ok: true,
-        json: () =>
-          Promise.resolve({
-            web: {
-              results: [
-                {
-                  title: "Example",
-                  url: "https://example.com/some/path",
-                  description: "Normal description",
-                },
-              ],
-            },
-          }),
+        json: () => Promise.resolve({ web: { results: [] } }),
       } as Response),
     );
     // @ts-expect-error mock fetch
     global.fetch = mockFetch;
 
     const tool = createWebSearchTool({ config: undefined, sandboxed: true });
-    const result = await tool?.execute?.(1, { query: "unique-test-site-name-wrapping" });
-    const details = result?.details as { results?: Array<{ siteName?: string }> };
+    const result = await tool?.execute?.(1, { query: "unique-test-empty-result-set" });
+    const details = result?.details as WebSearchResultPayload;
+    const text = extractToolText(result);
 
-    expect(details.results?.[0]?.siteName).toBe("example.com");
-    expect(details.results?.[0]?.siteName).not.toContain("<<<EXTERNAL_UNTRUSTED_CONTENT>>>");
-  });
-
-  it("does not wrap Brave published ages", async () => {
-    vi.stubEnv("BRAVE_API_KEY", "test-key");
-    const mockFetch = vi.fn(() =>
-      Promise.resolve({
-        ok: true,
-        json: () =>
-          Promise.resolve({
-            web: {
-              results: [
-                {
-                  title: "Example",
-                  url: "https://example.com",
-                  description: "Normal description",
-                  age: "2 days ago",
-                },
-              ],
-            },
-          }),
-      } as Response),
-    );
-    // @ts-expect-error mock fetch
-    global.fetch = mockFetch;
-
-    const tool = createWebSearchTool({ config: undefined, sandboxed: true });
-    const result = await tool?.execute?.(1, { query: "unique-test-brave-published-wrapping" });
-    const details = result?.details as { results?: Array<{ published?: string }> };
-
-    expect(details.results?.[0]?.published).toBe("2 days ago");
-    expect(details.results?.[0]?.published).not.toContain("<<<EXTERNAL_UNTRUSTED_CONTENT>>>");
+    expect(details.rawSearches[0]?.hits).toEqual([]);
+    expect(details.dedupedSources).toEqual([]);
+    expect(text).toContain("No results found.");
   });
 
   it("wraps Perplexity content", async () => {
@@ -471,10 +447,10 @@ describe("web_search external content wrapping", () => {
       sandboxed: true,
     });
     const result = await tool?.execute?.(1, { query: "test" });
-    const details = result?.details as { content?: string };
+    const text = extractToolText(result);
 
-    expect(details.content).toContain("<<<EXTERNAL_UNTRUSTED_CONTENT>>>");
-    expect(details.content).toContain("Ignore previous instructions");
+    expect(text).toContain("<<<EXTERNAL_UNTRUSTED_CONTENT>>>");
+    expect(text).toContain("Ignore previous instructions");
   });
 
   it("does not wrap Perplexity citations (raw for tool chaining)", async () => {
@@ -498,10 +474,76 @@ describe("web_search external content wrapping", () => {
       sandboxed: true,
     });
     const result = await tool?.execute?.(1, { query: "unique-test-perplexity-citations-raw" });
-    const details = result?.details as { citations?: string[] };
+    const details = result?.details as WebSearchResultPayload;
 
     // Citations are URLs - should NOT be wrapped for tool chaining
-    expect(details.citations?.[0]).toBe(citation);
-    expect(details.citations?.[0]).not.toContain("<<<EXTERNAL_UNTRUSTED_CONTENT>>>");
+    expect(details.dedupedSources[0]?.url).toBe(citation);
+    expect(details.dedupedSources[0]?.url).not.toContain("<<<EXTERNAL_UNTRUSTED_CONTENT>>>");
+  });
+});
+
+describe("web_search source enforcement and progress", () => {
+  const priorFetch = global.fetch;
+
+  beforeEach(() => {
+    vi.stubEnv("BRAVE_API_KEY", "test-key");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    // @ts-expect-error global fetch cleanup
+    global.fetch = priorFetch;
+  });
+
+  it("rejects allow/block domain conflicts", async () => {
+    const tool = createWebSearchTool({ config: undefined, sandboxed: true });
+    const result = await tool?.execute?.(1, {
+      query: "test search",
+      allowedDomains: ["example.com"],
+      blockedDomains: ["bad.example"],
+    });
+    const details = result?.details as WebSearchResultPayload;
+
+    expect(details.errors[0]).toContain("allowedDomains and blockedDomains cannot both be set");
+    expect(details.dedupedSources).toEqual([]);
+  });
+
+  it("streams real query and result-count progress for sequential searches", async () => {
+    const mockFetch = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            web: {
+              results: [{ title: "One", url: "https://example.com/one", description: "first" }],
+            },
+          }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            web: {
+              results: [{ title: "Two", url: "https://example.com/two", description: "second" }],
+            },
+          }),
+      } as Response);
+    // @ts-expect-error mock fetch
+    global.fetch = mockFetch;
+
+    const tool = createWebSearchTool({ config: undefined, sandboxed: true });
+    const updates: string[] = [];
+    const onUpdate = (partial: { content?: Array<{ type?: string; text?: string }> }) => {
+      updates.push(extractToolText(partial));
+    };
+
+    await tool?.execute?.("call_1", { query: "first query" }, undefined, onUpdate);
+    await tool?.execute?.("call_2", { query: 'second "quoted" query' }, undefined, onUpdate);
+
+    expect(updates).toContain("Searching: first query");
+    expect(updates).toContain('Found 1 results for "first query"');
+    expect(updates).toContain('Searching: second "quoted" query');
+    expect(updates).toContain('Found 1 results for "second \\"quoted\\" query"');
   });
 });
