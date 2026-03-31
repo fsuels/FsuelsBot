@@ -173,22 +173,6 @@ function buildChatCommands(): ChatCommandDefinition[] {
       category: "status",
     }),
     defineChatCommand({
-      key: "plan",
-      nativeName: "plan",
-      description: "Enter or exit read-only planning mode for this session.",
-      textAlias: "/plan",
-      acceptsArgs: true,
-      category: "session",
-      args: [
-        {
-          name: "action",
-          description: "on | off | status | proactive | conservative",
-          type: "string",
-          captureRemaining: true,
-        },
-      ],
-    }),
-    defineChatCommand({
       key: "allowlist",
       description: "List/add/remove allowlist entries.",
       textAlias: "/allowlist",

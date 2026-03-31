@@ -4,8 +4,10 @@ import type { CoherenceIntervention } from "./coherence-intervention.js";
 import type { ResolvedTimeFormat } from "./date-time.js";
 import type { DriftPromptInjection } from "./drift-detection.js";
 import type { EmbeddedContextFile } from "./pi-embedded-helpers.js";
+import type { CollaborationMode, PlanModeProfile } from "./plan-mode.js";
 import { SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
 import { listDeliverableMessageChannels } from "../utils/message-channel.js";
+import { DEFAULT_PLAN_MODE_PROFILE } from "./plan-mode.js";
 import { buildSubagentOrchestrationSection } from "./subagent-policy.js";
 
 /**
@@ -107,6 +109,20 @@ function buildTaskBoardSection(params: { isMinimal: boolean; availableTools: Set
   ];
 }
 
+function buildClarificationSection(params: { isMinimal: boolean; availableTools: Set<string> }) {
+  if (params.isMinimal || !params.availableTools.has("ask_user_question")) {
+    return [];
+  }
+  return [
+    "## Clarification",
+    "Use `ask_user_question` only for genuine ambiguity, missing requirements, or user preference branches where a wrong guess would create rework.",
+    "Keep clarification separate from plan approval. Do not use `ask_user_question` to ask whether a plan looks good.",
+    "Ask for bounded choices with stable ids. Prefer 1 question; use 2 only when the decisions are tightly coupled.",
+    "If `ask_user_question` reports `status: asked`, stop and wait for the user reply instead of continuing with speculative work.",
+    "",
+  ];
+}
+
 function buildWaitingSection(params: {
   isMinimal: boolean;
   availableTools: Set<string>;
@@ -139,6 +155,34 @@ function buildTimeSection(params: { userTimezone?: string }) {
     return [];
   }
   return ["## Current Date & Time", `Time zone: ${params.userTimezone}`, ""];
+}
+
+function buildPlanModeSection(params: {
+  isMinimal: boolean;
+  collaborationMode?: CollaborationMode;
+  planProfile?: PlanModeProfile;
+  searchToolNames: string[];
+}) {
+  if (params.isMinimal || params.collaborationMode !== "plan") {
+    return [];
+  }
+  const profile = params.planProfile ?? DEFAULT_PLAN_MODE_PROFILE;
+  const toolLabel =
+    params.searchToolNames.length > 0
+      ? params.searchToolNames.map((tool) => `\`${tool}\``).join(", ")
+      : "the available read/search tools";
+  return [
+    "## Planning Mode",
+    `Plan mode is active (${profile}). This mode is read-only.`,
+    `Use only inspection/search tools such as ${toolLabel}. Do not edit files, apply patches, write files, run exec/process, send messages, call gateway actions, or spawn/delegate workers.`,
+    "Inspect the codebase for existing patterns and similar implementations before asking questions.",
+    "When ambiguity remains after exploration, compare at least 2 viable approaches and recommend one.",
+    "Ask targeted user questions only after exploration if ambiguity still blocks a safe recommendation.",
+    "Do not write code until the user explicitly exits plan mode.",
+    "Your planning reply must include: problem summary, discovered constraints, candidate approaches, recommended approach, impacted files/modules, test strategy, risks/rollback concerns, and open questions.",
+    "The user exits planning mode with `/plan off`; producing a plan does not by itself authorize implementation.",
+    "",
+  ];
 }
 
 function buildReplyTagsSection(isMinimal: boolean) {
@@ -244,6 +288,8 @@ export function buildAgentSystemPrompt(params: {
   docsPath?: string;
   workspaceNotes?: string[];
   ttsHint?: string;
+  collaborationMode?: CollaborationMode;
+  planProfile?: PlanModeProfile;
   /** Controls which hardcoded sections to include. Defaults to "full". */
   promptMode?: PromptMode;
   runtimeInfo?: {
@@ -292,8 +338,8 @@ export function buildAgentSystemPrompt(params: {
 }) {
   const coreToolSummaries: Record<string, string> = {
     read: "Read file contents",
-    write: "Create or overwrite files",
-    edit: "Make precise edits to files",
+    write: "Create new files or deliberate full-file rewrites",
+    edit: "Make precise edits to existing files",
     apply_patch: "Apply multi-file patches",
     grep: "Search file contents for patterns",
     find: "Find files by glob pattern for targeted filename/path discovery; use it when you already have a specific pattern or subtree, not for broad multi-pass repo exploration",
@@ -304,6 +350,8 @@ export function buildAgentSystemPrompt(params: {
       "Read typed output for a background shell or sub-agent task without parsing raw transcripts",
     sleep:
       "Register a non-blocking wait for this session; prefer over shell sleep or polling loops",
+    ask_user_question:
+      "Ask a bounded clarification question with stable ids, suspend cleanly, and avoid deadlocks in non-interactive sessions",
     web_search: "Search the web (Brave API)",
     web_fetch: "Fetch and extract readable content from a URL",
     // Channel docking: add login tools here when a channel needs interactive linking.
@@ -340,6 +388,7 @@ export function buildAgentSystemPrompt(params: {
     "process",
     "get_task_output",
     "sleep",
+    "ask_user_question",
     "web_search",
     "web_fetch",
     "browser",
@@ -419,6 +468,18 @@ export function buildAgentSystemPrompt(params: {
   const processToolName = resolveToolName("process");
   const getTaskOutputToolName = resolveToolName("get_task_output");
   const sleepToolName = resolveToolName("sleep");
+  const searchToolNames = [
+    availableTools.has("read") ? readToolName : null,
+    availableTools.has("grep") ? resolveToolName("grep") : null,
+    availableTools.has("find") ? resolveToolName("find") : null,
+    availableTools.has("ls") ? resolveToolName("ls") : null,
+    availableTools.has("web_search") ? resolveToolName("web_search") : null,
+    availableTools.has("web_fetch") ? resolveToolName("web_fetch") : null,
+    availableTools.has("tasks_list") ? resolveToolName("tasks_list") : null,
+    availableTools.has("task_get") ? resolveToolName("task_get") : null,
+    availableTools.has("sessions_list") ? resolveToolName("sessions_list") : null,
+    availableTools.has("sessions_history") ? resolveToolName("sessions_history") : null,
+  ].filter(Boolean) as string[];
   const extraSystemPrompt = params.extraSystemPrompt?.trim();
   const ownerNumbers = (params.ownerNumbers ?? []).map((value) => value.trim()).filter(Boolean);
   const ownerLine =
@@ -484,11 +545,21 @@ export function buildAgentSystemPrompt(params: {
     isMinimal,
     availableTools,
   });
+  const planModeSection = buildPlanModeSection({
+    isMinimal,
+    collaborationMode: params.collaborationMode,
+    planProfile: params.planProfile,
+    searchToolNames,
+  });
   const waitingSection = buildWaitingSection({
     isMinimal,
     availableTools,
     sleepToolName,
     getTaskOutputToolName,
+  });
+  const clarificationSection = buildClarificationSection({
+    isMinimal,
+    availableTools,
   });
   const workspaceNotes = (params.workspaceNotes ?? []).map((note) => note.trim()).filter(Boolean);
 
@@ -543,7 +614,27 @@ export function buildAgentSystemPrompt(params: {
           "Use `grep` output modes to choose between filenames, counts, and matching content.",
         ]
       : []),
+    ...(availableTools.has("write")
+      ? [
+          "Prefer `edit` or `apply_patch` for localized changes to existing files.",
+          "Use `write` for new files or intentional full-file rewrites.",
+          "Before overwriting an existing file with `write`, read it first in the current run.",
+          "If `write` is rejected because the file changed, re-read and recompute the rewrite instead of retrying stale content.",
+        ]
+      : []),
     "",
+    ...(!isMinimal
+      ? [
+          "## User-Visible Replies",
+          "The user-visible reply stream is the real answer surface; tool chatter and internal events are not the answer.",
+          "If the task needs tools/files/commands or will take longer than a quick direct answer, send a short acknowledgment before working.",
+          "Use the pattern: acknowledge -> work -> result.",
+          "Only send progress updates when they add new information: a decision, blocker, phase boundary, or important surprise.",
+          'Do not send filler updates like "still working" or restate the same plan without new facts.',
+          "Keep user-visible updates concrete and brief; mention files, commands, sessions, or artifacts when that makes the update more useful.",
+          "",
+        ]
+      : []),
     ...(!isMinimal && toolManualLines.length > 0
       ? ["## Tool Operator Manuals", ...toolManualLines]
       : []),
@@ -586,6 +677,8 @@ export function buildAgentSystemPrompt(params: {
     "",
     ...skillsSection,
     ...memorySection,
+    ...planModeSection,
+    ...clarificationSection,
     ...taskTrackerSection,
     ...taskBoardSection,
     ...waitingSection,
@@ -613,7 +706,7 @@ export function buildAgentSystemPrompt(params: {
       ? params.modelAliasLines.join("\n")
       : "",
     params.modelAliasLines && params.modelAliasLines.length > 0 && !isMinimal ? "" : "",
-    userTimezone
+    userTimezone && availableTools.has("session_status")
       ? "If you need the current date, time, or day of week, run session_status (📊 session_status)."
       : "",
     "## Workspace",
