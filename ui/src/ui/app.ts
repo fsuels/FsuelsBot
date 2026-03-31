@@ -614,10 +614,6 @@ export class OpenClawApp extends LitElement {
     this.syncOverlays();
   }
 
-  syncOverlays() {
-    this.requestUpdate();
-  }
-
   // Sidebar handlers for tool output viewing
   handleOpenSidebar(content: string) {
     if (this.sidebarCloseTimer != null) {
