@@ -355,6 +355,56 @@ function renderCompactSuccess(
   return `Sent to ${target}${via}${receipt}`;
 }
 
+function renderReadSummary(result: Record<string, unknown>): string | undefined {
+  if (!isPlainObject(result.details)) {
+    return undefined;
+  }
+  const details = result.details;
+  const kind = typeof details.kind === "string" ? details.kind : "";
+  const filePath = typeof details.path === "string" ? details.path.trim() : "";
+  if (!kind || !filePath) {
+    return undefined;
+  }
+
+  if (kind === "text") {
+    const numLines = typeof details.numLines === "number" ? details.numLines : undefined;
+    const startLine = typeof details.startLine === "number" ? details.startLine : undefined;
+    const endLine = typeof details.endLine === "number" ? details.endLine : undefined;
+    const totalLines = typeof details.totalLines === "number" ? details.totalLines : undefined;
+    if (
+      numLines === undefined ||
+      startLine === undefined ||
+      endLine === undefined ||
+      totalLines === undefined
+    ) {
+      return undefined;
+    }
+    const noun = numLines === 1 ? "line" : "lines";
+    return `Read ${numLines} ${noun} from ${filePath} (${startLine}-${endLine} of ${totalLines})`;
+  }
+
+  if (kind === "empty") {
+    return `Read empty file ${filePath}`;
+  }
+
+  if (kind === "past_eof") {
+    const requestedOffset =
+      typeof details.requestedOffset === "number" ? details.requestedOffset : undefined;
+    const totalLines = typeof details.totalLines === "number" ? details.totalLines : undefined;
+    if (requestedOffset === undefined || totalLines === undefined) {
+      return undefined;
+    }
+    return `Read past EOF for ${filePath} (offset ${requestedOffset}, total ${totalLines} lines)`;
+  }
+
+  if (kind === "image") {
+    const mimeType = typeof details.mimeType === "string" ? details.mimeType : "image";
+    return `Read image ${filePath} (${mimeType})`;
+  }
+
+  return undefined;
+}
+
 export function summarizeToolArgs(
   args: unknown,
   options?: ToolPresentationOptions,
@@ -441,6 +491,13 @@ export function renderToolProgressText(
     return "Running…";
   }
 
+  if (
+    typeof record.status === "string" &&
+    record.status.trim().toLowerCase() === "awaiting_input"
+  ) {
+    return "Awaiting input…";
+  }
+
   return undefined;
 }
 
@@ -469,6 +526,12 @@ export function renderToolResultText(
   const compactSuccess = renderCompactSuccess(record, normalized);
   if (compactSuccess) {
     return compactSuccess;
+  }
+  if (normalized.toolName === "read") {
+    const readSummary = renderReadSummary(record);
+    if (readSummary) {
+      return readSummary;
+    }
   }
 
   if (Array.isArray(record.content)) {

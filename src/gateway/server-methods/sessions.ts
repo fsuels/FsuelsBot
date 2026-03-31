@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import type { GatewayRequestHandlers } from "./types.js";
 import { resolveDefaultAgentId } from "../../agents/agent-scope.js";
+import { stopOwnedProcessSessions } from "../../agents/bash-process-registry.js";
 import { abortEmbeddedPiRun, waitForEmbeddedPiRunEnd } from "../../agents/pi-embedded.js";
 import { stopSubagentsForRequester } from "../../auto-reply/reply/abort.js";
 import { clearSessionQueues } from "../../auto-reply/reply/queue.js";
@@ -326,6 +327,10 @@ export const sessionsHandlers: GatewayRequestHandlers = {
       queueKeys.add(sessionId);
     }
     clearSessionQueues([...queueKeys]);
+    stopOwnedProcessSessions({
+      sessionKey: target.canonicalKey,
+      reason: "Process stopped because the parent session was deleted.",
+    });
     stopSubagentsForRequester({ cfg, requesterSessionKey: target.canonicalKey });
     if (sessionId) {
       abortEmbeddedPiRun(sessionId);

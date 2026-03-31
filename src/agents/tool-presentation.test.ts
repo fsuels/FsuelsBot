@@ -31,6 +31,9 @@ describe("tool-presentation", () => {
         "Indexing…",
       );
       expect(renderToolProgressText({ details: { status: "running" } })).toBe("Running…");
+      expect(renderToolProgressText({ details: { status: "awaiting_input" } })).toBe(
+        "Awaiting input…",
+      );
     });
   });
 
@@ -112,6 +115,28 @@ describe("tool-presentation", () => {
       );
 
       expect(rendered).toBe("Sent to channel:C1 via discord (m1)");
+    });
+
+    it("summarizes read results without leaking file contents", () => {
+      const rendered = renderToolResultText(
+        {
+          content: [{ type: "text", text: "API_KEY=super-secret\nsecond line" }],
+          details: {
+            kind: "text",
+            path: "/tmp/secrets.env",
+            startLine: 1,
+            endLine: 2,
+            numLines: 2,
+            totalLines: 2,
+            requestedOffset: 1,
+            truncated: false,
+          },
+        },
+        { toolName: "read" },
+      );
+
+      expect(rendered).toBe("Read 2 lines from /tmp/secrets.env (1-2 of 2)");
+      expect(rendered).not.toContain("super-secret");
     });
   });
 });

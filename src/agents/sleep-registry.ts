@@ -7,13 +7,12 @@ import { hasSystemEvents } from "../infra/system-events.js";
 import { resolveAgentIdFromSessionKey } from "../routing/session-key.js";
 import { INTERNAL_MESSAGE_CHANNEL } from "../utils/message-channel.js";
 import { clampWithDefault, readEnvInt } from "./bash-tools.shared.js";
-import { listFinishedSessions } from "./bash-process-registry.js";
 import { AGENT_LANE_NESTED } from "./lanes.js";
 import {
   computeEffectiveSettings,
   DEFAULT_CONTEXT_PRUNING_SETTINGS,
 } from "./pi-extensions/context-pruning/settings.js";
-import { listSubagentRunsForRequester } from "./subagent-registry.js";
+import { listActionableRuntimeTaskIds } from "./task-runtime.js";
 
 const DEFAULT_SLEEP_MAX_MS = 12 * 60 * 60 * 1000;
 const DEFAULT_SHORT_WAIT_MS = 60_000;
@@ -108,18 +107,7 @@ function getSessionUpdatedAt(sessionKey: string, config?: OpenClawConfig): numbe
 }
 
 function collectPendingTaskIds(sessionKey: string) {
-  const taskIds = new Set<string>();
-  for (const session of listFinishedSessions()) {
-    if (session.sessionKey === sessionKey && session.notified !== true) {
-      taskIds.add(session.id);
-    }
-  }
-  for (const run of listSubagentRunsForRequester(sessionKey)) {
-    if (run.endedAt && run.notified !== true) {
-      taskIds.add(run.runId);
-    }
-  }
-  return Array.from(taskIds).sort();
+  return listActionableRuntimeTaskIds({ requesterSessionKey: sessionKey }).toSorted();
 }
 
 function buildWakePrompt(entry: SleepEntry, decision: WakeDecision) {
@@ -154,10 +142,7 @@ async function wakeSleep(entry: SleepEntry, decision: WakeDecision) {
   if (!pendingSleeps.has(entry.sleepId)) {
     return;
   }
-  if (
-    entry.interruptible &&
-    (getSessionUpdatedAt(entry.sessionKey) ?? 0) > entry.scheduledAt
-  ) {
+  if (entry.interruptible && (getSessionUpdatedAt(entry.sessionKey) ?? 0) > entry.scheduledAt) {
     removeSleep(entry.sleepId);
     return;
   }
@@ -225,10 +210,7 @@ async function runSleepCheck(sleepId: string) {
     return;
   }
   entry.timer = null;
-  if (
-    entry.interruptible &&
-    (getSessionUpdatedAt(entry.sessionKey) ?? 0) > entry.scheduledAt
-  ) {
+  if (entry.interruptible && (getSessionUpdatedAt(entry.sessionKey) ?? 0) > entry.scheduledAt) {
     removeSleep(entry.sleepId);
     return;
   }
@@ -250,9 +232,12 @@ function scheduleSleepCheck(entry: SleepEntry, delayMs?: number) {
       : entry.tickIntervalMs
         ? Math.min(entry.tickIntervalMs, remainingMs)
         : remainingMs;
-  entry.timer = setTimeout(() => {
-    void runSleepCheck(entry.sleepId);
-  }, Math.max(1, Math.floor(nextDelay)));
+  entry.timer = setTimeout(
+    () => {
+      void runSleepCheck(entry.sleepId);
+    },
+    Math.max(1, Math.floor(nextDelay)),
+  );
   entry.timer.unref?.();
 }
 

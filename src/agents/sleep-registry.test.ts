@@ -10,31 +10,51 @@ vi.mock("../gateway/call.js", () => ({
   callGateway: (opts: unknown) => callGatewayMock(opts),
 }));
 
-vi.mock("../config/config.js", () => ({
-  loadConfig: () => ({
-    session: {
-      store: "/tmp/openclaw-test-sessions-{agentId}.json",
-    },
-  }),
-}));
+vi.mock("../config/config.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../config/config.js")>();
+  return {
+    ...actual,
+    loadConfig: () => ({
+      session: {
+        store: "/tmp/openclaw-test-sessions-{agentId}.json",
+      },
+    }),
+  };
+});
 
-vi.mock("../config/sessions.js", () => ({
-  resolveStorePath: () => "/tmp/openclaw-test-sessions.json",
-  readSessionUpdatedAt: (params: unknown) => readSessionUpdatedAtMock(params),
-}));
+vi.mock("../config/sessions.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../config/sessions.js")>();
+  return {
+    ...actual,
+    resolveStorePath: () => "/tmp/openclaw-test-sessions.json",
+    readSessionUpdatedAt: (params: unknown) => readSessionUpdatedAtMock(params),
+  };
+});
 
-vi.mock("../infra/system-events.js", () => ({
-  hasSystemEvents: (sessionKey: string) => hasSystemEventsMock(sessionKey),
-}));
+vi.mock("../infra/system-events.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../infra/system-events.js")>();
+  return {
+    ...actual,
+    hasSystemEvents: (sessionKey: string) => hasSystemEventsMock(sessionKey),
+  };
+});
 
-vi.mock("./bash-process-registry.js", () => ({
-  listFinishedSessions: () => listFinishedSessionsMock(),
-}));
+vi.mock("./bash-process-registry.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./bash-process-registry.js")>();
+  return {
+    ...actual,
+    listFinishedSessions: () => listFinishedSessionsMock(),
+  };
+});
 
-vi.mock("./subagent-registry.js", () => ({
-  listSubagentRunsForRequester: (sessionKey: string) =>
-    listSubagentRunsForRequesterMock(sessionKey),
-}));
+vi.mock("./subagent-registry.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./subagent-registry.js")>();
+  return {
+    ...actual,
+    listSubagentRunsForRequester: (sessionKey: string) =>
+      listSubagentRunsForRequesterMock(sessionKey),
+  };
+});
 
 import {
   listPendingSleeps,
