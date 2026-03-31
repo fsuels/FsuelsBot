@@ -19,6 +19,11 @@ import {
   loadSubagentRegistryFromDisk,
   saveSubagentRegistryToDisk,
 } from "./subagent-registry.store.js";
+import {
+  clearOwnedResourcesForTests,
+  registerOwnedResource,
+  removeOwnedResource,
+} from "./owned-resource-registry.js";
 import { resolveTaskOutputPath, writeTaskOutputArtifact } from "./task-output-artifacts.js";
 import { resolveAgentTimeoutMs } from "./timeout.js";
 import { readLatestAssistantReply } from "./tools/agent-step.js";
@@ -111,9 +116,16 @@ async function withCleanupTransition(runId: string, task: () => Promise<void>) {
 }
 
 function forgetSubagentRun(runId: string) {
+  const existing = subagentRuns.get(runId);
   const didDelete = subagentRuns.delete(runId);
   resumedRuns.delete(runId);
   cleanupTransitions.delete(runId);
+  if (existing) {
+    removeOwnedResource({
+      resourceType: "subagent_session",
+      resourceId: existing.childSessionKey,
+    });
+  }
   if (didDelete) {
     persistSubagentRuns();
   }
@@ -550,6 +562,24 @@ export function registerSubagentRun(params: {
     finalText: undefined,
     notified: false,
   });
+  registerOwnedResource({
+    resourceId: params.childSessionKey,
+    resourceType: "subagent_session",
+    createdByTool: "sessions_spawn",
+    sessionKey: params.requesterSessionKey,
+    originalContext: {
+      taskId: params.runId,
+    },
+    cleanupStrategy:
+      params.cleanup === "delete" ? "sessions.delete child session after cleanup" : "keep child session",
+    linkedSidecars: [params.runId],
+    createdAt: now,
+    metadata: {
+      cleanup: params.cleanup,
+      label: params.label,
+      profile: params.profile,
+    },
+  });
   ensureListener();
   persistAndSyncSubagentRun(params.runId);
   if (archiveAfterMs) {
@@ -636,6 +666,7 @@ export function resetSubagentRegistryForTests() {
   resumedRuns.clear();
   cleanupTransitions.clear();
   taskWaiters.clear();
+  clearOwnedResourcesForTests("subagent_session");
   stopSweeper();
   restoreAttempted = false;
   if (listenerStop) {
@@ -648,6 +679,24 @@ export function resetSubagentRegistryForTests() {
 
 export function addSubagentRunForTests(entry: SubagentRunRecord) {
   subagentRuns.set(entry.runId, entry);
+  registerOwnedResource({
+    resourceId: entry.childSessionKey,
+    resourceType: "subagent_session",
+    createdByTool: "sessions_spawn",
+    sessionKey: entry.requesterSessionKey,
+    originalContext: {
+      taskId: entry.runId,
+    },
+    cleanupStrategy:
+      entry.cleanup === "delete" ? "sessions.delete child session after cleanup" : "keep child session",
+    linkedSidecars: [entry.runId],
+    createdAt: entry.createdAt,
+    metadata: {
+      cleanup: entry.cleanup,
+      label: entry.label,
+      profile: entry.profile,
+    },
+  });
   persistAndSyncSubagentRun(entry.runId);
 }
 

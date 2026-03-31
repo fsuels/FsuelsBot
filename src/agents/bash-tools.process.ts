@@ -1,6 +1,7 @@
 import type { AgentTool, AgentToolResult } from "@mariozechner/pi-agent-core";
 import { Type } from "@sinclair/typebox";
 import { formatDurationCompact } from "../infra/format-time/format-duration.ts";
+import { buildDestroyRefusalMessage, type DestroyVerification } from "./destructive-action-policy.js";
 import {
   deleteSession,
   drainSession,
@@ -18,12 +19,17 @@ import {
   sliceLogLines,
   truncateMiddle,
 } from "./bash-tools.shared.js";
+import {
+  getOwnedResourceForCurrentSession,
+  listOwnedResourcesForCurrentSession,
+} from "./owned-resource-registry.js";
 import { encodeKeySequence, encodePaste } from "./pty-keys.js";
 import { assertKnownParams, readAliasedStringParam } from "./tools/common.js";
 
 export type ProcessToolDefaults = {
   cleanupMs?: number;
   scopeKey?: string;
+  sessionKey?: string;
 };
 
 const processSchema = Type.Object({
@@ -45,6 +51,12 @@ const processSchema = Type.Object({
   eof: Type.Optional(Type.Boolean({ description: "Close stdin after write" })),
   offset: Type.Optional(Type.Number({ description: "Log offset" })),
   limit: Type.Optional(Type.Number({ description: "Log length" })),
+  discard: Type.Optional(
+    Type.Boolean({
+      description:
+        "Explicitly allow terminating or removing a running owned session when work may be lost.",
+    }),
+  ),
 });
 
 type ProcessAction =
@@ -72,9 +84,9 @@ const PROCESS_ALLOWED_KEYS: Record<ProcessAction, readonly string[]> = {
   "send-keys": ["action", "sessionId", "shell_id", "keys", "hex", "literal"],
   submit: ["action", "sessionId", "shell_id"],
   paste: ["action", "sessionId", "shell_id", "text", "bracketed"],
-  kill: ["action", "sessionId", "shell_id"],
+  kill: ["action", "sessionId", "shell_id", "discard"],
   clear: ["action", "sessionId", "shell_id"],
-  remove: ["action", "sessionId", "shell_id"],
+  remove: ["action", "sessionId", "shell_id", "discard"],
 };
 
 function normalizeProcessAction(value: unknown): {
@@ -152,6 +164,49 @@ function resolveManagedSessionId(params: Record<string, unknown>) {
   });
 }
 
+function buildOwnedProcessNoopResult(params: {
+  action: ProcessAction;
+  requestedAction?: string;
+  sessionId: string;
+}) {
+  const message =
+    `No-op: session ${params.sessionId} was not created by this session, ` +
+    "so nothing was changed.";
+  return buildProcessTextResult(message, {
+    status: "completed",
+    action: params.action,
+    requestedAction: params.requestedAction,
+    sessionId: params.sessionId,
+    result: "noop",
+    noop: true,
+    code: "NO_ACTIVE_OWNED_RESOURCE",
+    errorCode: "NO_ACTIVE_OWNED_RESOURCE",
+    message,
+  });
+}
+
+function verifyProcessDestroyTarget(params: {
+  session?: { command: string } | null;
+  finished?: { status: string } | null;
+}): DestroyVerification {
+  if (params.finished) {
+    return { status: "safe" };
+  }
+  if (params.session) {
+    return {
+      status: "unsafe",
+      blockers: [
+        `The background process is still running: ${truncateMiddle(params.session.command, 120)}.`,
+        "Stopping it may discard interactive shell state and unreviewed output.",
+      ],
+    };
+  }
+  return {
+    status: "unknown",
+    blockers: ["Owned process state could not be verified from the live registry."],
+  };
+}
+
 export function createProcessTool(
   defaults?: ProcessToolDefaults,
   // oxlint-disable-next-line typescript/no-explicit-any
@@ -160,6 +215,7 @@ export function createProcessTool(
     setJobTtlMs(defaults.cleanupMs);
   }
   const scopeKey = defaults?.scopeKey;
+  const ownerSessionKey = defaults?.sessionKey?.trim();
   const isInScope = (session?: { scopeKey?: string } | null) =>
     !scopeKey || session?.scopeKey === scopeKey;
 
@@ -167,7 +223,7 @@ export function createProcessTool(
     name: "process",
     label: "process",
     description:
-      "Manage running exec sessions: list, poll, log, write, send-keys, submit, paste, and stop/kill background sessions. Deprecated aliases: action=stop|cancel and shell_id.",
+      "Manage running exec sessions: list, poll, log, write, send-keys, submit, paste, and stop/kill background sessions. When session ownership is available, follow-up actions only apply to sessions created by the current session; stop/remove on running sessions require discard=true. Deprecated aliases: action=stop|cancel and shell_id.",
     parameters: processSchema,
     execute: async (_toolCallId, args) => {
       const params = args && typeof args === "object" ? (args as Record<string, unknown>) : {};
@@ -194,8 +250,17 @@ export function createProcessTool(
       }
 
       if (action === "list") {
+        const ownedIds = ownerSessionKey
+          ? new Set(
+              listOwnedResourcesForCurrentSession({
+                sessionKey: ownerSessionKey,
+                resourceType: "process_session",
+              }).map((entry) => entry.resourceId),
+            )
+          : null;
         const running = listRunningSessions()
           .filter((s) => isInScope(s))
+          .filter((s) => !ownedIds || ownedIds.has(s.id))
           .map((s) => ({
             sessionId: s.id,
             status: "running",
@@ -210,6 +275,7 @@ export function createProcessTool(
           }));
         const finished = listFinishedSessions()
           .filter((s) => isInScope(s))
+          .filter((s) => !ownedIds || ownedIds.has(s.id))
           .map((s) => ({
             sessionId: s.id,
             status: s.status,
@@ -253,6 +319,21 @@ export function createProcessTool(
         });
       }
 
+      if (
+        ownerSessionKey &&
+        !getOwnedResourceForCurrentSession({
+          sessionKey: ownerSessionKey,
+          resourceType: "process_session",
+          resourceId: sessionId,
+        })
+      ) {
+        return buildOwnedProcessNoopResult({
+          action,
+          requestedAction: normalizedAction.requestedAction,
+          sessionId,
+        });
+      }
+
       const session = getSession(sessionId);
       const finished = getFinishedSession(sessionId);
       const scopedSession = isInScope(session) ? session : undefined;
@@ -261,6 +342,7 @@ export function createProcessTool(
       const limit = typeof params.limit === "number" ? params.limit : undefined;
       const stdinText = typeof params.data === "string" ? params.data : "";
       const pasteText = typeof params.text === "string" ? params.text : "";
+      const discard = params.discard === true;
 
       const backgroundedValidationFailure = () => {
         if (!scopedSession) {
@@ -672,6 +754,31 @@ export function createProcessTool(
         }
 
         case "kill": {
+          const verification = verifyProcessDestroyTarget({
+            session: scopedSession,
+            finished: scopedFinished,
+          });
+          if (ownerSessionKey && verification.status !== "safe" && !discard) {
+            return buildProcessValidationFailure({
+              action,
+              requestedAction: normalizedAction.requestedAction,
+              sessionId,
+              code: "destructive_action_blocked",
+              message: buildDestroyRefusalMessage({
+                actionLabel: "stop",
+                targetLabel: `session ${sessionId}`,
+                verification,
+                overrideFlag: "discard",
+                safeNextStep:
+                  "keep the session and inspect it with process poll/log, or rerun with discard=true if you intentionally want to terminate it.",
+              }),
+              extra: {
+                verificationStatus: verification.status,
+                discardRequired: true,
+                blockers: verification.blockers,
+              },
+            });
+          }
           if (!scopedSession) {
             if (scopedFinished) {
               const message = `Session ${sessionId} is already stopped.`;
@@ -686,6 +793,17 @@ export function createProcessTool(
                 command: scopedFinished.command,
                 name: deriveSessionName(scopedFinished.command),
                 message,
+              });
+            }
+            if (discard) {
+              deleteSession(sessionId);
+              return buildProcessTextResult(`No-op: session ${sessionId} was already gone.`, {
+                status: "completed",
+                action,
+                requestedAction: normalizedAction.requestedAction,
+                sessionId,
+                result: "noop",
+                message: `No-op: session ${sessionId} was already gone.`,
               });
             }
             return buildProcessValidationFailure({
@@ -744,6 +862,31 @@ export function createProcessTool(
         }
 
         case "remove": {
+          const verification = verifyProcessDestroyTarget({
+            session: scopedSession,
+            finished: scopedFinished,
+          });
+          if (ownerSessionKey && verification.status !== "safe" && !discard) {
+            return buildProcessValidationFailure({
+              action,
+              requestedAction: normalizedAction.requestedAction,
+              sessionId,
+              code: "destructive_action_blocked",
+              message: buildDestroyRefusalMessage({
+                actionLabel: "remove",
+                targetLabel: `session ${sessionId}`,
+                verification,
+                overrideFlag: "discard",
+                safeNextStep:
+                  "keep the session for inspection, or rerun with discard=true if you intentionally want to forget it.",
+              }),
+              extra: {
+                verificationStatus: verification.status,
+                discardRequired: true,
+                blockers: verification.blockers,
+              },
+            });
+          }
           if (scopedSession) {
             killSession(scopedSession);
             markExited(scopedSession, null, "SIGKILL", "failed", {
@@ -764,6 +907,17 @@ export function createProcessTool(
             return {
               content: [{ type: "text", text: `Removed session ${sessionId}.` }],
               details: { status: "completed", sessionId },
+            };
+          }
+          if (discard) {
+            deleteSession(sessionId);
+            return {
+              content: [{ type: "text", text: `Removed stale session ${sessionId}.` }],
+              details: {
+                status: "completed",
+                sessionId,
+                result: "removed_stale",
+              },
             };
           }
           return buildProcessValidationFailure({

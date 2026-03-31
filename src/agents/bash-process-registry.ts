@@ -1,4 +1,9 @@
 import type { ChildProcessWithoutNullStreams } from "node:child_process";
+import {
+  clearOwnedResourcesForTests,
+  registerOwnedResource,
+  removeOwnedResource,
+} from "./owned-resource-registry.js";
 import { createSessionSlug as createSessionSlugId } from "./session-slug.js";
 
 const DEFAULT_JOB_TTL_MS = 30 * 60 * 1000; // 30 minutes
@@ -82,6 +87,24 @@ export function createSessionSlug(): string {
 }
 
 export function addSession(session: ProcessSession) {
+  if (session.sessionKey?.trim()) {
+    registerOwnedResource({
+      resourceId: session.id,
+      resourceType: "process_session",
+      createdByTool: "exec",
+      sessionKey: session.sessionKey,
+      originalContext: {
+        cwd: session.cwd,
+        projectRoot: session.cwd,
+        taskId: session.id,
+      },
+      cleanupStrategy: "process.clear|process.remove",
+      createdAt: session.startedAt,
+      metadata: {
+        command: session.command,
+      },
+    });
+  }
   runningSessions.set(session.id, session);
   startSweeper();
 }
@@ -97,6 +120,10 @@ export function getFinishedSession(id: string) {
 export function deleteSession(id: string) {
   runningSessions.delete(id);
   finishedSessions.delete(id);
+  removeOwnedResource({
+    resourceType: "process_session",
+    resourceId: id,
+  });
 }
 
 export function appendOutput(session: ProcessSession, stream: "stdout" | "stderr", chunk: string) {
@@ -232,12 +259,19 @@ export function listFinishedSessions() {
 }
 
 export function clearFinished() {
+  for (const id of finishedSessions.keys()) {
+    removeOwnedResource({
+      resourceType: "process_session",
+      resourceId: id,
+    });
+  }
   finishedSessions.clear();
 }
 
 export function resetProcessRegistryForTests() {
   runningSessions.clear();
   finishedSessions.clear();
+  clearOwnedResourcesForTests("process_session");
   stopSweeper();
 }
 
@@ -255,6 +289,10 @@ function pruneFinishedSessions() {
   for (const [id, session] of finishedSessions.entries()) {
     if (session.endedAt < cutoff) {
       finishedSessions.delete(id);
+      removeOwnedResource({
+        resourceType: "process_session",
+        resourceId: id,
+      });
     }
   }
 }
