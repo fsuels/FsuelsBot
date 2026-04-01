@@ -1,0 +1,1 @@
+{"_comment": "Epistemic fix metrics log — created 2026-03-31", "format": {"violation_type": "string", "task_id": "string", "fix_applied": "string", "fix_worked": "boolean", "timestamp": "ISO-8601"}}

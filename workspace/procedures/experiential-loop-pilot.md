@@ -7,13 +7,16 @@
 ---
 
 ## Scope
+
 Apply to a limited pilot set of tasks (10-20 tasks max).
 
 **Included:**
+
 - Tasks that fail on first attempt
 - Multi-step tasks with clear acceptance criteria
 
 **Excluded:**
+
 - One-shot low-risk reads/status checks
 - Tasks blocked by missing external access
 
@@ -84,6 +87,7 @@ Track these metrics daily:
 ## Success Criteria
 
 Pilot is considered successful if all are true:
+
 - Second-attempt success rate improves vs baseline.
 - Repeat-failure rate decreases.
 - No major safety incidents from retries.
@@ -103,3 +107,46 @@ Pilot is considered successful if all are true:
 - No autonomous broad policy rewrites from a single success.
 - Keep all changes reversible.
 - Prefer narrow rollout before global rollout.
+
+---
+
+## Error Log Integration (Applied 2026-03-31)
+
+When a REFLECTION BLOCK captures a failure, also append to `workspace/memory/error-log.jsonl` using this format:
+
+```json
+{
+  "error_id": "ERR-{YYYY-MM-DD}-{NNN}",
+  "timestamp": "ISO-8601",
+  "failure_mode": "short canonical description of what failed",
+  "root_cause": "hypothesis for why it failed",
+  "context": {
+    "task_id": "T-123 or null",
+    "tool": "exec | browser | peekaboo | git | etc.",
+    "skill": "browser-automation | powershell-ops | memory-ops | etc.",
+    "file": "path if relevant or null"
+  },
+  "fix_applied": "what was done to resolve it",
+  "fix_worked": true,
+  "severity": "low | medium | high | critical",
+  "tags": ["array", "of", "keywords"],
+  "source": "reflection-block | daily-memory | human-correction | heartbeat"
+}
+```
+
+**Rules:**
+
+- `error_id`: `ERR-{YYYY-MM-DD}-{NNN}` where NNN is a zero-padded daily sequence number (e.g. `ERR-2026-03-31-001`).
+- `failure_mode`: Keep short and reusable — consistent phrasing enables pattern matching (e.g. "PowerShell chained commands fail" not "the && thing broke again").
+- `fix_worked`: Set `false` if fix was attempted but error persisted. The same error can appear twice (once `false`, once `true`) if a second fix succeeded.
+- Append one line per error — the file is append-only.
+
+**Pattern thresholds:**
+
+| Occurrences | Status     | Action                                            |
+| ----------- | ---------- | ------------------------------------------------- |
+| 2           | `watch`    | Log pattern ID in daily memory, no further action |
+| 3           | `act`      | Create investigation task in bot_queue / backlog  |
+| 5           | `escalate` | Telegram alert + flag for human attention         |
+
+Pattern grouping: two entries belong to the same pattern if their `failure_mode` strings have normalized similarity >= 0.7, OR they share >= 2 tags AND the same `context.tool`.

@@ -11,9 +11,10 @@
 The backlog generator scans multiple sources for opportunities and automatically creates tasks with proper context. This enables proactive improvement without waiting for human direction.
 
 **The motto applies:**
+
 ```
 EVERY task generated → SOUND LOGIC
-EVERY opportunity found → VERIFIED EVIDENCE  
+EVERY opportunity found → VERIFIED EVIDENCE
 EVERY action proposed → NO FALLACIES
 ```
 
@@ -22,11 +23,13 @@ EVERY action proposed → NO FALLACIES
 ## Sources Scanned
 
 ### 1. Website Audit Findings
+
 **File:** `memory/seo-audit.json`, `memory/website-audit.json`
 **Frequency:** Daily
 **Creates:** SEO tasks, conversion tasks, UX fixes
 
 Scans for:
+
 - Products with missing meta descriptions
 - Images without ALT text
 - Pages with slow load times
@@ -37,11 +40,13 @@ Scans for:
 **Agent Type:** `seo` or `conversion`
 
 ### 2. Competitor Changes
+
 **File:** `memory/competitor-monitor.json`
 **Frequency:** Daily
 **Creates:** Research tasks, pricing tasks, product opportunities
 
 Scans for:
+
 - New products from competitors
 - Price changes (>10% movement)
 - New marketing campaigns
@@ -51,11 +56,13 @@ Scans for:
 **Agent Type:** `research` or `marketing`
 
 ### 3. Content Gaps
+
 **File:** `memory/content-gaps.json`, `knowledge/seo-strategy-2026.md`
 **Frequency:** Daily
 **Creates:** Content tasks, collection description tasks
 
 Scans for:
+
 - Collections with <150 words description
 - Products with no enhanced copy
 - Missing FAQ sections
@@ -65,11 +72,13 @@ Scans for:
 **Agent Type:** `content` or `seo`
 
 ### 4. Error Patterns
+
 **Files:** `memory/error-log-archive-*.jsonl`, `.learnings/ERRORS.md`
 **Frequency:** Daily
 **Creates:** Bug fix tasks, process improvement tasks
 
 Scans for:
+
 - Repeated error types (3+ occurrences)
 - Recurring browser automation failures
 - API errors with patterns
@@ -79,11 +88,13 @@ Scans for:
 **Agent Type:** `engineering` or `operations`
 
 ### 5. Seasonal Events
+
 **File:** `config/seasonal-calendar.yaml`
 **Frequency:** Daily (30-day lookahead)
 **Creates:** Campaign tasks, inventory tasks, promotion tasks
 
 Scans for:
+
 - Upcoming holidays (Valentine's, Easter, Mother's Day, etc.)
 - Seasonal transitions (Summer → Fall)
 - Shopping events (Black Friday, Cyber Monday)
@@ -92,11 +103,13 @@ Scans for:
 **Agent Type:** `marketing` or `operations`
 
 ### 6. Analytics Signals
+
 **File:** `memory/analytics-signals.json`
 **Frequency:** Daily
 **Creates:** Investigation tasks, optimization tasks
 
 Scans for:
+
 - Traffic drops (>20% WoW)
 - Conversion rate changes
 - Cart abandonment spikes
@@ -110,28 +123,63 @@ Scans for:
 ## Task Generation Rules
 
 ### Scoring Formula
+
 Each opportunity is scored on a 0-20 scale:
 
-| Factor | Points | Criteria |
-|--------|--------|----------|
-| Impact | 0-8 | Revenue potential, user reach |
-| Urgency | 0-5 | Time-sensitivity, deadline |
-| Effort | 0-4 | Lower effort = higher score |
-| Confidence | 0-3 | Evidence quality |
+```
+Score = Executability(0-6) + Impact(0-6) + Urgency(0-4) + Effort(0-2) + Confidence(0-2)
+```
+
+| Factor            | Points | Criteria                                                                                                            |
+| ----------------- | ------ | ------------------------------------------------------------------------------------------------------------------- |
+| **Executability** | 0-6    | 6=fully self-contained, 4=needs browser but no login, 2=needs logged-in session, 0=needs credentials/human approval |
+| **Impact**        | 0-6    | Revenue potential, user reach                                                                                       |
+| **Urgency**       | 0-4    | Time-sensitivity, deadline                                                                                          |
+| **Effort**        | 0-2    | 2=<15 min, 1=15-60 min, 0=>60 min                                                                                   |
+| **Confidence**    | 0-2    | 2=verified evidence, 1=reasonable assumption, 0=speculative                                                         |
+
+**Hard gate:** Tasks where Executability = 0 NEVER enter `bot_queue`, regardless of total score. Route them to the `human` lane instead.
 
 **Thresholds:**
-- Score ≥12: Add to bot_queue immediately
-- Score 8-11: Add to bot_queue (low priority)
-- Score <8: Log opportunity, don't create task
+
+- Score ≥12: Add to bot_queue (high priority)
+- Score 8-11: Add to bot_queue (normal priority)
+- Score 5-7: Add to bot_queue only if Executability ≥ 4
+- Score <5: Log opportunity only, do not create task
+
+### Task-Type Multipliers
+
+Apply the multiplier to the base score after summing all five factors:
+
+| Task Type                                                        | Multiplier |
+| ---------------------------------------------------------------- | ---------- |
+| Infrastructure / code (backup, consolidation, engineering fixes) | 1.1x       |
+| SEO / content (filesystem-only)                                  | 1.0x       |
+| Research / analysis (no browser needed)                          | 0.9x       |
+| Social media engagement                                          | 0.4x       |
+| External-service checks (requires logged-in session)             | 0.6x       |
+
+### Clarification Gate
+
+A task is REJECTED and held for human clarification (routed to `human` lane, not `bot_queue`) if ANY of the following are true:
+
+| Criterion                  | Rule                                                                      |
+| -------------------------- | ------------------------------------------------------------------------- |
+| Vague title                | Fewer than 5 words AND no verb present                                    |
+| Missing prerequisite files | References a file or credential path that does not exist in the workspace |
+| Executability = 0          | Requires credentials or approvals not currently available                 |
+| Low confidence             | Confidence score < 0.4                                                    |
+
+Tasks that fail this gate are NOT silently dropped — they are logged with the rejection reason so a human can resolve the blocker.
 
 ### Duplicate Prevention
 
-Before creating any task, the generator checks:
+Before creating any task, the generator:
 
-1. **Title similarity** — Fuzzy match against existing tasks (>80% = duplicate)
-2. **Source + key match** — Same source + same key = duplicate
-3. **Time window** — Same opportunity type within 7 days = duplicate
-4. **Done_today check** — Don't recreate recently completed work
+1. **Hashes** the combination of `source_url` + task type to produce a dedup key.
+2. **Checks** `done_today` and `trash` lanes for the same hash within the past **7 days**. If found, the task is SKIPPED and logged as a duplicate — it is never created.
+3. **Title similarity** — Fuzzy match against existing tasks (>80% title similarity = duplicate, skip).
+4. **Source + key match** — Same `source_key` within 7 days = duplicate, skip.
 
 Deduplication keys stored in: `memory/backlog-dedup.json`
 
@@ -177,22 +225,23 @@ Every auto-generated task MUST include:
 
 Tasks are tagged with agent types for future multi-agent routing:
 
-| Agent Type | Specialization | Example Tasks |
-|------------|---------------|---------------|
-| `seo` | Search optimization | Meta descriptions, schema, keywords |
-| `content` | Writing & copy | Product descriptions, blog posts |
-| `marketing` | Campaigns & promotions | Holiday campaigns, ads |
-| `analytics` | Data analysis | Conversion reports, traffic analysis |
-| `conversion` | UX optimization | Checkout fixes, trust signals |
-| `engineering` | Technical fixes | Bugs, automation, scripts |
-| `operations` | Process & inventory | BuckyDrop sync, shipping |
-| `research` | Competitor & market | Market analysis, trends |
+| Agent Type    | Specialization         | Example Tasks                        |
+| ------------- | ---------------------- | ------------------------------------ |
+| `seo`         | Search optimization    | Meta descriptions, schema, keywords  |
+| `content`     | Writing & copy         | Product descriptions, blog posts     |
+| `marketing`   | Campaigns & promotions | Holiday campaigns, ads               |
+| `analytics`   | Data analysis          | Conversion reports, traffic analysis |
+| `conversion`  | UX optimization        | Checkout fixes, trust signals        |
+| `engineering` | Technical fixes        | Bugs, automation, scripts            |
+| `operations`  | Process & inventory    | BuckyDrop sync, shipping             |
+| `research`    | Competitor & market    | Market analysis, trends              |
 
 ---
 
 ## Running the Generator
 
 ### Manual Run
+
 ```powershell
 python scripts/backlog-generator.py --scan-all
 python scripts/backlog-generator.py --source website_audit
@@ -200,11 +249,14 @@ python scripts/backlog-generator.py --dry-run  # Preview without creating
 ```
 
 ### Cron Schedule
+
 - **Daily at 6 AM EST:** Full scan of all sources
 - **Config:** `config/cron-jobs.yaml` → `backlog-generator` entry
 
 ### Heartbeat Integration
+
 During each heartbeat, quick check for:
+
 - High-urgency opportunities (seasonal <7 days)
 - Critical errors (3+ occurrences today)
 - Analytics alerts (>30% negative change)
@@ -214,10 +266,12 @@ During each heartbeat, quick check for:
 ## Output & Logging
 
 ### Task Creation
+
 - Tasks created in `memory/tasks.json` → `bot_queue` lane
 - Events logged to `memory/events.jsonl` with `type: backlog_generated`
 
 ### Daily Report
+
 After each run, generates: `memory/backlog-reports/YYYY-MM-DD.json`
 
 ```json
@@ -237,12 +291,14 @@ After each run, generates: `memory/backlog-reports/YYYY-MM-DD.json`
 ## Maintenance
 
 ### Weekly Review
+
 - Review generated tasks for quality
 - Adjust scoring weights if needed
 - Update dedup patterns for false positives
 - Prune stale dedup entries (>30 days)
 
 ### Tuning Thresholds
+
 If too many low-value tasks: raise score threshold to 14
 If missing opportunities: lower threshold to 10 or expand sources
 
