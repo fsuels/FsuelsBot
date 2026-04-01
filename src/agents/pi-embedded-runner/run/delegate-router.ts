@@ -146,6 +146,18 @@ function isTextContent(block: { type: string }): block is TextContent {
   return block.type === "text";
 }
 
+function readUsageMetric(value: unknown, key: "input" | "output"): number | undefined {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+  const usage = (value as Record<string, unknown>).usage;
+  if (!usage || typeof usage !== "object") {
+    return undefined;
+  }
+  const metric = (usage as Record<string, unknown>)[key];
+  return typeof metric === "number" ? metric : undefined;
+}
+
 /**
  * Classify whether a prompt should be delegated.
  * Returns the category name if delegate-eligible, or null if not.
@@ -311,8 +323,8 @@ export async function tryDelegateRoute(opts: {
         model: `${provider}/${modelId}`,
         latencyMs: Date.now() - startTime,
         usage: {
-          input: (res as any).usage?.input,
-          output: (res as any).usage?.output,
+          input: readUsageMetric(res, "input"),
+          output: readUsageMetric(res, "output"),
         },
       };
     } finally {
