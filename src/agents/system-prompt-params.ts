@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { OpenClawConfig } from "../config/config.js";
+import { findGitRoot } from "../git/repo.js";
 import {
   formatUserTime,
   resolveUserTimeFormat,
@@ -38,7 +39,7 @@ export function buildSystemPromptParams(params: {
   workspaceDir?: string;
   cwd?: string;
 }): SystemPromptRuntimeParams {
-  const repoRoot = resolveRepoRoot({
+  const repoRoot = resolveRuntimeRepoRoot({
     config: params.config,
     workspaceDir: params.workspaceDir,
     cwd: params.cwd,
@@ -58,7 +59,7 @@ export function buildSystemPromptParams(params: {
   };
 }
 
-function resolveRepoRoot(params: {
+export function resolveRuntimeRepoRoot(params: {
   config?: OpenClawConfig;
   workspaceDir?: string;
   cwd?: string;
@@ -91,25 +92,4 @@ function resolveRepoRoot(params: {
     }
   }
   return undefined;
-}
-
-function findGitRoot(startDir: string): string | null {
-  let current = path.resolve(startDir);
-  for (let i = 0; i < 12; i += 1) {
-    const gitPath = path.join(current, ".git");
-    try {
-      const stat = fs.statSync(gitPath);
-      if (stat.isDirectory() || stat.isFile()) {
-        return current;
-      }
-    } catch {
-      // ignore missing .git at this level
-    }
-    const parent = path.dirname(current);
-    if (parent === current) {
-      break;
-    }
-    current = parent;
-  }
-  return null;
 }

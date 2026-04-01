@@ -1,16 +1,12 @@
+import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { execFile } from "node:child_process";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { OpenClawConfig } from "../../config/config.js";
 import type { SessionEntry } from "../../config/sessions.js";
 import { writeConfigFile } from "../../config/config.js";
-import {
-  buildDiffText,
-  buildDoctorText,
-  exportSessionReport,
-} from "./commands-introspection.js";
+import { buildDiffText, buildDoctorText, exportSessionReport } from "./commands-introspection.js";
 
 describe("commands introspection", () => {
   let tempDir = "";
@@ -77,9 +73,9 @@ describe("commands introspection", () => {
     const text = await buildDiffText(workspaceDir);
 
     expect(text).toContain("Workspace diff");
-    expect(text).toContain("Status");
+    expect(text).toContain("Summary");
     expect(text).toContain("note.txt");
-    expect(text).toContain("Working tree diff stat");
+    expect(text).toContain("Working tree:");
   });
 
   it("exports a markdown session report using the first user prompt for the filename", async () => {

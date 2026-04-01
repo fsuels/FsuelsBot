@@ -1,4 +1,5 @@
 import path from "node:path";
+import { inspectGitRepository } from "../../git/repo.js";
 import { runCommandWithTimeout } from "../../process/exec.js";
 
 export type SessionWorkspaceFingerprint = {
@@ -152,6 +153,7 @@ export async function captureSessionWorkspaceFingerprint(params: {
     return normalizeSessionWorkspaceFingerprint(fingerprint);
   }
 
+  const inspected = inspectGitRepository(probeDir);
   const [repoRootRaw, gitCommonDirRaw, gitBranch, gitRemotes] = await Promise.all([
     runGitText(
       ["git", "-C", probeDir, "rev-parse", "--show-toplevel"],
@@ -174,8 +176,8 @@ export async function captureSessionWorkspaceFingerprint(params: {
     readGitRemotes(probeDir, timeoutMs, runCommand),
   ]);
 
-  const repoRoot = resolveMaybeRelative(probeDir, repoRootRaw);
-  const gitCommonDir = resolveMaybeRelative(probeDir, gitCommonDirRaw);
+  const repoRoot = resolveMaybeRelative(probeDir, repoRootRaw) ?? inspected?.gitRoot;
+  const gitCommonDir = resolveMaybeRelative(probeDir, gitCommonDirRaw) ?? inspected?.gitCommonDir;
   return normalizeSessionWorkspaceFingerprint({
     ...fingerprint,
     ...(repoRoot ? { repoRoot } : {}),

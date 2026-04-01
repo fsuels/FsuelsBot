@@ -9,21 +9,10 @@ import { resolveSandboxRuntimeStatus } from "../../agents/sandbox.js";
 import { readConfigFileSnapshot } from "../../config/config.js";
 import { resolveStateDir } from "../../config/paths.js";
 import { resolveSessionFilePath } from "../../config/sessions.js";
+import { collectGitWorkspaceSummary } from "../../git/diff-summary.js";
 import { logVerbose } from "../../globals.js";
 import { runCommandWithTimeout } from "../../process/exec.js";
 import { countToolResults, extractToolCallNames } from "../../utils/transcript-tools.js";
-
-type GitWorkspaceSummary = {
-  hasGit: boolean;
-  workspaceExists: boolean;
-  isRepo: boolean;
-  repoRoot?: string;
-  branch?: string;
-  statusLines: string[];
-  stagedStatLines: string[];
-  unstagedStatLines: string[];
-  error?: string;
-};
 
 type TranscriptMessageSummary = {
   role: string;
@@ -65,122 +54,6 @@ async function isWritablePath(pathname: string): Promise<boolean> {
     return true;
   } catch {
     return false;
-  }
-}
-
-function splitNonEmptyLines(value: string): string[] {
-  return value
-    .split(/\r?\n/)
-    .map((line) => line.trimEnd())
-    .filter((line) => line.trim().length > 0);
-}
-
-function isGitMissing(error: unknown): boolean {
-  return (
-    error instanceof Error &&
-    "code" in error &&
-    typeof error.code === "string" &&
-    error.code === "ENOENT"
-  );
-}
-
-function isNotGitRepo(stderr: string, stdout = ""): boolean {
-  const combined = `${stderr}\n${stdout}`.toLowerCase();
-  return (
-    combined.includes("not a git repository") ||
-    combined.includes("unable to change to") ||
-    combined.includes("cannot change to")
-  );
-}
-
-async function collectGitWorkspaceSummary(workspaceDir: string): Promise<GitWorkspaceSummary> {
-  const workspaceExists = await pathExists(workspaceDir);
-  if (!workspaceExists) {
-    return {
-      hasGit: false,
-      workspaceExists: false,
-      isRepo: false,
-      statusLines: [],
-      stagedStatLines: [],
-      unstagedStatLines: [],
-      error: `workspace missing: ${workspaceDir}`,
-    };
-  }
-
-  try {
-    const revParse = await runCommandWithTimeout(
-      ["git", "-C", workspaceDir, "rev-parse", "--show-toplevel"],
-      5_000,
-    );
-    if (revParse.code !== 0) {
-      return {
-        hasGit: true,
-        workspaceExists,
-        isRepo: false,
-        statusLines: [],
-        stagedStatLines: [],
-        unstagedStatLines: [],
-        error: splitNonEmptyLines(revParse.stderr || revParse.stdout)[0],
-      };
-    }
-
-    const repoRoot = revParse.stdout.trim() || workspaceDir;
-    const [branchResult, statusResult, stagedResult, unstagedResult] = await Promise.all([
-      runCommandWithTimeout(["git", "-C", workspaceDir, "rev-parse", "--abbrev-ref", "HEAD"], 5_000),
-      runCommandWithTimeout(
-        ["git", "-C", workspaceDir, "status", "--short", "--untracked-files=all"],
-        5_000,
-      ),
-      runCommandWithTimeout(["git", "-C", workspaceDir, "diff", "--stat", "--cached"], 5_000),
-      runCommandWithTimeout(["git", "-C", workspaceDir, "diff", "--stat"], 5_000),
-    ]);
-
-    return {
-      hasGit: true,
-      workspaceExists,
-      isRepo: true,
-      repoRoot,
-      branch: branchResult.stdout.trim() || undefined,
-      statusLines: splitNonEmptyLines(statusResult.stdout),
-      stagedStatLines: splitNonEmptyLines(stagedResult.stdout),
-      unstagedStatLines: splitNonEmptyLines(unstagedResult.stdout),
-      error: undefined,
-    };
-  } catch (error) {
-    if (isGitMissing(error)) {
-      return {
-        hasGit: false,
-        workspaceExists,
-        isRepo: false,
-        statusLines: [],
-        stagedStatLines: [],
-        unstagedStatLines: [],
-        error: "git is not installed",
-      };
-    }
-
-    const detail = error instanceof Error ? error.message : String(error);
-    if (isNotGitRepo(detail)) {
-      return {
-        hasGit: true,
-        workspaceExists,
-        isRepo: false,
-        statusLines: [],
-        stagedStatLines: [],
-        unstagedStatLines: [],
-        error: detail,
-      };
-    }
-
-    return {
-      hasGit: true,
-      workspaceExists,
-      isRepo: false,
-      statusLines: [],
-      stagedStatLines: [],
-      unstagedStatLines: [],
-      error: detail,
-    };
   }
 }
 
@@ -388,7 +261,7 @@ export async function buildDoctorText(params: {
 }): Promise<string> {
   const snapshot = await readConfigFileSnapshot();
   const warnings = snapshot.warnings ?? [];
-  const git = await collectGitWorkspaceSummary(params.workspaceDir);
+  const git = await collectGitWorkspaceSummary({ workspaceDir: params.workspaceDir });
   const authMode = resolveModelAuthMode(params.provider, params.cfg) ?? "unknown";
   const runtimeStatus = resolveSandboxRuntimeStatus({
     cfg: params.cfg,
@@ -431,7 +304,9 @@ export async function buildDoctorText(params: {
     suggestions.push("Grant write access to the workspace or switch to a writable workspace path.");
   }
   if (!git.hasGit) {
-    suggestions.push("Install git to unlock workspace diff inspection and cleaner session exports.");
+    suggestions.push(
+      "Install git to unlock workspace diff inspection and cleaner session exports.",
+    );
   } else if (!git.isRepo) {
     suggestions.push(
       "OpenClaw can still work here, but diff/export are more useful inside a git repository.",
@@ -441,10 +316,14 @@ export async function buildDoctorText(params: {
     (runtimeStatus.mode ?? "off") !== "off" &&
     dockerLine?.toLowerCase().includes("unavailable")
   ) {
-    suggestions.push("Install or start Docker, or disable sandboxing if this workspace should run direct.");
+    suggestions.push(
+      "Install or start Docker, or disable sandboxing if this workspace should run direct.",
+    );
   }
   if (!transcriptExists) {
-    suggestions.push("This session has no transcript file yet; send a normal turn first or start a fresh session.");
+    suggestions.push(
+      "This session has no transcript file yet; send a normal turn first or start a fresh session.",
+    );
   }
 
   const lines = [
@@ -487,7 +366,7 @@ export async function buildDoctorText(params: {
 }
 
 export async function buildDiffText(workspaceDir: string): Promise<string> {
-  const git = await collectGitWorkspaceSummary(workspaceDir);
+  const git = await collectGitWorkspaceSummary({ workspaceDir });
   if (!git.workspaceExists) {
     return `Workspace missing: ${workspaceDir}`;
   }
@@ -504,32 +383,58 @@ export async function buildDiffText(workspaceDir: string): Promise<string> {
   }
 
   if (
-    git.statusLines.length === 0 &&
-    git.stagedStatLines.length === 0 &&
-    git.unstagedStatLines.length === 0
+    !git.totalShortStat &&
+    !git.stagedShortStat &&
+    !git.unstagedShortStat &&
+    git.fileStats.length === 0 &&
+    git.untrackedFiles.length === 0
   ) {
     lines.push("Working tree clean.");
     return lines.join("\n");
   }
 
-  if (git.statusLines.length > 0) {
-    lines.push("", "Status");
-    for (const line of git.statusLines.slice(0, 20)) {
-      lines.push(line);
+  if (git.transientState) {
+    lines.push("", `Tracked diff summary skipped while ${git.transientState} is present.`);
+  }
+
+  const totals: string[] = [];
+  if (git.totalShortStat) {
+    totals.push(`Tracked vs HEAD: ${git.totalShortStat.line}`);
+  }
+  if (git.stagedShortStat) {
+    totals.push(`Staged: ${git.stagedShortStat.line}`);
+  }
+  if (git.unstagedShortStat) {
+    totals.push(`Working tree: ${git.unstagedShortStat.line}`);
+  }
+  if (git.untrackedFiles.length > 0) {
+    totals.push(
+      `Untracked: ${git.untrackedFiles.length} file${git.untrackedFiles.length === 1 ? "" : "s"}`,
+    );
+  }
+  if (totals.length > 0) {
+    lines.push("", "Summary", ...totals);
+  }
+
+  if (git.fileStats.length > 0 || git.untrackedFiles.length > 0) {
+    lines.push("", "Files");
+    for (const entry of git.fileStats.slice(0, 20)) {
+      const deltas = [];
+      if (typeof entry.added === "number") {
+        deltas.push(`+${entry.added}`);
+      }
+      if (typeof entry.deleted === "number") {
+        deltas.push(`-${entry.deleted}`);
+      }
+      lines.push(`${entry.path}${deltas.length > 0 ? ` (${deltas.join(" ")})` : ""}`);
     }
-    if (git.statusLines.length > 20) {
-      lines.push(`... ${git.statusLines.length - 20} more`);
+    for (const file of git.untrackedFiles.slice(0, 20 - Math.min(git.fileStats.length, 20))) {
+      lines.push(`${file} [untracked]`);
     }
   }
 
-  if (git.stagedStatLines.length > 0) {
-    lines.push("", "Staged diff stat");
-    lines.push(...git.stagedStatLines.slice(0, 20));
-  }
-
-  if (git.unstagedStatLines.length > 0) {
-    lines.push("", "Working tree diff stat");
-    lines.push(...git.unstagedStatLines.slice(0, 20));
+  if (git.skippedDetailedStats) {
+    lines.push("", "Detailed file stats truncated to keep diff inspection cheap.");
   }
 
   return lines.join("\n");
@@ -600,7 +505,9 @@ export async function exportSessionReport(params: {
     "",
     "## Final Assistant Message",
     "",
-    finalAssistantText ? finalAssistantText : "_No assistant message found in the session transcript._",
+    finalAssistantText
+      ? finalAssistantText
+      : "_No assistant message found in the session transcript._",
     "",
     "## Transcript",
     "",

@@ -13,6 +13,10 @@ async function makeRepoRoot(root: string): Promise<void> {
   await fs.mkdir(path.join(root, ".git"), { recursive: true });
 }
 
+async function realPath(value: string): Promise<string> {
+  return await fs.realpath(value);
+}
+
 function buildParams(params: { config?: OpenClawConfig; workspaceDir?: string; cwd?: string }) {
   return buildSystemPromptParams({
     config: params.config,
@@ -38,7 +42,7 @@ describe("buildSystemPromptParams repo root", () => {
 
     const { runtimeInfo } = buildParams({ workspaceDir });
 
-    expect(runtimeInfo.repoRoot).toBe(repoRoot);
+    expect(runtimeInfo.repoRoot).toBe(await realPath(repoRoot));
   });
 
   it("falls back to cwd when workspaceDir has no repo", async () => {
@@ -50,7 +54,7 @@ describe("buildSystemPromptParams repo root", () => {
 
     const { runtimeInfo } = buildParams({ workspaceDir, cwd: repoRoot });
 
-    expect(runtimeInfo.repoRoot).toBe(repoRoot);
+    expect(runtimeInfo.repoRoot).toBe(await realPath(repoRoot));
   });
 
   it("uses configured repoRoot when valid", async () => {
@@ -91,7 +95,7 @@ describe("buildSystemPromptParams repo root", () => {
 
     const { runtimeInfo } = buildParams({ config, workspaceDir });
 
-    expect(runtimeInfo.repoRoot).toBe(repoRoot);
+    expect(runtimeInfo.repoRoot).toBe(await realPath(repoRoot));
   });
 
   it("returns undefined when no repo is found", async () => {
