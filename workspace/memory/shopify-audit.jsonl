@@ -1,0 +1,1 @@
+{"_comment": "Shopify audit log — created 2026-03-31", "format": {"timestamp": "ISO-8601", "action": "string", "product_id": "string", "changes": {"field": "before/after"}, "reason": "string", "tier": "0|1|2", "verified": "boolean", "rollback_price": "number|null"}}

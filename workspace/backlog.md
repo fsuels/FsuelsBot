@@ -36,16 +36,7 @@ _Updated by: nightly compound loop, curiosity engine, manual additions_
 
 ## Curiosity Engine Proposals (2026-03-18 9:00 PM)
 
-### Proposal 1: Fix Cloudflare-managed robots.txt + sitemap routing (stop serving “Content Signals” block + HTML at /sitemap.xml)
-
-- **Discovery:** Live `ghostbrokerai.xyz/robots.txt` appears to be Cloudflare-managed “Content Signals Policy”, and `ghostbrokerai.xyz/sitemap.xml` has been served as HTML (homepage) instead of XML.
-- **Verified evidence:** Cloudflare docs confirm the “managed robots.txt setting” can prepend/serve a Cloudflare policy block when enabled: https://developers.cloudflare.com/bots/additional-configurations/managed-robots-txt/
-- **Why it matters:** Indexing + SEO reliability (robots directives + sitemap ingestion) can be broken/misleading.
-- **Suggested task:** In Cloudflare dashboard: locate Bot/robots feature + any redirect/page rules/workers; ensure `/robots.txt` and `/sitemap.xml` are served from the deployed repo with correct content-type (`text/plain`, `application/xml`). Re-verify via `curl -I` + content fetch.
-- **TPS estimate:** Revenue Impact 8 × Confidence 0.75 ÷ Human Min 15 ÷ Risk 1.5 = **0.27**
-- **Persona:** Traffic / Technical SEO
-
-### Proposal 2: Unblock daily ops by standardizing “WAITING_HUMAN” prerequisites (logins/approvals) into one checklist
+### Proposal 1: Unblock daily ops by standardizing “WAITING_HUMAN” prerequisites (logins/approvals) into one checklist
 
 - **Discovery:** Many cron tasks are consistently blocked by the same prerequisites: (1) logged-in browser sessions (X, LinkedIn, Outlook, BuckyDrop), (2) Tier-2 approval for public actions.
 - **Why it matters:** Reduces repeated stalls; makes it easy for Francisco to grant access once, then tasks run autonomously.
@@ -53,7 +44,7 @@ _Updated by: nightly compound loop, curiosity engine, manual additions_
 - **TPS estimate:** Revenue Impact 5 × Confidence 0.8 ÷ Human Min 12 ÷ Risk 1 = **0.28**
 - **Persona:** Ops / Throughput
 
-### Proposal 3: Epistemic review automation fallback when ChatGPT/Grok sessions aren’t available
+### Proposal 2: Epistemic review automation fallback when ChatGPT/Grok sessions aren’t available
 
 - **Discovery:** Evening epistemic review rotation can’t run when the required reviewer isn’t authenticated in the available browser runtime (common blocker).
 - **Why it matters:** This is a safety mechanism; if it fails repeatedly, errors compound unnoticed.
@@ -65,29 +56,13 @@ _Updated by: nightly compound loop, curiosity engine, manual additions_
 
 ## Curiosity Engine Proposals (2026-03-17 9:00 PM)
 
-### Proposal 1: Fix Ghost Broker SEO plumbing (Cloudflare serving wrong robots/sitemap)
-
-- **Discovery:** `https://ghostbrokerai.xyz/sitemap.xml` is served as `text/html` (homepage HTML), and `robots.txt` is Cloudflare-managed “Content-Signal” robots, not our repo files.
-- **Why it matters:** This can cripple indexing + discoverability (sitemap ignored, robots directives not ours).
-- **Suggested task:** Get into Cloudflare (Pages/DNS/rules) and ensure `/robots.txt` and `/sitemap.xml` are served from the deployed repo root with correct content-types.
-- **TPS estimate:** Revenue Impact 8 × Confidence 0.7 ÷ Human Min 15 ÷ Risk 1.5 = **0.25**
-- **Persona:** Traffic / Technical SEO
-
-### Proposal 2: Eliminate inline PowerShell breakage with a minimal repro + wrapper
+### Proposal 1: Eliminate inline PowerShell breakage with a minimal repro + wrapper
 
 - **Discovery:** This runtime appears to strip `$var` assignments in inline PowerShell one-liners (e.g., `$x=1` becoming `=1`). Grok flagged “hasty generalization risk” unless we scope + reproduce.
 - **Why it matters:** It creates recurring command failures + slows execution (recentErrors stays high).
 - **Suggested task:** Add a tiny reproducible test script + document the scope (“this agent runtime / toolchain”), and add a helper pattern (prefer file-based `.ps1` scripts or Python for JSON parsing).
 - **TPS estimate:** Revenue Impact 4 × Confidence 0.9 ÷ Human Min 8 ÷ Risk 1 = **0.45**
 - **Persona:** Ops / Reliability
-
-### Proposal 3: Create the missing Ghost Broker “Credibility Monitor” + “Influencer Outreach” playbooks
-
-- **Discovery:** Two daily Ghost Broker ops crons are blocked because plan/guide files are missing (credibility monitor + influencer outreach pipeline).
-- **Why it matters:** These are repeatable growth/trust workflows; missing docs = recurring stalls.
-- **Suggested task:** Author the two playbooks + a lightweight tracker (CSV/JSON) so daily checks can run without human intervention.
-- **TPS estimate:** Revenue Impact 6 × Confidence 0.75 ÷ Human Min 20 ÷ Risk 1 = **0.23**
-- **Persona:** Ops / Growth (within existing channels)
 
 ---
 
@@ -100,22 +75,6 @@ _Updated by: nightly compound loop, curiosity engine, manual additions_
 - **Suggested task:** Add a small wrapper script/procedure: avoid `$` in one-liners, prefer file-based scripts or `Set-Variable`, or use Python for JSON parsing.
 - **TPS estimate:** Revenue Impact 4 × Confidence 0.9 ÷ Human Min 10 ÷ Risk 1 = **0.36**
 - **Persona:** Ops / Reliability
-
-### Proposal 2: Ghost Broker site: add canonical tags + above-the-fold proof
-
-- **Discovery:** Daily website audit flagged missing/uncertain canonical tags and weak trust/proof presence above the fold.
-- **Why it matters:** Improves SEO correctness + conversion confidence without changing channels/categories.
-- **Suggested task:** Add `<link rel="canonical" ...>` across pages + add 1–2 proof blocks (quality guarantee, payment clarity, testimonials).
-- **TPS estimate:** Revenue Impact 6 × Confidence 0.7 ÷ Human Min 20 ÷ Risk 1 = **0.21**
-- **Persona:** Conversion / SEO
-
-### Proposal 3: Fix ghost-broker repo layout (gitlinks without .gitmodules)
-
-- **Discovery:** `workspace/ghost-broker/admin` and `workspace/ghost-broker/website` are tracked as gitlink entries (mode 160000) but the parent repo has no `.gitmodules`, so submodule tooling breaks and repos show as perpetually “modified”.
-- **Why it matters:** Prevents backup noise and reduces risk of accidentally committing wrong pointers.
-- **Suggested task:** Decide: (A) add proper `.gitmodules` and manage them as real submodules, or (B) remove gitlink tracking from parent repo and treat them as external repos.
-- **TPS estimate:** Revenue Impact 3 × Confidence 0.8 ÷ Human Min 15 ÷ Risk 1.5 = **0.11**
-- **Persona:** Ops / Repo Hygiene
 
 ---
 

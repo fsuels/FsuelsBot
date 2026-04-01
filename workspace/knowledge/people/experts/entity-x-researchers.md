@@ -14,26 +14,26 @@ reviewed: 2026-02-01
 
 ## Purpose
 
-Track thought leaders in AI agents, coding assistants, and autonomous systems for Ghost Broker positioning and market intelligence.
+Track thought leaders in AI agents, coding assistants, and autonomous systems for market intelligence.
 
-## Active Follows (from @GhostBrokerAI)
+## Active Follows
 
 ### Tier 1: Must-Follow
 
-| Handle | Name | Why Follow | Notes |
-|--------|------|------------|-------|
-| @kaboralius | Andrej Karpathy | AI/ML thought leader | Former Tesla AI, OpenAI |
-| @DrJimFan | Jim Fan | Embodied AI, NVIDIA | Great threads on agents |
-| @techNmak | TinyFish | Web agenting tools | 107K views on scraping thread |
-| @pbteja1998 | Bhanu Teja P | X growth tactics | 200K+ followers, documented strategy |
+| Handle      | Name            | Why Follow           | Notes                                |
+| ----------- | --------------- | -------------------- | ------------------------------------ |
+| @kaboralius | Andrej Karpathy | AI/ML thought leader | Former Tesla AI, OpenAI              |
+| @DrJimFan   | Jim Fan         | Embodied AI, NVIDIA  | Great threads on agents              |
+| @techNmak   | TinyFish        | Web agenting tools   | 107K views on scraping thread        |
+| @pbteja1998 | Bhanu Teja P    | X growth tactics     | 200K+ followers, documented strategy |
 
 ### Tier 2: Valuable Intel
 
-| Handle | Focus | Signal Quality |
-|--------|-------|----------------|
+| Handle      | Focus                | Signal Quality          |
+| ----------- | -------------------- | ----------------------- |
 | @bored2boar | AI security critique | High (Moltbot critique) |
-| @theonejvo | Security reporting | High (Moltbook breach) |
-| @rryssf_ | Academic research | Medium (SOAR paper) |
+| @theonejvo  | Security reporting   | High (Moltbook breach)  |
+| @rryssf\_   | Academic research    | Medium (SOAR paper)     |
 
 ## Research Cadence
 
@@ -54,8 +54,8 @@ Track thought leaders in AI agents, coding assistants, and autonomous systems fo
 - **Like:** Sparingly (don't look bot-like)
 - **Reply:** Only with genuine value to add
 - **DM:** Never unsolicited
-- **Retweet:** Only if aligns with Ghost Broker positioning
+- **Retweet:** Only if aligns with our positioning
 
 ---
 
-*Updated as we discover new signal sources.*
+_Updated as we discover new signal sources._

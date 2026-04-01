@@ -1,5 +1,6 @@
 # MCP Server Usage Guide
-> Model Context Protocol servers for Ghost Broker ecosystem
+
+> Model Context Protocol servers reference
 
 **Last Updated:** 2026-02-03  
 **Config File:** `config/mcp-servers.yaml`
@@ -11,6 +12,7 @@
 The **Model Context Protocol (MCP)** is an open standard that enables AI assistants to connect directly with external data sources and services. Instead of manual API integration, MCP provides a universal "language" for AI-to-service communication.
 
 **Key Benefits:**
+
 - Natural language queries to databases and APIs
 - Standardized across AI clients (Claude, Cursor, Windsurf)
 - No custom integration code needed
@@ -20,32 +22,36 @@ The **Model Context Protocol (MCP)** is an open standard that enables AI assista
 
 ## Available MCP Servers
 
-| Service | Status | Use Case |
-|---------|--------|----------|
-| **Terminator** | ✅ Available | Desktop automation, mouse/keyboard control |
-| **Shopify** | ✅ Available | Orders, products, customers |
-| **Google Analytics** | ✅ Available | Traffic, conversions, user behavior |
-| **Supabase** | ⏳ Pending T151 | Ghost Broker database queries |
+| Service              | Status       | Use Case                                   |
+| -------------------- | ------------ | ------------------------------------------ |
+| **Terminator**       | ✅ Available | Desktop automation, mouse/keyboard control |
+| **Shopify**          | ✅ Available | Orders, products, customers                |
+| **Google Analytics** | ✅ Available | Traffic, conversions, user behavior        |
+| **Supabase**         | ⏳ Pending   | Database queries                           |
 
 ---
 
 ## 1. Terminator MCP (Desktop Automation)
 
 ### Purpose
+
 Control your entire desktop via AI:
+
 - "Click the submit button in the browser"
 - "Type my email into this form"
-- "Open Calculator, compute 42 * 17, and tell me the result"
+- "Open Calculator, compute 42 \* 17, and tell me the result"
 - "Take a screenshot of the current window"
 
 ### Quick Setup
 
 **One-liner (Claude Code):**
+
 ```bash
 claude mcp add terminator "npx -y terminator-mcp-agent@latest"
 ```
 
 **MCP Config (Cursor, VS Code, Windsurf):**
+
 ```json
 {
   "mcpServers": {
@@ -62,22 +68,24 @@ claude mcp add terminator "npx -y terminator-mcp-agent@latest"
 ```
 
 ### Key Features
+
 - **Uses your browser session** - no need to relogin
 - **Doesn't take over cursor/keyboard** - runs in background
 - **Multi-modal** - pixels, DOM, and Accessibility tree
 
 ### Available Capabilities
 
-| Capability | Description |
-|------------|-------------|
-| `click` | Click at coordinates or element selector |
-| `type` | Type text input |
-| `press` | Press keyboard shortcuts |
-| `screenshot` | Capture screen or window |
-| `find` | Locate elements by text/image |
-| `inspect` | Windows UI Automation API |
+| Capability   | Description                              |
+| ------------ | ---------------------------------------- |
+| `click`      | Click at coordinates or element selector |
+| `type`       | Type text input                          |
+| `press`      | Press keyboard shortcuts                 |
+| `screenshot` | Capture screen or window                 |
+| `find`       | Locate elements by text/image            |
+| `inspect`    | Windows UI Automation API                |
 
 ### Example Queries
+
 ```
 "Navigate to settings in this app"
 "Find the login button and click it"
@@ -90,7 +98,9 @@ claude mcp add terminator "npx -y terminator-mcp-agent@latest"
 ## 2. Shopify MCP
 
 ### Purpose
+
 Query dresslikemommy store data via natural language:
+
 - "Check today's orders"
 - "List low-stock products"
 - "Show top customers by total spent"
@@ -111,6 +121,7 @@ uv pip install -e .
 ### Configuration
 
 Create `.env` in the server directory:
+
 ```env
 SHOPIFY_SHOP_URL=dresslikemommy-com.myshopify.com
 SHOPIFY_API_KEY=your_api_key
@@ -121,7 +132,7 @@ SHOPIFY_ACCESS_TOKEN=your_access_token
 ### Getting Credentials
 
 1. Go to Shopify Admin → Settings → Apps → Develop apps
-2. Create new app: "Ghost Broker MCP"
+2. Create new app: "Store MCP"
 3. Configure Admin API scopes:
    - `read_products`
    - `read_orders`
@@ -131,9 +142,9 @@ SHOPIFY_ACCESS_TOKEN=your_access_token
 
 ### Available Tools
 
-| Tool | Description | Example |
-|------|-------------|---------|
-| `get-product-list` | List products with details | "Show all products under $50" |
+| Tool                | Description                      | Example                          |
+| ------------------- | -------------------------------- | -------------------------------- |
+| `get-product-list`  | List products with details       | "Show all products under $50"    |
 | `get-customer-list` | Customer data with order history | "Find VIP customers (5+ orders)" |
 
 ### Example Queries
@@ -150,7 +161,9 @@ SHOPIFY_ACCESS_TOKEN=your_access_token
 ## 2. Google Analytics MCP
 
 ### Purpose
+
 Query GA4 data conversationally:
+
 - "How many users visited yesterday?"
 - "What's our conversion rate this week?"
 - "Which traffic sources drive revenue?"
@@ -166,6 +179,7 @@ npm install
 ### Configuration
 
 Requires Google Cloud setup:
+
 1. Create project in Google Cloud Console
 2. Enable Analytics Data API
 3. Create service account or OAuth credentials
@@ -181,7 +195,7 @@ Requires Google Cloud setup:
 "Create a data-driven marketing plan with $5k/month budget"
 ```
 
-### Use Cases for Ghost Broker
+### Use Cases
 
 - **Daily Briefings:** "Summarize yesterday's traffic and conversions"
 - **Trend Analysis:** "Compare this week's performance to last week"
@@ -193,17 +207,21 @@ Requires Google Cloud setup:
 ## 3. Supabase MCP
 
 ### Purpose
-Direct database queries for Ghost Broker backend:
+
+Direct database queries:
+
 - User management
 - Agent configurations
 - Analytics data
 
 ### Status
-⏳ **Pending:** Requires T151 (Ghost Broker backend) completion
+
+⏳ **Pending**
 
 ### Setup (When Ready)
 
 **Option A: Hosted MCP (Simplest)**
+
 ```json
 {
   "mcpServers": {
@@ -216,6 +234,7 @@ Direct database queries for Ghost Broker backend:
 ```
 
 **Option B: CI/Automated**
+
 ```json
 {
   "mcpServers": {
@@ -241,15 +260,15 @@ Direct database queries for Ghost Broker backend:
 
 ### Available Tool Groups
 
-| Group | Tools | Description |
-|-------|-------|-------------|
-| `database` | list_tables, execute_sql, apply_migration | Query and modify schema |
-| `debugging` | get_logs, get_postgres_config | Troubleshoot issues |
-| `development` | generate_types | TypeScript types from schema |
-| `docs` | search_docs | Search Supabase documentation |
-| `functions` | list/deploy edge functions | Serverless functions |
-| `storage` | list buckets/objects | File storage management |
-| `branching` | create/merge branches | Database branching (paid) |
+| Group         | Tools                                     | Description                   |
+| ------------- | ----------------------------------------- | ----------------------------- |
+| `database`    | list_tables, execute_sql, apply_migration | Query and modify schema       |
+| `debugging`   | get_logs, get_postgres_config             | Troubleshoot issues           |
+| `development` | generate_types                            | TypeScript types from schema  |
+| `docs`        | search_docs                               | Search Supabase documentation |
+| `functions`   | list/deploy edge functions                | Serverless functions          |
+| `storage`     | list buckets/objects                      | File storage management       |
+| `branching`   | create/merge branches                     | Database branching (paid)     |
 
 ### Example Queries (When Ready)
 
@@ -266,20 +285,26 @@ Direct database queries for Ghost Broker backend:
 ## Integration with Clawdbot
 
 ### Current State
+
 Clawdbot uses **direct tool calls** rather than MCP. MCP is designed for:
+
 - Claude Desktop
 - Cursor IDE
 - Windsurf
 - Other MCP-compatible clients
 
 ### Future Integration
+
 To add MCP to Clawdbot:
+
 1. Create skill wrapper for MCP client
 2. Route natural language queries through MCP
 3. Return structured responses
 
 ### Alternative: Direct API Calls
+
 For Clawdbot, consider creating direct Shopify/Supabase skills:
+
 - `skills/shopify/` — Direct Admin API integration
 - `skills/supabase/` — Direct Supabase client
 
@@ -290,6 +315,7 @@ This gives more control than MCP's generic interface.
 ## Quick Reference
 
 ### Shopify
+
 ```
 # Start server
 python -m shopify_mcp_server.server
@@ -299,6 +325,7 @@ SHOPIFY_SHOP_URL, SHOPIFY_API_KEY, SHOPIFY_PASSWORD, SHOPIFY_ACCESS_TOKEN
 ```
 
 ### Google Analytics
+
 ```
 # Start server
 npm start (from google-analytics-mcp directory)
@@ -307,6 +334,7 @@ npm start (from google-analytics-mcp directory)
 ```
 
 ### Supabase
+
 ```
 # Hosted URL (no local server needed)
 https://mcp.supabase.com/mcp?project_ref=YOUR_REF&read_only=true

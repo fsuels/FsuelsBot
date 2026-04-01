@@ -33,7 +33,6 @@
 ## Epistemic / Evidence Discipline
 
 - [rule][confidence: high] If a competitor/site fetch fails, mark that snapshot **UNVERIFIED** and do not infer cause (no "site is down" / "blocked us").
-  - context: Ghost Broker daily audit had a competitor fetch/snapshot fail; external review flagged hasty-generalization risk.
   - fix: log failure explicitly + attempt one alternate capture; otherwise record "snapshot incomplete".
   - source: Gemini external epistemic review 2026-03-17 PM
   - captured: 2026-03-17
@@ -61,7 +60,6 @@
 ## Repo Hygiene
 
 - [rule][confidence: medium] If a path is `.gitignore`'d, prefer moving docs/scripts into a tracked location rather than forcing `git add -f`.
-  - context: Attempted to add `ghost-broker/plans/.../README.md` but it was ignored.
   - fix: keep "operating rules" in tracked `procedures/` or `memory/global/` unless intentionally ignored.
   - source: observed git add ignore behavior 2026-03-17
   - captured: 2026-03-17

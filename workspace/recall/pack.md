@@ -25,7 +25,6 @@ _Auto-generated context for session start (lightweight)_
 ## Recent Ships (evidence)
 
 - `workspace/knowledge/business/dlm/product-description-template.md` (ship 2026-03-17)
-- `workspace/ghost-broker/plans/daily-audits/fetch-competitors.ps1` (epistemic UNVERIFIED rule)
 - `workspace/memory/global/rules.md` (nightly learn 2026-03-17)
 
 ## Quick Stats
