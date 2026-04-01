@@ -1,4 +1,4 @@
-import { sleep } from "../utils.js";
+import { sleep } from "./async.js";
 
 export type RetryConfig = {
   attempts?: number;
@@ -20,6 +20,7 @@ export type RetryOptions = RetryConfig & {
   shouldRetry?: (err: unknown, attempt: number) => boolean;
   retryAfterMs?: (err: unknown) => number | undefined;
   onRetry?: (info: RetryInfo) => void;
+  signal?: AbortSignal;
 };
 
 const DEFAULT_RETRY_CONFIG = {
@@ -84,7 +85,7 @@ export async function retryAsync<T>(
           break;
         }
         const delay = initialDelayMs * 2 ** i;
-        await sleep(delay);
+        await sleep(delay, undefined, { unref: true });
       }
     }
     throw lastErr ?? new Error("Retry failed");
@@ -128,7 +129,19 @@ export async function retryAsync<T>(
         err,
         label: options.label,
       });
-      await sleep(delay);
+      await sleep(delay, options.signal, {
+        throwOnAbort: true,
+        abortError: (signal) => {
+          if (signal.reason instanceof Error) {
+            return signal.reason;
+          }
+          if (typeof signal.reason === "string" && signal.reason.trim()) {
+            return new Error(signal.reason);
+          }
+          return new Error(`${options.label ?? "retry"} aborted`);
+        },
+        unref: true,
+      });
     }
   }
 

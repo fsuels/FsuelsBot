@@ -1,3 +1,4 @@
+import { withTimeout } from "./async.js";
 import { formatErrorMessage } from "./errors.js";
 import { retryAsync, type RetryConfig } from "./retry.js";
 
@@ -36,21 +37,11 @@ async function runWithTimeout<T>(
   }
 
   const normalizedTimeoutMs = Math.max(1, Math.floor(timeoutMs));
-  let timer: NodeJS.Timeout | undefined;
-  try {
-    return await Promise.race<T>([
-      task(),
-      new Promise<T>((_, reject) => {
-        timer = setTimeout(() => {
-          reject(new Error(`${name} timed out after ${normalizedTimeoutMs}ms`));
-        }, normalizedTimeoutMs);
-      }),
-    ]);
-  } finally {
-    if (timer) {
-      clearTimeout(timer);
-    }
-  }
+  return await withTimeout(
+    task(),
+    normalizedTimeoutMs,
+    `${name} timed out after ${normalizedTimeoutMs}ms`,
+  );
 }
 
 export async function runReliableOperation<T>(params: {

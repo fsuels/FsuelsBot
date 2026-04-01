@@ -84,4 +84,24 @@ describe("retryAsync", () => {
     expect(delays[0]).toBe(100);
     vi.useRealTimers();
   });
+
+  it("stops retrying when aborted during backoff", async () => {
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    const fn = vi.fn().mockRejectedValue(new Error("boom"));
+
+    const promise = retryAsync(fn, {
+      attempts: 3,
+      minDelayMs: 100,
+      maxDelayMs: 100,
+      signal: controller.signal,
+    });
+
+    await Promise.resolve();
+    controller.abort(new Error("stop"));
+
+    await expect(promise).rejects.toThrow("stop");
+    expect(fn).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
 });

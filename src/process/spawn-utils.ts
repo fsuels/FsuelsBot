@@ -1,5 +1,9 @@
 import type { ChildProcess, SpawnOptions } from "node:child_process";
 import { spawn } from "node:child_process";
+import fs from "node:fs";
+import { resolveAgentRuntimeCwd } from "../agents/runtime-context.js";
+
+const STARTUP_CWD = safeExistingDirectory(() => process.cwd());
 
 export type SpawnFallback = {
   label: string;
@@ -27,8 +31,77 @@ export function resolveCommandStdio(params: {
   hasInput: boolean;
   preferInherit: boolean;
 }): ["pipe" | "inherit" | "ignore", "pipe", "pipe"] {
-  const stdin = params.hasInput ? "pipe" : params.preferInherit ? "inherit" : "pipe";
+  const stdin = params.hasInput ? "pipe" : params.preferInherit ? "inherit" : "ignore";
   return [stdin, "pipe", "pipe"];
+}
+
+function safeExistingDirectory(read: () => string): string | null {
+  try {
+    const value = read();
+    if (!value) {
+      return null;
+    }
+    const stats = fs.statSync(value);
+    return stats.isDirectory() ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+export function getStartupCwd(): string | null {
+  return STARTUP_CWD;
+}
+
+export function safeProcessCwd(): string | null {
+  return safeExistingDirectory(() => resolveAgentRuntimeCwd());
+}
+
+export function resolveSpawnWorkingDirectory(cwd?: string): string {
+  if (typeof cwd === "string" && cwd.trim().length > 0) {
+    const explicit = safeExistingDirectory(() => cwd);
+    if (explicit) {
+      return explicit;
+    }
+    throw new Error(`Working directory "${cwd}" does not exist or is not a directory.`);
+  }
+
+  const current = safeProcessCwd();
+  if (current) {
+    return current;
+  }
+
+  const startup = getStartupCwd();
+  if (startup) {
+    return startup;
+  }
+
+  throw new Error(
+    "Current working directory is unavailable and the original startup working directory could not be recovered.",
+  );
+}
+
+export function killProcessTree(pid: number): void {
+  if (process.platform === "win32") {
+    try {
+      spawn("taskkill", ["/F", "/T", "/PID", String(pid)], {
+        stdio: "ignore",
+        detached: true,
+      });
+    } catch {
+      // ignore errors if taskkill fails
+    }
+    return;
+  }
+
+  try {
+    process.kill(-pid, "SIGKILL");
+  } catch {
+    try {
+      process.kill(pid, "SIGKILL");
+    } catch {
+      // process already dead
+    }
+  }
 }
 
 export function formatSpawnError(err: unknown): string {

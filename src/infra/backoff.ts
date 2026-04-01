@@ -1,4 +1,4 @@
-import { setTimeout as delay } from "node:timers/promises";
+import { sleep } from "./async.js";
 
 export type BackoffPolicy = {
   initialMs: number;
@@ -14,15 +14,9 @@ export function computeBackoff(policy: BackoffPolicy, attempt: number) {
 }
 
 export async function sleepWithAbort(ms: number, abortSignal?: AbortSignal) {
-  if (ms <= 0) {
-    return;
-  }
-  try {
-    await delay(ms, undefined, { signal: abortSignal });
-  } catch (err) {
-    if (abortSignal?.aborted) {
-      throw new Error("aborted", { cause: err });
-    }
-    throw err;
-  }
+  await sleep(ms, abortSignal, {
+    throwOnAbort: true,
+    abortError: () => new Error("aborted"),
+    unref: true,
+  });
 }
