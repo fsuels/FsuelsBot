@@ -1,6 +1,6 @@
 # Interaction Preferences
 
-> Updated: 2026-02-20
+> Updated: 2026-03-31
 > Retrieval tags: style, tone, direct, natural, robotic, snapshot, checkpoint, result-only
 
 ## Response Style
@@ -20,6 +20,15 @@
   - source: user directive, 2026-02-20
 - [preference][confidence: high] Search first, then ask only if data is truly missing.
   - source: user directive, 2026-02-20
+
+## Research Quality & Freshness
+
+- [preference][confidence: high] Not all information is equal; prioritize high-credibility sources (top experts, leading companies, top universities, primary evidence).
+  - source: user directive, 2026-03-31
+- [preference][confidence: high] Recency is mandatory across domains (medical, business, strategy, AI); avoid obsolete guidance.
+  - source: user directive, 2026-03-31
+- [rule][confidence: high] For strategy/research recommendations, include a quick source-quality and recency check before final advice.
+  - source: user directive, 2026-03-31
 
 ## Quality Signals
 

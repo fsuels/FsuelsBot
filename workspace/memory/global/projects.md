@@ -1,6 +1,6 @@
 # Project Memory
 
-> Updated: 2026-02-20
+> Updated: 2026-03-31
 > Retrieval tags: 123LegalDoc, Mission Control, FsuelsBot, DressLikeMommy, DLM, deploy, memory
 
 ## 123LegalDoc
@@ -23,6 +23,8 @@
 - Main failure mode: robotic/status-heavy replies instead of direct answers
 - Family trigger recall repeatedly failed until explicit user-provided facts were pinned (2026-02-20)
 - Memory consolidation done 2026-02-20: eliminated duplicate files, fixed trigger map
+- Canonical repo path confirmed by user context: `/Users/fsuels/Projects/FsuelsBot`
+- Plan Mode default enforced for code/architecture/multi-step tasks unless user explicitly says `/auto`, `/task`, or `/explore` (2026-03-31)
 
 ## DressLikeMommy (DLM)
 
@@ -33,3 +35,5 @@
 - Ads rule (2026-03-31): Optimize on product revenue (not gross) and keep exactly one Primary purchase conversion in Google Ads.
 - Validation workflow (2026-03-31): reconcile transaction_id across Shopify, GA4, and Google Ads; do not persist order/revenue/conversion totals as durable memory facts.
 - Execution ownership (2026-03-31): FsuelsBot is expected to execute implementation of the active DLM plan directly and escalate only true blockers.
+- Canonical project path confirmed by user: `fuels/projects/dresslikemommy`.
+- Hard boundary rule: DLM and FsuelsBot are separate codebases; never mix code, paths, or changes across projects.

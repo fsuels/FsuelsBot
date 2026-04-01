@@ -19,6 +19,18 @@
 
 ## Facts (durable)
 
+- [fact] FsuelsBot and DressLikeMommy are separate projects with separate codebases; never mix code, paths, or changes.
+  - id: pin_project_separation_2026_03_31
+  - updated: 2026-03-31T22:59:00-04:00
+  - entity: sender:8438693397
+- [fact] Project path map: FsuelsBot → fuels/projects/Fsuelsbot; DressLikeMommy → fuels/projects/dresslikemommy.
+  - id: pin_project_paths_2026_03_31
+  - updated: 2026-03-31T22:59:00-04:00
+  - entity: sender:8438693397
+- [fact] Research quality standard: prioritize high-credibility sources and current information; avoid obsolete advice.
+  - id: pin_source_quality_recency_2026_03_31
+  - updated: 2026-03-31T22:59:00-04:00
+  - entity: sender:8438693397
 - [fact] , 3-5 most important files) You are strictly prohibited from creating, editing, deleting, or moving any files while in Plan Mode
   - id: pin_5b0af2ce-d28f-48b1-abe4-744eeeb0fdad
   - updated: 2026-03-31T11:20:26.659Z
