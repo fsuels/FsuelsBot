@@ -1,5 +1,5 @@
-import { type SelectItem, type SelectListTheme, truncateToWidth } from "@mariozechner/pi-tui";
-import { visibleWidth } from "../../terminal/ansi.js";
+import { type SelectItem, type SelectListTheme } from "@mariozechner/pi-tui";
+import { truncateToDisplayWidth, visibleWidth } from "../../terminal/ansi.js";
 
 function normalizeToSingleLine(text: string): string {
   return text.replace(/[\r\n]+/g, " ").trim();
@@ -22,14 +22,16 @@ export function renderSelectListItemLine(params: {
 
   if (description && params.width > 40) {
     const maxValueWidth = Math.min(30, params.width - prefixWidth - 4);
-    const truncatedValue = truncateToWidth(displayValue, maxValueWidth, "");
+    const truncatedValue = truncateToDisplayWidth(displayValue, maxValueWidth, { ellipsis: "" });
     const valueText = highlight(truncatedValue);
     const spacingWidth = Math.max(1, 32 - visibleWidth(valueText));
     const spacing = " ".repeat(spacingWidth);
     const descriptionStart = prefixWidth + visibleWidth(valueText) + spacing.length;
     const remainingWidth = params.width - descriptionStart - 2;
     if (remainingWidth > 10) {
-      const truncatedDescription = truncateToWidth(description, remainingWidth, "");
+      const truncatedDescription = truncateToDisplayWidth(description, remainingWidth, {
+        ellipsis: "",
+      });
       const highlightedDescription = highlight(truncatedDescription);
       const descriptionText = params.isSelected
         ? highlightedDescription
@@ -40,7 +42,7 @@ export function renderSelectListItemLine(params: {
   }
 
   const maxWidth = params.width - prefixWidth - 2;
-  const truncatedValue = truncateToWidth(displayValue, maxWidth, "");
+  const truncatedValue = truncateToDisplayWidth(displayValue, maxWidth, { ellipsis: "" });
   const valueText = highlight(truncatedValue);
   const line = `${prefix}${valueText}`;
   return params.isSelected ? params.theme.selectedText(line) : line;

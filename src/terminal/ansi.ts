@@ -1,13 +1,12 @@
-const ANSI_SGR_PATTERN = "\\x1b\\[[0-9;]*m";
-// OSC-8 hyperlinks: ESC ] 8 ; ; url ST ... ESC ] 8 ; ; ST
-const OSC8_PATTERN = "\\x1b\\]8;;.*?\\x1b\\\\|\\x1b\\]8;;\\x1b\\\\";
-
-const ANSI_REGEX = new RegExp(ANSI_SGR_PATTERN, "g");
-const OSC8_REGEX = new RegExp(OSC8_PATTERN, "g");
+const ESC = "\u001b";
+const BEL = "\u0007";
+const TAB_WIDTH = 8;
 const graphemeSegmenter =
   typeof Intl !== "undefined" && typeof Intl.Segmenter === "function"
     ? new Intl.Segmenter(undefined, { granularity: "grapheme" })
     : null;
+const MARK_REGEX = /^\p{Mark}$/u;
+const EXTENDED_PICTOGRAPHIC_REGEX = /\p{Extended_Pictographic}/u;
 const WIDE_CODE_POINT_RANGES: Array<[number, number]> = [
   [0x1100, 0x115f],
   [0x2329, 0x232a],
@@ -24,11 +23,91 @@ const WIDE_CODE_POINT_RANGES: Array<[number, number]> = [
   [0x1fa70, 0x1faff],
 ];
 
-export function stripAnsi(input: string): string {
-  return input.replace(OSC8_REGEX, "").replace(ANSI_REGEX, "");
+export type TerminalDisplayToken =
+  | { kind: "ansi"; value: string; width: 0 }
+  | { kind: "grapheme"; value: string; width: number };
+
+function parseAnsiSequence(
+  input: string,
+  index: number,
+): { value: string; nextIndex: number } | null {
+  if (input[index] !== ESC) {
+    return null;
+  }
+
+  const next = input[index + 1];
+  if (next === "[") {
+    for (let cursor = index + 2; cursor < input.length; cursor += 1) {
+      const code = input.charCodeAt(cursor);
+      if (code >= 0x40 && code <= 0x7e) {
+        return { value: input.slice(index, cursor + 1), nextIndex: cursor + 1 };
+      }
+    }
+    return null;
+  }
+
+  if (next === "]") {
+    for (let cursor = index + 2; cursor < input.length; cursor += 1) {
+      if (input[cursor] === BEL) {
+        return { value: input.slice(index, cursor + 1), nextIndex: cursor + 1 };
+      }
+      if (input[cursor] === ESC && input[cursor + 1] === "\\") {
+        return { value: input.slice(index, cursor + 2), nextIndex: cursor + 2 };
+      }
+    }
+    return null;
+  }
+
+  return null;
 }
 
-function splitGraphemes(value: string): string[] {
+function expandSingleTab(column: number, tabWidth = TAB_WIDTH): number {
+  const normalized = Number.isFinite(tabWidth) && tabWidth > 0 ? Math.floor(tabWidth) : TAB_WIDTH;
+  const remainder = column % normalized;
+  return remainder === 0 ? normalized : normalized - remainder;
+}
+
+function fastAsciiWidth(input: string): number | null {
+  let width = 0;
+  let column = 0;
+  for (let index = 0; index < input.length; index += 1) {
+    const code = input.charCodeAt(index);
+    if (code > 0x7f || code === 0x1b) {
+      return null;
+    }
+    if (code === 0x09) {
+      const advance = expandSingleTab(column);
+      width += advance;
+      column += advance;
+      continue;
+    }
+    if (code === 0x0a || code === 0x0d) {
+      column = 0;
+      continue;
+    }
+    if (code < 0x20 || code === 0x7f) {
+      continue;
+    }
+    width += 1;
+    column += 1;
+  }
+  return width;
+}
+
+export function stripAnsi(input: string): string {
+  if (!input.includes(ESC)) {
+    return input;
+  }
+  let output = "";
+  for (const token of tokenizeTerminalDisplay(input)) {
+    if (token.kind === "grapheme") {
+      output += token.value;
+    }
+  }
+  return output;
+}
+
+export function splitDisplayGraphemes(value: string): string[] {
   if (!graphemeSegmenter) {
     return Array.from(value);
   }
@@ -39,45 +118,162 @@ function splitGraphemes(value: string): string[] {
   }
 }
 
-function codePointWidth(codePoint: number): number {
-  if (codePoint === 0x200d || codePoint === 0xfe0f) {
-    return 0;
-  }
-  if (
-    (codePoint >= 0x0300 && codePoint <= 0x036f) ||
-    (codePoint >= 0x1ab0 && codePoint <= 0x1aff) ||
-    (codePoint >= 0x1dc0 && codePoint <= 0x1dff) ||
-    (codePoint >= 0x20d0 && codePoint <= 0x20ff) ||
-    (codePoint >= 0xfe20 && codePoint <= 0xfe2f)
-  ) {
-    return 0;
-  }
-  return WIDE_CODE_POINT_RANGES.some(([start, end]) => codePoint >= start && codePoint <= end)
-    ? 2
-    : 1;
+function isVariationSelector(codePoint: number): boolean {
+  return (
+    (codePoint >= 0xfe00 && codePoint <= 0xfe0f) || (codePoint >= 0xe0100 && codePoint <= 0xe01ef)
+  );
 }
 
-function graphemeWidth(grapheme: string): number {
+function isControlCodePoint(codePoint: number): boolean {
+  return (
+    (codePoint >= 0x0000 && codePoint <= 0x001f) || (codePoint >= 0x007f && codePoint <= 0x009f)
+  );
+}
+
+function isWideCodePoint(codePoint: number): boolean {
+  return WIDE_CODE_POINT_RANGES.some(([start, end]) => codePoint >= start && codePoint <= end);
+}
+
+function codePointWidth(codePoint: number, symbol: string): number {
+  if (codePoint === 0x200d || isVariationSelector(codePoint) || MARK_REGEX.test(symbol)) {
+    return 0;
+  }
+  if (isControlCodePoint(codePoint)) {
+    return 0;
+  }
+  return isWideCodePoint(codePoint) || EXTENDED_PICTOGRAPHIC_REGEX.test(symbol) ? 2 : 1;
+}
+
+export function graphemeDisplayWidth(grapheme: string): number {
+  if (grapheme === "\n" || grapheme === "\r" || grapheme === "\t") {
+    return 0;
+  }
   let width = 0;
   for (const symbol of Array.from(grapheme)) {
     const codePoint = symbol.codePointAt(0);
     if (codePoint === undefined) {
       continue;
     }
-    width = Math.max(width, codePointWidth(codePoint));
+    width = Math.max(width, codePointWidth(codePoint, symbol));
   }
   return width;
 }
 
-export function visibleWidth(input: string): number {
-  let width = 0;
-  for (const grapheme of splitGraphemes(stripAnsi(input))) {
-    if (grapheme === "\n") {
+export function tokenizeTerminalDisplay(input: string): TerminalDisplayToken[] {
+  if (!input) {
+    return [];
+  }
+
+  const tokens: TerminalDisplayToken[] = [];
+  for (let cursor = 0; cursor < input.length; ) {
+    const ansi = parseAnsiSequence(input, cursor);
+    if (ansi) {
+      tokens.push({ kind: "ansi", value: ansi.value, width: 0 });
+      cursor = ansi.nextIndex;
       continue;
     }
-    width += graphemeWidth(grapheme);
+
+    const nextEscape = input.indexOf(ESC, cursor);
+    const plainEnd = nextEscape === -1 ? input.length : nextEscape;
+    const plain = input.slice(cursor, plainEnd);
+    for (const grapheme of splitDisplayGraphemes(plain)) {
+      tokens.push({
+        kind: "grapheme",
+        value: grapheme,
+        width: graphemeDisplayWidth(grapheme),
+      });
+    }
+    cursor = plainEnd;
+  }
+  return tokens;
+}
+
+export function expandTabs(input: string, opts: { tabWidth?: number } = {}): string {
+  const tabWidth =
+    Number.isFinite(opts.tabWidth) && (opts.tabWidth ?? 0) > 0
+      ? Math.floor(opts.tabWidth!)
+      : TAB_WIDTH;
+  let output = "";
+  let column = 0;
+
+  for (const token of tokenizeTerminalDisplay(input)) {
+    if (token.kind === "ansi") {
+      output += token.value;
+      continue;
+    }
+    if (token.value === "\r" || token.value === "\n") {
+      output += token.value;
+      column = 0;
+      continue;
+    }
+    if (token.value === "\t") {
+      const advance = expandSingleTab(column, tabWidth);
+      output += " ".repeat(advance);
+      column += advance;
+      continue;
+    }
+    output += token.value;
+    column += token.width;
+  }
+
+  return output;
+}
+
+export function visibleWidth(input: string): number {
+  const asciiWidth = fastAsciiWidth(input);
+  if (asciiWidth !== null) {
+    return asciiWidth;
+  }
+
+  let width = 0;
+  let column = 0;
+  for (const token of tokenizeTerminalDisplay(input)) {
+    if (token.kind === "ansi") {
+      continue;
+    }
+    if (token.value === "\r" || token.value === "\n") {
+      column = 0;
+      continue;
+    }
+    if (token.value === "\t") {
+      const advance = expandSingleTab(column);
+      width += advance;
+      column += advance;
+      continue;
+    }
+    width += token.width;
+    column += token.width;
   }
   return width;
+}
+
+function isOsc8Sequence(value: string): boolean {
+  return value.startsWith(`${ESC}]8;;`) && (value.endsWith(BEL) || value.endsWith(`${ESC}\\`));
+}
+
+function isOsc8CloseSequence(value: string): boolean {
+  if (!isOsc8Sequence(value)) {
+    return false;
+  }
+  const terminatorLength = value.endsWith(BEL) ? 1 : 2;
+  const body = value.slice(`${ESC}]8;;`.length, value.length - terminatorLength);
+  return body.length === 0;
+}
+
+function osc8CloseFor(value: string): string {
+  return value.endsWith(BEL) ? `${ESC}]8;;${BEL}` : `${ESC}]8;;${ESC}\\`;
+}
+
+function isSgrSequence(value: string): boolean {
+  return value.startsWith(`${ESC}[`) && value.endsWith("m");
+}
+
+function isResetSgrSequence(value: string): boolean {
+  if (!isSgrSequence(value)) {
+    return false;
+  }
+  const body = value.slice(2, -1);
+  return body === "" || body.split(";").every((part) => part === "0");
 }
 
 export function truncateToDisplayWidth(
@@ -88,9 +284,11 @@ export function truncateToDisplayWidth(
   if (maxWidth <= 0) {
     return "";
   }
+
+  const expandedInput = expandTabs(input);
   const ellipsis = opts.ellipsis ?? "…";
-  if (visibleWidth(input) <= maxWidth) {
-    return input;
+  if (visibleWidth(expandedInput) <= maxWidth) {
+    return expandedInput;
   }
   const ellipsisWidth = visibleWidth(ellipsis);
   if (ellipsisWidth >= maxWidth) {
@@ -100,15 +298,46 @@ export function truncateToDisplayWidth(
   const targetWidth = maxWidth - ellipsisWidth;
   let width = 0;
   let output = "";
-  for (const grapheme of splitGraphemes(input)) {
-    const segmentWidth = grapheme === "\n" ? 0 : graphemeWidth(grapheme);
-    if (width + segmentWidth > targetWidth) {
+  let truncated = false;
+  let hasOpenSgr = false;
+  let openOsc8: string | null = null;
+
+  for (const token of tokenizeTerminalDisplay(expandedInput)) {
+    if (token.kind === "ansi") {
+      output += token.value;
+      if (isSgrSequence(token.value)) {
+        hasOpenSgr = !isResetSgrSequence(token.value);
+      } else if (isOsc8Sequence(token.value)) {
+        openOsc8 = isOsc8CloseSequence(token.value) ? null : token.value;
+      }
+      continue;
+    }
+
+    if (token.value === "\r" || token.value === "\n") {
+      output += token.value;
+      continue;
+    }
+
+    if (width + token.width > targetWidth) {
+      truncated = true;
       break;
     }
-    output += grapheme;
-    width += segmentWidth;
+    output += token.value;
+    width += token.width;
   }
-  return `${output}${ellipsis}`;
+
+  if (!truncated) {
+    return output;
+  }
+
+  let suffix = ellipsis;
+  if (openOsc8) {
+    suffix += osc8CloseFor(openOsc8);
+  }
+  if (hasOpenSgr) {
+    suffix += `${ESC}[0m`;
+  }
+  return `${output}${suffix}`;
 }
 
 export function truncateMiddleToDisplayWidth(
@@ -119,9 +348,12 @@ export function truncateMiddleToDisplayWidth(
   if (maxWidth <= 0) {
     return "";
   }
+
+  const normalizedInput =
+    input.includes(ESC) || input.includes("\t") ? stripAnsi(expandTabs(input)) : input;
   const ellipsis = opts.ellipsis ?? "…";
-  if (visibleWidth(input) <= maxWidth) {
-    return input;
+  if (visibleWidth(normalizedInput) <= maxWidth) {
+    return normalizedInput;
   }
   const ellipsisWidth = visibleWidth(ellipsis);
   if (ellipsisWidth >= maxWidth) {
@@ -131,12 +363,12 @@ export function truncateMiddleToDisplayWidth(
   const availableWidth = maxWidth - ellipsisWidth;
   const prefixTarget = Math.max(1, Math.ceil(availableWidth / 2));
   const suffixTarget = Math.max(1, Math.floor(availableWidth / 2));
-  const graphemes = splitGraphemes(input);
+  const graphemes = splitDisplayGraphemes(normalizedInput);
 
   let prefix = "";
   let prefixWidth = 0;
   for (const grapheme of graphemes) {
-    const segmentWidth = grapheme === "\n" ? 0 : graphemeWidth(grapheme);
+    const segmentWidth = graphemeDisplayWidth(grapheme);
     if (prefixWidth + segmentWidth > prefixTarget) {
       break;
     }
@@ -148,7 +380,7 @@ export function truncateMiddleToDisplayWidth(
   let suffixWidth = 0;
   for (let index = graphemes.length - 1; index >= 0; index -= 1) {
     const grapheme = graphemes[index] ?? "";
-    const segmentWidth = grapheme === "\n" ? 0 : graphemeWidth(grapheme);
+    const segmentWidth = graphemeDisplayWidth(grapheme);
     if (suffixWidth + segmentWidth > suffixTarget) {
       break;
     }
@@ -157,12 +389,12 @@ export function truncateMiddleToDisplayWidth(
   }
 
   while (visibleWidth(`${prefix}${ellipsis}${suffix}`) > maxWidth && prefix.length > 0) {
-    const parts = splitGraphemes(prefix);
+    const parts = splitDisplayGraphemes(prefix);
     parts.pop();
     prefix = parts.join("");
   }
   while (visibleWidth(`${prefix}${ellipsis}${suffix}`) > maxWidth && suffix.length > 0) {
-    const parts = splitGraphemes(suffix);
+    const parts = splitDisplayGraphemes(suffix);
     parts.shift();
     suffix = parts.join("");
   }

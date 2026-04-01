@@ -1,13 +1,12 @@
-import {
-  Input,
-  Key,
-  matchesKey,
-  truncateToWidth,
-  type Component,
-  type SelectListTheme,
-} from "@mariozechner/pi-tui";
+import { Input, Key, matchesKey, type Component, type SelectListTheme } from "@mariozechner/pi-tui";
 import chalk from "chalk";
-import { visibleWidth } from "../../terminal/ansi.js";
+import {
+  expandTabs,
+  graphemeDisplayWidth,
+  splitDisplayGraphemes,
+  truncateToDisplayWidth,
+  visibleWidth,
+} from "../../terminal/ansi.js";
 import { type FilterableSelectItem } from "./filterable-select-list.js";
 import { fuzzyFilterLower, prepareSearchItems } from "./fuzzy-filter.js";
 import { routeSelectInput } from "./select-input-routing.js";
@@ -56,15 +55,47 @@ type PreviewErrorState = {
 function buildWrappedLines(text: string, width: number, maxLines: number): string[] {
   const normalizedWidth = Math.max(8, width);
   const normalizedLines = Math.max(1, maxLines);
-  const words = text.replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+  const normalizedText = expandTabs(text).replace(/\s+/g, " ").trim();
+  const words = normalizedText.split(" ").filter(Boolean);
   if (words.length === 0) {
     return [""];
   }
+
+  const splitLongWord = (word: string): string[] => {
+    const parts: string[] = [];
+    let current = "";
+    let currentWidth = 0;
+
+    for (const grapheme of splitDisplayGraphemes(word)) {
+      const nextWidth = graphemeDisplayWidth(grapheme);
+      if (current && currentWidth + nextWidth > normalizedWidth) {
+        parts.push(current);
+        current = grapheme;
+        currentWidth = nextWidth;
+        continue;
+      }
+      current += grapheme;
+      currentWidth += nextWidth;
+    }
+
+    if (current || parts.length === 0) {
+      parts.push(current);
+    }
+    return parts;
+  };
 
   const lines: string[] = [];
   let current = "";
   for (const word of words) {
     if (!current) {
+      if (visibleWidth(word) > normalizedWidth) {
+        lines.push(...splitLongWord(word));
+        if (lines.length >= normalizedLines) {
+          break;
+        }
+        current = "";
+        continue;
+      }
       current = word;
       continue;
     }
@@ -74,7 +105,12 @@ function buildWrappedLines(text: string, width: number, maxLines: number): strin
       continue;
     }
     lines.push(current);
-    current = word;
+    if (visibleWidth(word) > normalizedWidth) {
+      lines.push(...splitLongWord(word));
+      current = "";
+    } else {
+      current = word;
+    }
     if (lines.length >= normalizedLines) {
       break;
     }
@@ -88,17 +124,19 @@ function buildWrappedLines(text: string, width: number, maxLines: number): strin
 
   return lines.slice(0, normalizedLines).map((line, index, all) => {
     const isLast = index === all.length - 1;
-    const truncated = truncateToWidth(line, normalizedWidth, "");
+    const truncated = truncateToDisplayWidth(line, normalizedWidth, { ellipsis: "" });
     if (!isLast) {
       return truncated;
     }
     const needsEllipsis =
-      visibleWidth(text.replace(/\s+/g, " ").trim()) > normalizedWidth &&
+      visibleWidth(normalizedText) > normalizedWidth &&
       (all.length === normalizedLines || visibleWidth(truncated) >= normalizedWidth);
     if (!needsEllipsis) {
       return truncated;
     }
-    return `${truncateToWidth(truncated, Math.max(1, normalizedWidth - 1), "")}…`;
+    return `${truncateToDisplayWidth(truncated, Math.max(1, normalizedWidth - 1), {
+      ellipsis: "",
+    })}…`;
   });
 }
 
@@ -356,7 +394,7 @@ export class SessionPreviewSelectList implements Component {
     if (this.previewError?.key === selectedKey) {
       lines.push(
         this.theme.error(
-          `${this.previewError.kind.toUpperCase()}: ${truncateToWidth(this.previewError.message, Math.max(20, width - 2), "")}`,
+          `${this.previewError.kind.toUpperCase()}: ${truncateToDisplayWidth(this.previewError.message, Math.max(20, width - 2), { ellipsis: "" })}`,
         ),
       );
       lines.push(this.theme.hint(this.previewError.guidance));
@@ -402,7 +440,7 @@ export class SessionPreviewSelectList implements Component {
 
     lines.push("");
     lines.push(this.theme.hint("Enter resume  Ctrl+R retry preview  Esc cancel"));
-    return lines.map((line) => truncateToWidth(line, Math.max(1, width), ""));
+    return lines.map((line) => truncateToDisplayWidth(line, Math.max(1, width), { ellipsis: "" }));
   }
 
   render(width: number): string[] {

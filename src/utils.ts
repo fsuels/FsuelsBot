@@ -8,6 +8,7 @@ import {
   resolveEffectiveHomeDir,
   resolveRequiredHomeDir,
 } from "./infra/home-dir.js";
+import { supportsTerminalHyperlinks } from "./terminal/capabilities.js";
 
 export async function ensureDir(dir: string) {
   await fs.promises.mkdir(dir, { recursive: true });
@@ -351,13 +352,22 @@ export function displayString(input: string): string {
 export function formatTerminalLink(
   label: string,
   url: string,
-  opts?: { fallback?: string; force?: boolean },
+  opts?: {
+    fallback?: string;
+    force?: boolean;
+    env?: NodeJS.ProcessEnv;
+    stream?: Pick<NodeJS.WriteStream, "isTTY">;
+  },
 ): string {
   const esc = "\u001b";
   const safeLabel = label.replaceAll(esc, "");
   const safeUrl = url.replaceAll(esc, "");
   const allow =
-    opts?.force === true ? true : opts?.force === false ? false : Boolean(process.stdout.isTTY);
+    opts?.force === true
+      ? true
+      : opts?.force === false
+        ? false
+        : supportsTerminalHyperlinks({ env: opts?.env, stream: opts?.stream });
   if (!allow) {
     return opts?.fallback ?? `${safeLabel} (${safeUrl})`;
   }

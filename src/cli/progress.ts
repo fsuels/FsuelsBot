@@ -1,5 +1,6 @@
 import { spinner } from "@clack/prompts";
-import { createOscProgressController, supportsOscProgress } from "osc-progress";
+import { createOscProgressController } from "osc-progress";
+import { getTerminalCapabilities } from "../terminal/capabilities.js";
 import {
   clearActiveProgressLine,
   registerActiveProgressLine,
@@ -55,8 +56,10 @@ export function createCliProgress(options: ProgressOptions): ProgressReporter {
     return noopReporter;
   }
 
+  const terminalCapabilities = getTerminalCapabilities({ env: process.env, stream });
+
   const delayMs = typeof options.delayMs === "number" ? options.delayMs : DEFAULT_DELAY_MS;
-  const canOsc = isTty && supportsOscProgress(process.env, isTty);
+  const canOsc = terminalCapabilities.supportsOscProgress;
   const allowSpinner = isTty && (options.fallback === undefined || options.fallback === "spinner");
   const allowLine = isTty && options.fallback === "line";
 

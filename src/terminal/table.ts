@@ -1,5 +1,5 @@
 import { displayString } from "../utils.js";
-import { visibleWidth } from "./ansi.js";
+import { expandTabs, stripAnsi, tokenizeTerminalDisplay, visibleWidth } from "./ansi.js";
 
 type Align = "left" | "right" | "center";
 
@@ -49,67 +49,16 @@ function wrapLine(text: string, width: number): string[] {
     return [text];
   }
 
-  // ANSI-aware wrapping: never split inside ANSI SGR/OSC-8 sequences.
-  // We don't attempt to re-open styling per line; terminals keep SGR state
-  // across newlines, so as long as we don't corrupt escape sequences we're safe.
-  const ESC = "\u001b";
+  type Token = ReturnType<typeof tokenizeTerminalDisplay>[number];
+  const tokens = tokenizeTerminalDisplay(expandTabs(text));
 
-  type Token = { kind: "ansi" | "char"; value: string };
-  const tokens: Token[] = [];
-  for (let i = 0; i < text.length; ) {
-    if (text[i] === ESC) {
-      // SGR: ESC [ ... m
-      if (text[i + 1] === "[") {
-        let j = i + 2;
-        while (j < text.length) {
-          const ch = text[j];
-          if (ch === "m") {
-            break;
-          }
-          if (ch && ch >= "0" && ch <= "9") {
-            j += 1;
-            continue;
-          }
-          if (ch === ";") {
-            j += 1;
-            continue;
-          }
-          break;
-        }
-        if (text[j] === "m") {
-          tokens.push({ kind: "ansi", value: text.slice(i, j + 1) });
-          i = j + 1;
-          continue;
-        }
-      }
-
-      // OSC-8 link open/close: ESC ] 8 ; ; ... ST (ST = ESC \)
-      if (text[i + 1] === "]" && text.slice(i + 2, i + 5) === "8;;") {
-        const st = text.indexOf(`${ESC}\\`, i + 5);
-        if (st >= 0) {
-          tokens.push({ kind: "ansi", value: text.slice(i, st + 2) });
-          i = st + 2;
-          continue;
-        }
-      }
-    }
-
-    const cp = text.codePointAt(i);
-    if (!cp) {
-      break;
-    }
-    const ch = String.fromCodePoint(cp);
-    tokens.push({ kind: "char", value: ch });
-    i += ch.length;
-  }
-
-  const firstCharIndex = tokens.findIndex((t) => t.kind === "char");
+  const firstCharIndex = tokens.findIndex((t) => t.kind === "grapheme");
   if (firstCharIndex < 0) {
-    return [text];
+    return [expandTabs(text)];
   }
   let lastCharIndex = -1;
   for (let i = tokens.length - 1; i >= 0; i -= 1) {
-    if (tokens[i]?.kind === "char") {
+    if (tokens[i]?.kind === "grapheme") {
       lastCharIndex = i;
       break;
     }
@@ -127,9 +76,8 @@ function wrapLine(text: string, width: number): string[] {
   const coreTokens = tokens.slice(firstCharIndex, lastCharIndex + 1);
 
   const lines: string[] = [];
-  const isBreakChar = (ch: string) =>
-    ch === " " || ch === "\t" || ch === "/" || ch === "-" || ch === "_" || ch === ".";
-  const isSpaceChar = (ch: string) => ch === " " || ch === "\t";
+  const isBreakChar = (ch: string) => /\s|[/\\:;.,_-]/u.test(ch);
+  const isSpaceChar = (ch: string) => /\s/u.test(ch);
   let skipNextLf = false;
 
   const buf: Token[] = [];
@@ -139,11 +87,11 @@ function wrapLine(text: string, width: number): string[] {
   const bufToString = (slice?: Token[]) => (slice ?? buf).map((t) => t.value).join("");
 
   const bufVisibleWidth = (slice: Token[]) =>
-    slice.reduce((acc, t) => acc + (t.kind === "char" ? 1 : 0), 0);
+    slice.reduce((acc, t) => acc + (t.kind === "grapheme" ? t.width : 0), 0);
 
   const pushLine = (value: string) => {
     const cleaned = value.replace(/\s+$/, "");
-    if (cleaned.trim().length === 0) {
+    if (stripAnsi(cleaned).trim().length === 0) {
       return;
     }
     lines.push(cleaned);
@@ -165,7 +113,7 @@ function wrapLine(text: string, width: number): string[] {
     const rest = buf.slice(breakAt);
     pushLine(bufToString(left));
 
-    while (rest.length > 0 && rest[0]?.kind === "char" && isSpaceChar(rest[0].value)) {
+    while (rest.length > 0 && rest[0]?.kind === "grapheme" && isSpaceChar(rest[0].value)) {
       rest.shift();
     }
 
@@ -195,12 +143,12 @@ function wrapLine(text: string, width: number): string[] {
       }
       continue;
     }
-    if (bufVisible + 1 > width && bufVisible > 0) {
+    if (bufVisible + token.width > width && bufVisible > 0) {
       flushAt(lastBreakIndex);
     }
 
     buf.push(token);
-    bufVisible += 1;
+    bufVisible += token.width;
     if (isBreakChar(ch)) {
       lastBreakIndex = buf.length;
     }

@@ -78,13 +78,50 @@ describe("renderTable", () => {
 
       // OSC-8: ESC ] 8 ; ; ... ST (ST = ESC \)
       if (out[i + 1] === "]" && out.slice(i + 2, i + 5) === "8;;") {
+        const bel = out.indexOf("\u0007", i + 5);
         const st = out.indexOf(`${ESC}\\`, i + 5);
-        expect(st).toBeGreaterThanOrEqual(0);
-        i = st + 1;
+        const end = [bel, st].filter((value) => value >= 0).toSorted((a, b) => a - b)[0] ?? -1;
+        expect(end).toBeGreaterThanOrEqual(0);
+        i = end + (end === st ? 1 : 0);
         continue;
       }
 
       throw new Error(`Unexpected escape sequence at index ${i}`);
+    }
+  });
+
+  it("wraps BEL-terminated OSC-8 hyperlinks without breaking the sequence", () => {
+    const out = renderTable({
+      width: 28,
+      columns: [
+        { key: "K", header: "K", minWidth: 3 },
+        { key: "V", header: "V", flex: true, minWidth: 10 },
+      ],
+      rows: [
+        {
+          K: "X",
+          V: "\u001b]8;;https://openclaw.ai\u0007🙂🙂🙂🙂🙂\u001b]8;;\u0007",
+        },
+      ],
+    });
+
+    expect(out).toContain("\u001b]8;;https://openclaw.ai\u0007");
+    expect(out).toContain("\u001b]8;;\u0007");
+  });
+
+  it("wraps wide graphemes without splitting them", () => {
+    const out = renderTable({
+      width: 24,
+      columns: [
+        { key: "K", header: "K", minWidth: 3 },
+        { key: "V", header: "V", flex: true, minWidth: 8 },
+      ],
+      rows: [{ K: "X", V: "你好你好你好" }],
+    });
+
+    const lines = out.split("\n").filter((line) => line.includes("你") || line.includes("好"));
+    for (const line of lines) {
+      expect(visibleWidth(line)).toBeLessThanOrEqual(24);
     }
   });
 
