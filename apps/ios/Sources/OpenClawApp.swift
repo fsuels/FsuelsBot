@@ -20,7 +20,7 @@ struct OpenClawApp: App {
                 .environment(self.appModel.voiceWake)
                 .environment(self.gatewayController)
                 .onOpenURL { url in
-                    Task { await self.appModel.handleDeepLink(url: url) }
+                    Task { await self.appModel.handleDeepLink(url: url, source: .osProtocol) }
                 }
                 .onChange(of: self.scenePhase) { _, newValue in
                     self.appModel.setScenePhase(newValue)

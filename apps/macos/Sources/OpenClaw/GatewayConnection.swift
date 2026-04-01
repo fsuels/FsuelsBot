@@ -38,6 +38,7 @@ struct GatewayAgentInvocation: Sendable {
     var channel: GatewayAgentChannel = .last
     var timeoutSeconds: Int?
     var idempotencyKey: String = UUID().uuidString
+    var origin: ExternalOriginContext?
 }
 
 /// Single, shared Gateway websocket connection for the whole app.
@@ -455,6 +456,20 @@ extension GatewayConnection {
         if let timeout = invocation.timeoutSeconds {
             params["timeout"] = AnyCodable(timeout)
         }
+        if let origin = invocation.origin {
+            var originPayload: [String: Any] = [
+                "source": origin.source.rawValue,
+                "receivedAt": origin.receivedAt,
+                "trustLevel": origin.trustLevel.rawValue,
+            ]
+            if let rawUri = origin.rawUri, !rawUri.isEmpty {
+                originPayload["rawUri"] = rawUri
+            }
+            if let payloadLength = origin.payloadLength {
+                originPayload["payloadLength"] = payloadLength
+            }
+            params["origin"] = AnyCodable(originPayload)
+        }
 
         do {
             try await self.requestVoid(method: .agent, params: params)
@@ -482,7 +497,8 @@ extension GatewayConnection {
             to: to,
             channel: channel,
             timeoutSeconds: timeoutSeconds,
-            idempotencyKey: idempotencyKey))
+            idempotencyKey: idempotencyKey,
+            origin: nil))
     }
 
     func sendSystemEvent(_ params: [String: AnyCodable]) async {

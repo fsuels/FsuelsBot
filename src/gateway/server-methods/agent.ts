@@ -32,6 +32,7 @@ import {
 import { resolveAssistantIdentity } from "../assistant-identity.js";
 import { normalizeChatAttachmentInput, parseMessageWithAttachments } from "../chat-attachments.js";
 import { resolveAssistantAvatarUrl } from "../control-ui-shared.js";
+import { normalizeExternalOrigin } from "../external-origin.js";
 import { GATEWAY_CLIENT_CAPS, hasGatewayClientCap } from "../protocol/client-info.js";
 import {
   ErrorCodes,
@@ -122,6 +123,15 @@ export const agentHandlers: GatewayRequestHandlers = {
       groupSpace?: string;
       lane?: string;
       extraSystemPrompt?: string;
+      origin?: {
+        source: string;
+        rawUri?: string;
+        receivedAt: number;
+        payloadLength?: number;
+        trustLevel: string;
+      };
+      structuredOutputSchema?: Record<string, unknown>;
+      structuredOutputName?: string;
       cacheSafeFork?: boolean;
       forkRequestContext?: {
         recordedAt: number;
@@ -149,6 +159,7 @@ export const agentHandlers: GatewayRequestHandlers = {
     let resolvedGroupId: string | undefined = groupIdRaw || undefined;
     let resolvedGroupChannel: string | undefined = groupChannelRaw || undefined;
     let resolvedGroupSpace: string | undefined = groupSpaceRaw || undefined;
+    const externalOrigin = normalizeExternalOrigin(request.origin);
     let spawnedByValue =
       typeof request.spawnedBy === "string" ? request.spawnedBy.trim() : undefined;
     const cached = context.dedupe.get(`agent:${idem}`);
@@ -301,6 +312,7 @@ export const agentHandlers: GatewayRequestHandlers = {
         groupId: resolvedGroupId ?? entry?.groupId,
         groupChannel: resolvedGroupChannel ?? entry?.groupChannel,
         space: resolvedGroupSpace ?? entry?.space,
+        externalOrigin: externalOrigin ?? entry?.externalOrigin,
         cliSessionIds: entry?.cliSessionIds,
         claudeCliSessionId: entry?.claudeCliSessionId,
       };
@@ -438,6 +450,8 @@ export const agentHandlers: GatewayRequestHandlers = {
         runId,
         lane: request.lane,
         extraSystemPrompt: request.extraSystemPrompt,
+        structuredOutputSchema: request.structuredOutputSchema,
+        structuredOutputName: request.structuredOutputName,
         cacheSafeFork: request.cacheSafeFork === true,
         forkRequestContext: request.forkRequestContext,
       },
@@ -562,6 +576,8 @@ export const agentHandlers: GatewayRequestHandlers = {
       startedAt: snapshot.startedAt,
       endedAt: snapshot.endedAt,
       error: snapshot.error,
+      structuredOutput: snapshot.structuredOutput,
+      structuredOutputRequired: snapshot.structuredOutputRequired,
     });
   },
 };

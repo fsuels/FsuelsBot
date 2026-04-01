@@ -33,8 +33,15 @@ function normalizeStringList(input: unknown): string[] {
   if (!input) {
     return [];
   }
+  const normalizeEntry = (value: string) =>
+    value
+      .trim()
+      .replace(/^-+\s*/, "")
+      .replace(/^["']/, "")
+      .replace(/["']$/, "")
+      .trim();
   if (Array.isArray(input)) {
-    return input.map((value) => String(value).trim()).filter(Boolean);
+    return input.map((value) => normalizeEntry(String(value))).filter(Boolean);
   }
   if (typeof input === "string") {
     const trimmed = input.trim();
@@ -45,15 +52,22 @@ function normalizeStringList(input: unknown): string[] {
       try {
         const parsed = JSON5.parse(trimmed);
         if (Array.isArray(parsed)) {
-          return parsed.map((value) => String(value).trim()).filter(Boolean);
+          return parsed.map((value) => normalizeEntry(String(value))).filter(Boolean);
         }
       } catch {
-        // Fall through to comma/newline splitting.
+        const inner = trimmed.slice(1, -1).trim();
+        if (!inner) {
+          return [];
+        }
+        return inner
+          .split(/[\n,]/)
+          .map((value) => normalizeEntry(value))
+          .filter(Boolean);
       }
     }
     return trimmed
       .split(/[\n,]/)
-      .map((value) => value.trim())
+      .map((value) => normalizeEntry(value))
       .filter(Boolean);
   }
   return [];

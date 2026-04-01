@@ -64,6 +64,16 @@ struct RootCanvas: View {
                     userAccent: self.appModel.seamColor)
             }
         }
+        .sheet(
+            item: Binding(
+                get: { self.appModel.pendingDeepLinkReview },
+                set: { self.appModel.pendingDeepLinkReview = $0 }))
+        { review in
+            DeepLinkReviewSheet(
+                review: review,
+                approve: { self.appModel.approvePendingDeepLink() },
+                cancel: { self.appModel.cancelPendingDeepLink() })
+        }
         .onAppear { self.updateIdleTimer() }
         .onAppear { self.maybeAutoOpenSettings() }
         .onChange(of: self.preventSleep) { _, _ in self.updateIdleTimer() }
@@ -153,6 +163,142 @@ struct RootCanvas: View {
         guard self.shouldAutoOpenSettings() else { return }
         self.didAutoOpenSettings = true
         self.presentedSheet = .settings
+    }
+}
+
+private struct DeepLinkReviewSheet: View {
+    let review: NodeAppModel.PendingDeepLinkReview
+    let approve: () -> Void
+    let cancel: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    self.warningCard(
+                        title: "External prompt review",
+                        text: "This request came from outside the chat composer. Review the prompt, source, and routing details before running it.")
+
+                    if self.review.isLongPrompt {
+                        self.warningCard(
+                            title: "Long prompt",
+                            text: "This prompt is longer than a typical one-screen preview. Scroll through the full message before continuing.")
+                    }
+
+                    self.metaRow(title: "Source", value: self.sourceLabel)
+                    self.metaRow(title: "Payload", value: "\(self.review.origin.payloadLength ?? self.review.link.message.count) characters")
+
+                    if let sessionKey = self.review.link.sessionKey, !sessionKey.isEmpty {
+                        self.metaRow(title: "Session", value: sessionKey)
+                    }
+                    if let channel = self.review.link.channel, !channel.isEmpty {
+                        self.metaRow(title: "Channel", value: channel)
+                    }
+                    if let target = self.review.link.to, !target.isEmpty {
+                        self.metaRow(title: "Target", value: target)
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Prompt")
+                            .font(.headline)
+                        Text(self.review.link.message)
+                            .font(.system(.body, design: .monospaced))
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(12)
+                            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+
+                    if let rawUri = self.review.origin.rawUri, !rawUri.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Original link")
+                                .font(.headline)
+                            Text(rawUri)
+                                .font(.footnote.monospaced())
+                                .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(12)
+                                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        }
+                    }
+                }
+                .padding(20)
+            }
+            .navigationTitle("Review Deep Link")
+            .navigationBarTitleDisplayMode(.inline)
+            .safeAreaInset(edge: .bottom) {
+                VStack(spacing: 10) {
+                    Button("Run Prompt") {
+                        self.dismiss()
+                        self.approve()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .frame(maxWidth: .infinity)
+
+                    Button("Cancel", role: .cancel) {
+                        self.dismiss()
+                        self.cancel()
+                    }
+                    .buttonStyle(.bordered)
+                    .frame(maxWidth: .infinity)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                .padding(.bottom, 20)
+                .background(.ultraThinMaterial)
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+
+    private var sourceLabel: String {
+        switch self.review.origin.source {
+        case .interactive:
+            "Interactive"
+        case .browserLink:
+            "Browser link"
+        case .osProtocol:
+            "OS protocol"
+        case .editorExtension:
+            "Editor extension"
+        case .mcp:
+            "MCP"
+        case .importedText:
+            "Imported text"
+        case .other:
+            "Other"
+        }
+    }
+
+    @ViewBuilder
+    private func warningCard(title: String, text: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.headline)
+            Text(text)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(Color.orange.opacity(0.25), lineWidth: 1)
+        }
+    }
+
+    @ViewBuilder
+    private func metaRow(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.headline)
+            Text(value)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
     }
 }
 

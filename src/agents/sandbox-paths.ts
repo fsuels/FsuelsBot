@@ -1,40 +1,17 @@
-import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { safeResolvePath } from "../infra/path-resolution.js";
+import { resolvePathAgainstBase } from "../infra/path-safety.js";
 
-const UNICODE_SPACES = /[\u00A0\u2000-\u200A\u202F\u205F\u3000]/g;
 const HTTP_URL_RE = /^https?:\/\//i;
 const DATA_URL_RE = /^data:/i;
-
-function normalizeUnicodeSpaces(str: string): string {
-  return str.replace(UNICODE_SPACES, " ");
-}
-
-function expandPath(filePath: string): string {
-  const normalized = normalizeUnicodeSpaces(filePath);
-  if (normalized === "~") {
-    return os.homedir();
-  }
-  if (normalized.startsWith("~/")) {
-    return os.homedir() + normalized.slice(1);
-  }
-  return normalized;
-}
-
-function resolveToCwd(filePath: string, cwd: string): string {
-  const expanded = expandPath(filePath);
-  if (path.isAbsolute(expanded)) {
-    return expanded;
-  }
-  return path.resolve(cwd, expanded);
-}
 
 export function resolveSandboxPath(params: { filePath: string; cwd: string; root: string }): {
   resolved: string;
   relative: string;
 } {
-  const resolved = resolveToCwd(params.filePath, params.cwd);
+  const resolved = resolvePathAgainstBase(params.filePath, params.cwd);
   const rootResolved = path.resolve(params.root);
   const relative = path.relative(rootResolved, resolved);
   if (!relative || relative === "") {
@@ -48,8 +25,27 @@ export function resolveSandboxPath(params: { filePath: string; cwd: string; root
 
 export async function assertSandboxPath(params: { filePath: string; cwd: string; root: string }) {
   const resolved = resolveSandboxPath(params);
-  await assertNoSymlink(resolved.relative, path.resolve(params.root));
-  return resolved;
+  const normalizedRoot = path.resolve(params.root);
+  const [resolvedRoot, resolvedTarget] = await Promise.all([
+    safeResolvePath(normalizedRoot),
+    safeResolvePath(resolved.resolved),
+  ]);
+  if (!resolvedRoot.canonical || resolvedRoot.resolutionErrorCode) {
+    throw new Error(`Sandbox root is unavailable: ${shortPath(normalizedRoot)}`);
+  }
+  if (resolvedTarget.resolutionErrorCode) {
+    throw new Error(`Path cannot be authorized safely: ${params.filePath}`);
+  }
+  if (!isWithinRoot(resolvedTarget.effectivePath, resolvedRoot.effectivePath)) {
+    throw new Error(
+      `Path escapes sandbox root (${shortPath(resolvedRoot.effectivePath)}): ${params.filePath}`,
+    );
+  }
+  const relative = path.relative(resolvedRoot.effectivePath, resolvedTarget.effectivePath);
+  return {
+    resolved: resolvedTarget.effectivePath,
+    relative: relative && relative !== "." ? relative : "",
+  };
 }
 
 export function assertMediaNotDataUrl(media: string): void {
@@ -86,27 +82,9 @@ export async function resolveSandboxedMediaSource(params: {
   return resolved.resolved;
 }
 
-async function assertNoSymlink(relative: string, root: string) {
-  if (!relative) {
-    return;
-  }
-  const parts = relative.split(path.sep).filter(Boolean);
-  let current = root;
-  for (const part of parts) {
-    current = path.join(current, part);
-    try {
-      const stat = await fs.lstat(current);
-      if (stat.isSymbolicLink()) {
-        throw new Error(`Symlink not allowed in sandbox path: ${current}`);
-      }
-    } catch (err) {
-      const anyErr = err as { code?: string };
-      if (anyErr.code === "ENOENT") {
-        return;
-      }
-      throw err;
-    }
-  }
+function isWithinRoot(candidate: string, root: string): boolean {
+  const relative = path.relative(root, candidate);
+  return !relative || (!relative.startsWith("..") && !path.isAbsolute(relative));
 }
 
 function shortPath(value: string) {

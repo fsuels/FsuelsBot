@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { parseFrontmatterBlock } from "../../markdown/frontmatter.js";
 import { resolveSkillDefinitionMetadata, resolveSkillInvocationPolicy } from "./frontmatter.js";
 
 describe("resolveSkillInvocationPolicy", () => {
@@ -45,5 +46,25 @@ describe("resolveSkillDefinitionMetadata", () => {
       agent: "docs-specialist",
       pathFilters: ["docs/**/*.md", "*.mdx"],
     });
+  });
+
+  it("normalizes unquoted bracket lists for path filters", () => {
+    const definition = resolveSkillDefinitionMetadata({
+      paths: "[docs/**/*.md, *.mdx]",
+    });
+
+    expect(definition?.pathFilters).toEqual(["docs/**/*.md", "*.mdx"]);
+  });
+
+  it("normalizes YAML-style dash lists for path filters after frontmatter fallback parsing", () => {
+    const frontmatter = parseFrontmatterBlock(`---
+paths:
+  - docs/**/*.md
+  - *.mdx
+---
+`);
+
+    const definition = resolveSkillDefinitionMetadata(frontmatter);
+    expect(definition?.pathFilters).toEqual(["docs/**/*.md", "*.mdx"]);
   });
 });

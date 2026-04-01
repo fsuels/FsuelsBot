@@ -58,6 +58,25 @@ export type SessionOrigin = {
   threadId?: string | number;
 };
 
+export type ExternalOriginSource =
+  | "interactive"
+  | "browser-link"
+  | "os-protocol"
+  | "editor-extension"
+  | "mcp"
+  | "imported-text"
+  | "other";
+
+export type ExternalOriginTrustLevel = "interactive" | "external";
+
+export type ExternalOriginContext = {
+  source: ExternalOriginSource;
+  rawUri?: string;
+  receivedAt: number;
+  payloadLength?: number;
+  trustLevel: ExternalOriginTrustLevel;
+};
+
 export type SessionTaskState = {
   status?: "active" | "paused" | "completed" | "archived";
   title?: string;
@@ -135,6 +154,21 @@ export type SessionClarificationTelemetry = {
   fallbackUsed?: boolean;
   timeToAnswerMs?: number;
   changedExecutionPath?: boolean;
+};
+
+export type SessionDurableMemoryMaintenanceState = {
+  /** Number of visible user/assistant messages already inspected by the durable extractor. */
+  cursorVisibleMessageCount?: number;
+  /** Eligible turns accumulated since the previous successful extractor run. */
+  eligibleTurns?: number;
+  /** Timestamp of the last successful or intentionally skipped extractor update. */
+  updatedAt?: number;
+  /** Best-effort reason for the last skipped extractor run. */
+  lastSkipReason?: "main_memory_write";
+};
+
+export type SessionMaintenanceState = {
+  durableMemory?: SessionDurableMemoryMaintenanceState;
 };
 
 export type SessionEntry = {
@@ -220,6 +254,7 @@ export type SessionEntry = {
   groupChannel?: string;
   space?: string;
   origin?: SessionOrigin;
+  externalOrigin?: ExternalOriginContext;
   deliveryContext?: DeliveryContext;
   workspaceFingerprint?: SessionWorkspaceFingerprint;
   lastChannel?: SessionChannelId;
@@ -251,6 +286,7 @@ export type SessionEntry = {
   replyCount?: number;
   pendingClarification?: SessionClarificationPending;
   clarificationTelemetry?: SessionClarificationTelemetry[];
+  maintenance?: SessionMaintenanceState;
 };
 
 export function mergeSessionEntry(
@@ -294,8 +330,11 @@ export type SessionSystemPromptReport = {
   };
   systemPrompt: {
     chars: number;
+    tokens?: number;
     projectContextChars: number;
+    projectContextTokens?: number;
     nonProjectContextChars: number;
+    nonProjectContextTokens?: number;
   };
   cache?: {
     boundaryMarker: string;
@@ -313,29 +352,53 @@ export type SessionSystemPromptReport = {
     path: string;
     missing: boolean;
     rawChars: number;
+    rawTokens?: number;
     injectedChars: number;
+    injectedTokens?: number;
     truncated: boolean;
     synthetic?: boolean;
-    sourceGroup?: "project" | "user" | "managed" | "built-in" | "unknown";
+    sourceGroup?: "project" | "project-local" | "user" | "managed" | "built-in" | "unknown";
+    provenance?: Array<{
+      path: string;
+      sourceGroup?: "project" | "project-local" | "user" | "managed" | "built-in" | "unknown";
+      parentInclude?: string;
+      rawChars: number;
+      transformedChars: number;
+    }>;
   }>;
   skills: {
     promptChars: number;
+    promptTokens?: number;
     availableCount?: number;
     loadedCount?: number;
     entries: Array<{
       name: string;
       blockChars: number;
+      blockTokens?: number;
       sourceCategory?: "bundled" | "workspace" | "managed" | "plugin" | "extra" | "unknown";
     }>;
   };
   tools: {
     listChars: number;
+    listTokens?: number;
     schemaChars: number;
+    schemaTokens?: number;
     entries: Array<{
       name: string;
       summaryChars: number;
+      summaryTokens?: number;
       schemaChars: number;
+      schemaTokens?: number;
       propertiesCount?: number | null;
+    }>;
+  };
+  dynamicTooling?: {
+    loadedCount: number;
+    pendingProviders?: string[];
+    entries: Array<{
+      name: string;
+      summaryChars: number;
+      summaryTokens?: number;
     }>;
   };
   modelView?: {

@@ -171,6 +171,34 @@ private func withUserDefaults<T>(_ updates: [String: Any?], _ body: () throws ->
         #expect(appModel.screen.errorText?.contains("Deep link too large") == true)
     }
 
+    @Test @MainActor func handleDeepLinkQueuesReviewWhenConnected() async {
+        let appModel = NodeAppModel()
+        appModel._test_setGatewayConnected(true)
+        let url = URL(string: "openclaw://agent?message=hello&sessionKey=main")!
+
+        await appModel.handleDeepLink(url: url, source: .osProtocol)
+
+        let review = appModel._test_pendingDeepLinkReview()
+        #expect(review?.link.message == "hello")
+        #expect(review?.origin.source == .osProtocol)
+        #expect(review?.origin.trustLevel == .external)
+        #expect(review?.origin.payloadLength == 5)
+        #expect(review?.originalURL == url)
+        #expect(appModel.screen.errorText == nil)
+    }
+
+    @Test @MainActor func cancelPendingDeepLinkClearsReviewState() async {
+        let appModel = NodeAppModel()
+        appModel._test_setGatewayConnected(true)
+        let url = URL(string: "openclaw://agent?message=hello")!
+
+        await appModel.handleDeepLink(url: url, source: .browserLink)
+        #expect(appModel._test_pendingDeepLinkReview() != nil)
+
+        appModel._test_cancelPendingDeepLink()
+        #expect(appModel._test_pendingDeepLinkReview() == nil)
+    }
+
     @Test @MainActor func sendVoiceTranscriptThrowsWhenGatewayOffline() async {
         let appModel = NodeAppModel()
         await #expect(throws: Error.self) {

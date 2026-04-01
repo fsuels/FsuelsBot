@@ -167,4 +167,32 @@ describe("assertPathContainedWithRealpath", () => {
 
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
+
+  it("rejects missing paths when a nested symlink chain resolves outside the root", async () => {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "memory-realpath-"));
+    const rootDir = path.join(tmpDir, "root");
+    const outsideDir = path.join(tmpDir, "outside");
+    await fs.mkdir(rootDir, { recursive: true });
+    await fs.mkdir(outsideDir, { recursive: true });
+    const bridgeDir = path.join(rootDir, "bridge");
+    const aliasDir = path.join(rootDir, "alias");
+
+    try {
+      await fs.symlink(outsideDir, bridgeDir, "dir");
+      await fs.symlink(bridgeDir, aliasDir, "dir");
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code === "EPERM" || code === "EACCES") {
+        await fs.rm(tmpDir, { recursive: true, force: true });
+        return;
+      }
+      throw err;
+    }
+
+    await expect(
+      assertPathContainedWithRealpath(rootDir, path.join(aliasDir, "missing.md")),
+    ).rejects.toThrow("path required");
+
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  });
 });

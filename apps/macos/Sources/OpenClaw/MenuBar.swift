@@ -259,7 +259,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func application(_: NSApplication, open urls: [URL]) {
         Task { @MainActor in
             for url in urls {
-                await DeepLinkHandler.shared.handle(url: url)
+                await DeepLinkHandler.shared.handle(url: url, source: .osProtocol)
             }
         }
     }

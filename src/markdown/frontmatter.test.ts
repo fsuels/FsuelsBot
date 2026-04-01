@@ -68,6 +68,15 @@ metadata:
     expect(parsed.openclaw?.events).toEqual(["command:new"]);
   });
 
+  it("falls back to raw strings for unquoted glob lists that YAML rejects", () => {
+    const content = `---
+paths: [docs/**/*.md, *.mdx]
+---
+`;
+    const result = parseFrontmatterBlock(content);
+    expect(result.paths).toBe("[docs/**/*.md, *.mdx]");
+  });
+
   it("returns empty when frontmatter is missing", () => {
     const content = "# No frontmatter";
     expect(parseFrontmatterBlock(content)).toEqual({});

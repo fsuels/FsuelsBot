@@ -1,19 +1,45 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const mocks = vi.hoisted(() => ({
+  loadSessionEntry: vi.fn(),
+  updateSessionStore: vi.fn(),
+  agentCommand: vi.fn(),
+  loadConfig: vi.fn(() => ({})),
+}));
+
 vi.mock("../infra/system-events.js", () => ({
   enqueueSystemEvent: vi.fn(),
 }));
 vi.mock("../infra/heartbeat-wake.js", () => ({
   requestHeartbeatNow: vi.fn(),
 }));
+vi.mock("../commands/agent.js", () => ({
+  agentCommand: mocks.agentCommand,
+}));
+vi.mock("../config/config.js", () => ({
+  loadConfig: mocks.loadConfig,
+}));
+vi.mock("../config/sessions.js", async () => {
+  const actual =
+    await vi.importActual<typeof import("../config/sessions.js")>("../config/sessions.js");
+  return {
+    ...actual,
+    updateSessionStore: mocks.updateSessionStore,
+  };
+});
+vi.mock("./session-utils.js", () => ({
+  loadSessionEntry: mocks.loadSessionEntry,
+}));
 
 import type { CliDeps } from "../cli/deps.js";
 import type { HealthSummary } from "../commands/health.js";
 import type { NodeEventContext } from "./server-node-events-types.js";
+import { agentCommand } from "../commands/agent.js";
 import { requestHeartbeatNow } from "../infra/heartbeat-wake.js";
 import { enqueueSystemEvent } from "../infra/system-events.js";
 import { handleNodeEvent } from "./server-node-events.js";
 
+const agentCommandMock = vi.mocked(agentCommand);
 const enqueueSystemEventMock = vi.mocked(enqueueSystemEvent);
 const requestHeartbeatNowMock = vi.mocked(requestHeartbeatNow);
 
@@ -42,6 +68,11 @@ function buildCtx(): NodeEventContext {
 
 describe("node exec events", () => {
   beforeEach(() => {
+    mocks.loadSessionEntry.mockReset();
+    mocks.updateSessionStore.mockReset();
+    mocks.loadConfig.mockReset();
+    mocks.loadConfig.mockReturnValue({});
+    agentCommandMock.mockReset();
     enqueueSystemEventMock.mockReset();
     requestHeartbeatNowMock.mockReset();
   });
@@ -100,5 +131,55 @@ describe("node exec events", () => {
       { sessionKey: "agent:demo:main", contextKey: "exec:run-3" },
     );
     expect(requestHeartbeatNowMock).toHaveBeenCalledWith({ reason: "exec-event" });
+  });
+
+  it("persists external origin metadata for agent.request events", async () => {
+    const ctx = buildCtx();
+    mocks.loadSessionEntry.mockReturnValue({
+      storePath: "/tmp/sessions.json",
+      entry: {
+        sessionId: "existing-session-id",
+        updatedAt: 1,
+      },
+      canonicalKey: "agent:main:main",
+    });
+    let capturedEntry: Record<string, unknown> | undefined;
+    mocks.updateSessionStore.mockImplementation(async (_path, updater) => {
+      const store: Record<string, unknown> = {};
+      await updater(store);
+      capturedEntry = store["agent:main:main"] as Record<string, unknown>;
+    });
+    agentCommandMock.mockResolvedValue(undefined);
+
+    await handleNodeEvent(ctx, "node-4", {
+      event: "agent.request",
+      payloadJSON: JSON.stringify({
+        message: "hello from link",
+        sessionKey: "agent:main:main",
+        origin: {
+          source: "browser-link",
+          rawUri: "openclaw://agent?message=hello%20from%20link",
+          receivedAt: 1234,
+          payloadLength: 15,
+          trustLevel: "external",
+        },
+      }),
+    });
+
+    expect(capturedEntry?.externalOrigin).toEqual({
+      source: "browser-link",
+      rawUri: "openclaw://agent?message=hello%20from%20link",
+      receivedAt: 1234,
+      payloadLength: 15,
+      trustLevel: "external",
+    });
+    expect(agentCommandMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: "hello from link",
+        sessionKey: "agent:main:main",
+      }),
+      expect.anything(),
+      ctx.deps,
+    );
   });
 });

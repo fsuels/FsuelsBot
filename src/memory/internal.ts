@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { safeResolvePath } from "../infra/path-resolution.js";
 
 export type MemoryFileEntry = {
   path: string;
@@ -30,8 +31,6 @@ export function normalizeRelPath(value: string): string {
   return trimmed.replace(/\\/g, "/");
 }
 
-const NOT_FOUND_PATH_CODES = new Set(["ENOENT", "ENOTDIR"]);
-
 function ensureTrailingSep(value: string): string {
   return value.endsWith(path.sep) ? value : `${value}${path.sep}`;
 }
@@ -42,11 +41,6 @@ function normalizeAbsoluteRoot(rootPath: string): string {
     throw new Error("path required");
   }
   return path.normalize(resolved);
-}
-
-function hasNotFoundCode(error: unknown): boolean {
-  const code = (error as NodeJS.ErrnoException)?.code;
-  return typeof code === "string" && NOT_FOUND_PATH_CODES.has(code);
 }
 
 function containsTraversalRisk(value: string): boolean {
@@ -113,32 +107,6 @@ export function isPathWithinRoot(rootPath: string, targetPath: string): boolean 
   return ensureTrailingSep(resolvedTarget).startsWith(ensureTrailingSep(resolvedRoot));
 }
 
-async function findDeepestExistingAncestor(
-  candidatePath: string,
-  rootPath: string,
-): Promise<string> {
-  const normalizedRoot = normalizeAbsoluteRoot(rootPath);
-  let current = path.resolve(candidatePath);
-  while (true) {
-    try {
-      await fs.lstat(current);
-      return current;
-    } catch (error) {
-      if (!hasNotFoundCode(error)) {
-        throw error;
-      }
-      const parent = path.dirname(current);
-      if (parent === current) {
-        throw error;
-      }
-      current = parent;
-      if (!isPathWithinRoot(normalizedRoot, current)) {
-        throw new Error("path required", { cause: error });
-      }
-    }
-  }
-}
-
 export async function assertPathContainedWithRealpath(
   rootPath: string,
   candidatePath: string,
@@ -148,25 +116,21 @@ export async function assertPathContainedWithRealpath(
   if (!isPathWithinRoot(normalizedRoot, resolvedCandidate)) {
     throw new Error("path required");
   }
-  let realRoot: string;
   try {
-    realRoot = await fs.realpath(normalizedRoot);
+    const [resolvedRoot, resolvedTarget] = await Promise.all([
+      safeResolvePath(normalizedRoot),
+      safeResolvePath(resolvedCandidate),
+    ]);
+    if (!resolvedRoot.canonical || resolvedRoot.resolutionErrorCode) {
+      throw new Error("path required");
+    }
+    if (resolvedTarget.resolutionErrorCode) {
+      throw new Error("path required");
+    }
+    if (!isPathWithinRoot(resolvedRoot.effectivePath, resolvedTarget.effectivePath)) {
+      throw new Error("path required");
+    }
   } catch {
-    throw new Error("path required");
-  }
-  let existingAncestor: string;
-  try {
-    existingAncestor = await findDeepestExistingAncestor(resolvedCandidate, normalizedRoot);
-  } catch {
-    throw new Error("path required");
-  }
-  let realAncestor: string;
-  try {
-    realAncestor = await fs.realpath(existingAncestor);
-  } catch {
-    throw new Error("path required");
-  }
-  if (!isPathWithinRoot(realRoot, realAncestor)) {
     throw new Error("path required");
   }
 }
@@ -273,7 +237,7 @@ export async function listMemoryFiles(
   for (const entry of result) {
     let key = entry;
     try {
-      key = await fs.realpath(entry);
+      key = (await safeResolvePath(entry)).effectivePath;
     } catch {}
     if (seen.has(key)) {
       continue;
