@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { parseBooleanStrict } from "../utils/strict-primitives.js";
 import { WizardCancelledError, type WizardProgress, type WizardPrompter } from "./prompts.js";
 
 export type WizardStepOption = {
@@ -142,7 +143,11 @@ class WizardSessionPrompter implements WizardPrompter {
       initialValue: params.initialValue,
       executor: "client",
     });
-    return Boolean(res);
+    const parsed = parseBooleanStrict(res);
+    if (typeof parsed !== "boolean") {
+      throw new Error("Invalid confirm value");
+    }
+    return parsed;
   }
 
   progress(_label: string): WizardProgress {

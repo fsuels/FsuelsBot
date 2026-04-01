@@ -71,4 +71,23 @@ describe("WizardSession", () => {
     expect(done.done).toBe(true);
     expect(done.status).toBe("cancelled");
   });
+
+  test("confirm answers do not treat the string 'false' as truthy", async () => {
+    const session = new WizardSession(async (prompter) => {
+      const confirmed = await prompter.confirm({ message: "Enable feature?" });
+      await prompter.note(confirmed ? "enabled" : "disabled");
+    });
+
+    const confirmStep = await session.next();
+    expect(confirmStep.step?.type).toBe("confirm");
+    if (!confirmStep.step) {
+      throw new Error("expected confirm step");
+    }
+
+    await session.answer(confirmStep.step.id, "false");
+
+    const noteStep = await session.next();
+    expect(noteStep.step?.type).toBe("note");
+    expect(noteStep.step?.message).toBe("disabled");
+  });
 });
