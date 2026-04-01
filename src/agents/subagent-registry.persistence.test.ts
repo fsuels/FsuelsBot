@@ -135,6 +135,25 @@ describe("subagent registry persistence", () => {
     expect(first.childSessionKey).toBe("agent:main:subagent:test");
     expect(first.requesterOrigin?.channel).toBe("whatsapp");
     expect(first.requesterOrigin?.accountId).toBe("acct-main");
+
+    const after = JSON.parse(await fs.readFile(registryPath, "utf8")) as {
+      runs?: Record<
+        string,
+        {
+          endedAt?: number;
+          outcome?: { status?: string; error?: string };
+          staleRuntime?: boolean;
+          staleReason?: string;
+        }
+      >;
+    };
+    expect(after.runs?.["run-1"]?.endedAt).toBeDefined();
+    expect(after.runs?.["run-1"]?.outcome?.status).toBe("error");
+    expect(String(after.runs?.["run-1"]?.outcome?.error ?? "")).toContain(
+      "no longer attached to this runtime",
+    );
+    expect(after.runs?.["run-1"]?.staleRuntime).toBe(true);
+    expect(after.runs?.["run-1"]?.staleReason).toBe("subagent_runtime_missing");
   });
 
   it("retries stale cleanup when cleanupHandled was persisted", async () => {

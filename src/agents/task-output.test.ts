@@ -481,6 +481,50 @@ describe("task output runtime", () => {
     expect(persisted.metadata?.stale_runtime).toBe(true);
   });
 
+  it("marks orphaned running subagent artifacts as terminal after restart", async () => {
+    addSubagentRunForTests({
+      runId: "agent-durable-running",
+      childSessionKey: "agent:main:subagent:running",
+      requesterSessionKey: "agent:main:main",
+      requesterDisplayKey: "main",
+      task: "collect logs",
+      cleanup: "keep",
+      createdAt: Date.now(),
+      startedAt: Date.now(),
+      finalText: "partial result",
+    });
+
+    resetSubagentRegistryForTests();
+
+    const result = await getTaskOutput({
+      task_id: "agent-durable-running",
+      block: false,
+    });
+
+    expect(result).toMatchObject({
+      retrieval_status: "success",
+      task: {
+        task_id: "agent-durable-running",
+        task_type: "agent",
+        status: "error",
+        final_text: "partial result",
+        metadata: {
+          stale_runtime: true,
+          stale_reason: "subagent_runtime_missing",
+        },
+      },
+    });
+
+    const persisted = JSON.parse(
+      await fs.readFile(
+        resolveTaskOutputPath({ taskId: "agent-durable-running", taskType: "agent" }),
+        "utf8",
+      ),
+    ) as { status?: string; metadata?: Record<string, unknown> };
+    expect(persisted.status).toBe("error");
+    expect(persisted.metadata?.stale_runtime).toBe(true);
+  });
+
   it("surfaces awaiting_input when a background shell stalls on an interactive prompt", async () => {
     const task = createBackgroundShellSession("shell-awaiting-input", "npm install");
     addSession(task);

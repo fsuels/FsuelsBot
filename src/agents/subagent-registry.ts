@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import path from "node:path";
 import type { SandboxToolPolicy } from "./sandbox.js";
 import type { SubagentCapabilityProfileId } from "./subagent-policy.js";
@@ -63,6 +64,10 @@ export type SubagentRunRecord = {
   transcriptPath?: string;
   finalText?: string;
   notified?: boolean;
+  runtimeInstanceId?: string;
+  runtimePid?: number;
+  staleRuntime?: boolean;
+  staleReason?: string;
 };
 
 export type SubagentLifecycleStatus =
@@ -82,6 +87,10 @@ const taskWaiters = new Map<string, Set<() => void>>();
 // Use var to avoid TDZ when init runs across circular imports during bootstrap.
 var restoreAttempted = false;
 const SUBAGENT_ANNOUNCE_TIMEOUT_MS = 120_000;
+const SUBAGENT_RUNTIME_INSTANCE_ID = crypto.randomUUID();
+const SUBAGENT_RUNTIME_PID = process.pid;
+export const STALE_SUBAGENT_RUNTIME_REASON =
+  "Background subagent run is no longer attached to this runtime. It may have been interrupted by a gateway restart; rerun it if you still need the result.";
 const log = createSubsystemLogger("agents/subagent-cleanup");
 
 function persistSubagentRuns() {
@@ -254,11 +263,64 @@ function buildSubagentTaskMetadata(entry: SubagentRunRecord): TaskOutput["metada
   if (entry.cleanupReason) {
     metadata.cleanup_reason = entry.cleanupReason;
   }
+  if (entry.staleRuntime === true) {
+    metadata.stale_runtime = true;
+  }
+  if (entry.staleReason) {
+    metadata.stale_reason = entry.staleReason;
+  }
   const resultSummary = entry.outcome?.result?.trim() || entry.finalText?.trim();
   if (resultSummary) {
     metadata.result_summary = resultSummary.slice(0, 2000);
   }
   return Object.keys(metadata).length > 0 ? metadata : undefined;
+}
+
+function isRunOwnedByCurrentRuntime(
+  entry: Pick<SubagentRunRecord, "runtimeInstanceId" | "runtimePid">,
+): boolean {
+  if (typeof entry.runtimeInstanceId === "string" && entry.runtimeInstanceId.trim()) {
+    return entry.runtimeInstanceId === SUBAGENT_RUNTIME_INSTANCE_ID;
+  }
+  if (typeof entry.runtimePid === "number" && Number.isFinite(entry.runtimePid)) {
+    return entry.runtimePid === SUBAGENT_RUNTIME_PID;
+  }
+  return false;
+}
+
+function shouldMarkRunStaleAfterRuntimeRestore(entry: SubagentRunRecord): boolean {
+  if (typeof entry.endedAt === "number" && entry.endedAt > 0) {
+    return false;
+  }
+  if (isTerminalSubagentOutcomeStatus(entry.outcome?.status)) {
+    return false;
+  }
+  return !isRunOwnedByCurrentRuntime(entry);
+}
+
+function markSubagentRunStaleAfterRuntimeRestore(
+  entry: SubagentRunRecord,
+  error = STALE_SUBAGENT_RUNTIME_REASON,
+) {
+  const now = Date.now();
+  const message = error.trim() || STALE_SUBAGENT_RUNTIME_REASON;
+  entry.endedAt = entry.endedAt ?? now;
+  entry.outcome = {
+    status: "error",
+    error: message,
+    ...(entry.outcome?.result?.trim()
+      ? { result: entry.outcome.result.trim() }
+      : entry.finalText?.trim()
+        ? { result: entry.finalText.trim().slice(0, 2000) }
+        : {}),
+  };
+  entry.cleanupHandled = false;
+  entry.cleanupCompletedAt = undefined;
+  entry.cleanupState = "pending";
+  entry.cleanupReason = undefined;
+  entry.cleanupError = undefined;
+  entry.staleRuntime = true;
+  entry.staleReason = "subagent_runtime_missing";
 }
 
 export function resolveSubagentLifecycleStatus(
@@ -414,6 +476,11 @@ function resumeSubagentRun(runId: string) {
     return;
   }
 
+  if (shouldMarkRunStaleAfterRuntimeRestore(entry)) {
+    markSubagentRunStaleAfterRuntimeRestore(entry);
+    persistAndSyncSubagentRun(runId);
+  }
+
   if (typeof entry.endedAt === "number" && entry.endedAt > 0) {
     scheduleSubagentCleanup(runId, "resume");
     resumedRuns.add(runId);
@@ -451,6 +518,10 @@ function restoreSubagentRunsOnce() {
         // A persisted in-flight flag means the previous process likely died mid-cleanup.
         // Reset it so teardown can be retried safely after restart.
         entry.cleanupHandled = false;
+        mutated = true;
+      }
+      if (shouldMarkRunStaleAfterRuntimeRestore(entry)) {
+        markSubagentRunStaleAfterRuntimeRestore(entry);
         mutated = true;
       }
       // Keep any newer in-memory entries.
@@ -723,6 +794,8 @@ export function registerSubagentRun(params: {
     transcriptPath: resolveChildTranscriptPath(params.childSessionKey),
     finalText: undefined,
     notified: false,
+    runtimeInstanceId: SUBAGENT_RUNTIME_INSTANCE_ID,
+    runtimePid: SUBAGENT_RUNTIME_PID,
   });
   registerOwnedResource({
     resourceId: params.childSessionKey,
@@ -894,7 +967,11 @@ export function resetSubagentRegistryForTests() {
 }
 
 export function addSubagentRunForTests(entry: SubagentRunRecord) {
-  subagentRuns.set(entry.runId, entry);
+  subagentRuns.set(entry.runId, {
+    ...entry,
+    runtimeInstanceId: entry.runtimeInstanceId ?? SUBAGENT_RUNTIME_INSTANCE_ID,
+    runtimePid: entry.runtimePid ?? SUBAGENT_RUNTIME_PID,
+  });
   registerOwnedResource({
     resourceId: entry.childSessionKey,
     resourceType: "subagent_session",
