@@ -89,38 +89,68 @@
       "emoji": "🌐",
       "title": "Browser",
       "actions": {
-        "status": { "label": "status" },
-        "start": { "label": "start" },
-        "stop": { "label": "stop" },
-        "tabs": { "label": "tabs" },
-        "open": { "label": "open", "detailKeys": ["targetUrl"] },
-        "focus": { "label": "focus", "detailKeys": ["targetId"] },
-        "close": { "label": "close", "detailKeys": ["targetId"] },
+        "status": { "label": "status", "detailKeys": ["profile", "target", "node"] },
+        "start": { "label": "start", "detailKeys": ["profile", "target", "node"] },
+        "stop": { "label": "stop", "detailKeys": ["profile", "target", "node"] },
+        "tabs": { "label": "tabs", "detailKeys": ["profile", "target", "node"] },
+        "open": { "label": "open", "detailKeys": ["profile", "target", "node", "targetUrl"] },
+        "focus": {
+          "label": "focus",
+          "detailKeys": ["profile", "target", "node", "targetId"]
+        },
+        "close": {
+          "label": "close",
+          "detailKeys": ["profile", "target", "node", "targetId"]
+        },
         "snapshot": {
           "label": "snapshot",
-          "detailKeys": ["targetUrl", "targetId", "ref", "element", "format"]
+          "detailKeys": [
+            "profile",
+            "target",
+            "node",
+            "targetUrl",
+            "targetId",
+            "ref",
+            "element",
+            "format"
+          ]
         },
         "screenshot": {
           "label": "screenshot",
-          "detailKeys": ["targetUrl", "targetId", "ref", "element"]
+          "detailKeys": ["profile", "target", "node", "targetUrl", "targetId", "ref", "element"]
         },
         "navigate": {
           "label": "navigate",
-          "detailKeys": ["targetUrl", "targetId"]
+          "detailKeys": ["profile", "target", "node", "targetUrl", "targetId"]
         },
-        "console": { "label": "console", "detailKeys": ["level", "targetId"] },
-        "pdf": { "label": "pdf", "detailKeys": ["targetId"] },
+        "console": {
+          "label": "console",
+          "detailKeys": ["profile", "target", "node", "level", "targetId"]
+        },
+        "pdf": { "label": "pdf", "detailKeys": ["profile", "target", "node", "targetId"] },
         "upload": {
           "label": "upload",
-          "detailKeys": ["paths", "ref", "inputRef", "element", "targetId"]
+          "detailKeys": [
+            "profile",
+            "target",
+            "node",
+            "paths",
+            "ref",
+            "inputRef",
+            "element",
+            "targetId"
+          ]
         },
         "dialog": {
           "label": "dialog",
-          "detailKeys": ["accept", "promptText", "targetId"]
+          "detailKeys": ["profile", "target", "node", "accept", "promptText", "targetId"]
         },
         "act": {
           "label": "act",
           "detailKeys": [
+            "profile",
+            "target",
+            "node",
             "request.kind",
             "request.ref",
             "request.selector",

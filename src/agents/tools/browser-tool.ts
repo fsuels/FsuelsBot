@@ -387,28 +387,95 @@ function resolveBrowserBaseUrl(params: {
   return undefined;
 }
 
+function buildBrowserToolDescription(opts?: {
+  sandboxBridgeUrl?: string;
+  allowHostControl?: boolean;
+}) {
+  const targetDefault = opts?.sandboxBridgeUrl ? "sandbox" : "host";
+  return [
+    "Use the real browser for authenticated, session-bound, or interactive web tasks.",
+    "Prefer web_search/web_fetch for public docs, search, or read-only web research.",
+    'Profiles: use profile="chrome" for Chrome extension relay takeover (your existing Chrome tabs). Use profile="openclaw" for the isolated openclaw-managed browser.',
+    'If the user mentions the Chrome extension / Browser Relay / toolbar button / “attach tab”, ALWAYS use profile="chrome" (do not ask which profile).',
+    'When a node-hosted browser proxy is available, the tool may auto-route to it. Pin a node with node=<id|name> or target="node".',
+    `Default target: ${targetDefault}.`,
+    opts?.allowHostControl === false ? "Host target may be blocked by sandbox policy." : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function buildBrowserOperatorManual(opts?: {
+  sandboxBridgeUrl?: string;
+  allowHostControl?: boolean;
+}) {
+  const runtimeLines = [
+    `Default target: ${opts?.sandboxBridgeUrl ? "sandbox" : "host"}.`,
+    opts?.sandboxBridgeUrl ? "Sandbox target is available in this session." : "",
+    opts?.allowHostControl === false ? "Host target is blocked in this session." : "",
+  ].filter(Boolean);
+
+  return [
+    "Purpose: use the real browser for authenticated, session-bound, or interactive UI work. Prefer `web_search`/`web_fetch` for public docs, search, or read-only web research.",
+    "",
+    "Workflow:",
+    "- Start each browser task by refreshing current context with `action=tabs` or `action=snapshot`.",
+    "- Treat `targetId` and snapshot refs as short-lived. After navigation, tab switches, or a new session, refresh before reusing them.",
+    "- Keep the same `targetId` from snapshot results when chaining `act` calls on the same tab.",
+    '- Prefer `snapshot` with `refs="aria"` when you need refs that survive across multiple calls.',
+    "- If you see `tab not found`, `not found or not visible`, or ref/locator errors, refresh with `tabs` or `snapshot` before retrying.",
+    "- After 2 consecutive failures in the same browser action family, stop retrying and summarize the blocker plus the best recovery step.",
+    '- Avoid `action=dialog` and `request.kind="wait"` unless unavoidable; prefer explicit page-state checks via `snapshot`.',
+    "- If a blocking dialog or modal is unavoidable, warn first and include a recovery step.",
+    "- Stay on the user's requested task; do not rabbit-hole through unrelated pages or flows.",
+    "- If the browser service times out or becomes unreachable, stop and report what you attempted instead of blind retries.",
+    "",
+    "Profiles & routing:",
+    '- If the user mentions the Chrome extension, Browser Relay, toolbar button, or “attach tab”, use `profile="chrome"`.',
+    '- `profile="chrome"` needs an attached tab: the user must click the OpenClaw Browser Relay toolbar icon on that tab (badge ON).',
+    '- Use `profile="openclaw"` for the isolated OpenClaw-managed browser when you do not need the user\'s existing Chrome session.',
+    '- Use `target="node"` or `node="<id|name>"` when the task must run against a paired node-hosted browser.',
+    "",
+    "Runtime addenda:",
+    ...runtimeLines,
+  ].join("\n");
+}
+
 export function createBrowserTool(opts?: {
   sandboxBridgeUrl?: string;
   allowHostControl?: boolean;
 }): AnyAgentTool {
-  const targetDefault = opts?.sandboxBridgeUrl ? "sandbox" : "host";
-  const hostHint =
-    opts?.allowHostControl === false ? "Host target blocked by policy." : "Host target allowed.";
   return {
     label: "Browser",
     name: "browser",
-    description: [
-      "Control the browser via OpenClaw's browser control server (status/start/stop/profiles/tabs/open/snapshot/screenshot/actions).",
-      'Profiles: use profile="chrome" for Chrome extension relay takeover (your existing Chrome tabs). Use profile="openclaw" for the isolated openclaw-managed browser.',
-      'If the user mentions the Chrome extension / Browser Relay / toolbar button / “attach tab”, ALWAYS use profile="chrome" (do not ask which profile).',
-      'When a node-hosted browser proxy is available, the tool may auto-route to it. Pin a node with node=<id|name> or target="node".',
-      "Chrome extension relay needs an attached tab: user must click the OpenClaw Browser Relay toolbar icon on the tab (badge ON). If no tab is connected, ask them to attach it.",
-      "When using refs from snapshot (e.g. e12), keep the same tab: prefer passing targetId from the snapshot response into subsequent actions (act/click/type/etc).",
-      'For stable, self-resolving refs across calls, use snapshot with refs="aria" (Playwright aria-ref ids). Default refs="role" are role+name-based.',
-      "Use snapshot+act for UI automation. Avoid act:wait by default; use only in exceptional cases when no reliable UI state exists.",
-      `target selects browser location (sandbox|host|node). Default: ${targetDefault}.`,
-      hostHint,
-    ].join(" "),
+    description: buildBrowserToolDescription(opts),
+    searchSummary:
+      "Use the real browser for interactive/authenticated web work; prefer web_search/web_fetch for public pages.",
+    operatorManual: () => buildBrowserOperatorManual(opts),
+    invocationContract: {
+      usagePolicy: "semantic_ok",
+      sideEffectLevel: "medium",
+      whenToUse: [
+        "The task needs a real browser session, live DOM state, login context, or interactive UI steps.",
+        "The user explicitly asks you to drive a browser, inspect a tab, or work through a web flow.",
+      ],
+      whenNotToUse: [
+        "Prefer web_search/web_fetch for public pages, docs, or read-only research that does not need a live browser session.",
+        "Do not use it for unrelated exploration outside the requested workflow.",
+      ],
+      preconditions: [
+        "Refresh context with action=tabs or action=snapshot before acting on a page.",
+        "Reuse targetId and refs only within the current, freshly inspected page state.",
+      ],
+      behaviorSummary:
+        "Controls OpenClaw's managed browser, host Chrome relay, or a node-hosted browser proxy.",
+      parametersSummary: [
+        "action: browser operation (status/start/tabs/open/snapshot/screenshot/navigate/act/etc).",
+        "profile: browser profile; use chrome for Browser Relay, openclaw for the isolated browser.",
+        "target/node: pick sandbox, host, or a specific paired node when needed.",
+        "targetId + request.ref: chain actions against the current tab and fresh snapshot refs.",
+      ],
+    },
     parameters: BrowserToolSchema,
     validateInput: async (input, _context) => {
       const validation = validateFlatActionInput({

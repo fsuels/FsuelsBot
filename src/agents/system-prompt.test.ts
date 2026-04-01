@@ -242,6 +242,17 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain("Anti-patterns: do not use for immediate work.");
   });
 
+  it("keeps browser-specific operator guidance out of prompts when browser is unavailable", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/openclaw",
+      toolNames: ["exec"],
+    });
+
+    expect(prompt).not.toContain("### browser");
+    expect(prompt).not.toContain("Start each browser task by refreshing current context");
+    expect(prompt).not.toContain("Sandbox target is available in this session.");
+  });
+
   it("includes usage-policy guidance for tool manuals", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/openclaw",
@@ -520,6 +531,43 @@ describe("buildAgentSystemPrompt", () => {
     expect(first.staticPrefixCacheStatus).toBe("miss");
     expect(second.staticPrefixCacheStatus).toBe("hit");
     expect(second.recomputedSectionCount).toBe(second.dynamicSectionNames.length);
+  });
+
+  it("keeps the static prefix stable when deferred tool activations change", () => {
+    const first = buildAgentSystemPromptArtifacts({
+      workspaceDir: "/tmp/openclaw",
+      toolNames: ["read", "tool_discovery"],
+      runtimeInfo: {
+        host: "host-a",
+        os: "macOS",
+        arch: "arm64",
+        node: "v20",
+        model: "anthropic/claude",
+      },
+    });
+
+    const second = buildAgentSystemPromptArtifacts({
+      workspaceDir: "/tmp/openclaw",
+      toolNames: ["read", "tool_discovery"],
+      dynamicToolDelta: {
+        loadedTools: [{ name: "browser", summary: "Control web browser" }],
+        pendingProviders: ["github"],
+      },
+      runtimeInfo: {
+        host: "host-a",
+        os: "macOS",
+        arch: "arm64",
+        node: "v20",
+        model: "anthropic/claude",
+      },
+    });
+
+    expect(first.staticPrefix).toBe(second.staticPrefix);
+    expect(first.staticPrefixHash).toBe(second.staticPrefixHash);
+    expect(second.dynamicTail).toContain("## Tool Surface Updates");
+    expect(second.dynamicTail).toContain("browser");
+    expect(second.dynamicTail).toContain("github");
+    expect(second.dynamicSectionNames).toContain("dynamic-tool-delta");
   });
 
   it("includes model alias guidance when aliases are provided", () => {

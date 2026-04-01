@@ -52,4 +52,24 @@ describe("tool display details", () => {
     expect(detail).toContain("limit 20");
     expect(detail).toContain("tools true");
   });
+
+  it("includes browser runtime targeting context in compact browser summaries", () => {
+    const detail = formatToolDetail(
+      resolveToolDisplay({
+        name: "browser",
+        args: {
+          action: "snapshot",
+          profile: "chrome",
+          target: "node",
+          node: "mac-mini",
+          targetUrl: "https://example.com/app",
+        },
+      }),
+    );
+
+    expect(detail).toContain("profile chrome");
+    expect(detail).toContain("target node");
+    expect(detail).toContain("node mac-mini");
+    expect(detail).toContain("url https://example.com/app");
+  });
 });

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import "./test-helpers/fast-core-tools.js";
 import { createOpenClawTools } from "./openclaw-tools.js";
 import { buildToolOperatorManualMap, buildToolSummaryMap } from "./tool-summaries.js";
@@ -95,5 +95,31 @@ describe("tool summaries", () => {
     ]);
 
     expect(summaries.tool_discovery).toBe("Find and activate deferred tools.");
+  });
+
+  it("builds runtime-aware browser operator manuals only for active browser runtime flags", async () => {
+    const { createBrowserTool } =
+      await vi.importActual<typeof import("./tools/browser-tool.js")>("./tools/browser-tool.js");
+    const defaultManuals = buildToolOperatorManualMap([createBrowserTool()]);
+    const sandboxedManuals = buildToolOperatorManualMap([
+      createBrowserTool({
+        sandboxBridgeUrl: "http://127.0.0.1:9999",
+        allowHostControl: false,
+      }),
+    ]);
+
+    expect(defaultManuals.browser).toContain(
+      "Prefer `web_search`/`web_fetch` for public docs, search, or read-only web research.",
+    );
+    expect(defaultManuals.browser).toContain("Default target: host.");
+    expect(defaultManuals.browser).not.toContain("Sandbox target is available in this session.");
+    expect(defaultManuals.browser).not.toContain("Host target is blocked in this session.");
+
+    expect(sandboxedManuals.browser).toContain("Default target: sandbox.");
+    expect(sandboxedManuals.browser).toContain("Sandbox target is available in this session.");
+    expect(sandboxedManuals.browser).toContain("Host target is blocked in this session.");
+    expect(sandboxedManuals.browser).toContain(
+      "After 2 consecutive failures in the same browser action family",
+    );
   });
 });
