@@ -4,10 +4,10 @@ import type {
   SelectListTheme,
   SettingsListTheme,
 } from "@mariozechner/pi-tui";
-import chalk from "chalk";
 import { highlight, supportsLanguage } from "cli-highlight";
 import type { SearchableSelectListTheme } from "../components/searchable-select-list.js";
 import type { SessionPreviewSelectListTheme } from "../components/session-preview-select-list.js";
+import { createTerminalChalk } from "../../terminal/capabilities.js";
 import { createSyntaxTheme } from "./syntax-theme.js";
 
 const palette = {
@@ -34,6 +34,9 @@ const palette = {
   success: "#7DD3A5",
 };
 
+const chalk = createTerminalChalk({
+  isTTY: Boolean(process.stdout.isTTY || process.stderr.isTTY),
+});
 const fg = (hex: string) => (text: string) => chalk.hex(hex)(text);
 const bg = (hex: string) => (text: string) => chalk.bgHex(hex)(text);
 

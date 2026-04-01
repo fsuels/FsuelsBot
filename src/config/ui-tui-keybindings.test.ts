@@ -8,6 +8,7 @@ describe("ui.tui keybindings", () => {
         tui: {
           shortcuts: {
             abortRun: null,
+            forceRedraw: "Ctrl+R",
             openModelPicker: "Ctrl+L",
           },
           editor: {

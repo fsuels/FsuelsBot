@@ -45,6 +45,9 @@ export class CustomEditor extends Editor {
     ) {
       return;
     }
+    if (this.shortcutManager.matches(data, "forceRedraw") && this.triggerShortcut("forceRedraw")) {
+      return;
+    }
     if (
       this.shortcutManager.matches(data, "openSessionPicker") &&
       this.triggerShortcut("openSessionPicker")

@@ -18,4 +18,9 @@ describe("tui slash commands", () => {
     expect(commands.some((command) => command.name === "context")).toBe(true);
     expect(commands.some((command) => command.name === "commands")).toBe(true);
   });
+
+  it("exposes a redraw recovery command", () => {
+    const commands = getSlashCommands({});
+    expect(commands.some((command) => command.name === "redraw")).toBe(true);
+  });
 });

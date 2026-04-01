@@ -18,11 +18,15 @@ describe("CustomEditor", () => {
   it("dispatches default tui shortcuts through the action handlers", () => {
     const editor = makeEditor();
     const openModelPicker = vi.fn();
+    const forceRedraw = vi.fn();
 
     editor.setShortcutHandler("openModelPicker", openModelPicker);
+    editor.setShortcutHandler("forceRedraw", forceRedraw);
     editor.handleInput("\x0c");
+    editor.handleInput("\x12");
 
     expect(openModelPicker).toHaveBeenCalledTimes(1);
+    expect(forceRedraw).toHaveBeenCalledTimes(1);
   });
 
   it("supports custom shortcut overrides and null unbinds", () => {

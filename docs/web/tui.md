@@ -75,6 +75,7 @@ Defaults:
 - Esc: abort active run
 - Ctrl+C: clear input (press twice to exit)
 - Ctrl+D: exit
+- Ctrl+R: force a full screen redraw
 - Ctrl+L: model picker
 - Ctrl+G: agent picker
 - Ctrl+P: session picker
@@ -124,6 +125,7 @@ Session lifecycle:
 
 - `/new` or `/reset` (reset the session)
 - `/abort` (abort the active run)
+- `/redraw` (force a full screen redraw if the terminal gets garbled)
 - `/settings`
 - `/exit`
 
@@ -175,6 +177,7 @@ No output after sending a message:
 - Confirm the agent can run: `openclaw status` and `openclaw models status`.
 - If you expect messages in a chat channel, enable delivery (`/deliver on` or `--deliver`).
 - `--history-limit <n>`: History entries to load (default 200)
+- If the screen looks corrupted after a reconnect, shell message, or terminal resume, press `Ctrl+R` or run `/redraw`.
 
 ## Connection troubleshooting
 

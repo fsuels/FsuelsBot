@@ -35,6 +35,7 @@ import { formatTuiFooterLine, formatTuiHeaderLine } from "./tui-layout.js";
 import { createLocalShellRunner } from "./tui-local-shell.js";
 import { createOverlayHandlers, handleOverlayEscape } from "./tui-overlays.js";
 import { createSessionActions } from "./tui-session-actions.js";
+import { createTuiSessionManager } from "./tui-session-manager.js";
 import {
   buildBusyStatusLine,
   buildIdleStatusLine,
@@ -262,7 +263,8 @@ export async function runTui(opts: TuiOptions) {
     password: opts.password,
   });
 
-  const tui = new TUI(new ProcessTerminal());
+  const processTerminal = new ProcessTerminal();
+  const tui = new TUI(processTerminal);
   const header = new Text("", 1, 0);
   const statusContainer = new Container();
   const footer = new Text("", 1, 0);
@@ -512,6 +514,60 @@ export async function runTui(opts: TuiOptions) {
     );
   };
 
+  const sessionManager = createTuiSessionManager({
+    tui,
+    terminal: processTerminal,
+    onResizeSync: () => {
+      updateHeader();
+      updateFooter();
+      renderStatus();
+    },
+    requestTerminalSizeRefresh: () => {
+      if (process.platform !== "win32") {
+        try {
+          process.kill(process.pid, "SIGWINCH");
+        } catch {
+          // Best effort only; some platforms/environments may reject this.
+        }
+      }
+    },
+  });
+
+  let exitRequested = false;
+  let resolveExit: (() => void) | null = null;
+  const exitPromise = new Promise<void>((resolve) => {
+    resolveExit = resolve;
+  });
+
+  const requestExit = (code = 0) => {
+    if (exitRequested) {
+      return;
+    }
+    exitRequested = true;
+    void (async () => {
+      try {
+        client.stop();
+      } catch {
+        // Ignore shutdown races; cleanup below is idempotent.
+      }
+      if (statusTimeout) {
+        clearTimeout(statusTimeout);
+        statusTimeout = null;
+      }
+      stopStatusTicker();
+      await sessionManager.cleanup("tui exit");
+      if (code !== 0) {
+        process.exitCode = code;
+      }
+      resolveExit?.();
+    })();
+  };
+
+  const forceRedraw = () => {
+    sessionManager.forceRedraw();
+    setActivityStatus("screen refreshed");
+  };
+
   const { openOverlay, closeOverlay, hasActiveOverlay } = createOverlayHandlers(tui, editor);
 
   const initialSessionAgentId = (() => {
@@ -582,6 +638,8 @@ export async function runTui(opts: TuiOptions) {
       formatSessionKey,
       noteLocalRunId,
       forgetLocalRunId,
+      forceRedraw,
+      requestExit,
     });
 
   const { runLocalShellLine } = createLocalShellRunner({
@@ -616,18 +674,18 @@ export async function runTui(opts: TuiOptions) {
       return;
     }
     if (now - lastCtrlCAt < 1000) {
-      client.stop();
-      tui.stop();
-      process.exit(0);
+      requestExit(0);
+      return;
     }
     lastCtrlCAt = now;
     setActivityStatus("press ctrl+c again to exit");
     tui.requestRender();
   });
   editor.setShortcutHandler("exit", () => {
-    client.stop();
-    tui.stop();
-    process.exit(0);
+    requestExit(0);
+  });
+  editor.setShortcutHandler("forceRedraw", () => {
+    forceRedraw();
   });
   editor.setShortcutHandler("toggleToolOutput", () => {
     toolsExpanded = !toolsExpanded;
@@ -696,25 +754,35 @@ export async function runTui(opts: TuiOptions) {
   };
 
   const handleResize = () => {
-    updateHeader();
-    updateFooter();
-    renderStatus();
-    tui.requestRender();
+    sessionManager.handleResize();
+  };
+  const handleSigCont = () => {
+    sessionManager.handleSigCont();
+  };
+  const handleSigInt = () => {
+    requestExit(0);
+  };
+  const handleSigTerm = () => {
+    requestExit(0);
   };
   process.stdout.on("resize", handleResize);
+  process.on("SIGCONT", handleSigCont);
+  process.once("SIGINT", handleSigInt);
+  process.once("SIGTERM", handleSigTerm);
 
   updateHeader();
   setConnectionStatus("connecting");
   updateFooter();
-  tui.start();
-  client.start();
-  await new Promise<void>((resolve) => {
-    const finish = () => {
-      process.stdout.off("resize", handleResize);
-      resolve();
-    };
-    process.once("exit", finish);
-    process.once("SIGINT", finish);
-    process.once("SIGTERM", finish);
-  });
+  sessionManager.activate();
+  try {
+    tui.start();
+    client.start();
+    await exitPromise;
+  } finally {
+    process.stdout.off("resize", handleResize);
+    process.off("SIGCONT", handleSigCont);
+    process.off("SIGINT", handleSigInt);
+    process.off("SIGTERM", handleSigTerm);
+    await sessionManager.cleanup("tui finalizer");
+  }
 }

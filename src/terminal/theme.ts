@@ -1,12 +1,9 @@
-import chalk, { Chalk } from "chalk";
+import { createTerminalChalk } from "./capabilities.js";
 import { LOBSTER_PALETTE } from "./palette.js";
 
-const hasForceColor =
-  typeof process.env.FORCE_COLOR === "string" &&
-  process.env.FORCE_COLOR.trim().length > 0 &&
-  process.env.FORCE_COLOR.trim() !== "0";
-
-const baseChalk = process.env.NO_COLOR && !hasForceColor ? new Chalk({ level: 0 }) : chalk;
+const baseChalk = createTerminalChalk({
+  isTTY: Boolean(process.stdout.isTTY || process.stderr.isTTY),
+});
 
 const hex = (value: string) => baseChalk.hex(value);
 

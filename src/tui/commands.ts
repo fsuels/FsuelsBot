@@ -114,6 +114,7 @@ export function getSlashCommands(options: SlashCommandOptions = {}): SlashComman
         })),
     },
     { name: "abort", description: "Abort active run" },
+    { name: "redraw", description: "Force a full screen redraw" },
     { name: "new", description: "Reset the session" },
     { name: "reset", description: "Reset the session" },
     { name: "settings", description: "Open settings" },
@@ -157,6 +158,7 @@ export function helpText(options: SlashCommandOptions = {}): string {
     "/activation <mention|always>",
     "/new or /reset",
     "/abort",
+    "/redraw",
     "/settings",
     "/exit",
   ].join("\n");

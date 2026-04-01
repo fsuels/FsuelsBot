@@ -50,6 +50,8 @@ type CommandHandlerContext = {
   applySessionInfoFromPatch: (result: SessionsPatchResult) => void;
   noteLocalRunId: (runId: string) => void;
   forgetLocalRunId?: (runId: string) => void;
+  forceRedraw?: () => void;
+  requestExit?: (code?: number) => void;
 };
 
 export function createCommandHandlers(context: CommandHandlerContext) {
@@ -73,6 +75,8 @@ export function createCommandHandlers(context: CommandHandlerContext) {
     applySessionInfoFromPatch,
     noteLocalRunId,
     forgetLocalRunId,
+    forceRedraw,
+    requestExit,
   } = context;
 
   const setAgent = async (id: string) => {
@@ -504,14 +508,26 @@ export function createCommandHandlers(context: CommandHandlerContext) {
       case "abort":
         await abortActive();
         break;
+      case "redraw":
+        chatLog.addSystem("screen refreshed");
+        if (forceRedraw) {
+          forceRedraw();
+        } else {
+          tui.requestRender(true);
+        }
+        break;
       case "settings":
         openSettings();
         break;
       case "exit":
       case "quit":
-        client.stop();
-        tui.stop();
-        process.exit(0);
+        if (requestExit) {
+          requestExit(0);
+        } else {
+          client.stop();
+          tui.stop();
+          process.exit(0);
+        }
         break;
       default:
         await sendMessage(raw);

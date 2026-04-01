@@ -3,6 +3,7 @@ import { Chalk } from "chalk";
 import { CHAT_CHANNEL_ORDER } from "../channels/registry.js";
 import { isVerbose } from "../globals.js";
 import { defaultRuntime, type RuntimeEnv } from "../runtime.js";
+import { resolveTerminalCapabilities } from "../terminal/capabilities.js";
 import { clearActiveProgressLine } from "../terminal/progress-line.js";
 import { getConsoleSettings, shouldLogSubsystemToConsole } from "./console.js";
 import { type LogLevel, levelToMinLevel } from "./levels.js";
@@ -34,24 +35,11 @@ function shouldLogToConsole(level: LogLevel, settings: { level: LogLevel }): boo
 
 type ChalkInstance = InstanceType<typeof Chalk>;
 
-function isRichConsoleEnv(): boolean {
-  const term = (process.env.TERM ?? "").toLowerCase();
-  if (process.env.COLORTERM || process.env.TERM_PROGRAM) {
-    return true;
-  }
-  return term.length > 0 && term !== "dumb";
-}
-
 function getColorForConsole(): ChalkInstance {
-  const hasForceColor =
-    typeof process.env.FORCE_COLOR === "string" &&
-    process.env.FORCE_COLOR.trim().length > 0 &&
-    process.env.FORCE_COLOR.trim() !== "0";
-  if (process.env.NO_COLOR && !hasForceColor) {
-    return new Chalk({ level: 0 });
-  }
   const hasTty = Boolean(process.stdout.isTTY || process.stderr.isTTY);
-  return hasTty || isRichConsoleEnv() ? new Chalk({ level: 1 }) : new Chalk({ level: 0 });
+  return new Chalk({
+    level: resolveTerminalCapabilities({ isTTY: hasTty }).colorLevel,
+  });
 }
 
 const SUBSYSTEM_COLORS = ["cyan", "green", "yellow", "blue", "magenta", "red"] as const;
