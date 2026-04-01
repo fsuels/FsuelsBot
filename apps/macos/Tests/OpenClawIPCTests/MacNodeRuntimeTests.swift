@@ -94,4 +94,140 @@ struct MacNodeRuntimeTests {
         #expect(payload.format == "mp4")
         #expect(!payload.base64.isEmpty)
     }
+
+    @Test func handleInvokeScreenRecordFailsFastWithoutPermission() async throws {
+        @MainActor
+        final class FakeMainActorServices: MacNodeRuntimeMainActorServices, @unchecked Sendable {
+            var recordCalls = 0
+
+            func recordScreen(
+                screenIndex: Int?,
+                durationMs: Int?,
+                fps: Double?,
+                includeAudio: Bool?,
+                outPath: String?) async throws -> (path: String, hasAudio: Bool)
+            {
+                self.recordCalls += 1
+                let url = FileManager().temporaryDirectory
+                    .appendingPathComponent("openclaw-test-screen-record-\(UUID().uuidString).mp4")
+                try Data("ok".utf8).write(to: url)
+                return (path: url.path, hasAudio: false)
+            }
+
+            func locationAuthorizationStatus() -> CLAuthorizationStatus { .authorizedAlways }
+            func locationAccuracyAuthorization() -> CLAccuracyAuthorization { .fullAccuracy }
+            func currentLocation(
+                desiredAccuracy: OpenClawLocationAccuracy,
+                maxAgeMs: Int?,
+                timeoutMs: Int?) async throws -> CLLocation
+            {
+                CLLocation(latitude: 0, longitude: 0)
+            }
+        }
+
+        let services = await MainActor.run { FakeMainActorServices() }
+        let runtime = MacNodeRuntime(
+            makeMainActorServices: { services },
+            permissionStatusProvider: { _ in [.screenRecording: false] })
+
+        let params = MacNodeScreenRecordParams(durationMs: 250)
+        let json = try String(data: JSONEncoder().encode(params), encoding: .utf8)
+        let response = await runtime.handleInvoke(
+            BridgeInvokeRequest(id: "req-6", command: MacNodeScreenCommand.record.rawValue, paramsJSON: json))
+        #expect(response.ok == false)
+        #expect(response.error?.message == "PERMISSION_MISSING: screenRecording")
+
+        let calls = await MainActor.run { services.recordCalls }
+        #expect(calls == 0)
+    }
+
+    @Test func handleInvokeLocationAllowsWhenInUseModeWithWhenInUsePermission() async throws {
+        await TestIsolation.withUserDefaultsValues([
+            locationModeKey: OpenClawLocationMode.whileUsing.rawValue,
+            locationPreciseKey: true,
+        ]) {
+            @MainActor
+            final class FakeMainActorServices: MacNodeRuntimeMainActorServices, @unchecked Sendable {
+                func recordScreen(
+                    screenIndex: Int?,
+                    durationMs: Int?,
+                    fps: Double?,
+                    includeAudio: Bool?,
+                    outPath: String?) async throws -> (path: String, hasAudio: Bool)
+                {
+                    fatalError("unused")
+                }
+
+                func locationAuthorizationStatus() -> CLAuthorizationStatus { .authorizedWhenInUse }
+                func locationAccuracyAuthorization() -> CLAccuracyAuthorization { .fullAccuracy }
+                func currentLocation(
+                    desiredAccuracy: OpenClawLocationAccuracy,
+                    maxAgeMs: Int?,
+                    timeoutMs: Int?) async throws -> CLLocation
+                {
+                    CLLocation(latitude: 12.3, longitude: 45.6)
+                }
+            }
+
+            let services = await MainActor.run { FakeMainActorServices() }
+            let runtime = MacNodeRuntime(makeMainActorServices: { services })
+            let params = OpenClawLocationGetParams()
+            let json = try String(data: JSONEncoder().encode(params), encoding: .utf8)
+            let response = await runtime.handleInvoke(
+                BridgeInvokeRequest(
+                    id: "req-7",
+                    command: OpenClawLocationCommand.get.rawValue,
+                    paramsJSON: json))
+            #expect(response.ok == true)
+        }
+    }
+
+    @Test func handleInvokeLocationUsesFrozenSessionSemantics() async throws {
+        await TestIsolation.withUserDefaultsValues([
+            locationModeKey: OpenClawLocationMode.whileUsing.rawValue,
+            locationPreciseKey: false,
+        ]) {
+            @MainActor
+            final class FakeMainActorServices: MacNodeRuntimeMainActorServices, @unchecked Sendable {
+                var requestedAccuracies: [OpenClawLocationAccuracy] = []
+
+                func recordScreen(
+                    screenIndex: Int?,
+                    durationMs: Int?,
+                    fps: Double?,
+                    includeAudio: Bool?,
+                    outPath: String?) async throws -> (path: String, hasAudio: Bool)
+                {
+                    fatalError("unused")
+                }
+
+                func locationAuthorizationStatus() -> CLAuthorizationStatus { .authorizedWhenInUse }
+                func locationAccuracyAuthorization() -> CLAccuracyAuthorization { .fullAccuracy }
+                func currentLocation(
+                    desiredAccuracy: OpenClawLocationAccuracy,
+                    maxAgeMs: Int?,
+                    timeoutMs: Int?) async throws -> CLLocation
+                {
+                    self.requestedAccuracies.append(desiredAccuracy)
+                    return CLLocation(latitude: 1, longitude: 2)
+                }
+            }
+
+            let services = await MainActor.run { FakeMainActorServices() }
+            let runtime = MacNodeRuntime(makeMainActorServices: { services })
+            UserDefaults.standard.set(true, forKey: locationPreciseKey)
+
+            let params = OpenClawLocationGetParams()
+            let json = try String(data: JSONEncoder().encode(params), encoding: .utf8)
+            let response = await runtime.handleInvoke(
+                BridgeInvokeRequest(
+                    id: "req-8",
+                    command: OpenClawLocationCommand.get.rawValue,
+                    paramsJSON: json))
+            #expect(response.ok == true)
+
+            let accuracies = await MainActor.run { services.requestedAccuracies }
+            #expect(accuracies == [.balanced])
+        }
+    }
 }

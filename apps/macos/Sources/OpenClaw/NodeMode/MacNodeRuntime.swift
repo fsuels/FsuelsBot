@@ -6,16 +6,24 @@ import Foundation
 actor MacNodeRuntime {
     private let cameraCapture = CameraCaptureService()
     private let makeMainActorServices: () async -> any MacNodeRuntimeMainActorServices
+    private let permissionStatusProvider: @Sendable ([Capability]) async -> [Capability: Bool]
     private var cachedMainActorServices: (any MacNodeRuntimeMainActorServices)?
     private var mainSessionKey: String = "main"
+    private var sessionSemantics: MacNodeRuntimeSemantics
     private var eventSender: (@Sendable (String, String?) async -> Void)?
 
     init(
         makeMainActorServices: @escaping () async -> any MacNodeRuntimeMainActorServices = {
             await MainActor.run { LiveMacNodeRuntimeMainActorServices() }
-        })
+        },
+        permissionStatusProvider: @escaping @Sendable ([Capability]) async -> [Capability: Bool] = {
+            await PermissionManager.status($0)
+        },
+        initialSemantics: MacNodeRuntimeSemantics = .load())
     {
         self.makeMainActorServices = makeMainActorServices
+        self.permissionStatusProvider = permissionStatusProvider
+        self.sessionSemantics = initialSemantics
     }
 
     func updateMainSessionKey(_ sessionKey: String) {
@@ -24,13 +32,17 @@ actor MacNodeRuntime {
         self.mainSessionKey = trimmed
     }
 
+    func updateSessionSemantics(_ semantics: MacNodeRuntimeSemantics) {
+        self.sessionSemantics = semantics
+    }
+
     func setEventSender(_ sender: (@Sendable (String, String?) async -> Void)?) {
         self.eventSender = sender
     }
 
     func handleInvoke(_ req: BridgeInvokeRequest) async -> BridgeInvokeResponse {
         let command = req.command
-        if self.isCanvasCommand(command), !Self.canvasEnabled() {
+        if self.isCanvasCommand(command), !self.sessionSemantics.canvasEnabled {
             return BridgeInvokeResponse(
                 id: req.id,
                 ok: false,
@@ -166,7 +178,7 @@ actor MacNodeRuntime {
     }
 
     private func handleCameraInvoke(_ req: BridgeInvokeRequest) async throws -> BridgeInvokeResponse {
-        guard Self.cameraEnabled() else {
+        guard self.sessionSemantics.cameraEnabled else {
             return BridgeInvokeResponse(
                 id: req.id,
                 ok: false,
@@ -230,7 +242,7 @@ actor MacNodeRuntime {
     }
 
     private func handleLocationInvoke(_ req: BridgeInvokeRequest) async throws -> BridgeInvokeResponse {
-        let mode = Self.locationMode()
+        let mode = self.sessionSemantics.locationMode
         guard mode != .off else {
             return BridgeInvokeResponse(
                 id: req.id,
@@ -242,17 +254,12 @@ actor MacNodeRuntime {
         let params = (try? Self.decodeParams(OpenClawLocationGetParams.self, from: req.paramsJSON)) ??
             OpenClawLocationGetParams()
         let desired = params.desiredAccuracy ??
-            (Self.locationPreciseEnabled() ? .precise : .balanced)
+            (self.sessionSemantics.locationPreciseEnabled ? .precise : .balanced)
         let services = await self.mainActorServices()
         let status = await services.locationAuthorizationStatus()
-        let hasPermission = switch mode {
-        case .always:
-            status == .authorizedAlways
-        case .whileUsing:
-            status == .authorizedAlways
-        case .off:
-            false
-        }
+        let hasPermission = PermissionManager.isLocationAuthorized(
+            status: status,
+            requireAlways: mode == .always)
         if !hasPermission {
             return BridgeInvokeResponse(
                 id: req.id,
@@ -304,6 +311,13 @@ actor MacNodeRuntime {
                 req,
                 code: .invalidRequest,
                 message: "INVALID_REQUEST: screen format must be mp4")
+        }
+        let permissions = await self.permissionStatusProvider([.screenRecording])
+        guard permissions[.screenRecording] == true else {
+            return Self.errorResponse(
+                req,
+                code: .unavailable,
+                message: "PERMISSION_MISSING: screenRecording")
         }
         let services = await self.mainActorServices()
         let res = try await services.recordScreen(
@@ -854,27 +868,9 @@ extension MacNodeRuntime {
         return json
     }
 
-    private nonisolated static func canvasEnabled() -> Bool {
-        UserDefaults.standard.object(forKey: canvasEnabledKey) as? Bool ?? true
-    }
-
-    private nonisolated static func cameraEnabled() -> Bool {
-        UserDefaults.standard.object(forKey: cameraEnabledKey) as? Bool ?? false
-    }
-
     private static func sanitizedEnv(_ overrides: [String: String]?) -> [String: String]? {
         guard let overrides else { return nil }
         return SubprocessEnvironment.build(overrides: overrides, sanitizeOverrides: true)
-    }
-
-    private nonisolated static func locationMode() -> OpenClawLocationMode {
-        let raw = UserDefaults.standard.string(forKey: locationModeKey) ?? "off"
-        return OpenClawLocationMode(rawValue: raw) ?? .off
-    }
-
-    private nonisolated static func locationPreciseEnabled() -> Bool {
-        if UserDefaults.standard.object(forKey: locationPreciseKey) == nil { return true }
-        return UserDefaults.standard.bool(forKey: locationPreciseKey)
     }
 
     private static func errorResponse(

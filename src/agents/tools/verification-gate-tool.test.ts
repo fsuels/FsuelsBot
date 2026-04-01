@@ -50,7 +50,8 @@ describe("verification_gate tool", () => {
     const waitForTask = vi
       .fn()
       .mockResolvedValueOnce({
-        finalText: JSON.stringify({
+        finalText: "Structured output captured.",
+        structuredOutput: {
           verdict: "PASS",
           summary: "Primary verifier passed.",
           commands_executed: [
@@ -59,10 +60,11 @@ describe("verification_gate tool", () => {
           verified: ["Tests pass", "Adversarial probe: retrying auth flow twice still passes"],
           unverified: [],
           failure_reasons: [],
-        }),
+        },
       })
       .mockResolvedValueOnce({
-        finalText: JSON.stringify({
+        finalText: "Structured output captured.",
+        structuredOutput: {
           verdict: "PASS",
           summary: "Spot-check matched.",
           commands_executed: [
@@ -71,7 +73,7 @@ describe("verification_gate tool", () => {
           verified: ["Spot-check matched", "Adversarial probe: malformed token stays rejected"],
           unverified: [],
           failure_reasons: [],
-        }),
+        },
       });
     const ensureVerificationTask = vi.fn().mockResolvedValue({ id: "verify-1" });
     const completeVerificationTask = vi.fn().mockResolvedValue(undefined);
@@ -447,6 +449,8 @@ describe("verification_gate tool", () => {
     expect(prompt).toContain("Capture the exact decisive command output");
     expect(prompt).toContain("Ignore style nits");
     expect(prompt).toContain("Adversarial probe:");
+    expect(prompt).toContain("verification_report");
+    expect(prompt).toContain("<verification-json>");
     expect(prompt).toContain('"confidence": 0');
   });
 

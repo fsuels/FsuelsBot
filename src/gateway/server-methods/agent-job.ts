@@ -11,6 +11,8 @@ type AgentRunSnapshot = {
   startedAt?: number;
   endedAt?: number;
   error?: string;
+  structuredOutput?: unknown;
+  structuredOutputRequired?: boolean;
   ts: number;
 };
 
@@ -52,6 +54,14 @@ function ensureAgentRunListener() {
       typeof evt.data?.startedAt === "number" ? evt.data.startedAt : agentRunStarts.get(evt.runId);
     const endedAt = typeof evt.data?.endedAt === "number" ? evt.data.endedAt : undefined;
     const error = typeof evt.data?.error === "string" ? evt.data.error : undefined;
+    const structuredOutput =
+      evt.data && typeof evt.data === "object" && "structuredOutput" in evt.data
+        ? evt.data.structuredOutput
+        : undefined;
+    const structuredOutputRequired =
+      typeof evt.data?.structuredOutputRequired === "boolean"
+        ? evt.data.structuredOutputRequired
+        : undefined;
     agentRunStarts.delete(evt.runId);
     recordAgentRunSnapshot({
       runId: evt.runId,
@@ -59,6 +69,8 @@ function ensureAgentRunListener() {
       startedAt,
       endedAt,
       error,
+      structuredOutput,
+      structuredOutputRequired,
       ts: Date.now(),
     });
   });
@@ -116,12 +128,22 @@ export async function waitForAgentJob(params: {
           : agentRunStarts.get(evt.runId);
       const endedAt = typeof evt.data?.endedAt === "number" ? evt.data.endedAt : undefined;
       const error = typeof evt.data?.error === "string" ? evt.data.error : undefined;
+      const structuredOutput =
+        evt.data && typeof evt.data === "object" && "structuredOutput" in evt.data
+          ? evt.data.structuredOutput
+          : undefined;
+      const structuredOutputRequired =
+        typeof evt.data?.structuredOutputRequired === "boolean"
+          ? evt.data.structuredOutputRequired
+          : undefined;
       const snapshot: AgentRunSnapshot = {
         runId: evt.runId,
         status: phase === "error" ? "error" : "ok",
         startedAt,
         endedAt,
         error,
+        structuredOutput,
+        structuredOutputRequired,
         ts: Date.now(),
       };
       recordAgentRunSnapshot(snapshot);

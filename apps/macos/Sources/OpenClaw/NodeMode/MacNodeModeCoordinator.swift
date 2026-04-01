@@ -31,7 +31,7 @@ final class MacNodeModeCoordinator {
 
     private func run() async {
         var retryDelay: UInt64 = 1_000_000_000
-        var lastCameraEnabled: Bool?
+        var activeSemantics: MacNodeRuntimeSemantics?
         let defaults = UserDefaults.standard
 
         while !Task.isCancelled {
@@ -40,25 +40,29 @@ final class MacNodeModeCoordinator {
                 continue
             }
 
-            let cameraEnabled = defaults.object(forKey: cameraEnabledKey) as? Bool ?? false
-            if lastCameraEnabled == nil {
-                lastCameraEnabled = cameraEnabled
-            } else if lastCameraEnabled != cameraEnabled {
-                lastCameraEnabled = cameraEnabled
+            let semantics = MacNodeRuntimeSemantics.load(defaults: defaults)
+            if let activeSemantics, activeSemantics != semantics {
+                self.logger.info("mac node semantics changed; reconnecting session")
                 await self.session.disconnect()
+                activeSemantics = nil
                 try? await Task.sleep(nanoseconds: 200_000_000)
+                continue
+            }
+
+            if activeSemantics == nil {
+                await self.runtime.updateSessionSemantics(semantics)
+                activeSemantics = semantics
             }
 
             do {
                 let config = try await GatewayEndpointStore.shared.requireConfig()
-                let caps = self.currentCaps()
-                let commands = self.currentCommands(caps: caps)
+                let effectiveSemantics = activeSemantics ?? semantics
                 let permissions = await self.currentPermissions()
                 let connectOptions = GatewayConnectOptions(
                     role: "node",
                     scopes: [],
-                    caps: caps,
-                    commands: commands,
+                    caps: effectiveSemantics.caps,
+                    commands: effectiveSemantics.commands,
                     permissions: permissions,
                     clientId: "openclaw-macos",
                     clientMode: "node",
@@ -99,6 +103,7 @@ final class MacNodeModeCoordinator {
                 retryDelay = 1_000_000_000
                 try? await Task.sleep(nanoseconds: 1_000_000_000)
             } catch {
+                activeSemantics = nil
                 self.logger.error("mac node gateway connect failed: \(error.localizedDescription, privacy: .public)")
                 try? await Task.sleep(nanoseconds: min(retryDelay, 10_000_000_000))
                 retryDelay = min(retryDelay * 2, 10_000_000_000)
@@ -106,52 +111,9 @@ final class MacNodeModeCoordinator {
         }
     }
 
-    private func currentCaps() -> [String] {
-        var caps: [String] = [OpenClawCapability.canvas.rawValue, OpenClawCapability.screen.rawValue]
-        if UserDefaults.standard.object(forKey: cameraEnabledKey) as? Bool ?? false {
-            caps.append(OpenClawCapability.camera.rawValue)
-        }
-        let rawLocationMode = UserDefaults.standard.string(forKey: locationModeKey) ?? "off"
-        if OpenClawLocationMode(rawValue: rawLocationMode) != .off {
-            caps.append(OpenClawCapability.location.rawValue)
-        }
-        return caps
-    }
-
     private func currentPermissions() async -> [String: Bool] {
         let statuses = await PermissionManager.status()
         return Dictionary(uniqueKeysWithValues: statuses.map { ($0.key.rawValue, $0.value) })
-    }
-
-    private func currentCommands(caps: [String]) -> [String] {
-        var commands: [String] = [
-            OpenClawCanvasCommand.present.rawValue,
-            OpenClawCanvasCommand.hide.rawValue,
-            OpenClawCanvasCommand.navigate.rawValue,
-            OpenClawCanvasCommand.evalJS.rawValue,
-            OpenClawCanvasCommand.snapshot.rawValue,
-            OpenClawCanvasA2UICommand.push.rawValue,
-            OpenClawCanvasA2UICommand.pushJSONL.rawValue,
-            OpenClawCanvasA2UICommand.reset.rawValue,
-            MacNodeScreenCommand.record.rawValue,
-            OpenClawSystemCommand.notify.rawValue,
-            OpenClawSystemCommand.which.rawValue,
-            OpenClawSystemCommand.run.rawValue,
-            OpenClawSystemCommand.execApprovalsGet.rawValue,
-            OpenClawSystemCommand.execApprovalsSet.rawValue,
-        ]
-
-        let capsSet = Set(caps)
-        if capsSet.contains(OpenClawCapability.camera.rawValue) {
-            commands.append(OpenClawCameraCommand.list.rawValue)
-            commands.append(OpenClawCameraCommand.snap.rawValue)
-            commands.append(OpenClawCameraCommand.clip.rawValue)
-        }
-        if capsSet.contains(OpenClawCapability.location.rawValue) {
-            commands.append(OpenClawLocationCommand.get.rawValue)
-        }
-
-        return commands
     }
 
     private func buildSessionBox(url: URL) -> WebSocketSessionBox? {
