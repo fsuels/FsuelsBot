@@ -1,31 +1,16 @@
+import { createSingleflightCache } from "../../infra/singleflight.js";
+
 type AnyFn = (...args: unknown[]) => unknown;
 
 export function createLazyModuleLoader<TModule>(
   load: () => Promise<TModule>,
 ): () => Promise<TModule> {
-  let loaded: TModule | null = null;
-  let inflight: Promise<TModule> | null = null;
+  const gate = createSingleflightCache<string, TModule>({
+    cacheSuccessMs: Number.POSITIVE_INFINITY,
+    classifyError: () => "transient",
+  });
 
-  return async () => {
-    if (loaded) {
-      return loaded;
-    }
-    if (inflight) {
-      return inflight;
-    }
-    // Avoid pinning a rejected import forever; a repaired install should be able to retry.
-    inflight = load()
-      .then((module) => {
-        loaded = module;
-        inflight = null;
-        return module;
-      })
-      .catch((error) => {
-        inflight = null;
-        throw error;
-      });
-    return await inflight;
-  };
+  return async () => await gate.run("module", load);
 }
 
 export function lazyAsyncExport<

@@ -1,19 +1,23 @@
 import type { Snapshot } from "../protocol/index.js";
 import { resolveDefaultAgentId } from "../../agents/agent-scope.js";
 import { getHealthSnapshot, type HealthSummary } from "../../commands/health.js";
-import { CONFIG_PATH, STATE_DIR, loadConfig } from "../../config/config.js";
+import { loadBootstrapConfig } from "../../config/bootstrap.js";
+import { CONFIG_PATH, STATE_DIR } from "../../config/paths.js";
 import { resolveMainSessionKey } from "../../config/sessions.js";
+import { createSingleflightCache } from "../../infra/singleflight.js";
 import { listSystemPresence } from "../../infra/system-presence.js";
 import { normalizeMainKey } from "../../routing/session-key.js";
 
 let presenceVersion = 1;
 let healthVersion = 1;
 let healthCache: HealthSummary | null = null;
-let healthRefresh: Promise<HealthSummary> | null = null;
 let broadcastHealthUpdate: ((snap: HealthSummary) => void) | null = null;
+const healthRefreshGate = createSingleflightCache<string, HealthSummary>({
+  classifyError: () => "transient",
+});
 
 export function buildGatewaySnapshot(): Snapshot {
-  const cfg = loadConfig();
+  const cfg = loadBootstrapConfig();
   const defaultAgentId = resolveDefaultAgentId(cfg);
   const mainKey = normalizeMainKey(cfg.session?.mainKey);
   const mainSessionKey = resolveMainSessionKey(cfg);
@@ -61,8 +65,9 @@ export function setBroadcastHealthUpdate(fn: ((snap: HealthSummary) => void) | n
 }
 
 export async function refreshGatewayHealthSnapshot(opts?: { probe?: boolean }) {
-  if (!healthRefresh) {
-    healthRefresh = (async () => {
+  return await healthRefreshGate.run(
+    "gateway-health-refresh",
+    async () => {
       const snap = await getHealthSnapshot({ probe: opts?.probe });
       healthCache = snap;
       healthVersion += 1;
@@ -70,9 +75,7 @@ export async function refreshGatewayHealthSnapshot(opts?: { probe?: boolean }) {
         broadcastHealthUpdate(snap);
       }
       return snap;
-    })().finally(() => {
-      healthRefresh = null;
-    });
-  }
-  return healthRefresh;
+    },
+    { cacheSuccessMs: 0 },
+  );
 }

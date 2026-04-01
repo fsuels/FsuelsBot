@@ -1,10 +1,13 @@
 import { execFile } from "node:child_process";
 import os from "node:os";
 import { promisify } from "node:util";
+import { createSingleflightCache } from "./singleflight.js";
 
 const execFileAsync = promisify(execFile);
-
-let cachedPromise: Promise<string> | null = null;
+const machineDisplayNameGate = createSingleflightCache<string, string>({
+  cacheSuccessMs: Number.POSITIVE_INFINITY,
+  classifyError: () => "transient",
+});
 
 async function tryScutil(key: "ComputerName" | "LocalHostName") {
   try {
@@ -29,10 +32,7 @@ function fallbackHostName() {
 }
 
 export async function getMachineDisplayName(): Promise<string> {
-  if (cachedPromise) {
-    return cachedPromise;
-  }
-  cachedPromise = (async () => {
+  return await machineDisplayNameGate.run("machine-display-name", async () => {
     if (process.env.VITEST || process.env.NODE_ENV === "test") {
       return fallbackHostName();
     }
@@ -47,6 +47,5 @@ export async function getMachineDisplayName(): Promise<string> {
       }
     }
     return fallbackHostName();
-  })();
-  return cachedPromise;
+  });
 }
