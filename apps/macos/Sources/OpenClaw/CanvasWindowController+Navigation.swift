@@ -20,7 +20,7 @@ extension CanvasWindowController {
         if scheme == "openclaw" {
             if let currentScheme = self.webView.url?.scheme,
                CanvasScheme.allSchemes.contains(currentScheme) {
-                Task { await DeepLinkHandler.shared.handle(url: url, source: .browserLink) }
+                Task { await DeepLinkHandler.shared.handle(url: url) }
             } else {
                 canvasWindowLogger
                     .debug("ignoring deep link from non-canvas page \(url.absoluteString, privacy: .public)")

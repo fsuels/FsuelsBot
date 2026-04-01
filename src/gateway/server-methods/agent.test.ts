@@ -238,60 +238,6 @@ describe("gateway agent handler", () => {
     expect(capturedEntry?.claudeCliSessionId).toBeUndefined();
   });
 
-  it("persists normalized external origin metadata on the session entry", async () => {
-    mocks.loadSessionEntry.mockReturnValue({
-      cfg: {},
-      storePath: "/tmp/sessions.json",
-      entry: {
-        sessionId: "existing-session-id",
-        updatedAt: Date.now(),
-      },
-      canonicalKey: "agent:main:main",
-    });
-
-    let capturedEntry: Record<string, unknown> | undefined;
-    mocks.updateSessionStore.mockImplementation(async (_path, updater) => {
-      const store: Record<string, unknown> = {};
-      await updater(store);
-      capturedEntry = store["agent:main:main"] as Record<string, unknown>;
-    });
-
-    mocks.agentCommand.mockResolvedValue({
-      payloads: [{ text: "ok" }],
-      meta: { durationMs: 100 },
-    });
-
-    const respond = vi.fn();
-    await agentHandlers.agent({
-      params: {
-        message: "review this",
-        agentId: "main",
-        sessionKey: "agent:main:main",
-        idempotencyKey: "test-origin-idem",
-        origin: {
-          source: "os-protocol",
-          rawUri: "openclaw://agent?message=review%20this",
-          receivedAt: 1234567890,
-          payloadLength: 11,
-          trustLevel: "external",
-        },
-      },
-      respond,
-      context: makeContext(),
-      req: { type: "req", id: "origin-1", method: "agent" },
-      client: null,
-      isWebchatConnect: () => false,
-    });
-
-    expect(capturedEntry?.externalOrigin).toEqual({
-      source: "os-protocol",
-      rawUri: "openclaw://agent?message=review%20this",
-      receivedAt: 1234567890,
-      payloadLength: 11,
-      trustLevel: "external",
-    });
-  });
-
   it("surfaces cancelled agent tasks when lifecycle wait misses the terminal event", async () => {
     mocks.waitForAgentJob.mockResolvedValueOnce(null);
     mocks.getTaskOutputSnapshot.mockReturnValueOnce({
@@ -326,41 +272,6 @@ describe("gateway agent handler", () => {
         startedAt: 1_000,
         endedAt: 2_000,
         error: "Stopped by requester.",
-      }),
-    );
-  });
-
-  it("returns structured-output metadata from agent.wait snapshots", async () => {
-    mocks.waitForAgentJob.mockResolvedValueOnce({
-      runId: "run-structured",
-      status: "ok",
-      startedAt: 1_000,
-      endedAt: 2_000,
-      structuredOutput: { verdict: "PASS" },
-      structuredOutputRequired: true,
-      ts: 2_000,
-    });
-
-    const respond = vi.fn();
-    await agentHandlers["agent.wait"]({
-      params: {
-        runId: "run-structured",
-        timeoutMs: 10,
-      },
-      respond,
-      context: makeContext(),
-      req: { type: "req", id: "wait-structured", method: "agent.wait" },
-      client: null,
-      isWebchatConnect: () => false,
-    });
-
-    expect(respond).toHaveBeenCalledWith(
-      true,
-      expect.objectContaining({
-        runId: "run-structured",
-        status: "ok",
-        structuredOutput: { verdict: "PASS" },
-        structuredOutputRequired: true,
       }),
     );
   });

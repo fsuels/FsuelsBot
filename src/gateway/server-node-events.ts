@@ -8,7 +8,6 @@ import { requestHeartbeatNow } from "../infra/heartbeat-wake.js";
 import { enqueueSystemEvent } from "../infra/system-events.js";
 import { normalizeMainKey } from "../routing/session-key.js";
 import { defaultRuntime } from "../runtime.js";
-import { normalizeExternalOrigin } from "./external-origin.js";
 import { loadSessionEntry } from "./session-utils.js";
 import { formatForLog } from "./ws-log.js";
 
@@ -92,7 +91,6 @@ export const handleNodeEvent = async (ctx: NodeEventContext, nodeId: string, evt
         channel?: string | null;
         timeoutSeconds?: number | null;
         key?: string | null;
-        origin?: unknown;
       };
       let link: AgentDeepLink | null = null;
       try {
@@ -112,7 +110,6 @@ export const handleNodeEvent = async (ctx: NodeEventContext, nodeId: string, evt
       const channel = normalizeChannelId(channelRaw) ?? undefined;
       const to = typeof link?.to === "string" && link.to.trim() ? link.to.trim() : undefined;
       const deliver = Boolean(link?.deliver) && Boolean(channel);
-      const externalOrigin = normalizeExternalOrigin(link?.origin);
 
       const sessionKeyRaw = (link?.sessionKey ?? "").trim();
       const sessionKey = sessionKeyRaw.length > 0 ? sessionKeyRaw : `node-${nodeId}`;
@@ -131,7 +128,6 @@ export const handleNodeEvent = async (ctx: NodeEventContext, nodeId: string, evt
             sendPolicy: entry?.sendPolicy,
             lastChannel: entry?.lastChannel,
             lastTo: entry?.lastTo,
-            externalOrigin: externalOrigin ?? entry?.externalOrigin,
           };
         });
       }

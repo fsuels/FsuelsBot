@@ -23,7 +23,6 @@ export type GatewaySessionRow = {
   space?: string;
   chatType?: ChatType;
   origin?: SessionEntry["origin"];
-  externalOrigin?: SessionEntry["externalOrigin"];
   updatedAt: number | null;
   sessionId?: string;
   systemSent?: boolean;

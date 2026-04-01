@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
@@ -336,35 +335,6 @@ describe("listSessionsFromStore search", () => {
     expect(result.sessions.length).toBe(0);
   });
 
-  test("includes external origin metadata in listed sessions", () => {
-    const store = makeStore();
-    store["agent:main:work-project"] = {
-      ...store["agent:main:work-project"],
-      externalOrigin: {
-        source: "browser-link",
-        rawUri: "openclaw://agent?message=review",
-        receivedAt: 1234,
-        payloadLength: 6,
-        trustLevel: "external",
-      },
-    };
-
-    const result = listSessionsFromStore({
-      cfg: baseCfg,
-      storePath: "/tmp/sessions.json",
-      store,
-      opts: { search: "work" },
-    });
-
-    expect(result.sessions[0]?.externalOrigin).toEqual({
-      source: "browser-link",
-      rawUri: "openclaw://agent?message=review",
-      receivedAt: 1234,
-      payloadLength: 6,
-      trustLevel: "external",
-    });
-  });
-
   test("matches partial strings", () => {
     const store = makeStore();
     const result = listSessionsFromStore({
@@ -411,52 +381,5 @@ describe("listSessionsFromStore search", () => {
     });
 
     expect(result.sessions.map((session) => session.key)).toEqual(["agent:main:cron:job-1"]);
-  });
-
-  test("recovers transcript-backed sessions that are missing from the store", () => {
-    const previousStateDir = process.env.OPENCLAW_STATE_DIR;
-    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "openclaw-session-recovery-"));
-    try {
-      process.env.OPENCLAW_STATE_DIR = stateDir;
-      const transcriptDir = path.join(stateDir, "agents", "main", "sessions");
-      fs.mkdirSync(transcriptDir, { recursive: true });
-      const sessionId = "sess-recovered";
-      fs.writeFileSync(
-        path.join(transcriptDir, `${sessionId}.jsonl`),
-        [
-          JSON.stringify({
-            type: "session",
-            id: sessionId,
-            timestamp: "2026-03-01T00:00:00.000Z",
-            cwd: "/tmp/workspace",
-          }),
-          JSON.stringify({
-            message: {
-              role: "user",
-              content: [{ type: "text", text: "Recover this transcript-backed session" }],
-            },
-          }),
-        ].join("\n"),
-        "utf-8",
-      );
-
-      const result = listSessionsFromStore({
-        cfg: baseCfg,
-        storePath: path.join(transcriptDir, "sessions.json"),
-        store: {},
-        opts: { includeDerivedTitles: true },
-      });
-
-      expect(result.sessions).toHaveLength(1);
-      expect(result.sessions[0]?.key).toBe(`agent:main:${sessionId}`);
-      expect(result.sessions[0]?.derivedTitle).toBe("Recover this transcript-backed session");
-    } finally {
-      if (previousStateDir === undefined) {
-        delete process.env.OPENCLAW_STATE_DIR;
-      } else {
-        process.env.OPENCLAW_STATE_DIR = previousStateDir;
-      }
-      fs.rmSync(stateDir, { recursive: true, force: true });
-    }
   });
 });

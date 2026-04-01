@@ -64,20 +64,6 @@ export const AgentParamsSchema = Type.Object(
     timeout: Type.Optional(Type.Integer({ minimum: 0 })),
     lane: Type.Optional(Type.String()),
     extraSystemPrompt: Type.Optional(Type.String()),
-    origin: Type.Optional(
-      Type.Object(
-        {
-          source: NonEmptyString,
-          rawUri: Type.Optional(Type.String()),
-          receivedAt: Type.Integer({ minimum: 0 }),
-          payloadLength: Type.Optional(Type.Integer({ minimum: 0 })),
-          trustLevel: Type.Union([Type.Literal("interactive"), Type.Literal("external")]),
-        },
-        { additionalProperties: false },
-      ),
-    ),
-    structuredOutputSchema: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
-    structuredOutputName: Type.Optional(NonEmptyString),
     cacheSafeFork: Type.Optional(Type.Boolean()),
     forkRequestContext: Type.Optional(
       Type.Object(

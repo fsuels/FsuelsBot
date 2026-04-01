@@ -48,19 +48,6 @@ final class NodeAppModel {
         case error
     }
 
-    struct PendingDeepLinkReview: Identifiable, Equatable {
-        private static let longPromptThreshold = 700
-
-        let id = UUID()
-        let link: AgentDeepLink
-        let originalURL: URL
-        let origin: ExternalOriginContext
-
-        var isLongPrompt: Bool {
-            self.link.message.count > Self.longPromptThreshold || self.link.message.contains("\n")
-        }
-    }
-
     var isBackgrounded: Bool = false
     let screen: ScreenController
     private let camera: any CameraServicing
@@ -135,7 +122,6 @@ final class NodeAppModel {
     var cameraHUDKind: CameraHUDKind?
     var cameraFlashNonce: Int = 0
     var screenRecordActive: Bool = false
-    var pendingDeepLinkReview: PendingDeepLinkReview?
 
     init(
         screen: ScreenController = ScreenController(),
@@ -186,7 +172,7 @@ final class NodeAppModel {
         self.screen.onDeepLink = { [weak self] url in
             guard let self else { return }
             Task { @MainActor in
-                await self.handleDeepLink(url: url, source: .browserLink)
+                await self.handleDeepLink(url: url)
             }
         }
 
@@ -585,20 +571,16 @@ final class NodeAppModel {
         await self.nodeGateway.sendEvent(event: "voice.transcript", payloadJSON: json)
     }
 
-    func handleDeepLink(url: URL, source: ExternalOriginContext.Source = .osProtocol) async {
+    func handleDeepLink(url: URL) async {
         guard let route = DeepLinkParser.parse(url) else { return }
 
         switch route {
         case let .agent(link):
-            await self.handleAgentDeepLink(link, originalURL: url, source: source)
+            await self.handleAgentDeepLink(link, originalURL: url)
         }
     }
 
-    private func handleAgentDeepLink(
-        _ link: AgentDeepLink,
-        originalURL: URL,
-        source: ExternalOriginContext.Source) async
-    {
+    private func handleAgentDeepLink(_ link: AgentDeepLink, originalURL: URL) async {
         let message = link.message.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !message.isEmpty else { return }
 
@@ -612,19 +594,12 @@ final class NodeAppModel {
             return
         }
 
-        let reviewedLink = link.withOrigin(
-            ExternalOriginContext(
-                source: source,
-                rawUri: originalURL.absoluteString,
-                receivedAt: Int(Date().timeIntervalSince1970 * 1000),
-                payloadLength: message.count,
-                trustLevel: .external))
-        guard let reviewedOrigin = reviewedLink.origin else { return }
-        self.pendingDeepLinkReview = PendingDeepLinkReview(
-            link: reviewedLink,
-            originalURL: originalURL,
-            origin: reviewedOrigin)
-        self.screen.errorText = nil
+        do {
+            try await self.sendAgentRequest(link: link)
+            self.screen.errorText = nil
+        } catch {
+            self.screen.errorText = "Agent request failed: \(error.localizedDescription)"
+        }
     }
 
     private func sendAgentRequest(link: AgentDeepLink) async throws {
@@ -634,7 +609,8 @@ final class NodeAppModel {
             ])
         }
 
-        // Deep-link review happens in the SwiftUI layer before we forward the request.
+        // iOS gateway forwards to the gateway; no local auth prompts here.
+        // (Key-based unattended auth is handled on macOS for openclaw:// links.)
         let data = try JSONEncoder().encode(link)
         guard let json = String(bytes: data, encoding: .utf8) else {
             throw NSError(domain: "NodeAppModel", code: 2, userInfo: [
@@ -646,23 +622,6 @@ final class NodeAppModel {
 
     private func isGatewayConnected() async -> Bool {
         self.gatewayConnected
-    }
-
-    func approvePendingDeepLink() {
-        guard let pending = self.pendingDeepLinkReview else { return }
-        self.pendingDeepLinkReview = nil
-        Task { @MainActor in
-            do {
-                try await self.sendAgentRequest(link: pending.link)
-                self.screen.errorText = nil
-            } catch {
-                self.screen.errorText = "Agent request failed: \(error.localizedDescription)"
-            }
-        }
-    }
-
-    func cancelPendingDeepLink() {
-        self.pendingDeepLinkReview = nil
     }
 
     private func handleInvoke(_ req: BridgeInvokeRequest) async -> BridgeInvokeResponse {
@@ -1848,18 +1807,6 @@ extension NodeAppModel {
 
     func _test_showLocalCanvasOnDisconnect() {
         self.showLocalCanvasOnDisconnect()
-    }
-
-    func _test_setGatewayConnected(_ connected: Bool) {
-        self.gatewayConnected = connected
-    }
-
-    func _test_pendingDeepLinkReview() -> PendingDeepLinkReview? {
-        self.pendingDeepLinkReview
-    }
-
-    func _test_cancelPendingDeepLink() {
-        self.cancelPendingDeepLink()
     }
 }
 #endif

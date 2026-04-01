@@ -9,8 +9,6 @@ private let deepLinkLogger = Logger(subsystem: "ai.openclaw", category: "DeepLin
 @MainActor
 final class DeepLinkHandler {
     static let shared = DeepLinkHandler()
-    private static let previewLimit = 240
-    private static let longPromptThreshold = 700
 
     private var lastPromptAt: Date = .distantPast
 
@@ -19,7 +17,7 @@ final class DeepLinkHandler {
     // outside callers can't know this randomly generated key.
     private nonisolated static let canvasUnattendedKey: String = DeepLinkHandler.generateRandomKey()
 
-    func handle(url: URL, source: ExternalOriginContext.Source = .osProtocol) async {
+    func handle(url: URL) async {
         guard let route = DeepLinkParser.parse(url) else {
             deepLinkLogger.debug("ignored url \(url.absoluteString, privacy: .public)")
             return
@@ -31,27 +29,16 @@ final class DeepLinkHandler {
 
         switch route {
         case let .agent(link):
-            await self.handleAgent(link: link, originalURL: url, source: source)
+            await self.handleAgent(link: link, originalURL: url)
         }
     }
 
-    private func handleAgent(
-        link: AgentDeepLink,
-        originalURL: URL,
-        source: ExternalOriginContext.Source) async
-    {
+    private func handleAgent(link: AgentDeepLink, originalURL: URL) async {
         let messagePreview = link.message.trimmingCharacters(in: .whitespacesAndNewlines)
         if messagePreview.count > 20000 {
             self.presentAlert(title: "Deep link too large", message: "Message exceeds 20,000 characters.")
             return
         }
-
-        let origin = ExternalOriginContext(
-            source: source,
-            rawUri: originalURL.absoluteString,
-            receivedAt: Int(Date().timeIntervalSince1970 * 1000),
-            payloadLength: messagePreview.count,
-            trustLevel: .external)
 
         let allowUnattended = link.key == Self.canvasUnattendedKey || link.key == Self.expectedKey()
         if !allowUnattended {
@@ -61,32 +48,9 @@ final class DeepLinkHandler {
             }
             self.lastPromptAt = Date()
 
-            let trimmed =
-                messagePreview.count > Self.previewLimit
-                ? "\(messagePreview.prefix(Self.previewLimit))…"
-                : messagePreview
-            let sessionLine = link.sessionKey?.trimmingCharacters(in: .whitespacesAndNewlines).nonEmpty
-                .map { "Session: \($0)\n" } ?? ""
-            let channelLine = link.channel?.trimmingCharacters(in: .whitespacesAndNewlines).nonEmpty
-                .map { "Channel: \($0)\n" } ?? ""
-            let targetLine = link.to?.trimmingCharacters(in: .whitespacesAndNewlines).nonEmpty
-                .map { "Target: \($0)\n" } ?? ""
-            let lengthLine = "Payload: \(messagePreview.count) characters\n"
-            let sourceLine = "Source: \(Self.sourceLabel(source))\n"
-            let reviewNote =
-                messagePreview.count > Self.longPromptThreshold
-                ? "\nThis prompt is longer than the preview. Review the full deep link carefully before continuing.\n"
-                : "\nReview the prompt before continuing.\n"
-            let body = """
-            Run the agent with this external prompt?
-
-            \(sourceLine)\(sessionLine)\(channelLine)\(targetLine)\(lengthLine)\(reviewNote)
-            Preview:
-            \(trimmed)
-
-            URL:
-            \(originalURL.absoluteString)
-            """
+            let trimmed = messagePreview.count > 240 ? "\(messagePreview.prefix(240))…" : messagePreview
+            let body =
+                "Run the agent with this message?\n\n\(trimmed)\n\nURL:\n\(originalURL.absoluteString)"
             guard self.confirm(title: "Run OpenClaw agent?", message: body) else { return }
         }
 
@@ -112,8 +76,7 @@ final class DeepLinkHandler {
                 to: link.to?.trimmingCharacters(in: .whitespacesAndNewlines).nonEmpty,
                 channel: channel,
                 timeoutSeconds: link.timeoutSeconds,
-                idempotencyKey: UUID().uuidString,
-                origin: origin)
+                idempotencyKey: UUID().uuidString)
 
             let res = await GatewayConnection.shared.sendAgent(invocation)
             if !res.ok {
@@ -166,25 +129,6 @@ final class DeepLinkHandler {
     }
 
     // MARK: - UI
-
-    private static func sourceLabel(_ source: ExternalOriginContext.Source) -> String {
-        switch source {
-        case .interactive:
-            "Interactive"
-        case .browserLink:
-            "Browser link"
-        case .osProtocol:
-            "OS protocol"
-        case .editorExtension:
-            "Editor extension"
-        case .mcp:
-            "MCP"
-        case .importedText:
-            "Imported text"
-        case .other:
-            "Other"
-        }
-    }
 
     private func confirm(title: String, message: String) -> Bool {
         let alert = NSAlert()
