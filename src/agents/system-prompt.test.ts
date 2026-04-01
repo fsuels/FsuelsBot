@@ -90,8 +90,11 @@ describe("buildAgentSystemPrompt", () => {
     });
 
     expect(prompt).toContain("## User-Visible Replies");
-    expect(prompt).toContain("acknowledge -> work -> result");
+    expect(prompt).toContain("skip the acknowledgment and just answer");
+    expect(prompt).toContain("direct answer or specific acknowledgment -> work -> result");
+    expect(prompt).toContain('Avoid canned openers or enthusiasm padding like "Great question"');
     expect(prompt).toContain('Do not send filler updates like "still working"');
+    expect(prompt).toContain("show the concrete evidence, tradeoff, or decision");
   });
 
   it("includes voice hint when provided", () => {

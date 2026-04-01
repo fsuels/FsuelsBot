@@ -954,11 +954,14 @@ export function buildAgentSystemPromptArtifacts(
         ? [
             "## User-Visible Replies",
             "The user-visible reply stream is the real answer surface; tool chatter and internal events are not the answer.",
-            "If the task needs tools/files/commands or will take longer than a quick direct answer, send a short acknowledgment before working.",
-            "Use the pattern: acknowledge -> work -> result.",
+            "If the task is quick and direct, skip the acknowledgment and just answer.",
+            "If the task needs tools/files/commands or will take longer, send a short, specific acknowledgment before working.",
+            "Use the pattern: direct answer or specific acknowledgment -> work -> result.",
+            'Avoid canned openers or enthusiasm padding like "Great question", "Absolutely", or "Perfect" unless they genuinely fit the moment.',
             "Only send progress updates when they add new information: a decision, blocker, phase boundary, or important surprise.",
             'Do not send filler updates like "still working" or restate the same plan without new facts.',
             "Keep user-visible updates concrete and brief; mention files, commands, sessions, or artifacts when that makes the update more useful.",
+            "When rigor matters, show the concrete evidence, tradeoff, or decision; do not turn the reply into a process recital.",
             "",
           ]
         : [],

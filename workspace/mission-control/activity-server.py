@@ -8,14 +8,18 @@ import ipaddress
 import json
 import os
 import re
+import signal
 import shutil
 import subprocess
+import sys
 import time
 import secrets
 import threading
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
+
+import autoresearch_engine
 
 PORT = int(os.environ.get("MISSION_CONTROL_PORT", "8765"))
 LOG_ROOT = Path(os.environ.get("MISSION_CONTROL_LOG_ROOT", r"\tmp"))
@@ -71,6 +75,8 @@ activity_state = {
 CURRENT_TASK_FILE = os.path.join(DASHBOARD_DIR, "current-task.json")
 WORKSPACE_DIR = os.path.dirname(DASHBOARD_DIR)  # Parent of mission-control
 WORKSPACE_PATH = Path(WORKSPACE_DIR).resolve()
+REPO_ROOT = WORKSPACE_PATH.parent.resolve()
+AUTORESEARCH_ENGINE_PATH = Path(DASHBOARD_DIR) / "autoresearch_engine.py"
 CONFIG_CANDIDATES = [
     os.path.join(Path.home(), ".openclaw", "openclaw.json"),
     os.path.join(Path.home(), ".clawdbot", "clawdbot.json"),
@@ -115,6 +121,15 @@ def load_json_file(path):
     if last_error:
         raise last_error
     raise ValueError(f"Unable to load JSON file: {path}")
+
+
+def write_json_file(path, data):
+    """Write JSON with utf-8 encoding, creating parent directories when needed."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(data, handle, indent=2, ensure_ascii=False)
+        handle.write("\n")
 
 
 def load_gateway_info():
@@ -879,6 +894,197 @@ def summarize_task_for_dashboard(task_id, task):
 
 state_lock = threading.Lock()
 
+
+def _autoresearch_paths():
+    return autoresearch_engine.autoresearch_paths(REPO_ROOT)
+
+
+def _read_autoresearch_status(limit=6):
+    payload = autoresearch_engine.build_dashboard_status(REPO_ROOT, limit=limit)
+    active = payload.get("active")
+    if isinstance(active, dict):
+        run_dir = active.get("runDir")
+        if isinstance(run_dir, str) and run_dir.strip():
+            run_path = Path(run_dir)
+            active["logTail"] = autoresearch_engine.tail_lines(run_path / "run.log", 20)
+            config_path = run_path / "config.json"
+            active["config"] = load_json_file(config_path) if config_path.exists() else None
+    return payload
+
+
+def _normalize_string_list(value):
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if isinstance(value, str):
+        return [line.strip() for line in value.splitlines() if line.strip()]
+    return []
+
+
+def _normalize_autoresearch_criteria(criteria):
+    if not isinstance(criteria, list):
+        raise ValueError("criteria must be an array")
+    normalized = []
+    for index, item in enumerate(criteria, start=1):
+        if not isinstance(item, dict):
+            raise ValueError(f"criterion #{index} must be an object")
+        name = str(item.get("name") or "").strip()
+        crit_type = str(item.get("type") or "llm_judge").strip().lower()
+        prompt = str(item.get("prompt") or item.get("criterion") or "").strip()
+        command = str(item.get("command") or "").strip()
+        if not name:
+            raise ValueError(f"criterion #{index} is missing name")
+        if crit_type not in {"llm_judge", "command"}:
+            raise ValueError(f"criterion #{index} has unsupported type: {crit_type}")
+        if crit_type == "llm_judge" and not prompt:
+            raise ValueError(f"criterion '{name}' requires prompt text")
+        if crit_type == "command" and not command:
+            raise ValueError(f"criterion '{name}' requires a command")
+        normalized.append(
+            {
+                "name": name,
+                "type": crit_type,
+                "prompt": prompt,
+                "command": command,
+            }
+        )
+    if not normalized:
+        raise ValueError("At least one evaluation criterion is required")
+    return normalized
+
+
+def _build_autoresearch_config(data):
+    if not isinstance(data, dict):
+        raise ValueError("request body must be a JSON object")
+
+    runner = data.get("runner")
+    if not isinstance(runner, dict):
+        runner = {}
+    runner_type = str(runner.get("type") or "codex").strip().lower()
+    if runner_type not in {"codex", "gemini", "claude"}:
+        raise ValueError(f"Unsupported runner type: {runner_type}")
+
+    target = str(data.get("target") or "").strip()
+    if not target:
+        raise ValueError("target is required")
+
+    item_globs = _normalize_string_list(data.get("item_globs"))
+    item_paths = _normalize_string_list(data.get("item_paths"))
+    if not item_globs and not item_paths:
+        raise ValueError("At least one item glob or item path is required")
+
+    batch_size = max(1, int(data.get("batch_size") or 5))
+    validation_count = max(1, int(data.get("validation_count") or 3))
+    max_runs = max(1, int(data.get("max_runs") or 15))
+    max_item_chars = max(1000, int(data.get("max_item_chars") or 6000))
+
+    return {
+        "name": str(data.get("name") or target).strip() or target,
+        "target": target,
+        "scope": str(data.get("scope") or "").strip(),
+        "context": str(data.get("context") or "").strip(),
+        "prompt_template": str(data.get("prompt_template") or "").strip(),
+        "item_globs": item_globs,
+        "item_paths": item_paths,
+        "criteria": _normalize_autoresearch_criteria(data.get("criteria") or []),
+        "runner": {
+            "type": runner_type,
+            "model": str(runner.get("model") or "").strip(),
+        },
+        "batch_size": batch_size,
+        "validation_count": validation_count,
+        "max_runs": max_runs,
+        "max_item_chars": max_item_chars,
+        "repo_root": str(REPO_ROOT),
+    }
+
+
+def _launch_autoresearch_run(config):
+    current = _read_autoresearch_status(limit=1)
+    active = current.get("active")
+    if isinstance(active, dict) and active.get("state") in {"launching", "running"}:
+        raise RuntimeError("An autoresearch run is already active. Stop it before starting another.")
+
+    paths = _autoresearch_paths()
+    slug = autoresearch_engine.slugify(config.get("name") or config.get("target") or "run")
+    run_id = f"{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}-{secrets.token_hex(3)}-{slug[:32]}"
+    run_dir = paths["runs"] / run_id
+    run_dir.mkdir(parents=True, exist_ok=True)
+    run_log = run_dir / "run.log"
+
+    config = dict(config)
+    config["run_id"] = run_id
+    write_json_file(run_dir / "config.json", config)
+    write_json_file(
+        run_dir / "status.json",
+        {
+            "runId": run_id,
+            "name": config.get("name"),
+            "target": config.get("target"),
+            "scope": config.get("scope"),
+            "context": config.get("context"),
+            "runnerType": (config.get("runner") or {}).get("type"),
+            "model": (config.get("runner") or {}).get("model"),
+            "state": "launching",
+            "startedAt": datetime.now(timezone.utc).isoformat(),
+            "message": "Launching autoresearch engine...",
+            "runDir": str(run_dir),
+        },
+    )
+
+    with open(run_log, "a", encoding="utf-8") as log_handle:
+        process = subprocess.Popen(
+            [sys.executable, str(AUTORESEARCH_ENGINE_PATH), "run", "--run-dir", str(run_dir)],
+            cwd=str(REPO_ROOT),
+            stdout=log_handle,
+            stderr=subprocess.STDOUT,
+            start_new_session=True,
+        )
+
+    write_json_file(paths["active"], {"runId": run_id, "runDir": str(run_dir)})
+    status = load_json_file(run_dir / "status.json")
+    status["pid"] = process.pid
+    status["state"] = "running"
+    status["message"] = "Autoresearch engine started."
+    status["lastUpdatedAt"] = datetime.now(timezone.utc).isoformat()
+    write_json_file(run_dir / "status.json", status)
+    return status
+
+
+def _stop_autoresearch_run():
+    payload = _read_autoresearch_status(limit=1)
+    active = payload.get("active")
+    if not isinstance(active, dict):
+        return {"ok": True, "stopped": False, "message": "No active autoresearch run."}
+
+    run_dir = Path(active.get("runDir"))
+    (run_dir / "STOP").write_text(datetime.now(timezone.utc).isoformat() + "\n", encoding="utf-8")
+
+    pid = active.get("pid")
+    if autoresearch_engine.is_pid_alive(pid):
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except OSError:
+            pass
+
+    paths = _autoresearch_paths()
+    if paths["active"].exists():
+        try:
+            paths["active"].unlink()
+        except OSError:
+            pass
+
+    status_path = run_dir / "status.json"
+    if status_path.exists():
+        status = load_json_file(status_path)
+        if isinstance(status, dict):
+            status["state"] = "stopped"
+            status["message"] = "Stop requested from Mission Control."
+            status["lastUpdatedAt"] = datetime.now(timezone.utc).isoformat()
+            write_json_file(status_path, status)
+
+    return {"ok": True, "stopped": True, "runId": active.get("runId")}
+
+
 def _latest_log_for_source(source):
     try:
         log_dir = source["dir"]
@@ -1338,6 +1544,42 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": str(e)}).encode('utf-8'))
+            return
+
+        if path == '/api/autoresearch/start':
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            try:
+                data = json.loads(body) if body else {}
+            except Exception:
+                data = {}
+
+            try:
+                config = _build_autoresearch_config(data)
+                status = _launch_autoresearch_run(config)
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"ok": True, "run": status}, ensure_ascii=False).encode('utf-8'))
+            except Exception as e:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}, ensure_ascii=False).encode('utf-8'))
+            return
+
+        if path == '/api/autoresearch/stop':
+            try:
+                result = _stop_autoresearch_run()
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps(result, ensure_ascii=False).encode('utf-8'))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}, ensure_ascii=False).encode('utf-8'))
             return
 
         if path == '/api/tasks':
@@ -2626,6 +2868,19 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": str(e)}).encode())
                 return
+
+        if path == '/api/autoresearch/status':
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Cache-Control', 'no-cache')
+            self.end_headers()
+            try:
+                payload = _read_autoresearch_status(limit=8)
+                self.wfile.write(json.dumps(payload, ensure_ascii=False).encode('utf-8'))
+            except Exception as e:
+                self.wfile.write(json.dumps({"error": str(e)}, ensure_ascii=False).encode('utf-8'))
+            return
 
         if path == '/api/activity':
             self.send_response(200)
