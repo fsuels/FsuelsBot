@@ -1,9 +1,14 @@
+import {
+  spawn,
+  type ChildProcessWithoutNullStreams,
+  type SpawnOptionsWithoutStdio,
+} from "node:child_process";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { executeToolWithContract } from "../tool-contract.js";
-import { createGrepTool } from "./grep-tool.js";
+import { createGrepTool, resolveGrepTimeoutMs } from "./grep-tool.js";
 
 async function withTempDir<T>(prefix: string, fn: (dir: string) => Promise<T>) {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), prefix));
@@ -32,6 +37,7 @@ function getText(result: { content?: Array<{ type?: string; text?: string }> }) 
 
 function getDetails(result: { details?: unknown }) {
   return result.details as {
+    searchStatus: string;
     outputMode: string;
     totalFilesFound: number;
     totalMatchesFound: number;
@@ -48,6 +54,16 @@ function getDetails(result: { details?: unknown }) {
     numFiles?: number;
     numMatches?: number;
   };
+}
+
+function spawnNodeScript(
+  script: string,
+  options: SpawnOptionsWithoutStdio,
+): ChildProcessWithoutNullStreams {
+  return spawn(process.execPath, ["-e", script], {
+    ...options,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
 }
 
 describe("grep-tool", () => {
@@ -302,5 +318,147 @@ describe("grep-tool", () => {
       expect(details.appliedOffset).toBe(1);
       expect(getText(result)).toContain("next offset 2");
     });
+  });
+
+  it("returns an explicit no_match status instead of pretending a timeout was empty", async () => {
+    await withTempDir("openclaw-grep-", async (dir) => {
+      await fs.writeFile(path.join(dir, "a.txt"), "alpha\n", "utf8");
+      const tool = createGrepTool({ cwd: dir });
+
+      const result = await invokeTool(tool, {
+        pattern: "does-not-exist",
+      });
+
+      expect(getDetails(result).searchStatus).toBe("no_match");
+      expect(getText(result)).toBe("No matches found.");
+    });
+  });
+
+  it("throws when ripgrep times out before any complete lines are emitted", async () => {
+    await withTempDir("openclaw-grep-", async (dir) => {
+      const tool = createGrepTool({
+        cwd: dir,
+        timeoutMs: 20,
+        operations: {
+          spawn: (_command, _args, options) =>
+            spawnNodeScript(
+              "process.stdout.write('slow.txt\\0'); setTimeout(() => process.exit(0), 100);",
+              options,
+            ),
+        },
+      });
+
+      await expect(
+        invokeTool(tool, {
+          pattern: "alpha",
+        }),
+      ).rejects.toThrow(/timed out/i);
+    });
+  });
+
+  it("returns partial_timeout when complete lines were captured before timeout", async () => {
+    await withTempDir("openclaw-grep-", async (dir) => {
+      const tool = createGrepTool({
+        cwd: dir,
+        timeoutMs: 200,
+        operations: {
+          spawn: (_command, _args, options) =>
+            spawnNodeScript(
+              "process.stdout.write('a.txt\\u00001\\n'); setTimeout(() => process.stdout.write('b.txt\\u00001\\n'), 400); setTimeout(() => process.exit(0), 460);",
+              options,
+            ),
+        },
+      });
+
+      const result = await invokeTool(tool, {
+        pattern: "alpha",
+      });
+
+      expect(getDetails(result).searchStatus).toBe("partial_timeout");
+      expect(getDetails(result).filenames).toEqual(["a.txt"]);
+      expect(getText(result)).toContain("partial results");
+    });
+  });
+
+  it("retries once with -j 1 on EAGAIN spawn failures", async () => {
+    await withTempDir("openclaw-grep-", async (dir) => {
+      const calls: string[][] = [];
+      let attempts = 0;
+      const tool = createGrepTool({
+        cwd: dir,
+        operations: {
+          spawn: (_command, args, options) => {
+            calls.push(args);
+            attempts += 1;
+            if (attempts === 1) {
+              const error = new Error("resource temporarily unavailable") as Error & {
+                code?: string;
+              };
+              error.code = "EAGAIN";
+              throw error;
+            }
+            return spawnNodeScript("process.stdout.write('a.txt\\u00001\\n');", options);
+          },
+        },
+      });
+
+      const result = await invokeTool(tool, {
+        pattern: "alpha",
+      });
+
+      expect(getDetails(result).filenames).toEqual(["a.txt"]);
+      expect(calls[1]?.slice(0, 2)).toEqual(["-j", "1"]);
+    });
+  });
+
+  it("keeps complete lines intact when stdout chunks split them", async () => {
+    await withTempDir("openclaw-grep-", async (dir) => {
+      const tool = createGrepTool({
+        cwd: dir,
+        operations: {
+          spawn: (_command, _args, options) =>
+            spawnNodeScript(
+              "process.stdout.write('split.txt\\u0000'); setTimeout(() => process.stdout.write('1\\n'), 5); setTimeout(() => process.exit(0), 10);",
+              options,
+            ),
+        },
+      });
+
+      const result = await invokeTool(tool, {
+        pattern: "alpha",
+        output_mode: "count",
+      });
+
+      expect(getDetails(result).countLines).toEqual(["split.txt:1"]);
+    });
+  });
+
+  it("returns partial_timeout when the buffered output budget is exceeded", async () => {
+    await withTempDir("openclaw-grep-", async (dir) => {
+      const tool = createGrepTool({
+        cwd: dir,
+        maxBufferBytes: 16,
+        operations: {
+          spawn: (_command, _args, options) =>
+            spawnNodeScript(
+              "process.stdout.write('a.txt\\u00001\\n'); process.stdout.write('very-long-file-name.txt\\u00001\\n');",
+              options,
+            ),
+        },
+      });
+
+      const result = await invokeTool(tool, {
+        pattern: "alpha",
+      });
+
+      expect(getDetails(result).searchStatus).toBe("partial_timeout");
+      expect(getDetails(result).filenames).toEqual(["a.txt"]);
+    });
+  });
+
+  it("uses a longer default timeout on slow filesystem environments", () => {
+    expect(resolveGrepTimeoutMs({}, () => true)).toBeGreaterThan(
+      resolveGrepTimeoutMs({}, () => false),
+    );
   });
 });

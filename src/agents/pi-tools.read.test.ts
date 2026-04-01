@@ -171,4 +171,48 @@ describe("pi-tools.read", () => {
       await fs.rm(tmpDir, { recursive: true, force: true });
     }
   });
+
+  it("normalizes BOM + CRLF files before line-numbering", async () => {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-read-"));
+    try {
+      const filePath = path.join(tmpDir, "windows.txt");
+      await fs.writeFile(
+        filePath,
+        Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from("alpha\r\nbeta\r\n")]),
+      );
+      const readTool = createWorkspaceReadTool(tmpDir, { cwd: tmpDir });
+
+      const result = await readTool.execute("read-8", { path: "windows.txt" });
+
+      expect(getText(result)).toContain("1\talpha");
+      expect(getText(result)).toContain("2\tbeta");
+      expect(result.details).toMatchObject({
+        kind: "text",
+        requestedOffset: 1,
+      });
+    } finally {
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it("returns a structured byte-limit message for huge single-line files", async () => {
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-read-"));
+    try {
+      const filePath = path.join(tmpDir, "huge-line.txt");
+      await fs.writeFile(filePath, "x".repeat(300_000), "utf8");
+      const readTool = createWorkspaceReadTool(tmpDir, { cwd: tmpDir });
+
+      const result = await readTool.execute("read-9", { path: "huge-line.txt" });
+
+      expect(getText(result)).toContain("exceeds");
+      expect(result.details).toMatchObject({
+        kind: "text",
+        truncated: true,
+        truncatedBy: "bytes",
+        numLines: 0,
+      });
+    } finally {
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    }
+  });
 });

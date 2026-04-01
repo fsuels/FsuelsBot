@@ -1,8 +1,7 @@
 import { Type } from "@sinclair/typebox";
-import fs from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
 import type { AnyAgentTool } from "./pi-tools.types.js";
+import { resolvePathAgainstBase } from "../infra/path-safety.js";
+import { readEditContext } from "./bounded-file-read.js";
 import {
   createFileEditStateTracker,
   FileToolError,
@@ -10,7 +9,6 @@ import {
 } from "./file-edit-safety.js";
 import { assertTextEditRangeIsSafe } from "./text-edit-guards.js";
 
-const UNICODE_SPACES = /[\u00A0\u2000-\u200A\u202F\u205F\u3000]/g;
 const CONTEXT_LINES = 2;
 const MAX_CONTEXT_LINES = 8;
 const MAX_CONTEXT_BYTES = 1200;
@@ -42,26 +40,6 @@ type NormalizedFuzzyProjection = {
   normalized: string;
   boundaryMap: number[];
 };
-
-function normalizeUnicodeSpaces(value: string): string {
-  return value.replace(UNICODE_SPACES, " ");
-}
-
-function expandPath(filePath: string): string {
-  const normalized = normalizeUnicodeSpaces(filePath.trim());
-  if (normalized === "~") {
-    return os.homedir();
-  }
-  if (normalized.startsWith("~/")) {
-    return os.homedir() + normalized.slice(1);
-  }
-  return normalized.startsWith("@") ? normalized.slice(1) : normalized;
-}
-
-function resolveToCwd(filePath: string, cwd: string): string {
-  const expanded = expandPath(filePath);
-  return path.isAbsolute(expanded) ? path.normalize(expanded) : path.resolve(cwd, expanded);
-}
 
 function normalizeToLF(text: string): string {
   return text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
@@ -203,6 +181,47 @@ function numberedContext(text: string, index: number): string | undefined {
   return selected.join("\n");
 }
 
+function buildContextNeedles(oldText: string): string[] {
+  const normalized = normalizeForFuzzyMatch(oldText);
+  const candidates = [
+    normalized,
+    ...normalized
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .toSorted((left, right) => right.length - left.length),
+  ];
+  return [...new Set(candidates.filter(Boolean))];
+}
+
+function formatReadEditContextSnippet(
+  snippet: { content: string; lineOffset: number; truncated: boolean } | null,
+): string | undefined {
+  if (!snippet?.content) {
+    return undefined;
+  }
+  const lines = snippet.content.split("\n");
+  const selected = lines.map((line, index) => `${snippet.lineOffset + index} | ${line}`);
+  if (snippet.truncated) {
+    return ["...", ...selected, "..."].join("\n");
+  }
+  return selected.join("\n");
+}
+
+async function readRelevantEditContext(
+  filePath: string,
+  oldText: string,
+): Promise<string | undefined> {
+  for (const needle of buildContextNeedles(oldText)) {
+    const snippet = await readEditContext(filePath, needle, CONTEXT_LINES);
+    const formatted = formatReadEditContextSnippet(snippet);
+    if (formatted) {
+      return formatted;
+    }
+  }
+  return undefined;
+}
+
 function findRelevantIndex(content: string, oldText: string): number {
   const candidates = normalizeForFuzzyMatch(oldText)
     .split("\n")
@@ -335,7 +354,9 @@ export function createTransactionalEditTool(
         newText: string;
         replaceAll?: boolean;
       };
-      const absolutePath = resolveToCwd(input.path, options.cwd ?? root);
+      const absolutePath = resolvePathAgainstBase(input.path, options.cwd ?? root, {
+        stripAtPrefix: true,
+      });
       const readBuffer = await options.stateTracker.readBufferForEdit("edit", absolutePath);
       const baseContent = readBuffer.toString("utf8");
       const normalizedContent = normalizeToLF(baseContent);
@@ -523,19 +544,23 @@ export function createTransactionalEditTool(
             cwd: options.cwd ?? root,
             sandboxRoot: options.sandboxRoot,
             readMode: true,
-          }).catch(() => resolveToCwd(input.path, options.cwd ?? root));
-          const currentContent = await fs.readFile(currentPath, "utf8").catch(() => undefined);
-          if (typeof currentContent === "string") {
-            const relevantIndex = findRelevantIndex(currentContent, normalizedOldText);
+          }).catch(() =>
+            resolvePathAgainstBase(input.path, options.cwd ?? root, {
+              stripAtPrefix: true,
+            }),
+          );
+          const currentContext = await readRelevantEditContext(
+            currentPath,
+            normalizedOldText,
+          ).catch(() => undefined);
+          if (currentContext) {
             throw new FileToolError({
               errorCode: error.errorCode,
               contractCode: error.contractCode,
               message: error.message,
               details: {
                 ...error.details,
-                ...(relevantIndex >= 0
-                  ? { context: numberedContext(normalizeToLF(currentContent), relevantIndex) }
-                  : {}),
+                context: currentContext,
                 diff_preview: buildRequestedDiffPreview(normalizedOldText, normalizedNewText),
                 recommended_action:
                   "Re-read the latest file contents before retrying. Do not retry the stale edit payload unchanged.",
