@@ -6,6 +6,7 @@ import type { VisibleMessageStatus } from "../../utils/visible-message.js";
 import type { GatewayRequestContext, GatewayRequestHandlers } from "./types.js";
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import { resolveThinkingDefault } from "../../agents/model-selection.js";
+import { acquireSessionWriteLock } from "../../agents/session-write-lock.js";
 import { resolveAgentTimeoutMs } from "../../agents/timeout.js";
 import { sanitizeTranscriptMessagesForReplay } from "../../agents/tool-result-replay.js";
 import { dispatchInboundMessage } from "../../auto-reply/dispatch.js";
@@ -92,7 +93,7 @@ function ensureTranscriptFile(params: { transcriptPath: string; sessionId: strin
   }
 }
 
-function appendAssistantTranscriptMessage(params: {
+async function appendAssistantTranscriptMessage(params: {
   message: string;
   label?: string;
   status?: VisibleMessageStatus;
@@ -100,7 +101,7 @@ function appendAssistantTranscriptMessage(params: {
   storePath: string | undefined;
   sessionFile?: string;
   createIfMissing?: boolean;
-}): TranscriptAppendResult {
+}): Promise<TranscriptAppendResult> {
   const transcriptPath = resolveTranscriptPath({
     sessionId: params.sessionId,
     storePath: params.storePath,
@@ -110,61 +111,65 @@ function appendAssistantTranscriptMessage(params: {
     return { ok: false, error: "transcript path not resolved" };
   }
 
-  if (!fs.existsSync(transcriptPath)) {
-    if (!params.createIfMissing) {
-      return { ok: false, error: "transcript file not found" };
+  const sessionLock = await acquireSessionWriteLock({ sessionFile: transcriptPath });
+  try {
+    if (!fs.existsSync(transcriptPath)) {
+      if (!params.createIfMissing) {
+        return { ok: false, error: "transcript file not found" };
+      }
+      const ensured = ensureTranscriptFile({
+        transcriptPath,
+        sessionId: params.sessionId,
+      });
+      if (!ensured.ok) {
+        return { ok: false, error: ensured.error ?? "failed to create transcript file" };
+      }
     }
-    const ensured = ensureTranscriptFile({
-      transcriptPath,
-      sessionId: params.sessionId,
-    });
-    if (!ensured.ok) {
-      return { ok: false, error: ensured.error ?? "failed to create transcript file" };
-    }
-  }
-
-  const now = Date.now();
-  const labelPrefix = params.label ? `[${params.label}]\n\n` : "";
-  const usage = {
-    input: 0,
-    output: 0,
-    cacheRead: 0,
-    cacheWrite: 0,
-    totalTokens: 0,
-    cost: {
+    const now = Date.now();
+    const labelPrefix = params.label ? `[${params.label}]\n\n` : "";
+    const usage = {
       input: 0,
       output: 0,
       cacheRead: 0,
       cacheWrite: 0,
-      total: 0,
-    },
-  };
-  const messageBody: AppendMessageArg & Record<string, unknown> = {
-    role: "assistant",
-    content: [{ type: "text", text: `${labelPrefix}${params.message}` }],
-    timestamp: now,
-    // Pi stopReason is a strict enum; this is not model output, but we still store it as a
-    // normal assistant message so it participates in the session parentId chain.
-    stopReason: "stop",
-    usage,
-    // Make these explicit so downstream tooling never treats this as model output.
-    api: "openai-responses",
-    provider: "openclaw",
-    model: "gateway-injected",
-    openclawVisible: {
-      status: params.status,
-      sentAt: new Date(now).toISOString(),
-    },
-  };
+      totalTokens: 0,
+      cost: {
+        input: 0,
+        output: 0,
+        cacheRead: 0,
+        cacheWrite: 0,
+        total: 0,
+      },
+    };
+    const messageBody: AppendMessageArg & Record<string, unknown> = {
+      role: "assistant",
+      content: [{ type: "text", text: `${labelPrefix}${params.message}` }],
+      timestamp: now,
+      // Pi stopReason is a strict enum; this is not model output, but we still store it as a
+      // normal assistant message so it participates in the session parentId chain.
+      stopReason: "stop",
+      usage,
+      // Make these explicit so downstream tooling never treats this as model output.
+      api: "openai-responses",
+      provider: "openclaw",
+      model: "gateway-injected",
+      openclawVisible: {
+        status: params.status,
+        sentAt: new Date(now).toISOString(),
+      },
+    };
 
-  try {
-    // IMPORTANT: Use SessionManager so the entry is attached to the current leaf via parentId.
-    // Raw jsonl appends break the parent chain and can hide compaction summaries from context.
-    const sessionManager = SessionManager.open(transcriptPath);
-    const messageId = sessionManager.appendMessage(messageBody);
-    return { ok: true, messageId, message: messageBody };
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    try {
+      // IMPORTANT: Use SessionManager so the entry is attached to the current leaf via parentId.
+      // Raw jsonl appends break the parent chain and can hide compaction summaries from context.
+      const sessionManager = SessionManager.open(transcriptPath);
+      const messageId = sessionManager.appendMessage(messageBody);
+      return { ok: true, messageId, message: messageBody };
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : String(err) };
+    }
+  } finally {
+    await sessionLock.release();
   }
 }
 
@@ -567,7 +572,7 @@ export const chatHandlers: GatewayRequestHandlers = {
           onModelSelected,
         },
       })
-        .then(() => {
+        .then(async () => {
           if (!agentRunStarted) {
             const combinedReply = finalReplyParts
               .map((part) => part.trim())
@@ -579,7 +584,7 @@ export const chatHandlers: GatewayRequestHandlers = {
               const { storePath: latestStorePath, entry: latestEntry } =
                 loadSessionEntry(sessionKey);
               const sessionId = latestEntry?.sessionId ?? entry?.sessionId ?? clientRunId;
-              const appended = appendAssistantTranscriptMessage({
+              const appended = await appendAssistantTranscriptMessage({
                 message: combinedReply,
                 status: "normal",
                 sessionId,
@@ -690,7 +695,7 @@ export const chatHandlers: GatewayRequestHandlers = {
       return;
     }
 
-    const appended = appendAssistantTranscriptMessage({
+    const appended = await appendAssistantTranscriptMessage({
       message: p.message,
       label: p.label,
       status: "proactive",

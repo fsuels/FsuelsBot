@@ -118,6 +118,48 @@ describe("subagent launch config", () => {
     });
   });
 
+  it("preserves the parent's exact model when a child requests the same known family alias", () => {
+    mocks.loadSessionStore.mockReturnValue({
+      "agent:main:main": {
+        sessionId: "session-main",
+        updatedAt: 1000,
+        providerOverride: "anthropic",
+        modelOverride: "claude-opus-4-6-20250929",
+      },
+    });
+
+    const cfg: OpenClawConfig = {
+      agents: {
+        defaults: {
+          model: { primary: "anthropic/claude-opus-4-6" },
+          models: {
+            "anthropic/claude-opus-4-6": { alias: "opus" },
+          },
+          subagents: {
+            model: "opus",
+          },
+        },
+      },
+    };
+
+    const result = resolveSubagentLaunchConfig({
+      cfg,
+      requesterSessionKey: "agent:main:main",
+      requesterAgentId: "main",
+      targetAgentId: "research",
+      task: "inspect the repo",
+      toolCallId: "call-opus-alias",
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      value: {
+        resolvedModel: "anthropic/claude-opus-4-6-20250929",
+        resolvedModelSource: "parent-session",
+      },
+    });
+  });
+
   it("supports explicit thinking=inherit without forcing thinking by default", () => {
     mocks.loadSessionStore.mockReturnValue({
       "agent:main:main": {

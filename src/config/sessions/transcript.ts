@@ -2,6 +2,7 @@ import { CURRENT_SESSION_VERSION, SessionManager } from "@mariozechner/pi-coding
 import fs from "node:fs";
 import path from "node:path";
 import type { SessionEntry } from "./types.js";
+import { acquireSessionWriteLock } from "../../agents/session-write-lock.js";
 import { emitSessionTranscriptUpdate } from "../../sessions/transcript-events.js";
 import {
   buildVisibleAttachmentsFromMediaUrls,
@@ -10,6 +11,8 @@ import {
 } from "../../utils/visible-message.js";
 import { resolveDefaultSessionStorePath, resolveSessionTranscriptPath } from "./paths.js";
 import { loadSessionStore, updateSessionStore } from "./store.js";
+
+type AppendMessageArg = Parameters<SessionManager["appendMessage"]>[0];
 
 function stripQuery(value: string): string {
   const noHash = value.split("#")[0] ?? value;
@@ -118,44 +121,50 @@ export async function appendAssistantMessageToSessionTranscript(params: {
   const sessionFile =
     entry.sessionFile?.trim() || resolveSessionTranscriptPath(entry.sessionId, params.agentId);
 
-  await ensureSessionHeader({ sessionFile, sessionId: entry.sessionId });
+  const sessionLock = await acquireSessionWriteLock({ sessionFile });
+  try {
+    await ensureSessionHeader({ sessionFile, sessionId: entry.sessionId });
 
-  const builtAttachments =
-    params.attachments ?? buildVisibleAttachmentsFromMediaUrls(params.mediaUrls);
-  const visibleMeta: VisibleMessageMeta | undefined =
-    params.status || params.sentAt || builtAttachments.length > 0
-      ? {
-          status: params.status,
-          sentAt: params.sentAt,
-          attachments: builtAttachments.length > 0 ? builtAttachments : undefined,
-        }
-      : undefined;
+    const builtAttachments =
+      params.attachments ?? buildVisibleAttachmentsFromMediaUrls(params.mediaUrls);
+    const visibleMeta: VisibleMessageMeta | undefined =
+      params.status || params.sentAt || builtAttachments.length > 0
+        ? {
+            status: params.status,
+            sentAt: params.sentAt,
+            attachments: builtAttachments.length > 0 ? builtAttachments : undefined,
+          }
+        : undefined;
 
-  const sessionManager = SessionManager.open(sessionFile);
-  sessionManager.appendMessage({
-    role: "assistant",
-    content: [{ type: "text", text: mirrorText }],
-    api: "openai-responses",
-    provider: "openclaw",
-    model: "delivery-mirror",
-    usage: {
-      input: 0,
-      output: 0,
-      cacheRead: 0,
-      cacheWrite: 0,
-      totalTokens: 0,
-      cost: {
+    const sessionManager = SessionManager.open(sessionFile);
+    const messageBody: AppendMessageArg & Record<string, unknown> = {
+      role: "assistant",
+      content: [{ type: "text", text: mirrorText }],
+      api: "openai-responses",
+      provider: "openclaw",
+      model: "delivery-mirror",
+      usage: {
         input: 0,
         output: 0,
         cacheRead: 0,
         cacheWrite: 0,
-        total: 0,
+        totalTokens: 0,
+        cost: {
+          input: 0,
+          output: 0,
+          cacheRead: 0,
+          cacheWrite: 0,
+          total: 0,
+        },
       },
-    },
-    stopReason: "stop",
-    timestamp: Date.now(),
-    openclawVisible: visibleMeta,
-  });
+      stopReason: "stop",
+      timestamp: Date.now(),
+      openclawVisible: visibleMeta,
+    };
+    sessionManager.appendMessage(messageBody);
+  } finally {
+    await sessionLock.release();
+  }
 
   if (!entry.sessionFile || entry.sessionFile !== sessionFile) {
     await updateSessionStore(storePath, (current) => {

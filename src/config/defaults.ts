@@ -1,6 +1,7 @@
 import type { OpenClawConfig } from "./types.js";
 import type { ModelDefinitionConfig } from "./types.models.js";
 import { DEFAULT_CONTEXT_TOKENS } from "../agents/defaults.js";
+import { getDefaultModelAliases } from "../agents/model-registry.js";
 import { parseModelRef } from "../agents/model-selection.js";
 import { DEFAULT_AGENT_MAX_CONCURRENT, DEFAULT_SUBAGENT_MAX_CONCURRENT } from "./agent-limits.js";
 import { resolveTalkApiKey } from "./talk.js";
@@ -10,20 +11,6 @@ type WarnState = { warned: boolean };
 let defaultWarnState: WarnState = { warned: false };
 
 type AnthropicAuthDefaultsMode = "api_key" | "oauth";
-
-const DEFAULT_MODEL_ALIASES: Readonly<Record<string, string>> = {
-  // Anthropic (pi-ai catalog uses "latest" ids without date suffix)
-  opus: "anthropic/claude-opus-4-6",
-  sonnet: "anthropic/claude-sonnet-4-5",
-
-  // OpenAI
-  gpt: "openai/gpt-5.2",
-  "gpt-mini": "openai/gpt-5-mini",
-
-  // Google Gemini (3.x are preview ids in the catalog)
-  gemini: "google/gemini-3-pro-preview",
-  "gemini-flash": "google/gemini-3-flash-preview",
-};
 
 const DEFAULT_MODEL_COST: ModelDefinitionConfig["cost"] = {
   input: 0,
@@ -102,7 +89,7 @@ function resolvePrimaryModelRef(raw?: string): string | null {
     return null;
   }
   const aliasKey = trimmed.toLowerCase();
-  return DEFAULT_MODEL_ALIASES[aliasKey] ?? trimmed;
+  return getDefaultModelAliases()[aliasKey] ?? trimmed;
 }
 
 export type SessionDefaultsOptions = {
@@ -266,7 +253,7 @@ export function applyModelDefaults(cfg: OpenClawConfig): OpenClawConfig {
     ...existingModels,
   };
 
-  for (const [alias, target] of Object.entries(DEFAULT_MODEL_ALIASES)) {
+  for (const [alias, target] of Object.entries(getDefaultModelAliases())) {
     const entry = nextModels[target];
     if (!entry) {
       continue;

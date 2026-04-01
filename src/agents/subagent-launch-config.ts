@@ -6,7 +6,13 @@ import { callGateway } from "../gateway/call.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 import { SESSION_LABEL_MAX_LENGTH } from "../sessions/session-label.js";
 import { resolveAgentConfig, resolveDefaultAgentId } from "./agent-scope.js";
-import { resolveDefaultModelForAgent, resolveThinkingDefault } from "./model-selection.js";
+import { resolveKnownModelFamily } from "./model-registry.js";
+import {
+  buildModelAliasIndex,
+  resolveDefaultModelForAgent,
+  resolveModelRefFromString,
+  resolveThinkingDefault,
+} from "./model-selection.js";
 
 export type SubagentModelSource =
   | "explicit"
@@ -67,6 +73,41 @@ function normalizeInheritValue(value: string | undefined): string | undefined {
 
 function formatModelRef(params: { provider: string; model: string }): string {
   return `${params.provider}/${params.model}`;
+}
+
+function maybePreserveRequesterModelForAlias(params: {
+  cfg: OpenClawConfig;
+  rawModel: string;
+  requesterModel: { provider: string; model: string };
+}): string | undefined {
+  const trimmed = params.rawModel.trim();
+  if (!trimmed || trimmed.includes("/")) {
+    return undefined;
+  }
+
+  const aliasIndex = buildModelAliasIndex({
+    cfg: params.cfg,
+    defaultProvider: params.requesterModel.provider,
+  });
+  const resolved = resolveModelRefFromString({
+    raw: trimmed,
+    defaultProvider: params.requesterModel.provider,
+    aliasIndex,
+  });
+  if (!resolved?.alias) {
+    return undefined;
+  }
+
+  const requesterFamily = resolveKnownModelFamily(
+    params.requesterModel.provider,
+    params.requesterModel.model,
+  );
+  const candidateFamily = resolveKnownModelFamily(resolved.ref.provider, resolved.ref.model);
+  if (!requesterFamily || !candidateFamily || requesterFamily !== candidateFamily) {
+    return undefined;
+  }
+
+  return formatModelRef(params.requesterModel);
 }
 
 function resolveRequesterSessionEntry(params: {
@@ -214,6 +255,16 @@ export function resolveSubagentLaunchConfig(params: {
     }
     if (candidate.value === "inherit") {
       resolvedModel = requesterModelRef;
+      resolvedModelSource = "parent-session";
+      break;
+    }
+    const stickyRequesterModel = maybePreserveRequesterModelForAlias({
+      cfg: params.cfg,
+      rawModel: candidate.value,
+      requesterModel,
+    });
+    if (stickyRequesterModel) {
+      resolvedModel = stickyRequesterModel;
       resolvedModelSource = "parent-session";
       break;
     }
