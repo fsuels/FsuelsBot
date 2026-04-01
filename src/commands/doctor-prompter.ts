@@ -11,6 +11,7 @@ export type DoctorOptions = {
   repair?: boolean;
   force?: boolean;
   generateGatewayToken?: boolean;
+  contextMode?: "list" | "detail" | "json";
 };
 
 export type DoctorPrompter = {

@@ -1,5 +1,6 @@
 import type { Command } from "commander";
 import { dashboardCommand } from "../../commands/dashboard.js";
+import { normalizeDoctorContextMode } from "../../commands/doctor-context.js";
 import { doctorCommand } from "../../commands/doctor.js";
 import { resetCommand } from "../../commands/reset.js";
 import { uninstallCommand } from "../../commands/uninstall.js";
@@ -17,6 +18,7 @@ export function registerMaintenanceCommands(program: Command) {
       () =>
         `\n${theme.muted("Docs:")} ${formatDocsLink("/cli/doctor", "docs.openclaw.ai/cli/doctor")}\n`,
     )
+    .option("--context [mode]", "Inspect agent context footprint (list|detail|json)")
     .option("--no-workspace-suggestions", "Disable workspace memory system suggestions", false)
     .option("--yes", "Accept defaults without prompting", false)
     .option("--repair", "Apply recommended repairs without prompting", false)
@@ -27,7 +29,17 @@ export function registerMaintenanceCommands(program: Command) {
     .option("--deep", "Scan system services for extra gateway installs", false)
     .action(async (opts) => {
       await runCommandWithRuntime(defaultRuntime, async () => {
+        const contextMode =
+          opts.context !== undefined ? normalizeDoctorContextMode(opts.context) : undefined;
+        if (opts.context !== undefined && !contextMode) {
+          defaultRuntime.error(
+            `Invalid --context mode "${String(opts.context)}". Use list, detail, or json.`,
+          );
+          defaultRuntime.exit(1);
+          return;
+        }
         await doctorCommand(defaultRuntime, {
+          contextMode: contextMode ?? undefined,
           workspaceSuggestions: opts.workspaceSuggestions,
           yes: Boolean(opts.yes),
           repair: Boolean(opts.repair) || Boolean(opts.fix),

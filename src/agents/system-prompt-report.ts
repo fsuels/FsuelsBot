@@ -2,8 +2,10 @@ import type { AgentTool } from "@mariozechner/pi-agent-core";
 import type { SessionSystemPromptReport } from "../config/sessions/types.js";
 import type { EmbeddedContextFile } from "./pi-embedded-helpers.js";
 import type { PromptAssemblyArtifact } from "./system-prompt-sections.js";
+import type { DynamicToolDelta } from "./system-prompt.js";
 import type { WorkspaceBootstrapFile } from "./workspace.js";
 import { resolveSkillSourceCategory } from "./skills/registry.js";
+import { estimateJsonTokens, estimateTextTokens } from "./token-estimate.js";
 
 function extractBetween(
   input: string,
@@ -47,6 +49,7 @@ function parseSkillBlocks(
       return {
         name,
         blockChars: block.length,
+        blockTokens: estimateTextTokens(block),
         sourceCategory: sourceCategoryByName.get(name) ?? "unknown",
       };
     })
@@ -80,7 +83,8 @@ function buildInjectedWorkspaceFiles(params: {
 }): SessionSystemPromptReport["injectedWorkspaceFiles"] {
   const injectedByName = new Map(params.injectedFiles.map((f) => [f.path, f.content]));
   const bootstrapEntries = params.bootstrapFiles.map((file) => {
-    const rawChars = file.missing ? 0 : (file.content ?? "").trimEnd().length;
+    const rawText = file.missing ? "" : (file.rawContent ?? file.content ?? "").trimEnd();
+    const rawChars = rawText.length;
     const injected = injectedByName.get(file.name);
     const injectedChars = injected ? injected.length : 0;
     const truncated = !file.missing && rawChars > params.bootstrapMaxChars;
@@ -89,10 +93,19 @@ function buildInjectedWorkspaceFiles(params: {
       path: file.path,
       missing: file.missing,
       rawChars,
+      rawTokens: estimateTextTokens(rawText),
       injectedChars,
+      injectedTokens: estimateTextTokens(injected ?? ""),
       truncated,
       synthetic: false,
-      sourceGroup: resolveContextFileSourceGroup(file.name),
+      sourceGroup: file.sourceGroup ?? resolveContextFileSourceGroup(file.name),
+      provenance: (file.provenance ?? []).map((entry) => ({
+        path: entry.path,
+        sourceGroup: entry.sourceGroup,
+        parentInclude: entry.parentInclude,
+        rawChars: entry.rawChars,
+        transformedChars: entry.transformedChars,
+      })),
     };
   });
   const seenNames = new Set<string>(bootstrapEntries.map((entry) => entry.name));
@@ -105,7 +118,9 @@ function buildInjectedWorkspaceFiles(params: {
         path: file.path,
         missing: false,
         rawChars: injectedChars,
+        rawTokens: estimateTextTokens(file.content),
         injectedChars,
+        injectedTokens: estimateTextTokens(file.content),
         truncated: false,
         synthetic: true,
         sourceGroup: resolveContextFileSourceGroup(file.path),
@@ -119,6 +134,7 @@ function buildToolsEntries(tools: AgentTool[]): SessionSystemPromptReport["tools
     const name = tool.name;
     const summary = tool.description?.trim() || tool.label?.trim() || "";
     const summaryChars = summary.length;
+    const summaryTokens = estimateTextTokens(summary);
     const schemaChars = (() => {
       if (!tool.parameters || typeof tool.parameters !== "object") {
         return 0;
@@ -129,6 +145,7 @@ function buildToolsEntries(tools: AgentTool[]): SessionSystemPromptReport["tools
         return 0;
       }
     })();
+    const schemaTokens = estimateJsonTokens(tool.parameters);
     const propertiesCount = (() => {
       const schema =
         tool.parameters && typeof tool.parameters === "object"
@@ -140,8 +157,36 @@ function buildToolsEntries(tools: AgentTool[]): SessionSystemPromptReport["tools
       }
       return Object.keys(props as Record<string, unknown>).length;
     })();
-    return { name, summaryChars, schemaChars, propertiesCount };
+    return { name, summaryChars, summaryTokens, schemaChars, schemaTokens, propertiesCount };
   });
+}
+
+function buildDynamicToolingSummary(
+  delta?: DynamicToolDelta,
+): SessionSystemPromptReport["dynamicTooling"] | undefined {
+  const loadedTools = (delta?.loadedTools ?? [])
+    .map((tool) => {
+      const name = tool.name.trim();
+      const summary = tool.summary?.trim() ?? "";
+      return {
+        name,
+        summaryChars: summary.length,
+        summaryTokens: estimateTextTokens(summary),
+      };
+    })
+    .filter((tool) => tool.name)
+    .toSorted((left, right) => left.name.localeCompare(right.name));
+  const pendingProviders = (delta?.pendingProviders ?? [])
+    .map((provider) => provider.trim())
+    .filter(Boolean);
+  if (loadedTools.length === 0 && pendingProviders.length === 0) {
+    return undefined;
+  }
+  return {
+    loadedCount: loadedTools.length,
+    ...(pendingProviders.length > 0 ? { pendingProviders } : {}),
+    entries: loadedTools,
+  };
 }
 
 function extractToolListText(systemPrompt: string): string {
@@ -170,6 +215,7 @@ export function buildSystemPromptReport(params: {
   bootstrapFiles: WorkspaceBootstrapFile[];
   injectedFiles: EmbeddedContextFile[];
   skillsPrompt: string;
+  dynamicToolDelta?: DynamicToolDelta;
   resolvedSkills?: Array<{ name?: string; source?: string }>;
   availableSkillsCount?: number;
   loadedSkillsCount?: number;
@@ -178,11 +224,16 @@ export function buildSystemPromptReport(params: {
   const systemPrompt = params.systemPrompt.trim();
   const projectContext = extractBetween(systemPrompt, "\n# Project Context\n", "\n## Runtime\n");
   const projectContextChars = projectContext.text.length;
+  const projectContextTokens = estimateTextTokens(projectContext.text);
   const toolListText = extractToolListText(systemPrompt);
   const toolListChars = toolListText.length;
+  const toolListTokens = estimateTextTokens(toolListText);
   const toolsEntries = buildToolsEntries(params.tools);
   const toolsSchemaChars = toolsEntries.reduce((sum, t) => sum + (t.schemaChars ?? 0), 0);
+  const toolsSchemaTokens = toolsEntries.reduce((sum, t) => sum + (t.schemaTokens ?? 0), 0);
   const skillsEntries = parseSkillBlocks(params.skillsPrompt, params.resolvedSkills);
+  const systemPromptTokens = estimateTextTokens(systemPrompt);
+  const skillsPromptTokens = estimateTextTokens(params.skillsPrompt);
 
   return {
     source: params.source,
@@ -196,8 +247,11 @@ export function buildSystemPromptReport(params: {
     sandbox: params.sandbox,
     systemPrompt: {
       chars: systemPrompt.length,
+      tokens: systemPromptTokens,
       projectContextChars,
+      projectContextTokens,
       nonProjectContextChars: Math.max(0, systemPrompt.length - projectContextChars),
+      nonProjectContextTokens: Math.max(0, systemPromptTokens - projectContextTokens),
     },
     cache: params.promptAssembly
       ? {
@@ -219,14 +273,18 @@ export function buildSystemPromptReport(params: {
     }),
     skills: {
       promptChars: params.skillsPrompt.length,
+      promptTokens: skillsPromptTokens,
       availableCount: params.availableSkillsCount,
       loadedCount: params.loadedSkillsCount,
       entries: skillsEntries,
     },
     tools: {
       listChars: toolListChars,
+      listTokens: toolListTokens,
       schemaChars: toolsSchemaChars,
+      schemaTokens: toolsSchemaTokens,
       entries: toolsEntries,
     },
+    dynamicTooling: buildDynamicToolingSummary(params.dynamicToolDelta),
   };
 }

@@ -28,6 +28,7 @@ import {
 } from "./doctor-auth.js";
 import { doctorShellCompletion } from "./doctor-completion.js";
 import { loadAndMaybeMigrateDoctorConfig } from "./doctor-config-flow.js";
+import { doctorContextCommand } from "./doctor-context.js";
 import { maybeRepairGatewayDaemon } from "./doctor-gateway-daemon-flow.js";
 import { checkGatewayHealth } from "./doctor-gateway-health.js";
 import {
@@ -69,6 +70,19 @@ export async function doctorCommand(
   const prompter = createDoctorPrompter({ runtime, options });
   printWizardHeader(runtime);
   intro("OpenClaw doctor");
+
+  if (options.contextMode) {
+    const configResult = await loadAndMaybeMigrateDoctorConfig({
+      options,
+      confirm: (p) => prompter.confirm(p),
+    });
+    await doctorContextCommand(runtime, {
+      cfg: configResult.cfg,
+      mode: options.contextMode,
+    });
+    outro("Doctor context complete.");
+    return;
+  }
 
   const root = await resolveOpenClawPackageRoot({
     moduleUrl: import.meta.url,

@@ -1,35 +1,20 @@
-import { SessionManager } from "@mariozechner/pi-coding-agent";
 import type { SessionSystemPromptReport } from "../../config/sessions/types.js";
 import type { ReplyPayload } from "../types.js";
 import type { HandleCommandsParams } from "./commands-types.js";
-import { resolveSessionAgentIds } from "../../agents/agent-scope.js";
-import { resolveBootstrapContextForRun } from "../../agents/bootstrap-files.js";
-import { resolveDefaultModelForAgent } from "../../agents/model-selection.js";
+import { buildContextInspectorData } from "../../agents/context-inspector.js";
 import {
-  attachModelViewToSystemPromptReport,
-  estimateTokensFromChars,
-  projectConversationForModel,
-} from "../../agents/model-visible-context.js";
-import { resolveBootstrapMaxChars } from "../../agents/pi-embedded-helpers.js";
-import { createOpenClawCodingTools } from "../../agents/pi-tools.js";
-import { resolveSandboxRuntimeStatus } from "../../agents/sandbox.js";
-import { buildWorkspaceSkillSnapshot } from "../../agents/skills.js";
-import { getSkillsSnapshotVersion } from "../../agents/skills/refresh.js";
-import { buildSystemPromptParams } from "../../agents/system-prompt-params.js";
-import { buildSystemPromptReport } from "../../agents/system-prompt-report.js";
-import { buildAgentSystemPromptArtifacts } from "../../agents/system-prompt.js";
-import { buildToolOperatorManualMap, buildToolSummaryMap } from "../../agents/tool-summaries.js";
-import { resolveSessionFilePath } from "../../config/sessions.js";
-import { getRemoteSkillEligibility } from "../../infra/skills-remote.js";
-import { resolveSessionTaskId } from "../../sessions/task-context.js";
-import { buildTtsSystemPromptHint } from "../../tts/tts.js";
+  loadContextReport as loadSharedContextReport,
+  loadProjectedContextReport as loadSharedProjectedContextReport,
+} from "../../agents/context-report.js";
+import { estimateTokensFromChars } from "../../agents/token-estimate.js";
 
 function formatInt(n: number): string {
   return new Intl.NumberFormat("en-US").format(n);
 }
 
-function formatCharsAndTokens(chars: number): string {
-  return `${formatInt(chars)} chars (~${formatInt(estimateTokensFromChars(chars))} tok)`;
+function formatCharsAndTokens(chars: number, tokens?: number): string {
+  const resolvedTokens = typeof tokens === "number" ? tokens : estimateTokensFromChars(chars);
+  return `${formatInt(chars)} chars (~${formatInt(resolvedTokens)} tok)`;
 }
 
 function formatTokenCount(tokens: number): string {
@@ -51,543 +36,38 @@ function parseContextArgs(commandBodyNormalized: string): string {
 }
 
 function formatListTop(
-  entries: Array<{ name: string; value: number }>,
+  entries: Array<{ name: string; chars: number; tokens?: number }>,
   cap: number,
 ): { lines: string[]; omitted: number } {
-  const sorted = [...entries].toSorted((a, b) => b.value - a.value);
+  const sorted = [...entries].toSorted(
+    (a, b) =>
+      (b.tokens ?? estimateTokensFromChars(b.chars)) -
+      (a.tokens ?? estimateTokensFromChars(a.chars)),
+  );
   const top = sorted.slice(0, cap);
   const omitted = Math.max(0, sorted.length - top.length);
-  const lines = top.map((e) => `- ${e.name}: ${formatCharsAndTokens(e.value)}`);
+  const lines = top.map((e) => `- ${e.name}: ${formatCharsAndTokens(e.chars, e.tokens)}`);
   return { lines, omitted };
-}
-
-type ContextSuggestionSeverity = "info" | "warn" | "critical";
-
-type ContextSuggestion = {
-  severity: ContextSuggestionSeverity;
-  title: string;
-  detail: string;
-  estimatedTokenSavings: number;
-};
-
-type ContextSourceGroup =
-  | "project"
-  | "user"
-  | "managed"
-  | "plugin"
-  | "built-in"
-  | "extra"
-  | "unknown";
-
-type ContextSourceContributor = {
-  name: string;
-  tokens: number;
-  detail?: string;
-};
-
-type ContextSourceSummary = {
-  source: ContextSourceGroup;
-  totalTokens: number;
-  contributors: ContextSourceContributor[];
-};
-
-type ContextInspectorData = {
-  totalTokens: number;
-  maxTokens?: number;
-  percentUsed?: number;
-  freeTokens?: number;
-  categoryBreakdown: Array<{ key: string; label: string; tokens: number; share?: number }>;
-  sourceBreakdown: ContextSourceSummary[];
-  rewrites: Array<{
-    key: string;
-    label: string;
-    messages: number;
-    tokens: number;
-    changed: boolean;
-    savingsTokens: number;
-    reason?: string;
-  }>;
-  status: {
-    taskScoped: boolean;
-    dmHistoryLimit?: number;
-    truncatedToolResults: number;
-    compactionCount: number;
-    activeRewrites: string[];
-  };
-  files: {
-    totalInjectedTokens: number;
-    memoryFiles: Array<{ name: string; tokens: number; synthetic: boolean; truncated: boolean }>;
-  };
-  skills: {
-    availableCount: number;
-    loadedCount: number;
-    promptTokens: number;
-    sourceBreakdown: Array<{ source: string; count: number; tokens: number; names: string[] }>;
-  };
-  tools: {
-    loadedCount: number;
-    listTokens: number;
-    schemaTokens: number;
-    names: string[];
-  };
-  suggestions: ContextSuggestion[];
-};
-
-function normalizeSkillSourceGroup(
-  sourceCategory?: SessionSystemPromptReport["skills"]["entries"][number]["sourceCategory"],
-): ContextSourceGroup {
-  switch (sourceCategory) {
-    case "workspace":
-      return "project";
-    case "managed":
-      return "managed";
-    case "plugin":
-      return "plugin";
-    case "bundled":
-      return "built-in";
-    case "extra":
-      return "extra";
-    default:
-      return "unknown";
-  }
-}
-
-function pushSourceContributor(
-  groups: Map<ContextSourceGroup, ContextSourceContributor[]>,
-  source: ContextSourceGroup,
-  contributor: ContextSourceContributor,
-) {
-  const existing = groups.get(source) ?? [];
-  existing.push(contributor);
-  groups.set(source, existing);
-}
-
-function buildContextInspectorData(params: {
-  report: SessionSystemPromptReport;
-  session: { contextTokens: number | null };
-  sessionEntry?: HandleCommandsParams["sessionEntry"];
-}): ContextInspectorData {
-  const { report } = params;
-  const systemPromptTokens =
-    report.modelView?.systemPromptTokens ?? estimateTokensFromChars(report.systemPrompt.chars);
-  const toolSchemaTokens =
-    report.modelView?.toolSchemaTokens ?? estimateTokensFromChars(report.tools.schemaChars);
-  const projectedHistoryTokens = report.modelView?.projectedHistoryTokens ?? 0;
-  const totalTokens =
-    report.modelView?.projectedTotalTokens ??
-    systemPromptTokens + toolSchemaTokens + projectedHistoryTokens;
-  const maxTokens =
-    report.modelView?.contextWindowTokens ??
-    (typeof params.session.contextTokens === "number" && params.session.contextTokens > 0
-      ? params.session.contextTokens
-      : undefined);
-  const percentUsed = maxTokens && maxTokens > 0 ? Math.min(1, totalTokens / maxTokens) : undefined;
-  const freeTokens = maxTokens ? Math.max(0, maxTokens - totalTokens) : undefined;
-
-  const projectContextTokens = Math.min(
-    systemPromptTokens,
-    estimateTokensFromChars(report.systemPrompt.projectContextChars),
-  );
-  const nonProjectPromptTokens = Math.max(0, systemPromptTokens - projectContextTokens);
-  const listTokens = estimateTokensFromChars(report.tools.listChars);
-  const skillPromptTokens = estimateTokensFromChars(report.skills.promptChars);
-
-  const fileEntries = report.injectedWorkspaceFiles.map((file) => ({
-    ...file,
-    tokens: estimateTokensFromChars(file.injectedChars),
-  }));
-  const totalInjectedTokens = fileEntries.reduce((sum, file) => sum + file.tokens, 0);
-  const projectContextWrapperTokens = Math.max(0, projectContextTokens - totalInjectedTokens);
-  const skillEntryTokens = report.skills.entries.reduce(
-    (sum, entry) => sum + estimateTokensFromChars(entry.blockChars),
-    0,
-  );
-  const corePromptTokens = Math.max(0, nonProjectPromptTokens - listTokens - skillEntryTokens);
-
-  const categoryBreakdown = [
-    { key: "project_context", label: "Project context", tokens: projectContextTokens },
-    { key: "non_project_prompt", label: "Non-project prompt", tokens: nonProjectPromptTokens },
-    { key: "tool_schemas", label: "Tool schemas", tokens: toolSchemaTokens },
-    { key: "model_history", label: "Model-visible history", tokens: projectedHistoryTokens },
-  ]
-    .filter((entry) => entry.tokens > 0)
-    .map((entry) => ({
-      ...entry,
-      share: totalTokens > 0 ? entry.tokens / totalTokens : undefined,
-    }));
-
-  const sourceGroups = new Map<ContextSourceGroup, ContextSourceContributor[]>();
-  for (const file of fileEntries) {
-    pushSourceContributor(sourceGroups, file.sourceGroup ?? "unknown", {
-      name: file.name,
-      tokens: file.tokens,
-      detail: [
-        file.synthetic ? "synthetic" : null,
-        file.truncated ? "truncated" : null,
-        file.missing ? "missing" : null,
-      ]
-        .filter(Boolean)
-        .join(", "),
-    });
-  }
-  for (const skill of report.skills.entries) {
-    pushSourceContributor(sourceGroups, normalizeSkillSourceGroup(skill.sourceCategory), {
-      name: `skill:${skill.name}`,
-      tokens: estimateTokensFromChars(skill.blockChars),
-    });
-  }
-  if (projectedHistoryTokens > 0) {
-    pushSourceContributor(sourceGroups, "managed", {
-      name: "model-visible history",
-      tokens: projectedHistoryTokens,
-      detail: "post-rewrite transcript",
-    });
-  }
-  if (projectContextWrapperTokens > 0) {
-    pushSourceContributor(sourceGroups, "built-in", {
-      name: "project context wrapper",
-      tokens: projectContextWrapperTokens,
-    });
-  }
-  if (listTokens > 0) {
-    pushSourceContributor(sourceGroups, "built-in", {
-      name: "tool list guidance",
-      tokens: listTokens,
-    });
-  }
-  if (corePromptTokens > 0) {
-    pushSourceContributor(sourceGroups, "built-in", {
-      name: "core system prompt",
-      tokens: corePromptTokens,
-    });
-  }
-  if (toolSchemaTokens > 0) {
-    pushSourceContributor(sourceGroups, "built-in", {
-      name: "tool schemas",
-      tokens: toolSchemaTokens,
-    });
-  }
-
-  const sourceBreakdown = [...sourceGroups.entries()]
-    .map(([source, contributors]) => {
-      const sorted = contributors.toSorted(
-        (a, b) => b.tokens - a.tokens || a.name.localeCompare(b.name),
-      );
-      return {
-        source,
-        totalTokens: sorted.reduce((sum, contributor) => sum + contributor.tokens, 0),
-        contributors: sorted,
-      };
-    })
-    .toSorted((a, b) => b.totalTokens - a.totalTokens || a.source.localeCompare(b.source));
-
-  const skillSourceBreakdown = [
-    ...new Map(
-      report.skills.entries.map((entry) => [
-        entry.sourceCategory ?? "unknown",
-        {
-          source: entry.sourceCategory ?? "unknown",
-          count: 0,
-          tokens: 0,
-          names: [] as string[],
-        },
-      ]),
-    ).values(),
-  ];
-  for (const entry of report.skills.entries) {
-    const key = entry.sourceCategory ?? "unknown";
-    const bucket = skillSourceBreakdown.find((candidate) => candidate.source === key);
-    if (!bucket) {
-      continue;
-    }
-    bucket.count += 1;
-    bucket.tokens += estimateTokensFromChars(entry.blockChars);
-    bucket.names.push(entry.name);
-  }
-  skillSourceBreakdown.sort((a, b) => b.tokens - a.tokens || a.source.localeCompare(b.source));
-
-  const rewrites =
-    report.modelView?.historyStages?.map((stage) => ({
-      key: stage.key,
-      label: stage.label,
-      messages: stage.messages,
-      tokens: stage.tokens,
-      changed: stage.changed,
-      savingsTokens: stage.savingsTokens,
-      reason: stage.reason,
-    })) ?? [];
-  const activeRewrites = rewrites.filter((stage) => stage.changed).map((stage) => stage.label);
-
-  const suggestions: ContextSuggestion[] = [];
-  if (typeof percentUsed === "number" && maxTokens && maxTokens > 0 && percentUsed >= 0.8) {
-    const target = Math.floor(maxTokens * 0.7);
-    suggestions.push({
-      severity: percentUsed >= 0.92 ? "critical" : "warn",
-      title: "Context window is tight",
-      detail: `Only ${formatTokenCount(freeTokens ?? 0)} remain in the model-visible payload. Compact soon or trim prompt overhead before a large turn.`,
-      estimatedTokenSavings: Math.max(0, totalTokens - target),
-    });
-  }
-  if (toolSchemaTokens >= 400) {
-    suggestions.push({
-      severity: toolSchemaTokens >= 1200 ? "warn" : "info",
-      title: "Tool schemas are consuming context",
-      detail: `${report.tools.entries.length} loaded tools contribute ${formatTokenCount(toolSchemaTokens)} before conversation history. Tighten tool policies for this agent/session if the surface is broader than needed.`,
-      estimatedTokenSavings: toolSchemaTokens,
-    });
-  }
-  if (skillPromptTokens >= 250 && report.skills.entries.length > 0) {
-    suggestions.push({
-      severity: skillPromptTokens >= 800 ? "warn" : "info",
-      title: "Skills prompt is sizable",
-      detail: `${report.skills.loadedCount ?? report.skills.entries.length} prompt-visible skills consume ${formatTokenCount(skillPromptTokens)}. Narrow skill filters if this session only needs a smaller subset.`,
-      estimatedTokenSavings: skillPromptTokens,
-    });
-  }
-  if (totalInjectedTokens >= 250 && fileEntries.length > 0) {
-    const heaviest = fileEntries
-      .toSorted((a, b) => b.tokens - a.tokens || a.name.localeCompare(b.name))
-      .slice(0, 3)
-      .map((file) => file.name)
-      .join(", ");
-    suggestions.push({
-      severity: totalInjectedTokens >= 1000 ? "warn" : "info",
-      title: "Injected project context is heavy",
-      detail: `Injected files contribute ${formatTokenCount(totalInjectedTokens)} (${heaviest || "no named files"}). Trim large bootstrap files or move volatile detail into task-specific context.`,
-      estimatedTokenSavings: totalInjectedTokens,
-    });
-  }
-  if ((report.modelView?.truncatedToolResults ?? 0) > 0) {
-    const limitedHistoryTokens = report.modelView?.limitedHistoryTokens ?? projectedHistoryTokens;
-    suggestions.push({
-      severity: "warn",
-      title: "Oversized tool results were truncated",
-      detail: `${report.modelView?.truncatedToolResults ?? 0} tool result(s) were shortened before the model call. Prefer narrower reads/searches so important details stay intact.`,
-      estimatedTokenSavings: Math.max(0, limitedHistoryTokens - projectedHistoryTokens),
-    });
-  }
-
-  return {
-    totalTokens,
-    maxTokens,
-    percentUsed,
-    freeTokens,
-    categoryBreakdown,
-    sourceBreakdown,
-    rewrites,
-    status: {
-      taskScoped: report.modelView?.taskScoped ?? false,
-      dmHistoryLimit: report.modelView?.dmHistoryLimit,
-      truncatedToolResults: report.modelView?.truncatedToolResults ?? 0,
-      compactionCount: params.sessionEntry?.compactionCount ?? 0,
-      activeRewrites,
-    },
-    files: {
-      totalInjectedTokens,
-      memoryFiles: fileEntries
-        .filter((file) => /^memory(?:\.md)?$/i.test(file.name))
-        .map((file) => ({
-          name: file.name,
-          tokens: file.tokens,
-          synthetic: Boolean(file.synthetic),
-          truncated: file.truncated,
-        })),
-    },
-    skills: {
-      availableCount: report.skills.availableCount ?? report.skills.entries.length,
-      loadedCount: report.skills.loadedCount ?? report.skills.entries.length,
-      promptTokens: skillPromptTokens,
-      sourceBreakdown: skillSourceBreakdown,
-    },
-    tools: {
-      loadedCount: report.tools.entries.length,
-      listTokens,
-      schemaTokens: toolSchemaTokens,
-      names: report.tools.entries.map((entry) => entry.name),
-    },
-    suggestions: suggestions.toSorted(
-      (a, b) => b.estimatedTokenSavings - a.estimatedTokenSavings || a.title.localeCompare(b.title),
-    ),
-  };
 }
 
 export async function loadContextReport(
   params: HandleCommandsParams,
 ): Promise<SessionSystemPromptReport> {
-  const existing = params.sessionEntry?.systemPromptReport;
-  if (existing && existing.source === "run") {
-    return existing;
-  }
-
-  const workspaceDir = params.workspaceDir;
-  const bootstrapMaxChars = resolveBootstrapMaxChars(params.cfg, params.provider);
-  const { bootstrapFiles, contextFiles: injectedFiles } = await resolveBootstrapContextForRun({
-    workspaceDir,
-    config: params.cfg,
-    sessionKey: params.sessionKey,
-    sessionId: params.sessionEntry?.sessionId,
-    provider: params.provider,
-  });
-  const skillsSnapshot = (() => {
-    try {
-      return buildWorkspaceSkillSnapshot(workspaceDir, {
-        config: params.cfg,
-        eligibility: { remote: getRemoteSkillEligibility() },
-        snapshotVersion: getSkillsSnapshotVersion(workspaceDir),
-      });
-    } catch {
-      return { prompt: "", skills: [], resolvedSkills: [] };
-    }
-  })();
-  const skillsPrompt = skillsSnapshot.prompt ?? "";
-  const sandboxRuntime = resolveSandboxRuntimeStatus({
+  return await loadSharedContextReport({
     cfg: params.cfg,
-    sessionKey: params.ctx.SessionKey ?? params.sessionKey,
-  });
-  const tools = (() => {
-    try {
-      return createOpenClawCodingTools({
-        config: params.cfg,
-        workspaceDir,
-        sessionKey: params.sessionKey,
-        messageProvider: params.command.channel,
-        groupId: params.sessionEntry?.groupId ?? undefined,
-        groupChannel: params.sessionEntry?.groupChannel ?? undefined,
-        groupSpace: params.sessionEntry?.space ?? undefined,
-        spawnedBy: params.sessionEntry?.spawnedBy ?? undefined,
-        senderIsOwner: params.command.senderIsOwner,
-        modelProvider: params.provider,
-        modelId: params.model,
-      });
-    } catch {
-      return [];
-    }
-  })();
-  const toolSummaries = buildToolSummaryMap(tools);
-  const toolNames = tools.map((t) => t.name);
-  const { sessionAgentId } = resolveSessionAgentIds({
+    workspaceDir: params.workspaceDir,
     sessionKey: params.sessionKey,
-    config: params.cfg,
-  });
-  const defaultModelRef = resolveDefaultModelForAgent({
-    cfg: params.cfg,
-    agentId: sessionAgentId,
-  });
-  const defaultModelLabel = `${defaultModelRef.provider}/${defaultModelRef.model}`;
-  const { runtimeInfo, userTimezone, userTime, userTimeFormat } = buildSystemPromptParams({
-    config: params.cfg,
-    agentId: sessionAgentId,
-    workspaceDir,
-    cwd: process.cwd(),
-    runtime: {
-      host: "unknown",
-      os: "unknown",
-      arch: "unknown",
-      node: process.version,
-      model: `${params.provider}/${params.model}`,
-      defaultModel: defaultModelLabel,
-    },
-  });
-  const sandboxInfo = sandboxRuntime.sandboxed
-    ? {
-        enabled: true,
-        workspaceDir,
-        workspaceAccess: "rw" as const,
-        elevated: {
-          allowed: params.elevated.allowed,
-          defaultLevel: (params.resolvedElevatedLevel ?? "off") as "on" | "off" | "ask" | "full",
-        },
-      }
-    : { enabled: false };
-  const ttsHint = params.cfg ? buildTtsSystemPromptHint(params.cfg) : undefined;
-
-  const promptArtifacts = buildAgentSystemPromptArtifacts({
-    workspaceDir,
-    defaultThinkLevel: params.resolvedThinkLevel,
-    reasoningLevel: params.resolvedReasoningLevel,
-    extraSystemPrompt: undefined,
-    ownerNumbers: undefined,
-    reasoningTagHint: false,
-    toolNames,
-    toolSummaries,
-    modelAliasLines: [],
-    userTimezone,
-    userTime,
-    userTimeFormat,
-    contextFiles: injectedFiles,
-    skillsPrompt,
-    heartbeatPrompt: undefined,
-    ttsHint,
-    runtimeInfo,
-    sandboxInfo,
-    memoryCitationsMode: params.cfg?.memory?.citations,
-    toolManuals: buildToolOperatorManualMap(tools),
-  });
-  const systemPrompt = promptArtifacts.prompt;
-
-  return buildSystemPromptReport({
-    source: "estimate",
-    generatedAt: Date.now(),
-    sessionId: params.sessionEntry?.sessionId,
-    sessionKey: params.sessionKey,
+    sessionEntry: params.sessionEntry,
     provider: params.provider,
     model: params.model,
-    workspaceDir,
-    bootstrapMaxChars,
-    sandbox: { mode: sandboxRuntime.mode, sandboxed: sandboxRuntime.sandboxed },
-    systemPrompt,
-    promptAssembly: promptArtifacts,
-    bootstrapFiles,
-    injectedFiles,
-    skillsPrompt,
-    resolvedSkills: (skillsSnapshot.resolvedSkills ?? []).map((skill) => ({
-      name: skill.name,
-      source: (skill as { source?: string }).source,
-    })),
-    availableSkillsCount: skillsSnapshot.skills.length,
-    loadedSkillsCount: skillsSnapshot.resolvedSkills?.length ?? 0,
-    tools,
+    contextTokens: params.contextTokens,
+    messageProvider: params.command.channel,
+    senderIsOwner: params.command.senderIsOwner,
+    resolvedThinkLevel: params.resolvedThinkLevel,
+    resolvedReasoningLevel: params.resolvedReasoningLevel,
+    resolvedElevatedLevel: params.resolvedElevatedLevel,
+    elevatedAllowed: params.elevated.allowed,
   });
-}
-
-async function loadProjectedContextReport(
-  params: HandleCommandsParams,
-): Promise<SessionSystemPromptReport> {
-  const report = await loadContextReport(params);
-  const sessionId = params.sessionEntry?.sessionId?.trim();
-  if (!sessionId) {
-    return report;
-  }
-
-  const { sessionAgentId } = resolveSessionAgentIds({
-    sessionKey: params.sessionKey,
-    config: params.cfg,
-  });
-  const sessionFile = resolveSessionFilePath(sessionId, params.sessionEntry, {
-    agentId: sessionAgentId,
-  });
-
-  try {
-    const sessionManager = SessionManager.open(sessionFile);
-    const projection = await projectConversationForModel({
-      sessionManager,
-      sessionId,
-      sessionKey: params.sessionKey,
-      taskId: resolveSessionTaskId({ entry: params.sessionEntry }),
-      config: params.cfg,
-      provider: params.provider,
-      modelId: params.model,
-      contextWindowTokens:
-        typeof params.contextTokens === "number" && params.contextTokens > 0
-          ? params.contextTokens
-          : undefined,
-      systemPromptReport: report,
-      sanitizeOptions: { recordModelSnapshot: false },
-    });
-    return attachModelViewToSystemPromptReport(report, projection.usage);
-  } catch {
-    return report;
-  }
 }
 
 export async function buildContextReply(params: HandleCommandsParams): Promise<ReplyPayload> {
@@ -611,7 +91,21 @@ export async function buildContextReply(params: HandleCommandsParams): Promise<R
     };
   }
 
-  const report = await loadProjectedContextReport(params);
+  const report = await loadSharedProjectedContextReport({
+    cfg: params.cfg,
+    workspaceDir: params.workspaceDir,
+    sessionKey: params.sessionKey,
+    sessionEntry: params.sessionEntry,
+    provider: params.provider,
+    model: params.model,
+    contextTokens: params.contextTokens,
+    messageProvider: params.command.channel,
+    senderIsOwner: params.command.senderIsOwner,
+    resolvedThinkLevel: params.resolvedThinkLevel,
+    resolvedReasoningLevel: params.resolvedReasoningLevel,
+    resolvedElevatedLevel: params.resolvedElevatedLevel,
+    elevatedAllowed: params.elevated.allowed,
+  });
   const session = {
     totalTokens: params.sessionEntry?.totalTokens ?? null,
     inputTokens: params.sessionEntry?.inputTokens ?? null,
@@ -639,10 +133,11 @@ export async function buildContextReply(params: HandleCommandsParams): Promise<R
 
   const fileLines = report.injectedWorkspaceFiles.map((f) => {
     const status = f.missing ? "MISSING" : f.truncated ? "TRUNCATED" : "OK";
-    const raw = f.missing ? "0" : formatCharsAndTokens(f.rawChars);
-    const injected = f.missing ? "0" : formatCharsAndTokens(f.injectedChars);
+    const raw = f.missing ? "0" : formatCharsAndTokens(f.rawChars, f.rawTokens);
+    const injected = f.missing ? "0" : formatCharsAndTokens(f.injectedChars, f.injectedTokens);
     const extras = [
       f.sourceGroup ? `source=${f.sourceGroup}` : null,
+      f.provenance && f.provenance.length > 1 ? `includes=${f.provenance.length - 1}` : null,
       f.synthetic ? "synthetic" : null,
     ]
       .filter(Boolean)
@@ -651,8 +146,8 @@ export async function buildContextReply(params: HandleCommandsParams): Promise<R
   });
 
   const sandboxLine = `Sandbox: mode=${report.sandbox?.mode ?? "unknown"} sandboxed=${report.sandbox?.sandboxed ?? false}`;
-  const toolSchemaLine = `Tool schemas (JSON): ${formatCharsAndTokens(report.tools.schemaChars)} (counts toward context; not shown as text)`;
-  const toolListLine = `Tool list (system prompt text): ${formatCharsAndTokens(report.tools.listChars)}`;
+  const toolSchemaLine = `Tool schemas (JSON): ${formatCharsAndTokens(report.tools.schemaChars, report.tools.schemaTokens)} (counts toward context; not shown as text)`;
+  const toolListLine = `Tool list (system prompt text): ${formatCharsAndTokens(report.tools.listChars, report.tools.listTokens)}`;
   const skillNameSet = new Set(report.skills.entries.map((s) => s.name));
   const skillNames = Array.from(skillNameSet);
   const toolNames = report.tools.entries.map((t) => t.name);
@@ -660,14 +155,14 @@ export async function buildContextReply(params: HandleCommandsParams): Promise<R
     names.length <= cap
       ? names.join(", ")
       : `${names.slice(0, cap).join(", ")}, … (+${names.length - cap} more)`;
-  const skillsLine = `Skills list (system prompt text): ${formatCharsAndTokens(report.skills.promptChars)} (${inspector.skills.loadedCount}/${inspector.skills.availableCount} prompt-visible/eligible)`;
+  const skillsLine = `Skills list (system prompt text): ${formatCharsAndTokens(report.skills.promptChars, report.skills.promptTokens)} (${inspector.skills.loadedCount}/${inspector.skills.availableCount} prompt-visible/eligible)`;
   const skillsNamesLine = skillNameSet.size
     ? `Skills: ${formatNameList(skillNames, 20)}`
     : "Skills: (none)";
   const toolsNamesLine = toolNames.length
     ? `Tools: ${formatNameList(toolNames, 30)}`
     : "Tools: (none)";
-  const systemPromptLine = `System prompt (${report.source}): ${formatCharsAndTokens(report.systemPrompt.chars)} (Project Context ${formatCharsAndTokens(report.systemPrompt.projectContextChars)})`;
+  const systemPromptLine = `System prompt (${report.source}): ${formatCharsAndTokens(report.systemPrompt.chars, report.systemPrompt.tokens)} (Project Context ${formatCharsAndTokens(report.systemPrompt.projectContextChars, report.systemPrompt.projectContextTokens)})`;
   const modelVisibleLine = report.modelView
     ? (() => {
         const pressure =
@@ -766,15 +261,27 @@ export async function buildContextReply(params: HandleCommandsParams): Promise<R
 
   if (sub === "detail" || sub === "deep") {
     const perSkill = formatListTop(
-      report.skills.entries.map((s) => ({ name: s.name, value: s.blockChars })),
+      report.skills.entries.map((s) => ({
+        name: s.name,
+        chars: s.blockChars,
+        tokens: s.blockTokens,
+      })),
       30,
     );
     const perToolSchema = formatListTop(
-      report.tools.entries.map((t) => ({ name: t.name, value: t.schemaChars })),
+      report.tools.entries.map((t) => ({
+        name: t.name,
+        chars: t.schemaChars,
+        tokens: t.schemaTokens,
+      })),
       30,
     );
     const perToolSummary = formatListTop(
-      report.tools.entries.map((t) => ({ name: t.name, value: t.summaryChars })),
+      report.tools.entries.map((t) => ({
+        name: t.name,
+        chars: t.summaryChars,
+        tokens: t.summaryTokens,
+      })),
       30,
     );
     const toolPropsLines = report.tools.entries

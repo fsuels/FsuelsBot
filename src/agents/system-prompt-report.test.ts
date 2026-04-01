@@ -14,7 +14,17 @@ describe("buildSystemPromptReport", () => {
           name: "AGENTS.md",
           path: "/tmp/project/AGENTS.md",
           content: "agents",
+          rawContent: "---\nagents\n---",
           missing: false,
+          sourceGroup: "project",
+          provenance: [
+            {
+              path: "/tmp/project/AGENTS.md",
+              sourceGroup: "project",
+              rawChars: 14,
+              transformedChars: 6,
+            },
+          ],
         },
       ],
       injectedFiles: [
@@ -30,6 +40,12 @@ describe("buildSystemPromptReport", () => {
         name: "AGENTS.md",
         synthetic: false,
         sourceGroup: "project",
+        provenance: [
+          expect.objectContaining({
+            path: "/tmp/project/AGENTS.md",
+            transformedChars: 6,
+          }),
+        ],
       }),
       expect.objectContaining({
         name: "ACTIVE_TASK",
@@ -64,5 +80,34 @@ describe("buildSystemPromptReport", () => {
         sourceCategory: "plugin",
       }),
     ]);
+  });
+
+  it("summarizes dynamic tool activations separately from the base tool list", () => {
+    const report = buildSystemPromptReport({
+      source: "estimate",
+      generatedAt: 0,
+      workspaceDir: "/tmp/project",
+      bootstrapMaxChars: 4000,
+      systemPrompt: "# Project Context\n## Runtime\nruntime",
+      bootstrapFiles: [],
+      injectedFiles: [],
+      skillsPrompt: "",
+      dynamicToolDelta: {
+        loadedTools: [{ name: "browser", summary: "Control web browser" }],
+        pendingProviders: ["github"],
+      },
+      tools: [],
+    });
+
+    expect(report.dynamicTooling).toEqual({
+      loadedCount: 1,
+      pendingProviders: ["github"],
+      entries: [
+        expect.objectContaining({
+          name: "browser",
+          summaryChars: "Control web browser".length,
+        }),
+      ],
+    });
   });
 });
