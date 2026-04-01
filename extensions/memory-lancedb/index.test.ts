@@ -109,11 +109,11 @@ describe("memory plugin e2e", () => {
   test("detectCategory classifies using production logic", async () => {
     const { detectCategory } = await import("./index.js");
 
-    expect(detectCategory("I prefer dark mode")).toBe("preference");
-    expect(detectCategory("We decided to use React")).toBe("decision");
-    expect(detectCategory("My email is test@example.com")).toBe("entity");
-    expect(detectCategory("The server is running on port 3000")).toBe("fact");
-    expect(detectCategory("Random note")).toBe("other");
+    expect(detectCategory("I prefer dark mode")).toBe("user");
+    expect(detectCategory("We decided to use task cards as the source of truth")).toBe("project");
+    expect(detectCategory("My email is test@example.com")).toBe("user");
+    expect(detectCategory("That was the right call because it reduced risk")).toBe("feedback");
+    expect(detectCategory("Random note")).toBe("reference");
   });
 });
 
@@ -212,7 +212,7 @@ describeLive("memory plugin live tests", () => {
     const storeResult = await storeTool.execute("test-call-1", {
       text: "The user prefers dark mode for all applications",
       importance: 0.8,
-      category: "preference",
+      type: "user",
     });
 
     expect(storeResult.details?.action).toBe("created");

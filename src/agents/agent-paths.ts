@@ -2,8 +2,13 @@ import path from "node:path";
 import { resolveStateDir } from "../config/paths.js";
 import { DEFAULT_AGENT_ID } from "../routing/session-key.js";
 import { resolveUserPath } from "../utils.js";
+import { getAgentDir } from "./runtime-context.js";
 
 export function resolveOpenClawAgentDir(): string {
+  const runtimeAgentDir = getAgentDir();
+  if (runtimeAgentDir) {
+    return resolveUserPath(runtimeAgentDir);
+  }
   const override =
     process.env.OPENCLAW_AGENT_DIR?.trim() || process.env.PI_CODING_AGENT_DIR?.trim();
   if (override) {
@@ -15,6 +20,9 @@ export function resolveOpenClawAgentDir(): string {
 
 export function ensureOpenClawAgentEnv(): string {
   const dir = resolveOpenClawAgentDir();
+  if (getAgentDir()) {
+    return dir;
+  }
   if (!process.env.OPENCLAW_AGENT_DIR) {
     process.env.OPENCLAW_AGENT_DIR = dir;
   }

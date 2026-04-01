@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import type { OpenClawConfig, ConfigFileSnapshot, LegacyConfigIssue } from "./types.js";
 import { resolveRequiredHomeDir } from "../infra/home-dir.js";
+import { stripUtf8Bom } from "../infra/json-parse.js";
 import {
   loadShellEnvFallback,
   resolveShellEnvFallbackTimeoutMs,
@@ -13,6 +14,7 @@ import {
 } from "../infra/shell-env.js";
 import { VERSION } from "../version.js";
 import { DuplicateAgentDirError, findDuplicateAgentDirs } from "./agent-dirs.js";
+import { clearBootstrapConfigCache } from "./bootstrap.js";
 import {
   applyCompactionDefaults,
   applyContextPruningDefaults,
@@ -24,14 +26,15 @@ import {
   applyTalkApiKey,
 } from "./defaults.js";
 import { MissingEnvVarError, resolveConfigEnvVars } from "./env-substitution.js";
-import { collectConfigEnvVars } from "./env-vars.js";
-import { ConfigIncludeError, resolveConfigIncludes } from "./includes.js";
+import { collectConfigEnvVars, isProtectedConfigEnvVar } from "./env-vars.js";
+import { ConfigIncludeError, resolveConfigIncludesDetailed } from "./includes.js";
 import { findLegacyConfigIssues } from "./legacy.js";
 import { normalizeConfigPaths } from "./normalize-paths.js";
 import { resolveConfigPath, resolveDefaultConfigCandidates, resolveStateDir } from "./paths.js";
 import { applyConfigOverrides } from "./runtime-overrides.js";
 import { validateConfigObjectWithPlugins } from "./validation.js";
 import { compareOpenClawVersions } from "./version.js";
+import { markConfigPathWrite } from "./watch-events.js";
 
 // Re-export for backwards compatibility
 export { CircularIncludeError, ConfigIncludeError } from "./includes.js";
@@ -58,6 +61,7 @@ const SHELL_ENV_EXPECTED_KEYS = [
 
 const CONFIG_BACKUP_COUNT = 5;
 const loggedInvalidConfigs = new Set<string>();
+const ORIGINAL_PROCESS_ENV = { ...process.env };
 
 export type ParseConfigJson5Result = { ok: true; parsed: unknown } | { ok: false; error: string };
 
@@ -89,6 +93,24 @@ function coerceConfig(value: unknown): OpenClawConfig {
     return {};
   }
   return value as OpenClawConfig;
+}
+
+function attachIssueFile(
+  filePath: string,
+  issue: ConfigFileSnapshot["issues"][number],
+): ConfigFileSnapshot["issues"][number] {
+  return issue.file ? issue : { ...issue, file: filePath };
+}
+
+function attachIssueFiles(
+  filePath: string,
+  issues: ConfigFileSnapshot["issues"],
+): ConfigFileSnapshot["issues"] {
+  return issues.map((issue) => attachIssueFile(filePath, issue));
+}
+
+function cloneConfigValue<T>(value: T): T {
+  return structuredClone(value);
 }
 
 async function rotateConfigBackups(configPath: string, ioFs: typeof fs.promises): Promise<void> {
@@ -165,11 +187,39 @@ function warnIfConfigFromFuture(cfg: OpenClawConfig, logger: Pick<typeof console
 function applyConfigEnv(cfg: OpenClawConfig, env: NodeJS.ProcessEnv): void {
   const entries = collectConfigEnvVars(cfg);
   for (const [key, value] of Object.entries(entries)) {
+    const originalValue = ORIGINAL_PROCESS_ENV[key];
+    if (typeof originalValue === "string" && originalValue.trim()) {
+      env[key] = originalValue;
+      continue;
+    }
+    if (isProtectedConfigEnvVar(key)) {
+      continue;
+    }
     if (env[key]?.trim()) {
       continue;
     }
     env[key] = value;
   }
+}
+
+function buildConfigSubstitutionEnv(
+  cfg: OpenClawConfig,
+  env: NodeJS.ProcessEnv,
+): NodeJS.ProcessEnv {
+  const substitutionEnv: NodeJS.ProcessEnv = { ...env };
+  const entries = collectConfigEnvVars(cfg);
+  for (const [key, value] of Object.entries(entries)) {
+    const originalValue = ORIGINAL_PROCESS_ENV[key];
+    if (typeof originalValue === "string" && originalValue.trim()) {
+      substitutionEnv[key] = originalValue;
+      continue;
+    }
+    if (substitutionEnv[key]?.trim()) {
+      continue;
+    }
+    substitutionEnv[key] = value;
+  }
+  return substitutionEnv;
 }
 
 function resolveConfigPathForDeps(deps: Required<ConfigIoDeps>): string {
@@ -196,7 +246,7 @@ export function parseConfigJson5(
   json5: { parse: (value: string) => unknown } = JSON5,
 ): ParseConfigJson5Result {
   try {
-    return { ok: true, parsed: json5.parse(raw) };
+    return { ok: true, parsed: json5.parse(stripUtf8Bom(raw)) };
   } catch (err) {
     return { ok: false, error: String(err) };
   }
@@ -226,13 +276,15 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
         return {};
       }
       const raw = deps.fs.readFileSync(configPath, "utf-8");
-      const parsed = deps.json5.parse(raw);
+      const parsed = deps.json5.parse(stripUtf8Bom(raw));
 
       // Resolve $include directives before validation
-      const resolved = resolveConfigIncludes(parsed, configPath, {
+      const includeResolution = resolveConfigIncludesDetailed(parsed, configPath, {
         readFile: (p) => deps.fs.readFileSync(p, "utf-8"),
-        parseJson: (raw) => deps.json5.parse(raw),
+        parseJson: (raw) => deps.json5.parse(stripUtf8Bom(raw)),
       });
+      const resolved = includeResolution.value;
+      const includeWarnings = attachIssueFiles(configPath, includeResolution.warnings);
 
       // Apply config.env to process.env BEFORE substitution so ${VAR} can reference config-defined vars
       if (resolved && typeof resolved === "object" && "env" in resolved) {
@@ -240,7 +292,10 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
       }
 
       // Substitute ${VAR} env var references
-      const substituted = resolveConfigEnvVars(resolved, deps.env);
+      const substituted = resolveConfigEnvVars(
+        resolved,
+        buildConfigSubstitutionEnv(resolved as OpenClawConfig, deps.env),
+      );
 
       const resolvedConfig = substituted;
       warnOnConfigMiskeys(resolvedConfig, deps.logger);
@@ -268,8 +323,9 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
         (error as { code?: string; details?: string }).details = details;
         throw error;
       }
-      if (validated.warnings.length > 0) {
-        const details = validated.warnings
+      const warnings = [...includeWarnings, ...validated.warnings];
+      if (warnings.length > 0) {
+        const details = warnings
           .map((iss) => `- ${iss.path || "<root>"}: ${iss.message}`)
           .join("\n");
         deps.logger.warn(`Config warnings:\\n${details}`);
@@ -353,6 +409,7 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
     try {
       const raw = deps.fs.readFileSync(configPath, "utf-8");
       const hash = hashConfigRaw(raw);
+      const warnings: ConfigFileSnapshot["warnings"] = [];
       const parsedRes = parseConfigJson5(raw, deps.json5);
       if (!parsedRes.ok) {
         return {
@@ -363,7 +420,9 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
           valid: false,
           config: {},
           hash,
-          issues: [{ path: "", message: `JSON5 parse failed: ${parsedRes.error}` }],
+          issues: attachIssueFiles(configPath, [
+            { path: "", message: `JSON5 parse failed: ${parsedRes.error}` },
+          ]),
           warnings: [],
           legacyIssues: [],
         };
@@ -372,10 +431,15 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
       // Resolve $include directives
       let resolved: unknown;
       try {
-        resolved = resolveConfigIncludes(parsedRes.parsed, configPath, {
+        const includeResolution = resolveConfigIncludesDetailed(parsedRes.parsed, configPath, {
           readFile: (p) => deps.fs.readFileSync(p, "utf-8"),
-          parseJson: (raw) => deps.json5.parse(raw),
+          parseJson: (raw) => deps.json5.parse(stripUtf8Bom(raw)),
         });
+        resolved = includeResolution.value;
+        const includeWarnings = attachIssueFiles(configPath, includeResolution.warnings);
+        if (includeWarnings.length > 0) {
+          warnings.push(...includeWarnings);
+        }
       } catch (err) {
         const message =
           err instanceof ConfigIncludeError
@@ -389,8 +453,8 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
           valid: false,
           config: coerceConfig(parsedRes.parsed),
           hash,
-          issues: [{ path: "", message }],
-          warnings: [],
+          issues: attachIssueFiles(configPath, [{ path: "", message }]),
+          warnings,
           legacyIssues: [],
         };
       }
@@ -403,7 +467,10 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
       // Substitute ${VAR} env var references
       let substituted: unknown;
       try {
-        substituted = resolveConfigEnvVars(resolved, deps.env);
+        substituted = resolveConfigEnvVars(
+          resolved,
+          buildConfigSubstitutionEnv(resolved as OpenClawConfig, deps.env),
+        );
       } catch (err) {
         const message =
           err instanceof MissingEnvVarError
@@ -417,8 +484,8 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
           valid: false,
           config: coerceConfig(resolved),
           hash,
-          issues: [{ path: "", message }],
-          warnings: [],
+          issues: attachIssueFiles(configPath, [{ path: "", message }]),
+          warnings,
           legacyIssues: [],
         };
       }
@@ -436,8 +503,8 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
           valid: false,
           config: coerceConfig(resolvedConfigRaw),
           hash,
-          issues: validated.issues,
-          warnings: validated.warnings,
+          issues: attachIssueFiles(configPath, validated.issues),
+          warnings: [...warnings, ...attachIssueFiles(configPath, validated.warnings)],
           legacyIssues,
         };
       }
@@ -460,7 +527,7 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
         ),
         hash,
         issues: [],
-        warnings: validated.warnings,
+        warnings: [...warnings, ...attachIssueFiles(configPath, validated.warnings)],
         legacyIssues,
       };
     } catch (err) {
@@ -472,7 +539,9 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
         valid: false,
         config: {},
         hash: hashConfigRaw(null),
-        issues: [{ path: "", message: `read failed: ${String(err)}` }],
+        issues: attachIssueFiles(configPath, [
+          { path: "", message: `read failed: ${String(err)}` },
+        ]),
         warnings: [],
         legacyIssues: [],
       };
@@ -481,6 +550,7 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
 
   async function writeConfigFile(cfg: OpenClawConfig) {
     clearConfigCache();
+    clearBootstrapConfigCache();
     const validated = validateConfigObjectWithPlugins(cfg);
     if (!validated.ok) {
       const issue = validated.issues[0];
@@ -518,6 +588,7 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
 
     try {
       await deps.fs.promises.rename(tmp, configPath);
+      markConfigPathWrite(configPath);
     } catch (err) {
       const code = (err as { code?: string }).code;
       // Windows doesn't reliably support atomic replace via rename when dest exists.
@@ -529,6 +600,7 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
         await deps.fs.promises.unlink(tmp).catch(() => {
           // best-effort
         });
+        markConfigPathWrite(configPath);
         return;
       }
       await deps.fs.promises.unlink(tmp).catch(() => {
@@ -578,7 +650,7 @@ function shouldUseConfigCache(env: NodeJS.ProcessEnv): boolean {
   return resolveConfigCacheMs(env) > 0;
 }
 
-function clearConfigCache(): void {
+export function clearConfigCache(): void {
   configCache = null;
 }
 
@@ -589,7 +661,7 @@ export function loadConfig(): OpenClawConfig {
   if (shouldUseConfigCache(process.env)) {
     const cached = configCache;
     if (cached && cached.configPath === configPath && cached.expiresAt > now) {
-      return cached.config;
+      return cloneConfigValue(cached.config);
     }
   }
   const config = io.loadConfig();
@@ -599,7 +671,7 @@ export function loadConfig(): OpenClawConfig {
       configCache = {
         configPath,
         expiresAt: now + cacheMs,
-        config,
+        config: cloneConfigValue(config),
       };
     }
   }
@@ -612,5 +684,6 @@ export async function readConfigFileSnapshot(): Promise<ConfigFileSnapshot> {
 
 export async function writeConfigFile(cfg: OpenClawConfig): Promise<void> {
   clearConfigCache();
+  clearBootstrapConfigCache();
   await createConfigIO().writeConfigFile(cfg);
 }

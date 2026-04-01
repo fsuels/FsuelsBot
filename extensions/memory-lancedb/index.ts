@@ -12,12 +12,16 @@ import { Type } from "@sinclair/typebox";
 import { randomUUID } from "node:crypto";
 import OpenAI from "openai";
 import { stringEnum } from "openclaw/plugin-sdk";
+import { MEMORY_TYPES, type MemoryType, memoryConfigSchema, vectorDimsForModel } from "./config.js";
 import {
-  MEMORY_CATEGORIES,
-  type MemoryCategory,
-  memoryConfigSchema,
-  vectorDimsForModel,
-} from "./config.js";
+  buildRecallView,
+  classifyMemoryType,
+  formatRecallLine,
+  prepareMemoryForStorage,
+  shouldIgnoreMemory,
+  type MemoryInputType,
+  type PreparedMemory,
+} from "./policy.js";
 
 // ============================================================================
 // Types
@@ -41,7 +45,9 @@ type MemoryEntry = {
   text: string;
   vector: number[];
   importance: number;
-  category: MemoryCategory;
+  type: MemoryType;
+  category?: string;
+  savedAt: number;
   createdAt: number;
 };
 
@@ -49,6 +55,25 @@ type MemorySearchResult = {
   entry: MemoryEntry;
   score: number;
 };
+
+function normalizeStoredType(type: unknown, category: unknown, text: string): MemoryType {
+  const candidate = typeof type === "string" ? type : typeof category === "string" ? category : "";
+  if (MEMORY_TYPES.includes(candidate as MemoryType)) {
+    return candidate as MemoryType;
+  }
+  switch (candidate) {
+    case "preference":
+    case "entity":
+      return "user";
+    case "decision":
+      return "project";
+    case "fact":
+      return classifyMemoryType(text, "user") ?? "reference";
+    case "other":
+      return "reference";
+  }
+  return classifyMemoryType(text, "user") ?? "reference";
+}
 
 // ============================================================================
 // LanceDB Provider
@@ -92,7 +117,9 @@ class MemoryDB {
           text: "",
           vector: Array.from({ length: this.vectorDim }).fill(0),
           importance: 0,
-          category: "other",
+          type: "reference",
+          category: "reference",
+          savedAt: 0,
           createdAt: 0,
         },
       ]);
@@ -103,10 +130,12 @@ class MemoryDB {
   async store(entry: Omit<MemoryEntry, "id" | "createdAt">): Promise<MemoryEntry> {
     await this.ensureInitialized();
 
+    const savedAt = Number.isFinite(entry.savedAt) ? entry.savedAt : Date.now();
     const fullEntry: MemoryEntry = {
       ...entry,
       id: randomUUID(),
-      createdAt: Date.now(),
+      savedAt,
+      createdAt: savedAt,
     };
 
     await this.table!.add([fullEntry]);
@@ -129,8 +158,25 @@ class MemoryDB {
           text: row.text as string,
           vector: row.vector as number[],
           importance: row.importance as number,
-          category: row.category as MemoryEntry["category"],
-          createdAt: row.createdAt as number,
+          type: normalizeStoredType(row.type, row.category, row.text as string),
+          category:
+            typeof row.category === "string"
+              ? row.category
+              : typeof row.type === "string"
+                ? row.type
+                : undefined,
+          savedAt:
+            typeof row.savedAt === "number" && Number.isFinite(row.savedAt)
+              ? row.savedAt
+              : typeof row.createdAt === "number" && Number.isFinite(row.createdAt)
+                ? row.createdAt
+                : 0,
+          createdAt:
+            typeof row.createdAt === "number" && Number.isFinite(row.createdAt)
+              ? row.createdAt
+              : typeof row.savedAt === "number" && Number.isFinite(row.savedAt)
+                ? row.savedAt
+                : 0,
         },
         score,
       };
@@ -179,61 +225,55 @@ class Embeddings {
   }
 }
 
-// ============================================================================
-// Rule-based capture filter
-// ============================================================================
-
-const MEMORY_TRIGGERS = [
-  /zapamatuj si|pamatuj|remember/i,
-  /preferuji|radši|nechci|prefer/i,
-  /rozhodli jsme|budeme používat/i,
-  /\+\d{10,}/,
-  /[\w.-]+@[\w.-]+\.\w+/,
-  /můj\s+\w+\s+je|je\s+můj/i,
-  /my\s+\w+\s+is|is\s+my/i,
-  /i (like|prefer|hate|love|want|need)/i,
-  /always|never|important/i,
-];
-
 export function shouldCapture(text: string): boolean {
-  if (text.length < 10 || text.length > 500) {
-    return false;
-  }
-  // Skip injected context from memory recall
-  if (text.includes("<relevant-memories>")) {
-    return false;
-  }
-  // Skip system-generated content
-  if (text.startsWith("<") && text.includes("</")) {
-    return false;
-  }
-  // Skip agent summary responses (contain markdown formatting)
-  if (text.includes("**") && text.includes("\n-")) {
-    return false;
-  }
-  // Skip emoji-heavy responses (likely agent output)
-  const emojiCount = (text.match(/[\u{1F300}-\u{1F9FF}]/gu) || []).length;
-  if (emojiCount > 3) {
-    return false;
-  }
-  return MEMORY_TRIGGERS.some((r) => r.test(text));
+  return prepareMemoryForStorage({ text, sourceRole: "user" }) !== null;
 }
 
-export function detectCategory(text: string): MemoryCategory {
-  const lower = text.toLowerCase();
-  if (/prefer|radši|like|love|hate|want/i.test(lower)) {
-    return "preference";
+export function detectCategory(text: string): MemoryType {
+  return classifyMemoryType(text, "user") ?? "reference";
+}
+
+function extractRecentUserTexts(messages: readonly unknown[], limit = 4): string[] {
+  const texts: string[] = [];
+  for (const raw of [...messages].reverse()) {
+    if (!raw || typeof raw !== "object") {
+      continue;
+    }
+    const message = raw as Record<string, unknown>;
+    if (message.role !== "user") {
+      continue;
+    }
+    const content = message.content;
+    if (typeof content === "string") {
+      texts.push(content);
+      if (texts.length >= limit) {
+        break;
+      }
+      continue;
+    }
+    if (!Array.isArray(content)) {
+      continue;
+    }
+    for (const block of content) {
+      if (
+        block &&
+        typeof block === "object" &&
+        "type" in block &&
+        (block as Record<string, unknown>).type === "text" &&
+        "text" in block &&
+        typeof (block as Record<string, unknown>).text === "string"
+      ) {
+        texts.push((block as Record<string, unknown>).text as string);
+        if (texts.length >= limit) {
+          break;
+        }
+      }
+    }
+    if (texts.length >= limit) {
+      break;
+    }
   }
-  if (/rozhodli|decided|will use|budeme/i.test(lower)) {
-    return "decision";
-  }
-  if (/\+\d{10,}|@[\w.-]+\.\w+|is called|jmenuje se/i.test(lower)) {
-    return "entity";
-  }
-  if (/is|are|has|have|je|má|jsou/i.test(lower)) {
-    return "fact";
-  }
-  return "other";
+  return texts.reverse();
 }
 
 // ============================================================================
@@ -255,6 +295,28 @@ const memoryPlugin = {
     const embeddings = new Embeddings(cfg.embedding.apiKey, cfg.embedding.model!);
 
     api.logger.info(`memory-lancedb: plugin registered (db: ${resolvedDbPath}, lazy init)`);
+
+    const storePreparedMemory = async (prepared: PreparedMemory) => {
+      const vector = await embeddings.embed(prepared.text);
+      const existing = await db.search(vector, 1, 0.95);
+      if (existing.length > 0) {
+        return {
+          action: "duplicate" as const,
+          existingId: existing[0].entry.id,
+          existingText: existing[0].entry.text,
+        };
+      }
+
+      const entry = await db.store({
+        text: prepared.text,
+        vector,
+        importance: prepared.importance,
+        type: prepared.type,
+        category: prepared.type,
+        savedAt: prepared.savedAt,
+      });
+      return { action: "created" as const, id: entry.id, text: entry.text };
+    };
 
     // ========================================================================
     // Tools
@@ -283,25 +345,36 @@ const memoryPlugin = {
             };
           }
 
-          const text = results
+          const recallViews = await Promise.all(
+            results.map(async (result) => ({
+              result,
+              view: await buildRecallView({ candidate: result.entry }),
+            })),
+          );
+          const text = recallViews
             .map(
-              (r, i) =>
-                `${i + 1}. [${r.entry.category}] ${r.entry.text} (${(r.score * 100).toFixed(0)}%)`,
+              ({ result, view }, i) =>
+                `${i + 1}. ${formatRecallLine({ view, score: result.score, includeBody: true })}`,
             )
-            .join("\n");
+            .join("\n\n");
 
           // Strip vector data for serialization (typed arrays can't be cloned)
-          const sanitizedResults = results.map((r) => ({
-            id: r.entry.id,
-            text: r.entry.text,
-            category: r.entry.category,
-            importance: r.entry.importance,
-            score: r.score,
+          const sanitizedResults = recallViews.map(({ result, view }) => ({
+            id: result.entry.id,
+            text: result.entry.text,
+            type: view.type,
+            category: view.type,
+            importance: result.entry.importance,
+            savedAt: view.savedAt,
+            stale: view.stale,
+            stalenessNote: view.stalenessNote,
+            verification: view.verification,
+            score: result.score,
           }));
 
           return {
-            content: [{ type: "text", text: `Found ${results.length} memories:\n\n${text}` }],
-            details: { count: results.length, memories: sanitizedResults },
+            content: [{ type: "text", text: `Found ${recallViews.length} memories:\n\n${text}` }],
+            details: { count: recallViews.length, memories: sanitizedResults },
           };
         },
       },
@@ -313,53 +386,59 @@ const memoryPlugin = {
         name: "memory_store",
         label: "Memory Store",
         description:
-          "Save important information in long-term memory. Use for preferences, facts, decisions.",
+          "Save durable, non-derivable memory such as user preferences, reusable feedback, project conventions, or reference pointers.",
         parameters: Type.Object({
           text: Type.String({ description: "Information to remember" }),
-          importance: Type.Optional(Type.Number({ description: "Importance 0-1 (default: 0.7)" })),
-          category: Type.Optional(stringEnum(MEMORY_CATEGORIES)),
+          importance: Type.Optional(Type.Number({ description: "Importance 0-1 (optional)" })),
+          type: Type.Optional(stringEnum(MEMORY_TYPES)),
+          category: Type.Optional(Type.String({ description: "Legacy alias for type" })),
         }),
         async execute(_toolCallId, params) {
-          const {
-            text,
-            importance = 0.7,
-            category = "other",
-          } = params as {
+          const { text, importance, type, category } = params as {
             text: string;
             importance?: number;
-            category?: MemoryEntry["category"];
+            type?: MemoryType;
+            category?: MemoryInputType;
           };
-
-          const vector = await embeddings.embed(text);
-
-          // Check for duplicates
-          const existing = await db.search(vector, 1, 0.95);
-          if (existing.length > 0) {
+          const prepared = prepareMemoryForStorage({
+            text,
+            importance,
+            explicitType: type ?? category,
+            sourceRole: "user",
+          });
+          if (!prepared) {
             return {
               content: [
                 {
                   type: "text",
-                  text: `Similar memory already exists: "${existing[0].entry.text}"`,
+                  text: "Skipped: memory must be durable, non-derivable context such as user preferences, reusable feedback, project conventions, or reference pointers.",
                 },
               ],
-              details: {
-                action: "duplicate",
-                existingId: existing[0].entry.id,
-                existingText: existing[0].entry.text,
-              },
+              details: { action: "skipped", reason: "policy_rejected" },
             };
           }
 
-          const entry = await db.store({
-            text,
-            vector,
-            importance,
-            category,
-          });
+          const stored = await storePreparedMemory(prepared);
+          if (stored.action === "duplicate") {
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: `Similar memory already exists: "${stored.existingText}"`,
+                },
+              ],
+              details: stored,
+            };
+          }
 
           return {
-            content: [{ type: "text", text: `Stored: "${text.slice(0, 100)}..."` }],
-            details: { action: "created", id: entry.id },
+            content: [{ type: "text", text: `Stored: "${prepared.text.slice(0, 100)}..."` }],
+            details: {
+              action: "created",
+              id: stored.id,
+              type: prepared.type,
+              savedAt: prepared.savedAt,
+            },
           };
         },
       },
@@ -413,7 +492,9 @@ const memoryPlugin = {
             const sanitizedCandidates = results.map((r) => ({
               id: r.entry.id,
               text: r.entry.text,
-              category: r.entry.category,
+              type: r.entry.type,
+              category: r.entry.type,
+              savedAt: r.entry.savedAt,
               score: r.score,
             }));
 
@@ -465,8 +546,9 @@ const memoryPlugin = {
             const output = results.map((r) => ({
               id: r.entry.id,
               text: r.entry.text,
-              category: r.entry.category,
+              type: r.entry.type,
               importance: r.entry.importance,
+              savedAt: r.entry.savedAt,
               score: r.score,
             }));
             console.log(JSON.stringify(output, null, 2));
@@ -489,24 +571,54 @@ const memoryPlugin = {
 
     // Auto-recall: inject relevant memories before agent starts
     if (cfg.autoRecall) {
-      api.on("before_agent_start", async (event) => {
+      api.on("before_agent_start", async (event, ctx) => {
         if (!event.prompt || event.prompt.length < 5) {
+          return;
+        }
+        if (shouldIgnoreMemory({ prompt: event.prompt, messages: event.messages })) {
+          api.logger.info?.(
+            "memory-lancedb: skipping recall because the user asked to ignore memory",
+          );
           return;
         }
 
         try {
           const vector = await embeddings.embed(event.prompt);
-          const results = await db.search(vector, 3, 0.3);
+          const results = await db.search(vector, 5, 0.3);
 
           if (results.length === 0) {
             return;
           }
 
-          const memoryContext = results
-            .map((r) => `- [${r.entry.category}] ${r.entry.text}`)
+          const recallViews = await Promise.all(
+            results.map(async (result) => ({
+              result,
+              view: await buildRecallView({
+                candidate: result.entry,
+                workspaceDir: ctx.workspaceDir,
+              }),
+            })),
+          );
+          const recallable = recallViews
+            .filter(({ view }) => view.verification.status !== "conflict")
+            .slice(0, 3);
+          const conflicts = recallViews.filter(
+            ({ view }) => view.verification.status === "conflict",
+          );
+          if (conflicts.length > 0) {
+            api.logger.warn(
+              `memory-lancedb: skipped ${conflicts.length} conflicting memories that no longer match the workspace`,
+            );
+          }
+          if (recallable.length === 0) {
+            return;
+          }
+
+          const memoryContext = recallable
+            .map(({ result, view }) => `- ${formatRecallLine({ view, score: result.score })}`)
             .join("\n");
 
-          api.logger.info?.(`memory-lancedb: injecting ${results.length} memories into context`);
+          api.logger.info?.(`memory-lancedb: injecting ${recallable.length} memories into context`);
 
           return {
             prependContext: `<relevant-memories>\nThe following memories may be relevant to this conversation:\n${memoryContext}\n</relevant-memories>`,
@@ -525,71 +637,28 @@ const memoryPlugin = {
         }
 
         try {
-          // Extract text content from messages (handling unknown[] type)
-          const texts: string[] = [];
-          for (const msg of event.messages) {
-            // Type guard for message object
-            if (!msg || typeof msg !== "object") {
-              continue;
-            }
-            const msgObj = msg as Record<string, unknown>;
-
-            // Only process user and assistant messages
-            const role = msgObj.role;
-            if (role !== "user" && role !== "assistant") {
-              continue;
-            }
-
-            const content = msgObj.content;
-
-            // Handle string content directly
-            if (typeof content === "string") {
-              texts.push(content);
-              continue;
-            }
-
-            // Handle array content (content blocks)
-            if (Array.isArray(content)) {
-              for (const block of content) {
-                if (
-                  block &&
-                  typeof block === "object" &&
-                  "type" in block &&
-                  (block as Record<string, unknown>).type === "text" &&
-                  "text" in block &&
-                  typeof (block as Record<string, unknown>).text === "string"
-                ) {
-                  texts.push((block as Record<string, unknown>).text as string);
-                }
-              }
-            }
-          }
-
-          // Filter for capturable content
-          const toCapture = texts.filter((text) => text && shouldCapture(text));
-          if (toCapture.length === 0) {
+          const texts = extractRecentUserTexts(event.messages, 6);
+          const prepared = texts
+            .map((text) =>
+              prepareMemoryForStorage({
+                text,
+                sourceRole: "user",
+              }),
+            )
+            .filter((entry): entry is PreparedMemory => entry !== null);
+          const uniquePrepared = Array.from(
+            new Map(prepared.map((entry) => [entry.text, entry])).values(),
+          ).slice(0, 3);
+          if (uniquePrepared.length === 0) {
             return;
           }
 
-          // Store each capturable piece (limit to 3 per conversation)
           let stored = 0;
-          for (const text of toCapture.slice(0, 3)) {
-            const category = detectCategory(text);
-            const vector = await embeddings.embed(text);
-
-            // Check for duplicates (high similarity threshold)
-            const existing = await db.search(vector, 1, 0.95);
-            if (existing.length > 0) {
-              continue;
+          for (const entry of uniquePrepared) {
+            const result = await storePreparedMemory(entry);
+            if (result.action === "created") {
+              stored += 1;
             }
-
-            await db.store({
-              text,
-              vector,
-              importance: 0.7,
-              category,
-            });
-            stored++;
           }
 
           if (stored > 0) {

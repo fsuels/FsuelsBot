@@ -13,8 +13,8 @@ export type MemoryConfig = {
   autoRecall?: boolean;
 };
 
-export const MEMORY_CATEGORIES = ["preference", "fact", "decision", "entity", "other"] as const;
-export type MemoryCategory = (typeof MEMORY_CATEGORIES)[number];
+export const MEMORY_TYPES = ["user", "feedback", "project", "reference"] as const;
+export type MemoryType = (typeof MEMORY_TYPES)[number];
 
 const DEFAULT_MODEL = "text-embedding-3-small";
 const LEGACY_STATE_DIRS: string[] = [];

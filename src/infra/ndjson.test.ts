@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { safeNdjsonStringify } from "./ndjson.js";
-import { installStdoutProtocolGuard } from "./stdout-protocol-guard.js";
+import {
+  installStdoutProtocolGuard,
+  resetStdoutProtocolGuardForTests,
+  STDOUT_PROTOCOL_GUARD_SENTINEL,
+} from "./stdout-protocol-guard.js";
 
 class CaptureStream {
   chunks: string[] = [];
@@ -41,16 +45,21 @@ describe("safeNdjsonStringify", () => {
 
 describe("installStdoutProtocolGuard", () => {
   let restore: (() => void) | null = null;
+  let stdoutLike: { write: CaptureStream["write"] } | undefined;
 
   afterEach(() => {
     restore?.();
+    if (stdoutLike) {
+      resetStdoutProtocolGuardForTests({ stdout: stdoutLike });
+    }
     restore = null;
+    stdoutLike = undefined;
   });
 
-  it("keeps protocol writes on stdout and reroutes stray writes to stderr", async () => {
+  it("keeps valid structured lines on stdout and diverts stray console output to stderr", async () => {
     const stdout = new CaptureStream();
     const stderr = new CaptureStream();
-    const stdoutLike = stdout as { write: CaptureStream["write"] };
+    stdoutLike = stdout as { write: CaptureStream["write"] };
     const stderrLike = stderr as { write: CaptureStream["write"] };
     const guard = installStdoutProtocolGuard({
       stdout: stdoutLike,
@@ -71,6 +80,81 @@ describe("installStdoutProtocolGuard", () => {
     stdoutLike.write("console noise\n");
 
     expect(stdout.text()).toBe('{"type":"event"}\n');
-    expect(stderr.text()).toBe("console noise\n");
+    expect(stderr.text()).toBe(`${STDOUT_PROTOCOL_GUARD_SENTINEL}console noise\n`);
+  });
+
+  it("buffers partial lines until newline before validating them", () => {
+    const stdout = new CaptureStream();
+    const stderr = new CaptureStream();
+    stdoutLike = stdout as { write: CaptureStream["write"] };
+    const stderrLike = stderr as { write: CaptureStream["write"] };
+    const guard = installStdoutProtocolGuard({
+      stdout: stdoutLike,
+      stderr: stderrLike,
+    });
+    restore = guard.restore;
+
+    stdoutLike.write('{"type":"partial"');
+
+    expect(stdout.text()).toBe("");
+    expect(stderr.text()).toBe("");
+
+    stdoutLike.write("}\n");
+
+    expect(stdout.text()).toBe('{"type":"partial"}\n');
+    expect(stderr.text()).toBe("");
+  });
+
+  it("flushes partial invalid lines to stderr during cleanup", () => {
+    const stdout = new CaptureStream();
+    const stderr = new CaptureStream();
+    stdoutLike = stdout as { write: CaptureStream["write"] };
+    const stderrLike = stderr as { write: CaptureStream["write"] };
+    const guard = installStdoutProtocolGuard({
+      stdout: stdoutLike,
+      stderr: stderrLike,
+    });
+
+    stdoutLike.write("banner without newline");
+    guard.restore();
+
+    expect(stdout.text()).toBe("");
+    expect(stderr.text()).toBe(`${STDOUT_PROTOCOL_GUARD_SENTINEL}banner without newline`);
+  });
+
+  it("treats repeated install calls as idempotent and restores only after the last guard releases", async () => {
+    const stdout = new CaptureStream();
+    const stderr = new CaptureStream();
+    stdoutLike = stdout as { write: CaptureStream["write"] };
+    const stderrLike = stderr as { write: CaptureStream["write"] };
+    const first = installStdoutProtocolGuard({
+      stdout: stdoutLike,
+      stderr: stderrLike,
+    });
+    const second = installStdoutProtocolGuard({
+      stdout: stdoutLike,
+      stderr: stderrLike,
+    });
+    restore = second.restore;
+
+    expect(first.protocolWritable).toBe(second.protocolWritable);
+
+    await new Promise<void>((resolve, reject) => {
+      first.protocolWritable.write('{"type":"event"}\n', "utf8", (error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve();
+      });
+    });
+
+    first.restore();
+    stdoutLike.write("still guarded\n");
+    second.restore();
+    stdoutLike.write("unguarded\n");
+
+    expect(stdout.text()).toBe('{"type":"event"}\nunguarded\n');
+    expect(stderr.text()).toBe(`${STDOUT_PROTOCOL_GUARD_SENTINEL}still guarded\n`);
   });
 });

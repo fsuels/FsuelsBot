@@ -9,6 +9,7 @@ import type {
   EmbeddedRunAttemptResult,
 } from "./pi-embedded-runner/run/types.js";
 import { runEmbeddedPiAgent } from "./pi-embedded-runner.js";
+import { runWithAgentContext } from "./runtime-context.js";
 
 const baseUsage = {
   input: 0,
@@ -75,20 +76,24 @@ const makeConfig = (): OpenClawConfig =>
 function createDeferredEnqueue() {
   const queued: Array<() => Promise<void>> = [];
   return {
-    enqueue<T>(task: () => Promise<T>): Promise<T> {
+    enqueue: <T>(task: () => Promise<T>): Promise<T> => {
       return new Promise<T>((resolve, reject) => {
         queued.push(() => task().then(resolve, reject));
       });
     },
-    queuedCount() {
+    queuedCount: () => {
       return queued.length;
     },
-    async flushNext() {
+    flushNext: async () => {
       const next = queued.shift();
       if (!next) {
         throw new Error("No queued task available");
       }
-      await next();
+      const pending = next();
+      await Promise.resolve();
+      if (queued.length === 0) {
+        await pending;
+      }
     },
   };
 }
@@ -162,6 +167,86 @@ describe("runEmbeddedPiAgent config snapshot", () => {
       expect(seenAttemptParams?.workspaceDir).toBe(originalWorkspace);
       expect(seenAttemptParams?.agentDir).toBe(agentDirAtStart);
       expect(seenAttemptParams?.toolResultFormat).toBe("markdown");
+    } finally {
+      if (previousOpenClawAgentDir === undefined) {
+        delete process.env.OPENCLAW_AGENT_DIR;
+      } else {
+        process.env.OPENCLAW_AGENT_DIR = previousOpenClawAgentDir;
+      }
+      if (previousPiCodingAgentDir === undefined) {
+        delete process.env.PI_CODING_AGENT_DIR;
+      } else {
+        process.env.PI_CODING_AGENT_DIR = previousPiCodingAgentDir;
+      }
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("prefers runtime agent context over mutable process env when deriving the agent dir", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-run-context-"));
+    const previousOpenClawAgentDir = process.env.OPENCLAW_AGENT_DIR;
+    const previousPiCodingAgentDir = process.env.PI_CODING_AGENT_DIR;
+    const runtimeAgentDir = path.join(root, "agent-context");
+    const envAgentDir = path.join(root, "agent-env");
+    const mutatedEnvAgentDir = path.join(root, "agent-env-mutated");
+    const workspaceDir = path.join(root, "workspace");
+    try {
+      await fs.mkdir(runtimeAgentDir, { recursive: true });
+      await fs.mkdir(envAgentDir, { recursive: true });
+      await fs.mkdir(mutatedEnvAgentDir, { recursive: true });
+      await fs.mkdir(workspaceDir, { recursive: true });
+
+      process.env.OPENCLAW_AGENT_DIR = envAgentDir;
+      process.env.PI_CODING_AGENT_DIR = envAgentDir;
+
+      const queue = createDeferredEnqueue();
+      let seenAttemptParams: EmbeddedRunAttemptParams | undefined;
+
+      const runPromise = runWithAgentContext(
+        {
+          agentId: "context-agent",
+          agentDir: runtimeAgentDir,
+          cwd: workspaceDir,
+          isInProcess: true,
+        },
+        () =>
+          runEmbeddedPiAgent(
+            {
+              sessionId: "session:test",
+              sessionKey: "agent:main:runtime-context",
+              sessionFile: path.join(root, "session.jsonl"),
+              workspaceDir,
+              config: makeConfig(),
+              prompt: "hello",
+              provider: "openai",
+              model: "mock-1",
+              toolResultFormat: "markdown",
+              timeoutMs: 5_000,
+              runId: "run:runtime-context",
+              enqueue: queue.enqueue,
+            },
+            {
+              runAttempt: async (attemptParams) => {
+                seenAttemptParams = attemptParams;
+                return makeAttempt({
+                  assistantTexts: ["ok"],
+                  lastAssistant: buildAssistant({
+                    stopReason: "stop",
+                  }),
+                });
+              },
+            },
+          ),
+      );
+
+      process.env.OPENCLAW_AGENT_DIR = mutatedEnvAgentDir;
+      process.env.PI_CODING_AGENT_DIR = mutatedEnvAgentDir;
+
+      await queue.flushNext();
+      await queue.flushNext();
+      await runPromise;
+
+      expect(seenAttemptParams?.agentDir).toBe(runtimeAgentDir);
     } finally {
       if (previousOpenClawAgentDir === undefined) {
         delete process.env.OPENCLAW_AGENT_DIR;
