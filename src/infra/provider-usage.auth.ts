@@ -10,7 +10,7 @@ import {
 } from "../agents/auth-profiles.js";
 import { getCustomProviderApiKey, resolveEnvApiKey } from "../agents/model-auth.js";
 import { normalizeProviderId } from "../agents/model-selection.js";
-import { loadConfig } from "../config/config.js";
+import { loadBootstrapConfig } from "../config/bootstrap.js";
 import { normalizeSecretInput } from "../utils/normalize-secret-input.js";
 
 export type ProviderAuth = {
@@ -46,7 +46,7 @@ function resolveZaiApiKey(): string | undefined {
     return envResolved.apiKey;
   }
 
-  const cfg = loadConfig();
+  const cfg = loadBootstrapConfig();
   const key = getCustomProviderApiKey(cfg, "zai") || getCustomProviderApiKey(cfg, "z-ai");
   if (key) {
     return key;
@@ -92,7 +92,7 @@ function resolveMinimaxApiKey(): string | undefined {
     return envResolved.apiKey;
   }
 
-  const cfg = loadConfig();
+  const cfg = loadBootstrapConfig();
   const key = getCustomProviderApiKey(cfg, "minimax");
   if (key) {
     return key;
@@ -127,7 +127,7 @@ function resolveXiaomiApiKey(): string | undefined {
     return envResolved.apiKey;
   }
 
-  const cfg = loadConfig();
+  const cfg = loadBootstrapConfig();
   const key = getCustomProviderApiKey(cfg, "xiaomi");
   if (key) {
     return key;
@@ -155,7 +155,7 @@ async function resolveOAuthToken(params: {
   provider: UsageProviderId;
   agentDir?: string;
 }): Promise<ProviderAuth | null> {
-  const cfg = loadConfig();
+  const cfg = loadBootstrapConfig();
   const store = ensureAuthProfileStore(params.agentDir, {
     allowKeychainPrompt: false,
   });
@@ -215,7 +215,7 @@ function resolveOAuthProviders(agentDir?: string): UsageProviderId[] {
   const store = ensureAuthProfileStore(agentDir, {
     allowKeychainPrompt: false,
   });
-  const cfg = loadConfig();
+  const cfg = loadBootstrapConfig();
   const providers = [
     "anthropic",
     "github-copilot",

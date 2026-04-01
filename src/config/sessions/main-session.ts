@@ -6,7 +6,7 @@ import {
   normalizeMainKey,
   resolveAgentIdFromSessionKey,
 } from "../../routing/session-key.js";
-import { loadConfig } from "../config.js";
+import { loadBootstrapConfig } from "../bootstrap.js";
 
 export function resolveMainSessionKey(cfg?: {
   session?: { scope?: SessionScope; mainKey?: string };
@@ -24,7 +24,7 @@ export function resolveMainSessionKey(cfg?: {
 }
 
 export function resolveMainSessionKeyFromConfig(): string {
-  return resolveMainSessionKey(loadConfig());
+  return resolveMainSessionKey(loadBootstrapConfig());
 }
 
 export { resolveAgentIdFromSessionKey };

@@ -1,4 +1,4 @@
-import { loadConfig } from "../config/config.js";
+import { loadBootstrapConfig } from "../config/bootstrap.js";
 import { loadSessionStore, resolveStorePath } from "../config/sessions.js";
 import { getAgentRunContext, registerAgentRunContext } from "../infra/agent-events.js";
 import { toAgentRequestSessionKey } from "../routing/session-key.js";
@@ -9,7 +9,7 @@ export function resolveSessionKeyForRun(runId: string) {
   if (cached) {
     return cached;
   }
-  const cfg = loadConfig();
+  const cfg = loadBootstrapConfig();
   const storePath = resolveStorePath(cfg.session?.store);
   const store = loadSessionStore(storePath);
   const found = Object.entries(store).find(([, entry]) => entry?.sessionId === runId);

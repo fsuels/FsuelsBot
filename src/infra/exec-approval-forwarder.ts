@@ -1,10 +1,10 @@
-import type { OpenClawConfig } from "../config/config.js";
 import type {
   ExecApprovalForwardingConfig,
   ExecApprovalForwardTarget,
 } from "../config/types.approvals.js";
+import type { OpenClawConfig } from "../config/types.js";
 import type { ExecApprovalDecision } from "./exec-approvals.js";
-import { loadConfig } from "../config/config.js";
+import { loadBootstrapConfig } from "../config/bootstrap.js";
 import { loadSessionStore, resolveStorePath } from "../config/sessions.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { parseAgentSessionKey } from "../routing/session-key.js";
@@ -242,7 +242,7 @@ async function deliverToTargets(params: {
 export function createExecApprovalForwarder(
   deps: ExecApprovalForwarderDeps = {},
 ): ExecApprovalForwarder {
-  const getConfig = deps.getConfig ?? loadConfig;
+  const getConfig = deps.getConfig ?? loadBootstrapConfig;
   const deliver = deps.deliver ?? deliverOutboundPayloads;
   const nowMs = deps.nowMs ?? Date.now;
   const resolveSessionTarget = deps.resolveSessionTarget ?? defaultResolveSessionTarget;
