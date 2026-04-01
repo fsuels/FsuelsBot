@@ -2092,6 +2092,88 @@
           <div class="modal-section" id="modalRequestMappingSection" style="display: none">
             <div class="modal-label">🧩 Your Exact Input → My Task Understanding</div>
             <div class="modal-content" id="modalRequestMapping"></div>
+            <div style="margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap">
+              <button
+                id="toggleFullThreadBtn"
+                onclick="toggleFullThread()"
+                style="
+                  padding: 8px 12px;
+                  border-radius: 6px;
+                  border: 1px solid #30363d;
+                  background: #21262d;
+                  color: #e6edf3;
+                  cursor: pointer;
+                  font-size: 12px;
+                "
+              >
+                📜 View full thread
+              </button>
+            </div>
+            <div
+              class="modal-content"
+              id="modalFullThread"
+              style="display: none; margin-top: 10px; max-height: 220px; overflow-y: auto"
+            ></div>
+            <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #30363d">
+              <div style="font-size: 12px; font-weight: 600; margin-bottom: 8px; color: #c9d1d9">
+                ✍️ Correct my understanding
+              </div>
+              <textarea
+                id="correctionInput"
+                placeholder="Tell me exactly what I misunderstood or what should change..."
+                style="
+                  width: 100%;
+                  min-height: 78px;
+                  padding: 10px;
+                  border: 1px solid #30363d;
+                  border-radius: 6px;
+                  background: #161b22;
+                  color: #e6edf3;
+                  font-size: 13px;
+                  resize: vertical;
+                  box-sizing: border-box;
+                "
+              ></textarea>
+              <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap">
+                <button
+                  onclick="generateRevisionPreview()"
+                  style="
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    border: none;
+                    background: #1f6feb;
+                    color: #fff;
+                    cursor: pointer;
+                    font-size: 12px;
+                    font-weight: 600;
+                  "
+                >
+                  🔄 Generate revised plan
+                </button>
+                <button
+                  id="applyRevisionBtn"
+                  onclick="applyRevisionPreview()"
+                  style="
+                    padding: 8px 12px;
+                    border-radius: 6px;
+                    border: none;
+                    background: #238636;
+                    color: #fff;
+                    cursor: pointer;
+                    font-size: 12px;
+                    font-weight: 600;
+                    display: none;
+                  "
+                >
+                  ✅ Apply changes
+                </button>
+              </div>
+              <div
+                class="modal-content"
+                id="revisionPreview"
+                style="display: none; margin-top: 10px; border-left: 3px solid #1f6feb"
+              ></div>
+            </div>
           </div>
           <div class="modal-section" id="modalObjectiveSection" style="display: none">
             <div class="modal-label">🎯 Objective + 🔒 Locked Constraints</div>
@@ -2127,6 +2209,14 @@
               class="modal-content"
               id="modalAuditLog"
               style="max-height: 200px; overflow-y: auto"
+            ></div>
+          </div>
+          <div class="modal-section" id="modalRevisionLogSection" style="display: none">
+            <div class="modal-label">📝 Understanding Revision Log (append-only)</div>
+            <div
+              class="modal-content"
+              id="modalRevisionLog"
+              style="max-height: 220px; overflow-y: auto"
             ></div>
           </div>
           <div class="modal-section" id="modalPlanSection">
@@ -2209,6 +2299,200 @@
               "
             >
               ✅ Approve & Mark Complete
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Autoresearch Modal -->
+    <div class="modal-overlay" id="autoresearchModal" onclick="closeAutoresearchModal(event)">
+      <div
+        class="modal"
+        style="max-width: 860px; max-height: 88vh"
+        onclick="event.stopPropagation()"
+      >
+        <div class="modal-header">
+          <div>
+            <div class="modal-title">🧪 Launch Autoresearch</div>
+            <div class="modal-id">Repo-native prompt optimization loop</div>
+          </div>
+          <button class="modal-close" onclick="closeAutoresearchModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div
+            style="
+              display: flex;
+              flex-wrap: wrap;
+              gap: 8px;
+              margin-bottom: 14px;
+              padding: 10px;
+              border-radius: 8px;
+              background: rgba(96, 165, 250, 0.08);
+            "
+          >
+            <button
+              class="agent-tab active"
+              type="button"
+              onclick="applyAutoresearchPreset('generic')"
+            >
+              Generic
+            </button>
+            <button
+              class="agent-tab"
+              type="button"
+              onclick="applyAutoresearchPreset('human-voice')"
+            >
+              Human Voice
+            </button>
+            <button class="agent-tab" type="button" onclick="applyAutoresearchPreset('task-cards')">
+              Task Cards
+            </button>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+            <div class="modal-section" style="margin: 0">
+              <div class="modal-label">Run Name</div>
+              <input id="autoresearchName" class="cron-input" placeholder="Humanize reply prompt" />
+            </div>
+            <div class="modal-section" style="margin: 0">
+              <div class="modal-label">Target</div>
+              <input
+                id="autoresearchTarget"
+                class="cron-input"
+                placeholder="What exactly are we improving?"
+              />
+            </div>
+            <div class="modal-section" style="margin: 0">
+              <div class="modal-label">Scope</div>
+              <input
+                id="autoresearchScope"
+                class="cron-input"
+                placeholder="Narrow the surface area"
+              />
+            </div>
+            <div class="modal-section" style="margin: 0">
+              <div class="modal-label">Runner</div>
+              <div style="display: flex; gap: 8px; align-items: center">
+                <select id="autoresearchRunner" class="cron-input" style="margin: 0; flex: 1">
+                  <option value="codex">Codex CLI</option>
+                  <option value="gemini">Gemini CLI</option>
+                  <option value="claude">Claude Code</option>
+                </select>
+                <input
+                  id="autoresearchModel"
+                  class="cron-input"
+                  placeholder="Optional model"
+                  style="margin: 0; flex: 1"
+                />
+              </div>
+              <div
+                id="autoresearchRunnerHint"
+                style="font-size: 11px; color: #8b949e; margin-top: 6px"
+              >
+                Codex is the safest default right now because it runs headlessly in read-only mode.
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-section">
+            <div class="modal-label">Context</div>
+            <textarea
+              id="autoresearchContext"
+              class="cron-input"
+              style="min-height: 90px; resize: vertical"
+              placeholder="Constraints, tone, product rules, file conventions, or what 'good' looks like."
+            ></textarea>
+          </div>
+
+          <div class="modal-section">
+            <div class="modal-label">Item Globs (one per line)</div>
+            <textarea
+              id="autoresearchGlobs"
+              class="cron-input"
+              style="min-height: 84px; resize: vertical"
+              placeholder="src/**/*.ts"
+            ></textarea>
+          </div>
+
+          <div class="modal-section">
+            <div class="modal-label">Prompt Template</div>
+            <textarea
+              id="autoresearchPrompt"
+              class="cron-input"
+              style="
+                min-height: 180px;
+                resize: vertical;
+                font-family: &quot;SF Mono&quot;, &quot;Fira Code&quot;, monospace;
+                font-size: 12px;
+              "
+              placeholder="Use placeholders like {{item_path}}, {{item_content}}, {{target}}, {{scope}}, {{context}}."
+            ></textarea>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px">
+            <div class="modal-section" style="margin: 0">
+              <div class="modal-label">Batch Size</div>
+              <input id="autoresearchBatchSize" class="cron-input" value="5" />
+            </div>
+            <div class="modal-section" style="margin: 0">
+              <div class="modal-label">Validation Items</div>
+              <input id="autoresearchValidationCount" class="cron-input" value="3" />
+            </div>
+            <div class="modal-section" style="margin: 0">
+              <div class="modal-label">Max Runs</div>
+              <input id="autoresearchMaxRuns" class="cron-input" value="15" />
+            </div>
+          </div>
+
+          <div class="modal-section">
+            <div class="modal-label">Criteria JSON</div>
+            <textarea
+              id="autoresearchCriteria"
+              class="cron-input"
+              style="
+                min-height: 180px;
+                resize: vertical;
+                font-family: &quot;SF Mono&quot;, &quot;Fira Code&quot;, monospace;
+                font-size: 12px;
+              "
+            ></textarea>
+            <div style="font-size: 11px; color: #8b949e; margin-top: 6px">
+              Use `llm_judge` for strict pass/fail judgment, or `command` for shell-based checks
+              with `{{output_file}}`, `{{item_path}}`, and `{{repo_root}}`.
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-top: 18px">
+            <button
+              id="autoresearchStartBtn"
+              onclick="startAutoresearchRun()"
+              style="
+                flex: 1;
+                padding: 12px 18px;
+                background: linear-gradient(135deg, #238636, #2ea043);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: 700;
+              "
+            >
+              Start Run
+            </button>
+            <button
+              onclick="closeAutoresearchModal()"
+              style="
+                padding: 12px 18px;
+                background: rgba(255, 255, 255, 0.08);
+                color: #c9d1d9;
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: 600;
+              "
+            >
+              Cancel
             </button>
           </div>
         </div>
@@ -2478,6 +2762,103 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <div
+        class="parallel-panel"
+        id="autoresearchPanel"
+        style="display: block; margin-top: 16px; border-color: rgba(96, 165, 250, 0.2)"
+      >
+        <div class="parallel-header" style="display: flex; justify-content: space-between">
+          <div style="display: flex; align-items: center; gap: 10px">
+            <span class="lane-title">🧪 Autoresearch</span>
+            <span
+              id="autoresearchState"
+              style="
+                font-size: 10px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.6px;
+                padding: 4px 8px;
+                border-radius: 999px;
+                background: rgba(139, 148, 158, 0.15);
+                color: #8b949e;
+              "
+              >Idle</span
+            >
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center">
+            <button
+              onclick="openAutoresearchModal()"
+              style="
+                padding: 8px 12px;
+                border-radius: 8px;
+                border: 1px solid rgba(96, 165, 250, 0.25);
+                background: rgba(96, 165, 250, 0.12);
+                color: #93c5fd;
+                cursor: pointer;
+                font-weight: 600;
+              "
+            >
+              Configure
+            </button>
+            <button
+              id="autoresearchStopBtn"
+              onclick="stopAutoresearchRun()"
+              style="
+                display: none;
+                padding: 8px 12px;
+                border-radius: 8px;
+                border: 1px solid rgba(248, 113, 113, 0.25);
+                background: rgba(248, 113, 113, 0.12);
+                color: #fca5a5;
+                cursor: pointer;
+                font-weight: 600;
+              "
+            >
+              Stop
+            </button>
+          </div>
+        </div>
+        <div id="autoresearchSummary" style="font-size: 14px; color: #c9d1d9; margin-top: 10px">
+          No autoresearch runs yet.
+        </div>
+        <div
+          id="autoresearchMeta"
+          style="font-size: 12px; color: #8b949e; margin-top: 8px; line-height: 1.6"
+        ></div>
+        <div
+          id="autoresearchFailures"
+          style="
+            display: none;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(248, 113, 113, 0.08);
+            border-left: 3px solid rgba(248, 113, 113, 0.6);
+            font-size: 12px;
+            color: #fca5a5;
+            white-space: pre-wrap;
+          "
+        ></div>
+        <div
+          id="autoresearchLog"
+          style="
+            display: none;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.04);
+            font-size: 11px;
+            line-height: 1.5;
+            color: #c9d1d9;
+            font-family: &quot;SF Mono&quot;, &quot;Fira Code&quot;, monospace;
+            max-height: 180px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+          "
+        ></div>
+        <div id="autoresearchRuns" style="margin-top: 12px"></div>
       </div>
 
       <!-- Parallel Execution Panel (legacy - hidden if no active) -->
@@ -3969,10 +4350,55 @@
 
         if (requestMappingParts.length > 0) {
           requestMappingEl.innerHTML = requestMappingParts.join("");
-          requestMappingSection.style.display = "block";
         } else {
-          requestMappingSection.style.display = "none";
+          requestMappingEl.innerHTML =
+            '<div style="color:#8b949e;font-style:italic;">No captured mapping yet. Use the correction box below to define the exact request and desired plan.</div>';
         }
+        requestMappingSection.style.display = "block";
+
+        // Full discussion thread (default collapsed)
+        const fullThreadEl = document.getElementById("modalFullThread");
+        const toggleFullThreadBtn = document.getElementById("toggleFullThreadBtn");
+        if (task.discussion && task.discussion.length > 0) {
+          let threadHtml = "";
+          task.discussion.forEach((msg, idx) => {
+            const time = msg.ts ? new Date(msg.ts).toLocaleString() : "";
+            const who = msg.author === "human" ? "👤 Francisco" : "🤖 Bot";
+            const safeMsg = html(msg.message || "");
+            threadHtml +=
+              '<div style="margin-bottom:8px;padding:8px;border-radius:6px;background:rgba(255,255,255,0.03);">' +
+              '<div style="font-size:11px;color:#8b949e;">' +
+              who +
+              " • " +
+              time +
+              " • #" +
+              (idx + 1) +
+              "</div>" +
+              '<div style="margin-top:4px;white-space:pre-wrap;">' +
+              safeMsg +
+              "</div>" +
+              "</div>";
+          });
+          fullThreadEl.innerHTML = threadHtml;
+          fullThreadEl.style.display = "none";
+          toggleFullThreadBtn.style.display = "inline-block";
+          toggleFullThreadBtn.textContent = "📜 View full thread";
+        } else {
+          fullThreadEl.innerHTML =
+            '<div style="color:#8b949e;font-style:italic;">No full thread available for this task yet.</div>';
+          fullThreadEl.style.display = "none";
+          toggleFullThreadBtn.style.display = "none";
+        }
+
+        // Reset correction UI state each time modal opens
+        const correctionInput = document.getElementById("correctionInput");
+        const revisionPreview = document.getElementById("revisionPreview");
+        const applyRevisionBtn = document.getElementById("applyRevisionBtn");
+        correctionInput.value = "";
+        revisionPreview.style.display = "none";
+        revisionPreview.innerHTML = "";
+        applyRevisionBtn.style.display = "none";
+        window.pendingRevisionPatch = null;
 
         // Objective + locked constraints (explicit section for auditability)
         const objectiveSection = document.getElementById("modalObjectiveSection");
@@ -4407,6 +4833,43 @@
           auditLogSection.style.display = "none";
         }
 
+        // Understanding revision log (append-only, derived from structured comments)
+        const revisionLogSection = document.getElementById("modalRevisionLogSection");
+        const revisionEntries = [];
+        if (Array.isArray(task.discussion)) {
+          task.discussion.forEach((msg) => {
+            const text = String(msg.message || "");
+            if (text.includes("[TASK_CORRECTION_APPLY]")) {
+              revisionEntries.push(msg);
+            }
+          });
+        }
+
+        if (revisionEntries.length > 0) {
+          let revisionHtml = "";
+          revisionEntries.forEach((entry, idx) => {
+            const time = entry.ts ? new Date(entry.ts).toLocaleString() : "";
+            const cleaned = String(entry.message || "")
+              .replace("[TASK_CORRECTION_APPLY]", "")
+              .trim();
+            revisionHtml +=
+              '<div style="margin-bottom:10px;padding:8px;background:rgba(31,111,235,0.08);border-radius:6px;border-left:2px solid #1f6feb;">' +
+              '<div style="font-size:11px;color:#8b949e;">Revision #' +
+              (idx + 1) +
+              " • " +
+              time +
+              "</div>" +
+              '<div style="margin-top:4px;white-space:pre-wrap;font-size:12px;">' +
+              html(cleaned) +
+              "</div>" +
+              "</div>";
+          });
+          document.getElementById("modalRevisionLog").innerHTML = revisionHtml;
+          revisionLogSection.style.display = "block";
+        } else {
+          revisionLogSection.style.display = "none";
+        }
+
         // Plan link
         const planSection = document.getElementById("modalPlanSection");
         if (task.plan) {
@@ -4485,8 +4948,9 @@
           discussionSection.style.display = "block";
         }
 
-        // Store current task ID for comment submission
+        // Store current task for actions in this modal
         window.currentTaskId = id;
+        window.currentTaskData = task;
 
         // Show/hide action buttons based on task owner/lane and status
         const actionsSection = document.getElementById("modalActionsSection");
@@ -4542,6 +5006,101 @@
           showToast("Error: " + err.message, "error");
           btn.innerHTML = "✅ Approve & Mark Complete";
           btn.disabled = false;
+        }
+      }
+
+      function toggleFullThread() {
+        const el = document.getElementById("modalFullThread");
+        const btn = document.getElementById("toggleFullThreadBtn");
+        if (!el || !btn) return;
+        const expanded = el.style.display !== "none";
+        el.style.display = expanded ? "none" : "block";
+        btn.textContent = expanded ? "📜 View full thread" : "📜 Hide full thread";
+      }
+
+      function generateRevisionPreview() {
+        const input = document.getElementById("correctionInput");
+        const preview = document.getElementById("revisionPreview");
+        const applyBtn = document.getElementById("applyRevisionBtn");
+        const taskId = window.currentTaskId;
+        const task = window.currentTaskData || (taskId ? allTasks[taskId] : null);
+        const correction = (input && input.value ? input.value : "").trim();
+
+        if (!correction || !task) {
+          showToast("Add correction text first", true);
+          return;
+        }
+
+        const currentSteps = Array.isArray(task.steps) ? task.steps : [];
+        const rewrittenSteps = [];
+
+        rewrittenSteps.push(`Align understanding with correction: ${correction}`);
+        currentSteps.forEach((step, idx) => {
+          const title = step.step || step.text || `Step ${idx + 1}`;
+          rewrittenSteps.push(title);
+        });
+
+        const proposed = {
+          taskId,
+          correction,
+          revisedSummary: correction,
+          revisedGoal: task.goal || task.summary || "",
+          revisedSteps: rewrittenSteps,
+        };
+
+        window.pendingRevisionPatch = proposed;
+
+        let htmlPreview =
+          '<div style="font-size:12px;color:#8b949e;margin-bottom:8px;"><strong>Preview only.</strong> Nothing changes until you click <em>Apply changes</em>.</div>';
+        htmlPreview +=
+          '<div style="margin-bottom:8px;"><strong>Updated understanding:</strong><div style="margin-top:4px;">' +
+          escapeHtml(proposed.revisedSummary) +
+          "</div></div>";
+        htmlPreview +=
+          '<div><strong>Proposed revised plan:</strong><ol style="margin:6px 0 0 16px;">';
+        proposed.revisedSteps.forEach((s) => {
+          htmlPreview += "<li>" + escapeHtml(s) + "</li>";
+        });
+        htmlPreview += "</ol></div>";
+
+        preview.innerHTML = htmlPreview;
+        preview.style.display = "block";
+        applyBtn.style.display = "inline-block";
+      }
+
+      async function applyRevisionPreview() {
+        const patch = window.pendingRevisionPatch;
+        if (!patch || !window.currentTaskId) {
+          showToast("Generate a revised plan first", true);
+          return;
+        }
+
+        const message =
+          "[TASK_CORRECTION_APPLY]\n" +
+          `Correction: ${patch.correction}\n` +
+          `Revised understanding: ${patch.revisedSummary}\n` +
+          "Proposed steps:\n" +
+          patch.revisedSteps.map((s, i) => `${i + 1}. ${s}`).join("\n") +
+          "\nPlease update task understanding + plan using this correction.";
+
+        try {
+          const response = await fetch("/api/task-comment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ taskId: window.currentTaskId, message }),
+          });
+
+          if (response.ok) {
+            showToast("Correction applied and logged");
+            window.pendingRevisionPatch = null;
+            await loadTaskBoard();
+            showTaskDetail(window.currentTaskId);
+          } else {
+            showToast("Failed to apply correction", true);
+          }
+        } catch (err) {
+          console.error("Apply revision error:", err);
+          showToast("Failed to apply correction", true);
         }
       }
 
@@ -4996,12 +5555,583 @@
           `<div class="done-item">Nothing completed on ${escapeHtml(filterDate)}</div>`;
       }
 
+      let autoresearchStatusData = null;
+      let autoresearchRunnerAvailability = {};
+
+      const AUTORESEARCH_PRESETS = {
+        generic: {
+          name: "generic",
+          label: "Generic",
+          runName: "Tighten prompt loop",
+          target: "Improve structured outputs against explicit pass/fail criteria",
+          scope: "A narrow, repeatable prompt or drafting workflow",
+          context:
+            "Keep the output direct, grounded in the source item, and strong enough to use without cleanup.",
+          globs: "workspace/**/*.md",
+          promptTemplate: `You are participating in an autoresearch optimization loop.
+
+Goal: {{target}}
+Scope: {{scope}}
+Context: {{context}}
+
+For the current repository item:
+- Item path: {{item_path}}
+- Repository root: {{repo_root}}
+
+Produce the best possible deliverable for this item.
+Return only the deliverable. No commentary, no reasoning preamble.
+
+Item content:
+{{item_content}}`,
+          criteria: [
+            {
+              name: "Direct deliverable",
+              type: "llm_judge",
+              prompt:
+                "The output directly solves the task and does not waste space on meta commentary, throat-clearing, or process narration.",
+            },
+            {
+              name: "Grounded in item",
+              type: "llm_judge",
+              prompt:
+                "The output materially uses details from the provided item instead of falling back to generic filler.",
+            },
+            {
+              name: "Actionable",
+              type: "llm_judge",
+              prompt: "The output is concrete, specific, and ready to use or adapt immediately.",
+            },
+            {
+              name: "Concise",
+              type: "llm_judge",
+              prompt:
+                "The output is tight and well-structured, without obvious repetition or bloated phrasing.",
+            },
+          ],
+        },
+        "human-voice": {
+          name: "human-voice",
+          label: "Human Voice",
+          runName: "Humanize reply prompt",
+          target:
+            "Make assistant replies feel more human and natural without losing clarity or competence",
+          scope: "Reply drafting for real back-and-forth conversations",
+          context:
+            "Favor warm, grounded language. Avoid canned openers, report-like structure, and robotic transitions. Keep the answer direct, useful, and emotionally normal.",
+          globs: "RAW-CHAT*.jsonl",
+          promptTemplate: `You are drafting the assistant's next reply for a real conversation.
+
+Goal: {{target}}
+Scope: {{scope}}
+Context: {{context}}
+
+Read the conversation excerpt below and write the next assistant reply.
+Return only the reply text. Do not explain your reasoning. Do not use headings unless the user's request genuinely needs structure.
+
+Conversation source: {{item_path}}
+Repository root: {{repo_root}}
+
+Transcript excerpt:
+{{item_content}}`,
+          criteria: [
+            {
+              name: "Natural tone",
+              type: "llm_judge",
+              prompt:
+                "The reply sounds like a real thoughtful person, not a template, corporate assistant, or rigid report generator.",
+            },
+            {
+              name: "Directness",
+              type: "llm_judge",
+              prompt:
+                "The reply gets to the point quickly and answers the user instead of circling around the request.",
+            },
+            {
+              name: "Warm but not fluffy",
+              type: "llm_judge",
+              prompt:
+                "The reply feels warm and collaborative without becoming overly chatty, gushy, or vague.",
+            },
+            {
+              name: "Competent and clear",
+              type: "llm_judge",
+              prompt:
+                "The reply stays clear, useful, and accurate rather than sacrificing substance for tone.",
+            },
+          ],
+        },
+        "task-cards": {
+          name: "task-cards",
+          label: "Task Cards",
+          runName: "Sharpen task cards",
+          target: "Generate cleaner Mission Control task cards with clear execution detail",
+          scope: "Task-card summaries and implementation plans",
+          context:
+            "Keep the work item sharply framed. Separate verified facts from assumptions, highlight blockers, and make the next move obvious.",
+          globs:
+            "workspace/memory/global/task-card-*.md\nworkspace/memory/tasks.json\nworkspace/memory/current-task.json",
+          promptTemplate: `You are generating a Mission Control task card from the repository item below.
+
+Goal: {{target}}
+Scope: {{scope}}
+Context: {{context}}
+
+Return a compact task card with:
+- Title
+- Problem
+- Constraints
+- Verified facts
+- Open questions
+- Next action
+- Acceptance criteria
+
+Item path: {{item_path}}
+Repository root: {{repo_root}}
+
+Item content:
+{{item_content}}`,
+          criteria: [
+            {
+              name: "Clear framing",
+              type: "llm_judge",
+              prompt:
+                "The task card clearly explains what needs to happen and why, without vague filler.",
+            },
+            {
+              name: "Verified vs unknown",
+              type: "llm_judge",
+              prompt:
+                "The task card cleanly separates verified facts from open questions or assumptions.",
+            },
+            {
+              name: "Concrete next step",
+              type: "llm_judge",
+              prompt:
+                "The task card includes a specific next action that an agent or human could take immediately.",
+            },
+            {
+              name: "Acceptance criteria",
+              type: "llm_judge",
+              prompt:
+                "The task card includes clear completion criteria instead of a vague notion of done.",
+            },
+          ],
+        },
+      };
+
+      function getAutoresearchPreset(name) {
+        return AUTORESEARCH_PRESETS[name] || AUTORESEARCH_PRESETS.generic;
+      }
+
+      function setAutoresearchPresetButtons(name) {
+        document.querySelectorAll("#autoresearchModal .agent-tab").forEach((button) => {
+          button.classList.toggle(
+            "active",
+            button.textContent.trim().toLowerCase() ===
+              getAutoresearchPreset(name).label.toLowerCase(),
+          );
+        });
+      }
+
+      function formatAutoresearchTime(value) {
+        if (!value) return "—";
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) return "—";
+        return parsed.toLocaleString();
+      }
+
+      function formatAutoresearchAgo(value) {
+        if (!value) return "just now";
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) return "just now";
+        const diffMs = Date.now() - parsed.getTime();
+        const diffMin = Math.round(diffMs / 60000);
+        if (diffMin <= 1) return "just now";
+        if (diffMin < 60) return `${diffMin}m ago`;
+        const diffHours = Math.round(diffMin / 60);
+        if (diffHours < 48) return `${diffHours}h ago`;
+        return `${Math.round(diffHours / 24)}d ago`;
+      }
+
+      function formatAutoresearchScore(run) {
+        if (!run || typeof run !== "object") return "";
+        const hasScore = Number.isFinite(run.score) && Number.isFinite(run.maxScore);
+        const hasValidation =
+          Number.isFinite(run.validationScore) && Number.isFinite(run.validationMax);
+        const parts = [];
+        if (hasScore) {
+          parts.push(`score ${run.score}/${run.maxScore}`);
+        }
+        if (hasValidation) {
+          parts.push(`validation ${run.validationScore}/${run.validationMax}`);
+        }
+        return parts.join(" • ");
+      }
+
+      function updateAutoresearchRunnerHint() {
+        const select = document.getElementById("autoresearchRunner");
+        const hint = document.getElementById("autoresearchRunnerHint");
+        if (!select || !hint) return;
+
+        const runnerType = select.value || "codex";
+        const runner = autoresearchRunnerAvailability[runnerType] || {};
+        const installed = runner.available !== false;
+        if (runnerType === "codex") {
+          hint.textContent = installed
+            ? "Codex is the safest default here because it runs headlessly in read-only mode."
+            : "Codex CLI is not installed on this machine right now.";
+          return;
+        }
+        if (runnerType === "gemini") {
+          hint.textContent = installed
+            ? "Gemini CLI is installed, but it may still require local auth or API configuration before runs succeed."
+            : "Gemini CLI is not installed on this machine right now.";
+          return;
+        }
+        hint.textContent = installed
+          ? "Claude Code is installed, but it may still require a logged-in CLI session before runs succeed."
+          : "Claude Code is not installed on this machine right now.";
+      }
+
+      function syncAutoresearchRunnerOptions(runners) {
+        const select = document.getElementById("autoresearchRunner");
+        if (!select || !Array.isArray(runners)) return;
+
+        autoresearchRunnerAvailability = {};
+        runners.forEach((runner) => {
+          if (!runner || !runner.id) return;
+          autoresearchRunnerAvailability[runner.id] = runner;
+        });
+
+        let hasSelectedAvailable = false;
+        Array.from(select.options).forEach((option) => {
+          const meta = autoresearchRunnerAvailability[option.value];
+          const available = !meta || meta.available !== false;
+          option.disabled = !available;
+          option.textContent = available
+            ? option.textContent.replace(/ \(Unavailable\)$/, "")
+            : `${option.textContent.replace(/ \(Unavailable\)$/, "")} (Unavailable)`;
+          if (available && option.value === select.value) {
+            hasSelectedAvailable = true;
+          }
+        });
+
+        if (!hasSelectedAvailable) {
+          const fallback = runners.find((runner) => runner && runner.available);
+          if (fallback && fallback.id) {
+            select.value = fallback.id;
+          }
+        }
+
+        updateAutoresearchRunnerHint();
+      }
+
+      function applyAutoresearchPreset(name) {
+        const preset = getAutoresearchPreset(name);
+        setAutoresearchPresetButtons(preset.name);
+        document.getElementById("autoresearchName").value = preset.runName;
+        document.getElementById("autoresearchTarget").value = preset.target;
+        document.getElementById("autoresearchScope").value = preset.scope;
+        document.getElementById("autoresearchContext").value = preset.context;
+        document.getElementById("autoresearchGlobs").value = preset.globs;
+        document.getElementById("autoresearchPrompt").value = preset.promptTemplate;
+        document.getElementById("autoresearchCriteria").value = JSON.stringify(
+          preset.criteria,
+          null,
+          2,
+        );
+      }
+
+      function openAutoresearchModal() {
+        const modal = document.getElementById("autoresearchModal");
+        if (!modal) return;
+        if (!document.getElementById("autoresearchTarget").value.trim()) {
+          applyAutoresearchPreset("generic");
+        } else {
+          setAutoresearchPresetButtons("generic");
+        }
+        updateAutoresearchRunnerHint();
+        modal.classList.add("active");
+        document.body.style.overflow = "hidden";
+      }
+
+      function closeAutoresearchModal(event) {
+        if (event && event.target !== event.currentTarget) return;
+        const modal = document.getElementById("autoresearchModal");
+        if (!modal) return;
+        modal.classList.remove("active");
+        document.body.style.overflow = "";
+      }
+
+      function collectAutoresearchConfig() {
+        let criteria = [];
+        const rawCriteria = document.getElementById("autoresearchCriteria").value.trim();
+        if (!rawCriteria) {
+          throw new Error("Criteria JSON is required.");
+        }
+        try {
+          criteria = JSON.parse(rawCriteria);
+        } catch (error) {
+          throw new Error(`Criteria JSON is invalid: ${error.message}`);
+        }
+
+        const batchSize = Number.parseInt(
+          document.getElementById("autoresearchBatchSize").value.trim() || "5",
+          10,
+        );
+        const validationCount = Number.parseInt(
+          document.getElementById("autoresearchValidationCount").value.trim() || "3",
+          10,
+        );
+        const maxRuns = Number.parseInt(
+          document.getElementById("autoresearchMaxRuns").value.trim() || "15",
+          10,
+        );
+
+        return {
+          name: document.getElementById("autoresearchName").value.trim(),
+          target: document.getElementById("autoresearchTarget").value.trim(),
+          scope: document.getElementById("autoresearchScope").value.trim(),
+          context: document.getElementById("autoresearchContext").value.trim(),
+          item_globs: document
+            .getElementById("autoresearchGlobs")
+            .value.split("\n")
+            .map((line) => line.trim())
+            .filter(Boolean),
+          prompt_template: document.getElementById("autoresearchPrompt").value.trim(),
+          criteria,
+          runner: {
+            type: document.getElementById("autoresearchRunner").value || "codex",
+            model: document.getElementById("autoresearchModel").value.trim(),
+          },
+          batch_size: Number.isFinite(batchSize) && batchSize > 0 ? batchSize : 5,
+          validation_count:
+            Number.isFinite(validationCount) && validationCount > 0 ? validationCount : 3,
+          max_runs: Number.isFinite(maxRuns) && maxRuns > 0 ? maxRuns : 15,
+        };
+      }
+
+      async function startAutoresearchRun() {
+        const startButton = document.getElementById("autoresearchStartBtn");
+        if (startButton) {
+          startButton.disabled = true;
+          startButton.textContent = "Starting...";
+        }
+
+        try {
+          const payload = collectAutoresearchConfig();
+          const resp = await fetch("/api/autoresearch/start", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const data = await resp.json();
+          if (!resp.ok || data.error) {
+            throw new Error(data.error || `Request failed (${resp.status})`);
+          }
+          closeAutoresearchModal();
+          showToast(`Autoresearch started: ${payload.name || payload.target}`, "success");
+          await loadAutoresearchStatus();
+        } catch (error) {
+          showToast(error.message || "Failed to start autoresearch", "error");
+        } finally {
+          if (startButton) {
+            startButton.disabled = false;
+            startButton.textContent = "Start Run";
+          }
+        }
+      }
+
+      async function stopAutoresearchRun() {
+        const stopButton = document.getElementById("autoresearchStopBtn");
+        if (stopButton) {
+          stopButton.disabled = true;
+          stopButton.textContent = "Stopping...";
+        }
+        try {
+          const resp = await fetch("/api/autoresearch/stop", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({}),
+          });
+          const data = await resp.json();
+          if (!resp.ok || data.error) {
+            throw new Error(data.error || `Request failed (${resp.status})`);
+          }
+          showToast(data.message || "Autoresearch stop requested.", "success");
+          await loadAutoresearchStatus();
+        } catch (error) {
+          showToast(error.message || "Failed to stop autoresearch", "error");
+        } finally {
+          if (stopButton) {
+            stopButton.disabled = false;
+            stopButton.textContent = "Stop";
+          }
+        }
+      }
+
+      function renderAutoresearchStatus(data) {
+        autoresearchStatusData = data || {};
+
+        const stateEl = document.getElementById("autoresearchState");
+        const summaryEl = document.getElementById("autoresearchSummary");
+        const metaEl = document.getElementById("autoresearchMeta");
+        const failuresEl = document.getElementById("autoresearchFailures");
+        const logEl = document.getElementById("autoresearchLog");
+        const runsEl = document.getElementById("autoresearchRuns");
+        const stopButton = document.getElementById("autoresearchStopBtn");
+
+        const active = data && typeof data.active === "object" ? data.active : null;
+        const recentRuns = Array.isArray(data?.recentRuns) ? data.recentRuns : [];
+        const runners = Array.isArray(data?.runners) ? data.runners : [];
+        syncAutoresearchRunnerOptions(runners);
+
+        const referenceRun = active || recentRuns[0] || null;
+        const state = (active && active.state) || (referenceRun && referenceRun.state) || "idle";
+        const stateStyles = {
+          idle: ["Idle", "rgba(139, 148, 158, 0.15)", "#8b949e"],
+          launching: ["Launching", "rgba(96, 165, 250, 0.15)", "#93c5fd"],
+          running: ["Running", "rgba(56, 189, 248, 0.15)", "#67e8f9"],
+          completed: ["Completed", "rgba(63, 185, 80, 0.15)", "#4ade80"],
+          stopped: ["Stopped", "rgba(248, 113, 113, 0.15)", "#fca5a5"],
+          failed: ["Failed", "rgba(248, 113, 113, 0.15)", "#f87171"],
+        };
+        const [stateLabel, bgColor, textColor] = stateStyles[state] || stateStyles.idle;
+        stateEl.textContent = stateLabel;
+        stateEl.style.background = bgColor;
+        stateEl.style.color = textColor;
+
+        if (active) {
+          const scoreLine = formatAutoresearchScore(active);
+          summaryEl.textContent =
+            `${active.name || active.target || active.runId || "Current run"} is ${stateLabel.toLowerCase()}.` +
+            (scoreLine ? ` ${scoreLine}.` : "");
+          const metaParts = [
+            active.target ? `Target: ${active.target}` : "",
+            active.scope ? `Scope: ${active.scope}` : "",
+            active.runnerType ? `Runner: ${active.runnerType}` : "",
+            active.model ? `Model: ${active.model}` : "",
+            Number.isFinite(active.cycle) ? `Cycle: ${active.cycle}` : "",
+            active.currentItem
+              ? `Item: ${active.currentItem}${
+                  Number.isFinite(active.currentItemIndex) &&
+                  Number.isFinite(active.currentItemTotal)
+                    ? ` (${active.currentItemIndex}/${active.currentItemTotal})`
+                    : ""
+                }`
+              : "",
+            active.startedAt ? `Started: ${formatAutoresearchTime(active.startedAt)}` : "",
+            active.lastUpdatedAt ? `Updated: ${formatAutoresearchAgo(active.lastUpdatedAt)}` : "",
+          ].filter(Boolean);
+          metaEl.innerHTML = metaParts.map((part) => escapeHtml(part)).join("<br>");
+        } else if (referenceRun) {
+          const scoreLine = formatAutoresearchScore(referenceRun);
+          summaryEl.textContent =
+            `${referenceRun.name || referenceRun.target || referenceRun.runId || "Latest run"} last ended ` +
+            `${formatAutoresearchAgo(referenceRun.lastUpdatedAt || referenceRun.startedAt)}.` +
+            (scoreLine ? ` ${scoreLine}.` : "");
+          const metaParts = [
+            referenceRun.target ? `Target: ${referenceRun.target}` : "",
+            referenceRun.scope ? `Scope: ${referenceRun.scope}` : "",
+            referenceRun.runnerType ? `Runner: ${referenceRun.runnerType}` : "",
+            referenceRun.model ? `Model: ${referenceRun.model}` : "",
+            referenceRun.startedAt
+              ? `Started: ${formatAutoresearchTime(referenceRun.startedAt)}`
+              : "",
+            referenceRun.lastUpdatedAt
+              ? `Last update: ${formatAutoresearchTime(referenceRun.lastUpdatedAt)}`
+              : "",
+            referenceRun.message ? `Status: ${referenceRun.message}` : "",
+          ].filter(Boolean);
+          metaEl.innerHTML = metaParts.map((part) => escapeHtml(part)).join("<br>");
+        } else {
+          summaryEl.textContent =
+            "No autoresearch runs yet. Configure a target, define binary criteria, and launch a run from Mission Control.";
+          metaEl.textContent =
+            "Use this to optimize prompts or drafting loops against explicit pass/fail metrics inside the repo.";
+        }
+
+        const failureLines = active?.topFailures || referenceRun?.topFailures || [];
+        if (Array.isArray(failureLines) && failureLines.length > 0) {
+          failuresEl.style.display = "block";
+          failuresEl.textContent = failureLines.join("\n");
+        } else {
+          failuresEl.style.display = "none";
+          failuresEl.textContent = "";
+        }
+
+        const logTail = Array.isArray(active?.logTail) ? active.logTail : [];
+        if (logTail.length > 0) {
+          logEl.style.display = "block";
+          logEl.textContent = logTail.join("\n");
+        } else {
+          logEl.style.display = "none";
+          logEl.textContent = "";
+        }
+
+        const hasActiveRun = !!active && ["launching", "running"].includes(active.state);
+        stopButton.style.display = hasActiveRun ? "inline-flex" : "none";
+        stopButton.disabled = false;
+        stopButton.textContent = "Stop";
+
+        if (!recentRuns.length) {
+          runsEl.innerHTML =
+            '<div style="font-size:12px;color:#8b949e;">Recent runs will appear here after the first launch.</div>';
+          return;
+        }
+
+        runsEl.innerHTML = recentRuns
+          .map((run) => {
+            const runState = run.state || "idle";
+            const colors = stateStyles[runState] || stateStyles.idle;
+            const scoreLine = formatAutoresearchScore(run);
+            return `
+              <div style="padding:10px 12px;border:1px solid rgba(255,255,255,0.06);border-radius:10px;background:rgba(255,255,255,0.03);margin-bottom:8px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+                  <div style="font-size:13px;font-weight:600;color:#e6edf3;">${escapeHtml(
+                    run.name || run.target || run.runId || "Autoresearch run",
+                  )}</div>
+                  <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;padding:4px 8px;border-radius:999px;background:${colors[1]};color:${colors[2]};">${escapeHtml(colors[0])}</div>
+                </div>
+                <div style="font-size:12px;color:#8b949e;margin-top:6px;line-height:1.5;">
+                  ${escapeHtml(run.target || "No target recorded")}
+                  ${scoreLine ? `<br>${escapeHtml(scoreLine)}` : ""}
+                  <br>${escapeHtml(run.message || "No status message")}
+                  <br>${escapeHtml(formatAutoresearchTime(run.lastUpdatedAt || run.startedAt))}
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      async function loadAutoresearchStatus() {
+        try {
+          const resp = await fetch("/api/autoresearch/status?" + Date.now());
+          const data = await resp.json();
+          if (!resp.ok || data.error) {
+            throw new Error(data.error || `Request failed (${resp.status})`);
+          }
+          renderAutoresearchStatus(data);
+        } catch (error) {
+          renderAutoresearchStatus({ recentRuns: [], runners: [] });
+          document.getElementById("autoresearchSummary").textContent =
+            "Autoresearch status is unavailable right now.";
+          document.getElementById("autoresearchMeta").textContent =
+            error.message || "Failed to load autoresearch status.";
+        }
+      }
+
       let currentLanes = {};
 
       loadTaskBoard();
+      loadAutoresearchStatus();
       loadPredictions(); // Load predictions to update badge
       loadStatusBar();
       setTimeout(() => loadModelSelector(), 600);
+      document
+        .getElementById("autoresearchRunner")
+        ?.addEventListener("change", updateAutoresearchRunnerHint);
 
       // Smart auto-refresh: only refresh when modal is NOT open
       setInterval(() => {
@@ -5011,6 +6141,7 @@
           loadTaskBoard();
         }
         loadStatusBar();
+        loadAutoresearchStatus();
         if (Date.now() - lastModelSelectorRefreshMs > 60000) {
           loadModelSelector();
         }
@@ -5497,6 +6628,7 @@
         if (e.key === "Escape") {
           closeModal();
           closeCronModal();
+          closeAutoresearchModal();
           document.getElementById("searchResults").style.display = "none";
         }
       });
@@ -5796,7 +6928,9 @@
       }
 
       function setAgentView(view) {
-        document.querySelectorAll(".agent-tab").forEach((t) => t.classList.remove("active"));
+        document
+          .querySelectorAll("#agentModal .agent-tab")
+          .forEach((t) => t.classList.remove("active"));
         document.getElementById("agentViewContent").style.display =
           view === "view" ? "block" : "none";
         document.getElementById("agentEditContent").style.display =
