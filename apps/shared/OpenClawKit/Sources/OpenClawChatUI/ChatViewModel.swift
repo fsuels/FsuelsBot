@@ -35,6 +35,8 @@ public final class OpenClawChatViewModel {
 
     @ObservationIgnored
     private nonisolated(unsafe) var eventTask: Task<Void, Never>?
+    @ObservationIgnored
+    private nonisolated(unsafe) var bootstrapTask: Task<Void, Never>?
     private var pendingRuns = Set<String>() {
         didSet { self.pendingRunCount = self.pendingRuns.count }
     }
@@ -51,6 +53,9 @@ public final class OpenClawChatViewModel {
     }
 
     private var lastHealthPollAt: Date?
+    private var bootstrapGeneration: Int = 0
+    private var bootstrapSessionKey: String?
+    private var bootstrapReadySessionKey: String?
 
     public init(sessionKey: String, transport: any OpenClawChatTransport) {
         self.sessionKey = sessionKey
@@ -70,17 +75,18 @@ public final class OpenClawChatViewModel {
 
     deinit {
         self.eventTask?.cancel()
+        self.bootstrapTask?.cancel()
         for (_, task) in self.pendingRunTimeoutTasks {
             task.cancel()
         }
     }
 
     public func load() {
-        Task { await self.bootstrap() }
+        self.startBootstrap(force: false, showLoading: true, refreshSessions: true)
     }
 
     public func refresh() {
-        Task { await self.bootstrap() }
+        self.startBootstrap(force: true, showLoading: true, refreshSessions: true)
     }
 
     public func send() {
@@ -149,35 +155,97 @@ public final class OpenClawChatViewModel {
 
     // MARK: - Internals
 
-    private func bootstrap() async {
+    private func startBootstrap(force: Bool, showLoading: Bool, refreshSessions: Bool) {
+        let sessionKey = self.sessionKey
+        if !force,
+           let task = self.bootstrapTask,
+           !task.isCancelled,
+           self.bootstrapSessionKey == sessionKey
+        {
+            return
+        }
+
+        self.bootstrapTask?.cancel()
+        self.bootstrapGeneration += 1
+        let generation = self.bootstrapGeneration
+        self.bootstrapSessionKey = sessionKey
+
+        if showLoading {
+            self.prepareForBootstrap()
+        }
+
+        self.bootstrapTask = Task { [weak self] in
+            guard let self else { return }
+            await self.runBootstrap(
+                sessionKey: sessionKey,
+                generation: generation,
+                refreshSessions: refreshSessions)
+        }
+    }
+
+    private func prepareForBootstrap() {
         self.isLoading = true
         self.errorText = nil
         self.healthOK = false
+        self.bootstrapReadySessionKey = nil
         self.clearPendingRuns(reason: nil)
         self.pendingToolCallsById = [:]
         self.streamingAssistantText = nil
         self.sessionId = nil
-        defer { self.isLoading = false }
+    }
+
+    private func runBootstrap(
+        sessionKey: String,
+        generation: Int,
+        refreshSessions: Bool) async
+    {
+        defer { self.finishBootstrap(generation: generation, sessionKey: sessionKey) }
+
         do {
             do {
-                try await self.transport.setActiveSessionKey(self.sessionKey)
+                try await self.transport.setActiveSessionKey(sessionKey)
             } catch {
                 // Best-effort only; history/send/health still work without push events.
             }
 
-            let payload = try await self.transport.requestHistory(sessionKey: self.sessionKey)
+            let payload = try await self.transport.requestHistory(sessionKey: sessionKey)
+            guard self.isBootstrapCurrent(generation: generation, sessionKey: sessionKey) else { return }
             self.messages = Self.decodeMessages(payload.messages ?? [])
             self.sessionId = payload.sessionId
             if let level = payload.thinkingLevel, !level.isEmpty {
                 self.thinkingLevel = level
             }
             await self.pollHealthIfNeeded(force: true)
-            await self.fetchSessions(limit: 50)
+            guard self.isBootstrapCurrent(generation: generation, sessionKey: sessionKey) else { return }
+            self.bootstrapReadySessionKey = sessionKey
+            self.isLoading = false
             self.errorText = nil
+            if refreshSessions {
+                Task { [weak self] in
+                    guard let self else { return }
+                    await self.fetchSessionsIfCurrent(limit: 50, generation: generation, sessionKey: sessionKey)
+                }
+            }
+        } catch is CancellationError {
+            guard self.isBootstrapCurrent(generation: generation, sessionKey: sessionKey) else { return }
+            self.isLoading = false
         } catch {
+            guard self.isBootstrapCurrent(generation: generation, sessionKey: sessionKey) else { return }
             self.errorText = error.localizedDescription
+            self.healthOK = false
+            self.isLoading = false
             chatUILogger.error("bootstrap failed \(error.localizedDescription, privacy: .public)")
         }
+    }
+
+    private func finishBootstrap(generation: Int, sessionKey: String) {
+        guard self.isBootstrapCurrent(generation: generation, sessionKey: sessionKey) else { return }
+        self.bootstrapTask = nil
+        self.bootstrapSessionKey = nil
+    }
+
+    private func isBootstrapCurrent(generation: Int, sessionKey: String) -> Bool {
+        self.bootstrapGeneration == generation && self.bootstrapSessionKey == sessionKey && self.sessionKey == sessionKey
     }
 
     private static func decodeMessages(_ raw: [AnyCodable]) -> [OpenClawChatMessage] {
@@ -218,6 +286,7 @@ public final class OpenClawChatViewModel {
         let trimmed = self.input.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty || !self.attachments.isEmpty else { return }
 
+        await self.ensureBootstrapReadyForSend()
         guard self.healthOK else {
             self.errorText = "Gateway health not OK; cannot send"
             return
@@ -324,12 +393,22 @@ public final class OpenClawChatViewModel {
         }
     }
 
+    private func fetchSessionsIfCurrent(limit: Int?, generation: Int, sessionKey: String) async {
+        do {
+            let res = try await self.transport.listSessions(limit: limit)
+            guard self.isBootstrapCurrent(generation: generation, sessionKey: sessionKey) else { return }
+            self.sessions = res.sessions
+        } catch {
+            // Best-effort.
+        }
+    }
+
     private func performSwitchSession(to sessionKey: String) async {
         let next = sessionKey.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !next.isEmpty else { return }
         guard next != self.sessionKey else { return }
         self.sessionKey = next
-        await self.bootstrap()
+        self.startBootstrap(force: true, showLoading: true, refreshSessions: true)
     }
 
     private func placeholderSession(key: String) -> OpenClawChatSessionEntry {
@@ -438,8 +517,10 @@ public final class OpenClawChatViewModel {
     }
 
     private func refreshHistoryAfterRun() async {
+        let sessionKey = self.sessionKey
         do {
-            let payload = try await self.transport.requestHistory(sessionKey: self.sessionKey)
+            let payload = try await self.transport.requestHistory(sessionKey: sessionKey)
+            guard self.sessionKey == sessionKey else { return }
             self.messages = Self.decodeMessages(payload.messages ?? [])
             self.sessionId = payload.sessionId
             if let level = payload.thinkingLevel, !level.isEmpty {
@@ -479,6 +560,19 @@ public final class OpenClawChatViewModel {
         if let reason, !reason.isEmpty {
             self.errorText = reason
         }
+    }
+
+    private func ensureBootstrapReadyForSend() async {
+        if self.bootstrapReadySessionKey == self.sessionKey {
+            return
+        }
+        if let task = self.bootstrapTask, self.bootstrapSessionKey == self.sessionKey {
+            await task.value
+            return
+        }
+
+        self.startBootstrap(force: false, showLoading: false, refreshSessions: false)
+        await self.bootstrapTask?.value
     }
 
     private func pollHealthIfNeeded(force: Bool) async {

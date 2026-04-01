@@ -1,4 +1,5 @@
 import OpenClawKit
+import Dispatch
 import Foundation
 import Testing
 @testable import OpenClawChatUI
@@ -27,6 +28,7 @@ private func waitUntil(
 private actor TestChatTransportState {
     var historyCallCount: Int = 0
     var sessionsCallCount: Int = 0
+    var healthCallCount: Int = 0
     var sentRunIds: [String] = []
     var abortedRunIds: [String] = []
 }
@@ -35,16 +37,31 @@ private final class TestChatTransport: @unchecked Sendable, OpenClawChatTranspor
     private let state = TestChatTransportState()
     private let historyResponses: [OpenClawChatHistoryPayload]
     private let sessionsResponses: [OpenClawChatSessionsListResponse]
+    private let historyDelayMs: [UInt64]
+    private let historyDelayIgnoresCancellation: Bool
+    private let sessionsDelayMs: [UInt64]
+    private let healthResponses: [Bool]
+    private let healthDelayMs: [UInt64]
 
     private let stream: AsyncStream<OpenClawChatTransportEvent>
     private let continuation: AsyncStream<OpenClawChatTransportEvent>.Continuation
 
     init(
         historyResponses: [OpenClawChatHistoryPayload],
-        sessionsResponses: [OpenClawChatSessionsListResponse] = [])
+        sessionsResponses: [OpenClawChatSessionsListResponse] = [],
+        historyDelayMs: [UInt64] = [],
+        historyDelayIgnoresCancellation: Bool = false,
+        sessionsDelayMs: [UInt64] = [],
+        healthResponses: [Bool] = [true],
+        healthDelayMs: [UInt64] = [])
     {
         self.historyResponses = historyResponses
         self.sessionsResponses = sessionsResponses
+        self.historyDelayMs = historyDelayMs
+        self.historyDelayIgnoresCancellation = historyDelayIgnoresCancellation
+        self.sessionsDelayMs = sessionsDelayMs
+        self.healthResponses = healthResponses
+        self.healthDelayMs = healthDelayMs
         var cont: AsyncStream<OpenClawChatTransportEvent>.Continuation!
         self.stream = AsyncStream { c in
             cont = c
@@ -61,6 +78,9 @@ private final class TestChatTransport: @unchecked Sendable, OpenClawChatTranspor
     func requestHistory(sessionKey: String) async throws -> OpenClawChatHistoryPayload {
         let idx = await self.state.historyCallCount
         await self.state.setHistoryCallCount(idx + 1)
+        try await Self.pause(
+            milliseconds: self.historyDelayMs[safe: idx] ?? 0,
+            ignoreCancellation: self.historyDelayIgnoresCancellation)
         if idx < self.historyResponses.count {
             return self.historyResponses[idx]
         }
@@ -89,6 +109,7 @@ private final class TestChatTransport: @unchecked Sendable, OpenClawChatTranspor
     func listSessions(limit _: Int?) async throws -> OpenClawChatSessionsListResponse {
         let idx = await self.state.sessionsCallCount
         await self.state.setSessionsCallCount(idx + 1)
+        try await Self.pause(milliseconds: self.sessionsDelayMs[safe: idx] ?? 0, ignoreCancellation: false)
         if idx < self.sessionsResponses.count {
             return self.sessionsResponses[idx]
         }
@@ -101,7 +122,13 @@ private final class TestChatTransport: @unchecked Sendable, OpenClawChatTranspor
     }
 
     func requestHealth(timeoutMs _: Int) async throws -> Bool {
-        true
+        let idx = await self.state.healthCallCount
+        await self.state.setHealthCallCount(idx + 1)
+        try await Self.pause(milliseconds: self.healthDelayMs[safe: idx] ?? 0, ignoreCancellation: false)
+        if idx < self.healthResponses.count {
+            return self.healthResponses[idx]
+        }
+        return self.healthResponses.last ?? true
     }
 
     func emit(_ evt: OpenClawChatTransportEvent) {
@@ -116,6 +143,20 @@ private final class TestChatTransport: @unchecked Sendable, OpenClawChatTranspor
     func abortedRunIds() async -> [String] {
         await self.state.abortedRunIds
     }
+
+    private static func pause(milliseconds: UInt64, ignoreCancellation: Bool) async throws {
+        guard milliseconds > 0 else { return }
+        let nanos = milliseconds * 1_000_000
+        if ignoreCancellation {
+            await withCheckedContinuation { continuation in
+                DispatchQueue.global().asyncAfter(deadline: .now() + .milliseconds(Int(milliseconds))) {
+                    continuation.resume()
+                }
+            }
+            return
+        }
+        try await Task.sleep(nanoseconds: nanos)
+    }
 }
 
 extension TestChatTransportState {
@@ -127,6 +168,10 @@ extension TestChatTransportState {
         self.sessionsCallCount = v
     }
 
+    fileprivate func setHealthCallCount(_ v: Int) {
+        self.healthCallCount = v
+    }
+
     fileprivate func sentRunIdsAppend(_ v: String) {
         self.sentRunIds.append(v)
     }
@@ -136,7 +181,90 @@ extension TestChatTransportState {
     }
 }
 
+private extension Array {
+    subscript(safe index: Int) -> Element? {
+        guard self.indices.contains(index) else { return nil }
+        return self[index]
+    }
+}
+
 @Suite struct ChatViewModelTests {
+    @Test func firstSendWaitsForBootstrapReadiness() async throws {
+        let history = OpenClawChatHistoryPayload(
+            sessionKey: "main",
+            sessionId: "sess-main",
+            messages: [],
+            thinkingLevel: "off")
+
+        let transport = TestChatTransport(
+            historyResponses: [history],
+            historyDelayMs: [150],
+            healthDelayMs: [150])
+        let vm = await MainActor.run { OpenClawChatViewModel(sessionKey: "main", transport: transport) }
+
+        await MainActor.run {
+            vm.load()
+            vm.input = "hi"
+            vm.send()
+        }
+
+        try await waitUntil("first send succeeds after bootstrap") {
+            await transport.lastSentRunId() != nil
+        }
+        #expect(await MainActor.run { vm.errorText } == nil)
+        #expect(await MainActor.run { vm.pendingRunCount } == 1)
+    }
+
+    @Test func staleBootstrapDoesNotOverwriteSwitchedSession() async throws {
+        let mainHistory = OpenClawChatHistoryPayload(
+            sessionKey: "main",
+            sessionId: "sess-main",
+            messages: [
+                AnyCodable([
+                    "role": "assistant",
+                    "content": [["type": "text", "text": "main history"]],
+                    "timestamp": Date().timeIntervalSince1970 * 1000,
+                ]),
+            ],
+            thinkingLevel: "off")
+        let otherHistory = OpenClawChatHistoryPayload(
+            sessionKey: "other",
+            sessionId: "sess-other",
+            messages: [
+                AnyCodable([
+                    "role": "assistant",
+                    "content": [["type": "text", "text": "other history"]],
+                    "timestamp": Date().timeIntervalSince1970 * 1000,
+                ]),
+            ],
+            thinkingLevel: "off")
+
+        let transport = TestChatTransport(
+            historyResponses: [mainHistory, otherHistory],
+            historyDelayMs: [200, 0],
+            historyDelayIgnoresCancellation: true)
+        let vm = await MainActor.run { OpenClawChatViewModel(sessionKey: "main", transport: transport) }
+
+        await MainActor.run {
+            vm.load()
+            vm.switchSession(to: "other")
+        }
+
+        try await waitUntil("other session loads") {
+            await MainActor.run {
+                vm.sessionKey == "other" &&
+                    vm.sessionId == "sess-other" &&
+                    vm.messages.first?.content.first?.text == "other history"
+            }
+        }
+
+        try await Task.sleep(nanoseconds: 350_000_000)
+
+        #expect(await MainActor.run { vm.sessionKey } == "other")
+        #expect(await MainActor.run { vm.sessionId } == "sess-other")
+        #expect(await MainActor.run { vm.messages.first?.content.first?.text } == "other history")
+    }
+
     @Test func streamsAssistantAndClearsOnFinal() async throws {
         let sessionId = "sess-main"
         let history1 = OpenClawChatHistoryPayload(
