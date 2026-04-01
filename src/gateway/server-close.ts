@@ -22,6 +22,7 @@ export function createGatewayCloseHandler(params: {
   dedupeCleanup: ReturnType<typeof setInterval>;
   agentUnsub: (() => void) | null;
   heartbeatUnsub: (() => void) | null;
+  clearExecApprovals?: () => void;
   chatRunState: { clear: () => void };
   clients: Set<{ socket: { close: (code: number, reason: string) => void } }>;
   configReloader: { stop: () => Promise<void> };
@@ -95,6 +96,7 @@ export function createGatewayCloseHandler(params: {
         /* ignore */
       }
     }
+    params.clearExecApprovals?.();
     params.chatRunState.clear();
     for (const c of params.clients) {
       try {

@@ -56,6 +56,7 @@ type GatewayHost = {
   chatLifecycleGuard: ChatLifecycleGuard;
   refreshSessionsAfterChat: Set<string>;
   execApprovalQueue: ExecApprovalRequest[];
+  execApprovalExpiryTimers: Map<string, number>;
   execApprovalError: string | null;
   telemetry: Pick<UiTelemetry, "increment">;
   syncOverlays: () => void;
@@ -120,10 +121,38 @@ function applySessionDefaults(host: GatewayHost, defaults?: SessionDefaultsSnaps
   }
 }
 
+function clearExecApprovalExpiryTimer(host: GatewayHost, approvalId: string) {
+  const timer = host.execApprovalExpiryTimers.get(approvalId);
+  if (timer == null) {
+    return;
+  }
+  window.clearTimeout(timer);
+  host.execApprovalExpiryTimers.delete(approvalId);
+}
+
+function clearAllExecApprovalExpiryTimers(host: GatewayHost) {
+  for (const timer of host.execApprovalExpiryTimers.values()) {
+    window.clearTimeout(timer);
+  }
+  host.execApprovalExpiryTimers.clear();
+}
+
+function resetDisconnectedUiState(host: GatewayHost) {
+  host.chatLifecycleGuard.forceEnd();
+  (host as unknown as { chatStream: string | null }).chatStream = null;
+  (host as unknown as { chatStreamStartedAt: number | null }).chatStreamStartedAt = null;
+  resetToolStream(host as unknown as Parameters<typeof resetToolStream>[0]);
+  clearAllExecApprovalExpiryTimers(host);
+  host.execApprovalQueue = [];
+  host.execApprovalError = null;
+  host.syncOverlays();
+}
+
 export function connectGateway(host: GatewayHost) {
   host.lastError = null;
   host.hello = null;
   host.connected = false;
+  clearAllExecApprovalExpiryTimers(host);
   host.execApprovalQueue = [];
   host.execApprovalError = null;
   host.syncOverlays();
@@ -140,12 +169,9 @@ export function connectGateway(host: GatewayHost) {
       host.lastError = null;
       host.hello = hello;
       applySnapshot(host, hello);
-      // Reset orphaned chat run state from before disconnect.
-      // Any in-flight run's final event was lost during the disconnect window.
-      host.chatLifecycleGuard.forceEnd();
-      (host as unknown as { chatStream: string | null }).chatStream = null;
-      (host as unknown as { chatStreamStartedAt: number | null }).chatStreamStartedAt = null;
-      resetToolStream(host as unknown as Parameters<typeof resetToolStream>[0]);
+      // Reset orphaned UI state from before disconnect and let replay/history restore
+      // whatever is still relevant from the server side.
+      resetDisconnectedUiState(host);
       void loadAssistantIdentity(host as unknown as OpenClawApp);
       void loadAgents(host as unknown as OpenClawApp);
       void loadNodes(host as unknown as OpenClawApp, { quiet: true });
@@ -162,6 +188,7 @@ export function connectGateway(host: GatewayHost) {
     },
     onClose: ({ code, reason }) => {
       host.connected = false;
+      resetDisconnectedUiState(host);
       const keepSpecificConnectError = Boolean(
         reason.startsWith("connect failed") && typeof host.lastError === "string" && host.lastError,
       );
@@ -257,14 +284,17 @@ function handleGatewayEventUnsafe(host: GatewayHost, evt: GatewayEventFrame) {
   if (evt.event === "exec.approval.requested") {
     const entry = parseExecApprovalRequested(evt.payload);
     if (entry) {
+      clearExecApprovalExpiryTimer(host, entry.id);
       host.execApprovalQueue = addExecApproval(host.execApprovalQueue, entry);
       host.execApprovalError = null;
       host.syncOverlays();
       const delay = Math.max(0, entry.expiresAtMs - Date.now() + 500);
-      window.setTimeout(() => {
+      const timer = window.setTimeout(() => {
+        host.execApprovalExpiryTimers.delete(entry.id);
         host.execApprovalQueue = removeExecApproval(host.execApprovalQueue, entry.id);
         host.syncOverlays();
       }, delay);
+      host.execApprovalExpiryTimers.set(entry.id, timer);
     }
     return;
   }
@@ -272,6 +302,7 @@ function handleGatewayEventUnsafe(host: GatewayHost, evt: GatewayEventFrame) {
   if (evt.event === "exec.approval.resolved") {
     const resolved = parseExecApprovalResolved(evt.payload);
     if (resolved) {
+      clearExecApprovalExpiryTimer(host, resolved.id);
       host.execApprovalQueue = removeExecApproval(host.execApprovalQueue, resolved.id);
       host.syncOverlays();
     }

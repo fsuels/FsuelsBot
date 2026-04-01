@@ -635,6 +635,9 @@ export async function startGatewayServer(
     dedupeCleanup,
     agentUnsub,
     heartbeatUnsub,
+    clearExecApprovals: () => {
+      execApprovalManager.clearAll();
+    },
     chatRunState,
     clients,
     configReloader,

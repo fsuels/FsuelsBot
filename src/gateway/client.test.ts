@@ -344,6 +344,29 @@ r1USnb+wUdA7Zoj/mQ==
     expect(seenSeqs).toEqual([9, 1]);
   }, 7_000);
 
+  test("times out a hung connect response and retries", async () => {
+    const port = await getFreePort();
+    wss = new WebSocketServer({ port, host: "127.0.0.1" });
+    let connections = 0;
+
+    wss.on("connection", () => {
+      connections += 1;
+    });
+
+    const client = new GatewayClient({
+      url: `ws://127.0.0.1:${port}`,
+      connectResponseTimeoutMs: 20,
+    });
+    (client as unknown as { backoffMs: number }).backoffMs = 10;
+    client.start();
+
+    await new Promise((resolve) => setTimeout(resolve, 1_100));
+    client.stop();
+
+    expect(connections).toBeGreaterThanOrEqual(2);
+    expect(client.getState()).toBe("closed");
+  });
+
   test("keeps running after malformed or forward-compatible frames", async () => {
     const port = await getFreePort();
     wss = new WebSocketServer({ port, host: "127.0.0.1" });

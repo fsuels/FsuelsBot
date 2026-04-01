@@ -70,6 +70,7 @@ export type GatewayClientOptions = {
   minProtocol?: number;
   maxProtocol?: number;
   tlsFingerprint?: string;
+  connectResponseTimeoutMs?: number;
   onEvent?: (evt: EventFrame) => void;
   onHelloOk?: (hello: HelloOk) => void;
   onConnectError?: (err: Error) => void;
@@ -83,6 +84,8 @@ export type GatewayClientOptions = {
     bufferedFromSeq?: number;
   }) => void;
 };
+
+const DEFAULT_CONNECT_RESPONSE_TIMEOUT_MS = 20_000;
 
 export const GATEWAY_CLOSE_CODE_HINTS: Readonly<Record<number, string>> = {
   1000: "normal closure",
@@ -124,6 +127,7 @@ export class GatewayClient {
   private connectNonce: string | null = null;
   private connectSent = false;
   private connectTimer: NodeJS.Timeout | null = null;
+  private connectResponseTimer: NodeJS.Timeout | null = null;
   private reconnectTimer: NodeJS.Timeout | null = null;
   // Track last tick to detect silent stalls.
   private lastTick: number | null = null;
@@ -256,6 +260,10 @@ export class GatewayClient {
       clearTimeout(this.connectTimer);
       this.connectTimer = null;
     }
+    if (this.connectResponseTimer) {
+      clearTimeout(this.connectResponseTimer);
+      this.connectResponseTimer = null;
+    }
     if (this.tickTimer) {
       clearInterval(this.tickTimer);
       this.tickTimer = null;
@@ -277,6 +285,7 @@ export class GatewayClient {
       clearTimeout(this.connectTimer);
       this.connectTimer = null;
     }
+    this.refreshConnectResponseTimeout();
     const role = this.opts.role ?? "operator";
     const storedToken = this.opts.deviceIdentity
       ? loadDeviceAuthToken({ deviceId: this.opts.deviceIdentity.deviceId, role })?.token
@@ -345,6 +354,7 @@ export class GatewayClient {
 
     void this.request<unknown>("connect", params)
       .then((helloRaw) => {
+        this.clearConnectResponseTimeout();
         const helloResult = validateGatewayHelloOk(helloRaw);
         if (!helloResult.ok) {
           this.reportProtocolIssue(helloResult.issue);
@@ -390,6 +400,7 @@ export class GatewayClient {
         this.opts.onHelloOk?.(helloOk);
       })
       .catch((err) => {
+        this.clearConnectResponseTimeout();
         const error = err instanceof Error ? err : new Error(String(err));
         if (
           params.lastEventSeq !== undefined &&
@@ -431,6 +442,9 @@ export class GatewayClient {
     if (!parsed.ok) {
       this.reportProtocolIssue(parsed.issue);
       return;
+    }
+    if (this.state === "connecting" || this.state === "reconnecting") {
+      this.refreshConnectResponseTimeout();
     }
 
     if (parsed.value.kind === "event") {
@@ -501,11 +515,36 @@ export class GatewayClient {
     }, 750);
   }
 
+  private clearConnectResponseTimeout() {
+    if (this.connectResponseTimer) {
+      clearTimeout(this.connectResponseTimer);
+      this.connectResponseTimer = null;
+    }
+  }
+
+  private refreshConnectResponseTimeout() {
+    this.clearConnectResponseTimeout();
+    const timeoutMs =
+      typeof this.opts.connectResponseTimeoutMs === "number" &&
+      Number.isFinite(this.opts.connectResponseTimeoutMs)
+        ? Math.max(1, Math.floor(this.opts.connectResponseTimeoutMs))
+        : DEFAULT_CONNECT_RESPONSE_TIMEOUT_MS;
+    this.connectResponseTimer = setTimeout(() => {
+      if (this.closed || this.state === "connected") {
+        return;
+      }
+      this.flushPendingErrors(new Error("gateway connect timeout"));
+      this.ws?.close(1008, "connect timeout");
+    }, timeoutMs);
+    this.connectResponseTimer.unref();
+  }
+
   private scheduleReconnect() {
     if (this.closed) {
       return;
     }
     this.state = "reconnecting";
+    this.clearConnectResponseTimeout();
     if (this.tickTimer) {
       clearInterval(this.tickTimer);
       this.tickTimer = null;
@@ -525,6 +564,7 @@ export class GatewayClient {
   }
 
   private flushPendingErrors(err: Error) {
+    this.clearConnectResponseTimeout();
     for (const [, p] of this.pending) {
       p.reject(err);
     }

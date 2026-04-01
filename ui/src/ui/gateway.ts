@@ -42,6 +42,7 @@ export type GatewayBrowserClientOptions = {
   platform?: string;
   mode?: GatewayClientMode;
   instanceId?: string;
+  connectResponseTimeoutMs?: number;
   onHello?: (hello: GatewayHelloOk) => void;
   onEvent?: (evt: GatewayEventFrame) => void;
   onConnectError?: (err: Error) => void;
@@ -55,6 +56,8 @@ export type GatewayBrowserClientOptions = {
     bufferedFromSeq?: number;
   }) => void;
 };
+
+const DEFAULT_CONNECT_RESPONSE_TIMEOUT_MS = 20_000;
 
 // 4008 = application-defined code (browser rejects 1008 "Policy Violation")
 const CONNECT_FAILED_CLOSE_CODE = 4008;
@@ -108,6 +111,7 @@ export class GatewayBrowserClient {
   private connectNonce: string | null = null;
   private connectSent = false;
   private connectTimer: number | null = null;
+  private connectResponseTimer: number | null = null;
   private backoffMs = 800;
   private reconnectTimer: number | null = null;
   private lastTick: number | null = null;
@@ -139,6 +143,10 @@ export class GatewayBrowserClient {
     if (this.connectTimer !== null) {
       window.clearTimeout(this.connectTimer);
       this.connectTimer = null;
+    }
+    if (this.connectResponseTimer !== null) {
+      window.clearTimeout(this.connectResponseTimer);
+      this.connectResponseTimer = null;
     }
     if (this.tickTimer !== null) {
       window.clearInterval(this.tickTimer);
@@ -258,6 +266,7 @@ export class GatewayBrowserClient {
       window.clearTimeout(this.connectTimer);
       this.connectTimer = null;
     }
+    this.refreshConnectResponseTimeout();
 
     // crypto.subtle is only available in secure contexts (HTTPS, localhost).
     // Over plain HTTP, we skip device identity and fall back to token-only auth.
@@ -343,6 +352,7 @@ export class GatewayBrowserClient {
 
     void this.request<unknown>("connect", params)
       .then((helloRaw) => {
+        this.clearConnectResponseTimeout();
         const helloResult = validateGatewayHelloOk(helloRaw);
         if (!helloResult.ok) {
           this.reportProtocolIssue(helloResult.issue);
@@ -384,6 +394,7 @@ export class GatewayBrowserClient {
         this.opts.onHello?.(hello);
       })
       .catch((err) => {
+        this.clearConnectResponseTimeout();
         const error = err instanceof Error ? err : new Error(String(err));
         const message = err instanceof Error ? err.message : String(err);
         if (
@@ -421,6 +432,9 @@ export class GatewayBrowserClient {
     if (!parsed.ok) {
       this.reportProtocolIssue(parsed.issue);
       return;
+    }
+    if (this.state === "connecting" || this.state === "reconnecting") {
+      this.refreshConnectResponseTimeout();
     }
 
     if (parsed.value.kind === "event") {
@@ -500,6 +514,29 @@ export class GatewayBrowserClient {
     this.connectTimer = window.setTimeout(() => {
       void this.sendConnect();
     }, 750);
+  }
+
+  private clearConnectResponseTimeout() {
+    if (this.connectResponseTimer !== null) {
+      window.clearTimeout(this.connectResponseTimer);
+      this.connectResponseTimer = null;
+    }
+  }
+
+  private refreshConnectResponseTimeout() {
+    this.clearConnectResponseTimeout();
+    const timeoutMs =
+      typeof this.opts.connectResponseTimeoutMs === "number" &&
+      Number.isFinite(this.opts.connectResponseTimeoutMs)
+        ? Math.max(1, Math.floor(this.opts.connectResponseTimeoutMs))
+        : DEFAULT_CONNECT_RESPONSE_TIMEOUT_MS;
+    this.connectResponseTimer = window.setTimeout(() => {
+      if (this.closed || this.state === "connected") {
+        return;
+      }
+      this.flushPending(new Error("gateway connect timeout"));
+      this.ws?.close(CONNECT_FAILED_CLOSE_CODE, "connect timeout");
+    }, timeoutMs);
   }
 
   private startTickWatch() {

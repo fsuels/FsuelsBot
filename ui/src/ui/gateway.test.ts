@@ -222,6 +222,38 @@ describe("GatewayBrowserClient", () => {
     client.stop();
   });
 
+  it("times out a hung connect response and retries", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("crypto", { subtle: undefined });
+    vi.stubGlobal("WebSocket", FakeWebSocket);
+    vi.spyOn(Math, "random").mockReturnValue(0);
+
+    const onConnectError = vi.fn();
+    const client = new GatewayBrowserClient({
+      url: "ws://gateway.test",
+      connectResponseTimeoutMs: 25,
+      onConnectError,
+    });
+
+    client.start();
+    const firstSocket = fakeSockets[0];
+    firstSocket.open();
+    vi.advanceTimersByTime(750);
+    await flushTasks();
+
+    vi.advanceTimersByTime(25);
+    await flushTasks();
+    vi.advanceTimersByTime(640);
+    await flushTasks();
+
+    expect(onConnectError).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "gateway connect timeout" }),
+    );
+    expect(client.getState()).toBe("reconnecting");
+    expect(fakeSockets).toHaveLength(2);
+    client.stop();
+  });
+
   it("reports invalid hello-ok payloads during connect", async () => {
     vi.useFakeTimers();
     vi.stubGlobal("crypto", { subtle: undefined });

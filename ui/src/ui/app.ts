@@ -363,6 +363,7 @@ export class OpenClawApp extends LitElement {
   private toolStreamById = new Map<string, ToolStreamEntry>();
   private toolStreamOrder: string[] = [];
   private chatReactionClearTimer: number | null = null;
+  execApprovalExpiryTimers = new Map<string, number>();
   refreshSessionsAfterChat = new Set<string>();
   basePath = "";
   private popStateHandler = () =>
