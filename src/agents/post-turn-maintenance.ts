@@ -88,7 +88,7 @@ export function createPostTurnMaintenanceManager(
   };
 
   const flushDrainWaiters = () => {
-    for (const waiter of [...drainWaiters]) {
+    for (const waiter of drainWaiters) {
       const idle = waiter.queueKey ? isQueueIdle(waiter.queueKey) : areAllQueuesIdle();
       if (!idle) {
         continue;
