@@ -4,6 +4,7 @@ import { Static, Type } from "@sinclair/typebox";
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { AnyAgentTool } from "./tools/common.js";
+import { resolveAgentRuntimeCwd } from "./runtime-context.js";
 import { assertSandboxPath } from "./sandbox-paths.js";
 import { defineOpenClawTool, toolValidationError, toolValidationOk } from "./tool-contract.js";
 
@@ -252,7 +253,7 @@ export function createOpenClawFindTool(options?: {
   now?: () => number;
   allowNetworkPaths?: boolean;
 }): AnyAgentTool {
-  const workspaceRoot = path.resolve(options?.workspaceRoot ?? process.cwd());
+  const workspaceRoot = path.resolve(options?.workspaceRoot ?? resolveAgentRuntimeCwd());
   const sandboxRoot = options?.sandboxRoot?.trim() ? path.resolve(options.sandboxRoot) : undefined;
   const stat = options?.stat ?? ((absolutePath: string) => fs.stat(absolutePath));
   const readdir = options?.readdir ?? ((absolutePath: string) => fs.readdir(absolutePath));
@@ -410,7 +411,7 @@ export function createOpenClawFindTool(options?: {
           truncated = rawMatches.length >= effectiveLimit;
         } else {
           const baseResult = await baseTool.execute(
-            _toolCallId,
+            toolCallId,
             {
               pattern: input.pattern,
               path: searchRoot,

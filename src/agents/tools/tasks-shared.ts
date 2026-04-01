@@ -2,6 +2,7 @@ import { Type } from "@sinclair/typebox";
 import type { OpenClawConfig } from "../../config/config.js";
 import { loadConfig } from "../../config/config.js";
 import { resolveAgentWorkspaceDir, resolveSessionAgentId } from "../agent-scope.js";
+import { resolveAgentRuntimeCwd } from "../runtime-context.js";
 import { createStrictEmptyObjectSchema } from "../tool-contract.js";
 
 export const TaskBoardStatusSchema = Type.Union([
@@ -128,7 +129,7 @@ export function resolveTaskToolContext(opts?: {
   const workspaceDir =
     (typeof opts?.workspaceDir === "string" && opts.workspaceDir.trim()) ||
     resolveAgentWorkspaceDir(config, agentId) ||
-    process.cwd();
+    resolveAgentRuntimeCwd();
   return {
     config,
     agentId,

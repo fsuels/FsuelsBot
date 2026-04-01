@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { runWithAgentContext } from "../agents/runtime-context.js";
-import { runCommandWithTimeout } from "./exec.js";
+import { execFileNoThrow, runCommandWithTimeout } from "./exec.js";
 
 describe("runCommandWithTimeout", () => {
   it("passes env overrides to child", async () => {
@@ -200,5 +200,41 @@ describe("runCommandWithTimeout", () => {
         await fs.rm(outputDir, { recursive: true, force: true });
       }
     }
+  });
+
+  it("returns structured results for non-zero exits without throwing", async () => {
+    const result = await execFileNoThrow(
+      process.execPath,
+      ["-e", 'process.stderr.write("nope"); process.exit(7);'],
+      {
+        cwd: process.cwd(),
+        timeoutMs: 5_000,
+      },
+    );
+
+    expect(result.code).toBe(7);
+    expect(result.stderr).toContain("nope");
+    expect(result.timedOut).toBe(false);
+  });
+
+  it("ignores stdin by default in the non-throwing wrapper", async () => {
+    const result = await execFileNoThrow(
+      process.execPath,
+      [
+        "-e",
+        [
+          'process.stdin.on("end", () => process.stdout.write("ended"));',
+          "process.stdin.resume();",
+        ].join(" "),
+      ],
+      {
+        cwd: process.cwd(),
+        timeoutMs: 1_000,
+      },
+    );
+
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain("ended");
+    expect(result.timedOut).toBe(false);
   });
 });

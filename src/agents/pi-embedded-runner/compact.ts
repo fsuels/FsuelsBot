@@ -30,7 +30,7 @@ import { resolveUserPath } from "../../utils.js";
 import { normalizeMessageChannel } from "../../utils/message-channel.js";
 import { isReasoningTagProvider } from "../../utils/provider-utils.js";
 import { resolveOpenClawAgentDir } from "../agent-paths.js";
-import { resolveSessionAgentIds } from "../agent-scope.js";
+import { resolveAgentIdFromSessionKey, resolveSessionAgentIds } from "../agent-scope.js";
 import { makeBootstrapWarn, resolveBootstrapContextForRun } from "../bootstrap-files.js";
 import { listChannelSupportedActions, resolveChannelMessageToolHints } from "../channel-tools.js";
 import { formatUserTime, resolveUserTimeFormat, resolveUserTimezone } from "../date-time.js";
@@ -38,16 +38,19 @@ import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "../defaults.js";
 import { resolveOpenClawDocsPath } from "../docs-path.js";
 import { getApiKeyForModel, resolveModelAuthMode } from "../model-auth.js";
 import { ensureOpenClawModelsJson } from "../models-config.js";
-import {
-  ensureSessionHeader,
-  validateAnthropicTurns,
-  validateGeminiTurns,
-} from "../pi-embedded-helpers.js";
+import { ensureSessionHeader } from "../pi-embedded-helpers.js";
 import {
   ensurePiCompactionReserveTokens,
   resolveCompactionReserveTokensFloor,
 } from "../pi-settings.js";
 import { createOpenClawCodingTools } from "../pi-tools.js";
+import { drainPendingPostTurnMaintenance } from "../post-turn-maintenance.global.js";
+import { prepareMessagesForModel } from "../prepare-messages-for-model.js";
+import {
+  resolveAgentRuntimeCwd,
+  runWithAgentContext,
+  bindAgentContext,
+} from "../runtime-context.js";
 import { resolveSandboxContext } from "../sandbox.js";
 import { repairSessionFileIfNeeded } from "../session-file-repair.js";
 import { guardSessionManager } from "../session-tool-result-guard-wrapper.js";
@@ -60,14 +63,11 @@ import {
   resolveSkillsPromptForRun,
   type SkillSnapshot,
 } from "../skills.js";
+import { resolveRuntimeRepoRoot } from "../system-prompt-params.js";
 import { buildTaskCompactionInstructions, resolveActiveTask } from "../task-checkpoint.js";
 import { resolveTranscriptPolicy } from "../transcript-policy.js";
 import { buildEmbeddedExtensionPaths } from "./extensions.js";
-import {
-  logToolSchemasForGoogle,
-  sanitizeSessionHistory,
-  sanitizeToolsForGoogle,
-} from "./google.js";
+import { logToolSchemasForGoogle, sanitizeToolsForGoogle } from "./google.js";
 import { getDmHistoryLimitFromSessionKey, limitHistoryTurns } from "./history.js";
 import { resolveGlobalLane, resolveSessionLane } from "./lanes.js";
 import { log } from "./logger.js";
@@ -130,7 +130,15 @@ export async function compactEmbeddedPiSessionDirect(
   params: CompactEmbeddedPiSessionParams,
 ): Promise<EmbeddedPiCompactResult> {
   const resolvedWorkspace = resolveUserPath(params.workspaceDir);
-  const prevCwd = process.cwd();
+  const drainedMaintenance = await drainPendingPostTurnMaintenance(
+    5_000,
+    params.sessionKey?.trim() || params.sessionId,
+  ).catch(() => false);
+  if (!drainedMaintenance) {
+    log.warn(
+      `post-turn maintenance still running for ${params.sessionKey ?? params.sessionId}; compacting anyway`,
+    );
+  }
 
   const provider = (params.provider ?? DEFAULT_PROVIDER).trim() || DEFAULT_PROVIDER;
   const modelId = (params.model ?? DEFAULT_MODEL).trim() || DEFAULT_MODEL;
@@ -193,401 +201,423 @@ export async function compactEmbeddedPiSessionDirect(
       : sandbox.workspaceDir
     : resolvedWorkspace;
   await fs.mkdir(effectiveWorkspace, { recursive: true });
+  const { defaultAgentId, sessionAgentId } = resolveSessionAgentIds({
+    sessionKey: params.sessionKey,
+    config: params.config,
+  });
+  const repoRoot = resolveRuntimeRepoRoot({
+    config: params.config,
+    workspaceDir: effectiveWorkspace,
+    cwd: effectiveWorkspace,
+  });
   await ensureSessionHeader({
     sessionFile: params.sessionFile,
     sessionId: params.sessionId,
     cwd: effectiveWorkspace,
   });
 
-  let restoreSkillEnv: (() => void) | undefined;
-  process.chdir(effectiveWorkspace);
-  try {
-    const shouldLoadSkillEntries = !params.skillsSnapshot || !params.skillsSnapshot.resolvedSkills;
-    const skillEntries = shouldLoadSkillEntries
-      ? loadWorkspaceSkillEntries(effectiveWorkspace)
-      : [];
-    restoreSkillEnv = params.skillsSnapshot
-      ? applySkillEnvOverridesFromSnapshot({
-          snapshot: params.skillsSnapshot,
-          config: params.config,
-        })
-      : applySkillEnvOverrides({
-          skills: skillEntries ?? [],
-          config: params.config,
-        });
-    const skillsPrompt = resolveSkillsPromptForRun({
-      skillsSnapshot: params.skillsSnapshot,
-      entries: shouldLoadSkillEntries ? skillEntries : undefined,
-      config: params.config,
-      workspaceDir: effectiveWorkspace,
-    });
-
-    const sessionLabel = params.sessionKey ?? params.sessionId;
-    const { contextFiles } = await resolveBootstrapContextForRun({
-      workspaceDir: effectiveWorkspace,
-      config: params.config,
-      sessionKey: params.sessionKey,
+  return await runWithAgentContext(
+    {
+      requestId: `compact:${params.sessionId}`,
+      turnId: params.sessionId,
+      agentId: sessionAgentId,
+      parentAgentId: resolveAgentIdFromSessionKey(params.spawnedBy ?? undefined) ?? null,
+      workload: "embedded-compaction",
+      cwd: effectiveWorkspace,
+      repoRoot,
+      permissionScope: sandbox?.enabled ? `sandbox:${sandbox.workspaceAccess}` : "workspace:rw",
+      traceId: `compact:${params.sessionId}`,
       sessionId: params.sessionId,
-      warn: makeBootstrapWarn({ sessionLabel, warn: (message) => log.warn(message) }),
-    });
-    const runAbortController = new AbortController();
-    const toolsRaw = createOpenClawCodingTools({
-      exec: {
-        ...resolveExecToolDefaults(params.config),
-        elevated: params.bashElevated,
-      },
-      sandbox,
-      messageProvider: params.messageChannel ?? params.messageProvider,
-      agentAccountId: params.agentAccountId,
       sessionKey: params.sessionKey ?? params.sessionId,
-      taskId: params.taskId,
-      groupId: params.groupId,
-      groupChannel: params.groupChannel,
-      groupSpace: params.groupSpace,
-      spawnedBy: params.spawnedBy,
-      senderIsOwner: params.senderIsOwner,
-      agentDir,
-      workspaceDir: effectiveWorkspace,
-      config: params.config,
-      abortSignal: runAbortController.signal,
-      modelProvider: model.provider,
-      modelId,
-      modelAuthMode: resolveModelAuthMode(model.provider, params.config),
-    });
-    const tools = sanitizeToolsForGoogle({ tools: toolsRaw, provider });
-    logToolSchemasForGoogle({ tools, provider });
-    const machineName = await getMachineDisplayName();
-    const runtimeChannel = normalizeMessageChannel(params.messageChannel ?? params.messageProvider);
-    let runtimeCapabilities = runtimeChannel
-      ? (resolveChannelCapabilities({
-          cfg: params.config,
-          channel: runtimeChannel,
-          accountId: params.agentAccountId,
-        }) ?? [])
-      : undefined;
-    if (runtimeChannel === "telegram" && params.config) {
-      const inlineButtonsScope = resolveTelegramInlineButtonsScope({
-        cfg: params.config,
-        accountId: params.agentAccountId ?? undefined,
-      });
-      if (inlineButtonsScope !== "off") {
-        if (!runtimeCapabilities) {
-          runtimeCapabilities = [];
-        }
-        if (
-          !runtimeCapabilities.some((cap) => String(cap).trim().toLowerCase() === "inlinebuttons")
-        ) {
-          runtimeCapabilities.push("inlineButtons");
-        }
-      }
-    }
-    const reactionGuidance =
-      runtimeChannel && params.config
-        ? (() => {
-            if (runtimeChannel === "telegram") {
-              const resolved = resolveTelegramReactionLevel({
-                cfg: params.config,
-                accountId: params.agentAccountId ?? undefined,
-              });
-              const level = resolved.agentReactionGuidance;
-              return level ? { level, channel: "Telegram" } : undefined;
-            }
-            if (runtimeChannel === "signal") {
-              const resolved = resolveSignalReactionLevel({
-                cfg: params.config,
-                accountId: params.agentAccountId ?? undefined,
-              });
-              const level = resolved.agentReactionGuidance;
-              return level ? { level, channel: "Signal" } : undefined;
-            }
-            return undefined;
-          })()
-        : undefined;
-    // Resolve channel-specific message actions for system prompt
-    const channelActions = runtimeChannel
-      ? listChannelSupportedActions({
-          cfg: params.config,
-          channel: runtimeChannel,
-        })
-      : undefined;
-    const messageToolHints = runtimeChannel
-      ? resolveChannelMessageToolHints({
-          cfg: params.config,
-          channel: runtimeChannel,
-          accountId: params.agentAccountId,
-        })
-      : undefined;
-
-    const runtimeInfo = {
-      host: machineName,
-      os: `${os.type()} ${os.release()}`,
-      arch: os.arch(),
-      node: process.version,
-      model: `${provider}/${modelId}`,
-      shell: detectRuntimeShell(),
-      channel: runtimeChannel,
-      capabilities: runtimeCapabilities,
-      channelActions,
-    };
-    const sandboxInfo = buildEmbeddedSandboxInfo(sandbox, params.bashElevated);
-    const reasoningTagHint = isReasoningTagProvider(provider);
-    const userTimezone = resolveUserTimezone(params.config?.agents?.defaults?.userTimezone);
-    const userTimeFormat = resolveUserTimeFormat(params.config?.agents?.defaults?.timeFormat);
-    const userTime = formatUserTime(new Date(), userTimezone, userTimeFormat);
-    const { defaultAgentId, sessionAgentId } = resolveSessionAgentIds({
-      sessionKey: params.sessionKey,
-      config: params.config,
-    });
-    const isDefaultAgent = sessionAgentId === defaultAgentId;
-    const promptMode = isSubagentSessionKey(params.sessionKey) ? "minimal" : "full";
-    const docsPath = await resolveOpenClawDocsPath({
-      workspaceDir: effectiveWorkspace,
-      argv1: process.argv[1],
-      cwd: process.cwd(),
-      moduleUrl: import.meta.url,
-    });
-    const ttsHint = params.config ? buildTtsSystemPromptHint(params.config) : undefined;
-    const appendPrompt = buildEmbeddedSystemPrompt({
-      workspaceDir: effectiveWorkspace,
-      defaultThinkLevel: params.thinkLevel,
-      reasoningLevel: params.reasoningLevel ?? "off",
-      extraSystemPrompt: params.extraSystemPrompt,
-      ownerNumbers: params.ownerNumbers,
-      reasoningTagHint,
-      heartbeatPrompt: isDefaultAgent
-        ? resolveHeartbeatPrompt(params.config?.agents?.defaults?.heartbeat?.prompt)
-        : undefined,
-      skillsPrompt,
-      docsPath: docsPath ?? undefined,
-      ttsHint,
-      promptMode,
-      runtimeInfo,
-      reactionGuidance,
-      messageToolHints,
-      sandboxInfo,
-      tools,
-      modelAliasLines: buildModelAliasLines(params.config),
-      userTimezone,
-      userTime,
-      userTimeFormat,
-      contextFiles,
-      memoryCitationsMode: params.config?.memory?.citations,
-    });
-    const systemPromptOverride = createSystemPromptOverride(appendPrompt);
-
-    const sessionLock = await acquireSessionWriteLock({
-      sessionFile: params.sessionFile,
-    });
-    try {
-      await repairSessionFileIfNeeded({
-        sessionFile: params.sessionFile,
-        warn: (message) => log.warn(message),
-      });
-      await prewarmSessionFile(params.sessionFile);
-      const transcriptPolicy = resolveTranscriptPolicy({
-        modelApi: model.api,
-        provider,
-        modelId,
-      });
-      const activeTaskId = resolveSessionTaskId({ fallbackTaskId: params.taskId });
-      const sessionManager = guardSessionManager(SessionManager.open(params.sessionFile), {
-        agentId: sessionAgentId,
-        sessionKey: params.sessionKey,
-        taskId: activeTaskId,
-        allowSyntheticToolResults: transcriptPolicy.allowSyntheticToolResults,
-      });
-      trackSessionManagerAccess(params.sessionFile);
-      appendTaskContextMarker({
-        sessionManager,
-        taskId: activeTaskId,
-        title: params.taskTitle,
-        source: "compact",
-      });
-      const settingsManager = SettingsManager.create(effectiveWorkspace, agentDir);
-      ensurePiCompactionReserveTokens({
-        settingsManager,
-        minReserveTokens: resolveCompactionReserveTokensFloor(params.config),
-      });
-      // Call for side effects (sets compaction/pruning runtime state)
-      buildEmbeddedExtensionPaths({
-        cfg: params.config,
-        sessionManager,
-        provider,
-        modelId,
-        model,
-      });
-
-      const { builtInTools, customTools } = splitSdkTools({
-        tools,
-        sandboxEnabled: !!sandbox?.enabled,
-      });
-
-      const { session } = await createAgentSession({
-        cwd: resolvedWorkspace,
-        agentDir,
-        authStorage,
-        modelRegistry,
-        model,
-        thinkingLevel: mapThinkingLevel(params.thinkLevel),
-        tools: builtInTools,
-        customTools,
-        sessionManager,
-        settingsManager,
-      });
-      applySystemPromptOverrideToSession(session, systemPromptOverride());
-
+    },
+    async () => {
+      let restoreSkillEnv: (() => void) | undefined;
       try {
-        const history = resolveTaskScopedHistoryMessages({
-          sessionManager,
-          taskId: activeTaskId,
-        });
-        const prior = await sanitizeSessionHistory({
-          messages: history.messages,
-          modelApi: model.api,
-          modelId,
-          provider,
-          sessionManager,
-          sessionId: params.sessionId,
-          policy: transcriptPolicy,
-        });
-        const validatedGemini = transcriptPolicy.validateGeminiTurns
-          ? validateGeminiTurns(prior)
-          : prior;
-        const validated = transcriptPolicy.validateAnthropicTurns
-          ? validateAnthropicTurns(validatedGemini)
-          : validatedGemini;
-        const limited = limitHistoryTurns(
-          validated,
-          getDmHistoryLimitFromSessionKey(params.sessionKey, params.config),
-        );
-        session.agent.replaceMessages(limited);
-
-        // RSC v2.1: Fire before_compaction hook
-        const hookRunner = getGlobalHookRunner();
-        try {
-          await hookRunner.runBeforeCompaction(
-            { messageCount: limited.length },
-            {
-              agentId: sessionAgentId,
-              sessionKey: params.sessionKey ?? params.sessionId,
-              workspaceDir: effectiveWorkspace,
-            },
-          );
-        } catch {
-          /* ignore hook failures */
-        }
-
-        // RSC v2.1 + v3.0: Append pinned + recent coherence entries to compaction instructions.
-        // Structured events (v3.0) use VERB subject → outcome format for clearer compactor context.
-        let compactInstructions = params.customInstructions;
-        if (
-          (params.coherencePinned && params.coherencePinned.length > 0) ||
-          (params.coherenceRecent && params.coherenceRecent.length > 0)
-        ) {
-          let coherenceBlock = "";
-          if (params.coherencePinned && params.coherencePinned.length > 0) {
-            const pinnedLines = params.coherencePinned
-              .map((e) =>
-                e.verb
-                  ? `- ${e.verb.toUpperCase()} ${e.subject ?? "?"} → ${e.outcome ?? "?"}`
-                  : `- ${e.summary}`,
-              )
-              .join("\n");
-            coherenceBlock += `\n\nIMPORTANT: The agent has committed to these decisions that must be preserved in the summary:\n${pinnedLines}`;
-          }
-          if (params.coherenceRecent && params.coherenceRecent.length > 0) {
-            const recentLines = params.coherenceRecent
-              .slice(-3)
-              .map((e) =>
-                e.verb
-                  ? `- ${e.verb.toUpperCase()} ${e.subject ?? "?"} → ${e.outcome ?? "?"}`
-                  : `- ${e.summary}`,
-              )
-              .join("\n");
-            coherenceBlock += `\nRecent context (preserve if relevant):\n${recentLines}`;
-          }
-          compactInstructions = compactInstructions
-            ? compactInstructions + coherenceBlock
-            : coherenceBlock;
-        }
-
-        // Task-aware compaction: inject active task progress so Claude preserves it in summary
-        try {
-          const activeTask = await resolveActiveTask(effectiveWorkspace);
-          if (activeTask) {
-            const taskBlock = buildTaskCompactionInstructions(activeTask);
-            compactInstructions = compactInstructions ? compactInstructions + taskBlock : taskBlock;
-            log.info("task-aware compaction: injected progress context", {
-              taskId: activeTask.taskId,
-              progress: `${activeTask.completedSteps}/${activeTask.totalSteps}`,
+        const shouldLoadSkillEntries =
+          !params.skillsSnapshot || !params.skillsSnapshot.resolvedSkills;
+        const skillEntries = shouldLoadSkillEntries
+          ? loadWorkspaceSkillEntries(effectiveWorkspace)
+          : [];
+        restoreSkillEnv = params.skillsSnapshot
+          ? applySkillEnvOverridesFromSnapshot({
+              snapshot: params.skillsSnapshot,
+              config: params.config,
+            })
+          : applySkillEnvOverrides({
+              skills: skillEntries ?? [],
+              config: params.config,
             });
-          }
-        } catch {
-          /* task checkpoint is best-effort — don't break compaction */
-        }
+        const skillsPrompt = resolveSkillsPromptForRun({
+          skillsSnapshot: params.skillsSnapshot,
+          entries: shouldLoadSkillEntries ? skillEntries : undefined,
+          config: params.config,
+          workspaceDir: effectiveWorkspace,
+        });
 
-        const result = await session.compact(compactInstructions);
-
-        // RSC v2.1: Fire after_compaction hook
-        try {
-          await hookRunner.runAfterCompaction(
-            {
-              messageCount: session.messages.length,
-              compactedCount: limited.length - session.messages.length,
-            },
-            {
-              agentId: sessionAgentId,
-              sessionKey: params.sessionKey ?? params.sessionId,
-              workspaceDir: effectiveWorkspace,
-            },
-          );
-        } catch {
-          /* ignore hook failures */
-        }
-
-        // Estimate tokens after compaction by summing token estimates for remaining messages
-        let tokensAfter: number | undefined;
-        try {
-          tokensAfter = 0;
-          for (const message of session.messages) {
-            tokensAfter += estimateTokens(message);
-          }
-          // Sanity check: tokensAfter should be less than tokensBefore
-          if (tokensAfter > result.tokensBefore) {
-            tokensAfter = undefined; // Don't trust the estimate
-          }
-        } catch {
-          // If estimation fails, leave tokensAfter undefined
-          tokensAfter = undefined;
-        }
-        return {
-          ok: true,
-          compacted: true,
-          result: {
-            summary: result.summary,
-            firstKeptEntryId: result.firstKeptEntryId,
-            tokensBefore: result.tokensBefore,
-            tokensAfter,
-            details: result.details,
+        const sessionLabel = params.sessionKey ?? params.sessionId;
+        const { contextFiles } = await resolveBootstrapContextForRun({
+          workspaceDir: effectiveWorkspace,
+          config: params.config,
+          sessionKey: params.sessionKey,
+          sessionId: params.sessionId,
+          warn: makeBootstrapWarn({ sessionLabel, warn: (message) => log.warn(message) }),
+        });
+        const runAbortController = new AbortController();
+        const toolsRaw = createOpenClawCodingTools({
+          exec: {
+            ...resolveExecToolDefaults(params.config),
+            elevated: params.bashElevated,
           },
+          sandbox,
+          messageProvider: params.messageChannel ?? params.messageProvider,
+          agentAccountId: params.agentAccountId,
+          sessionKey: params.sessionKey ?? params.sessionId,
+          taskId: params.taskId,
+          groupId: params.groupId,
+          groupChannel: params.groupChannel,
+          groupSpace: params.groupSpace,
+          spawnedBy: params.spawnedBy,
+          senderIsOwner: params.senderIsOwner,
+          agentDir,
+          workspaceDir: effectiveWorkspace,
+          config: params.config,
+          abortSignal: runAbortController.signal,
+          modelProvider: model.provider,
+          modelId,
+          modelAuthMode: resolveModelAuthMode(model.provider, params.config),
+        });
+        const tools = sanitizeToolsForGoogle({ tools: toolsRaw, provider });
+        logToolSchemasForGoogle({ tools, provider });
+        const machineName = await getMachineDisplayName();
+        const runtimeChannel = normalizeMessageChannel(
+          params.messageChannel ?? params.messageProvider,
+        );
+        let runtimeCapabilities = runtimeChannel
+          ? (resolveChannelCapabilities({
+              cfg: params.config,
+              channel: runtimeChannel,
+              accountId: params.agentAccountId,
+            }) ?? [])
+          : undefined;
+        if (runtimeChannel === "telegram" && params.config) {
+          const inlineButtonsScope = resolveTelegramInlineButtonsScope({
+            cfg: params.config,
+            accountId: params.agentAccountId ?? undefined,
+          });
+          if (inlineButtonsScope !== "off") {
+            if (!runtimeCapabilities) {
+              runtimeCapabilities = [];
+            }
+            if (
+              !runtimeCapabilities.some(
+                (cap) => String(cap).trim().toLowerCase() === "inlinebuttons",
+              )
+            ) {
+              runtimeCapabilities.push("inlineButtons");
+            }
+          }
+        }
+        const reactionGuidance =
+          runtimeChannel && params.config
+            ? (() => {
+                if (runtimeChannel === "telegram") {
+                  const resolved = resolveTelegramReactionLevel({
+                    cfg: params.config,
+                    accountId: params.agentAccountId ?? undefined,
+                  });
+                  const level = resolved.agentReactionGuidance;
+                  return level ? { level, channel: "Telegram" } : undefined;
+                }
+                if (runtimeChannel === "signal") {
+                  const resolved = resolveSignalReactionLevel({
+                    cfg: params.config,
+                    accountId: params.agentAccountId ?? undefined,
+                  });
+                  const level = resolved.agentReactionGuidance;
+                  return level ? { level, channel: "Signal" } : undefined;
+                }
+                return undefined;
+              })()
+            : undefined;
+        // Resolve channel-specific message actions for system prompt
+        const channelActions = runtimeChannel
+          ? listChannelSupportedActions({
+              cfg: params.config,
+              channel: runtimeChannel,
+            })
+          : undefined;
+        const messageToolHints = runtimeChannel
+          ? resolveChannelMessageToolHints({
+              cfg: params.config,
+              channel: runtimeChannel,
+              accountId: params.agentAccountId,
+            })
+          : undefined;
+
+        const runtimeInfo = {
+          host: machineName,
+          os: `${os.type()} ${os.release()}`,
+          arch: os.arch(),
+          node: process.version,
+          model: `${provider}/${modelId}`,
+          shell: detectRuntimeShell(),
+          channel: runtimeChannel,
+          capabilities: runtimeCapabilities,
+          channelActions,
+        };
+        const sandboxInfo = buildEmbeddedSandboxInfo(sandbox, params.bashElevated);
+        const reasoningTagHint = isReasoningTagProvider(provider);
+        const userTimezone = resolveUserTimezone(params.config?.agents?.defaults?.userTimezone);
+        const userTimeFormat = resolveUserTimeFormat(params.config?.agents?.defaults?.timeFormat);
+        const userTime = formatUserTime(new Date(), userTimezone, userTimeFormat);
+        const isDefaultAgent = sessionAgentId === defaultAgentId;
+        const promptMode = isSubagentSessionKey(params.sessionKey) ? "minimal" : "full";
+        const docsPath = await resolveOpenClawDocsPath({
+          workspaceDir: effectiveWorkspace,
+          argv1: process.argv[1],
+          cwd: resolveAgentRuntimeCwd(effectiveWorkspace),
+          moduleUrl: import.meta.url,
+        });
+        const ttsHint = params.config ? buildTtsSystemPromptHint(params.config) : undefined;
+        const appendPrompt = buildEmbeddedSystemPrompt({
+          workspaceDir: effectiveWorkspace,
+          defaultThinkLevel: params.thinkLevel,
+          reasoningLevel: params.reasoningLevel ?? "off",
+          extraSystemPrompt: params.extraSystemPrompt,
+          ownerNumbers: params.ownerNumbers,
+          reasoningTagHint,
+          heartbeatPrompt: isDefaultAgent
+            ? resolveHeartbeatPrompt(params.config?.agents?.defaults?.heartbeat?.prompt)
+            : undefined,
+          skillsPrompt,
+          docsPath: docsPath ?? undefined,
+          ttsHint,
+          promptMode,
+          runtimeInfo,
+          reactionGuidance,
+          messageToolHints,
+          sandboxInfo,
+          tools,
+          modelAliasLines: buildModelAliasLines(params.config),
+          userTimezone,
+          userTime,
+          userTimeFormat,
+          contextFiles,
+          memoryCitationsMode: params.config?.memory?.citations,
+        });
+        const systemPromptOverride = createSystemPromptOverride(appendPrompt);
+
+        const sessionLock = await acquireSessionWriteLock({
+          sessionFile: params.sessionFile,
+        });
+        try {
+          await repairSessionFileIfNeeded({
+            sessionFile: params.sessionFile,
+            warn: (message) => log.warn(message),
+          });
+          await prewarmSessionFile(params.sessionFile);
+          const transcriptPolicy = resolveTranscriptPolicy({
+            modelApi: model.api,
+            provider,
+            modelId,
+          });
+          const activeTaskId = resolveSessionTaskId({ fallbackTaskId: params.taskId });
+          const sessionManager = guardSessionManager(SessionManager.open(params.sessionFile), {
+            agentId: sessionAgentId,
+            sessionKey: params.sessionKey,
+            taskId: activeTaskId,
+            allowSyntheticToolResults: transcriptPolicy.allowSyntheticToolResults,
+          });
+          trackSessionManagerAccess(params.sessionFile);
+          appendTaskContextMarker({
+            sessionManager,
+            taskId: activeTaskId,
+            title: params.taskTitle,
+            source: "compact",
+          });
+          const settingsManager = SettingsManager.create(effectiveWorkspace, agentDir);
+          ensurePiCompactionReserveTokens({
+            settingsManager,
+            minReserveTokens: resolveCompactionReserveTokensFloor(params.config),
+          });
+          // Call for side effects (sets compaction/pruning runtime state)
+          buildEmbeddedExtensionPaths({
+            cfg: params.config,
+            sessionManager,
+            provider,
+            modelId,
+            model,
+          });
+
+          const { builtInTools, customTools } = splitSdkTools({
+            tools,
+            sandboxEnabled: !!sandbox?.enabled,
+          });
+
+          const { session } = await createAgentSession({
+            cwd: resolvedWorkspace,
+            agentDir,
+            authStorage,
+            modelRegistry,
+            model,
+            thinkingLevel: mapThinkingLevel(params.thinkLevel),
+            tools: builtInTools,
+            customTools,
+            sessionManager,
+            settingsManager,
+          });
+          applySystemPromptOverrideToSession(session, systemPromptOverride());
+
+          try {
+            const history = resolveTaskScopedHistoryMessages({
+              sessionManager,
+              taskId: activeTaskId,
+            });
+            const prepared = await prepareMessagesForModel({
+              messages: history.messages,
+              modelApi: model.api,
+              modelId,
+              provider,
+              sessionManager,
+              sessionId: params.sessionId,
+              policy: transcriptPolicy,
+              dropTrailingHumanTurnBeforePrompt: true,
+            });
+            const limited = limitHistoryTurns(
+              prepared.messages,
+              getDmHistoryLimitFromSessionKey(params.sessionKey, params.config),
+            );
+            session.agent.replaceMessages(limited);
+
+            // RSC v2.1: Fire before_compaction hook
+            const hookRunner = getGlobalHookRunner();
+            try {
+              await hookRunner.runBeforeCompaction(
+                { messageCount: limited.length },
+                {
+                  agentId: sessionAgentId,
+                  sessionKey: params.sessionKey ?? params.sessionId,
+                  workspaceDir: effectiveWorkspace,
+                },
+              );
+            } catch {
+              /* ignore hook failures */
+            }
+
+            // RSC v2.1 + v3.0: Append pinned + recent coherence entries to compaction instructions.
+            // Structured events (v3.0) use VERB subject → outcome format for clearer compactor context.
+            let compactInstructions = params.customInstructions;
+            if (
+              (params.coherencePinned && params.coherencePinned.length > 0) ||
+              (params.coherenceRecent && params.coherenceRecent.length > 0)
+            ) {
+              let coherenceBlock = "";
+              if (params.coherencePinned && params.coherencePinned.length > 0) {
+                const pinnedLines = params.coherencePinned
+                  .map((e) =>
+                    e.verb
+                      ? `- ${e.verb.toUpperCase()} ${e.subject ?? "?"} → ${e.outcome ?? "?"}`
+                      : `- ${e.summary}`,
+                  )
+                  .join("\n");
+                coherenceBlock += `\n\nIMPORTANT: The agent has committed to these decisions that must be preserved in the summary:\n${pinnedLines}`;
+              }
+              if (params.coherenceRecent && params.coherenceRecent.length > 0) {
+                const recentLines = params.coherenceRecent
+                  .slice(-3)
+                  .map((e) =>
+                    e.verb
+                      ? `- ${e.verb.toUpperCase()} ${e.subject ?? "?"} → ${e.outcome ?? "?"}`
+                      : `- ${e.summary}`,
+                  )
+                  .join("\n");
+                coherenceBlock += `\nRecent context (preserve if relevant):\n${recentLines}`;
+              }
+              compactInstructions = compactInstructions
+                ? compactInstructions + coherenceBlock
+                : coherenceBlock;
+            }
+
+            // Task-aware compaction: inject active task progress so Claude preserves it in summary
+            try {
+              const activeTask = await resolveActiveTask(effectiveWorkspace);
+              if (activeTask) {
+                const taskBlock = buildTaskCompactionInstructions(activeTask);
+                compactInstructions = compactInstructions
+                  ? compactInstructions + taskBlock
+                  : taskBlock;
+                log.info("task-aware compaction: injected progress context", {
+                  taskId: activeTask.taskId,
+                  progress: `${activeTask.completedSteps}/${activeTask.totalSteps}`,
+                });
+              }
+            } catch {
+              /* task checkpoint is best-effort — don't break compaction */
+            }
+
+            const result = await session.compact(compactInstructions);
+
+            // RSC v2.1: Fire after_compaction hook
+            try {
+              await hookRunner.runAfterCompaction(
+                {
+                  messageCount: session.messages.length,
+                  compactedCount: limited.length - session.messages.length,
+                },
+                {
+                  agentId: sessionAgentId,
+                  sessionKey: params.sessionKey ?? params.sessionId,
+                  workspaceDir: effectiveWorkspace,
+                },
+              );
+            } catch {
+              /* ignore hook failures */
+            }
+
+            // Estimate tokens after compaction by summing token estimates for remaining messages
+            let tokensAfter: number | undefined;
+            try {
+              tokensAfter = 0;
+              for (const message of session.messages) {
+                tokensAfter += estimateTokens(message);
+              }
+              // Sanity check: tokensAfter should be less than tokensBefore
+              if (tokensAfter > result.tokensBefore) {
+                tokensAfter = undefined; // Don't trust the estimate
+              }
+            } catch {
+              // If estimation fails, leave tokensAfter undefined
+              tokensAfter = undefined;
+            }
+            return {
+              ok: true,
+              compacted: true,
+              result: {
+                summary: result.summary,
+                firstKeptEntryId: result.firstKeptEntryId,
+                tokensBefore: result.tokensBefore,
+                tokensAfter,
+                details: result.details,
+              },
+            };
+          } finally {
+            sessionManager.flushPendingToolResults?.();
+            session.dispose();
+          }
+        } finally {
+          await sessionLock.release();
+        }
+      } catch (err) {
+        return {
+          ok: false,
+          compacted: false,
+          reason: describeUnknownError(err),
         };
       } finally {
-        sessionManager.flushPendingToolResults?.();
-        session.dispose();
+        restoreSkillEnv?.();
       }
-    } finally {
-      await sessionLock.release();
-    }
-  } catch (err) {
-    return {
-      ok: false,
-      compacted: false,
-      reason: describeUnknownError(err),
-    };
-  } finally {
-    restoreSkillEnv?.();
-    process.chdir(prevCwd);
-  }
+    },
+  );
 }
 
 /**
@@ -602,7 +632,33 @@ export async function compactEmbeddedPiSession(
   const globalLane = resolveGlobalLane(params.lane);
   const enqueueGlobal =
     params.enqueue ?? ((task, opts) => enqueueCommandInLane(globalLane, task, opts));
-  return enqueueCommandInLane(sessionLane, () =>
-    enqueueGlobal(async () => compactEmbeddedPiSessionDirect(params)),
+  return runWithAgentContext(
+    {
+      requestId: `compact:${params.sessionId}`,
+      turnId: params.sessionId,
+      agentId: resolveSessionAgentIds({
+        sessionKey: params.sessionKey,
+        config: params.config,
+      }).sessionAgentId,
+      parentAgentId: resolveAgentIdFromSessionKey(params.spawnedBy ?? undefined) ?? null,
+      workload: "embedded-compaction",
+      cwd: params.workspaceDir,
+      repoRoot: resolveRuntimeRepoRoot({
+        config: params.config,
+        workspaceDir: params.workspaceDir,
+        cwd: params.workspaceDir,
+      }),
+      permissionScope: null,
+      traceId: `compact:${params.sessionId}`,
+      sessionId: params.sessionId,
+      sessionKey: params.sessionKey ?? params.sessionId,
+    },
+    () =>
+      enqueueCommandInLane(
+        sessionLane,
+        bindAgentContext(() =>
+          enqueueGlobal(bindAgentContext(async () => compactEmbeddedPiSessionDirect(params))),
+        ),
+      ),
   );
 }

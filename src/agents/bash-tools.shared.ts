@@ -4,6 +4,7 @@ import fs from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 import { sliceUtf16Safe } from "../utils.js";
+import { resolveAgentRuntimeCwd } from "./runtime-context.js";
 import { assertSandboxPath } from "./sandbox-paths.js";
 import { killProcessTree } from "./shell-utils.js";
 
@@ -90,7 +91,7 @@ export async function resolveSandboxWorkdir(params: {
   try {
     const resolved = await assertSandboxPath({
       filePath: params.workdir,
-      cwd: process.cwd(),
+      cwd: resolveAgentRuntimeCwd(),
       root: params.sandbox.workspaceDir,
     });
     const stats = await fs.stat(resolved.resolved);
@@ -139,7 +140,7 @@ export function resolveWorkdir(workdir: string, warnings: string[]) {
 
 function safeCwd() {
   try {
-    const cwd = process.cwd();
+    const cwd = resolveAgentRuntimeCwd();
     return existsSync(cwd) ? cwd : null;
   } catch {
     return null;

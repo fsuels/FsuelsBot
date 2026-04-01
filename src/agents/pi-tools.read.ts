@@ -6,10 +6,10 @@ import {
   DEFAULT_MAX_BYTES,
   DEFAULT_MAX_LINES,
   formatSize,
-  truncateHead,
 } from "@mariozechner/pi-coding-agent";
 import {
   mkdir as fsMkdir,
+  open as fsOpen,
   readFile as fsReadFile,
   writeFile as fsWriteFile,
 } from "node:fs/promises";
@@ -17,6 +17,7 @@ import path from "node:path";
 import type { AnyAgentTool } from "./pi-tools.types.js";
 import type { ToolFailureCode } from "./tool-contract.js";
 import { detectMime } from "../media/mime.js";
+import { FileTooLargeError, readCapped, readFileInRange } from "./bounded-file-read.js";
 import {
   assertSafeToolPathInput,
   createFileEditStateTracker,
@@ -24,6 +25,7 @@ import {
   FileToolError,
   resolveFileToolPath,
 } from "./file-edit-safety.js";
+import { resolveAgentRuntimeCwd } from "./runtime-context.js";
 import { assertSandboxPath } from "./sandbox-paths.js";
 import { sanitizeToolResultImages } from "./tool-images.js";
 import { createTransactionalEditTool } from "./transactional-edit-tool.js";
@@ -438,15 +440,40 @@ function formatLineNumberedText(lines: string[], startLine: number): string {
     .join("\n");
 }
 
+async function readFilePrefix(
+  filePath: string,
+  bytes: number,
+  signal?: AbortSignal,
+): Promise<Buffer> {
+  const handle = await fsOpen(filePath, "r");
+  try {
+    if (signal?.aborted) {
+      throw new Error("Operation aborted");
+    }
+    const buffer = Buffer.allocUnsafe(bytes);
+    const result = await handle.read(buffer, 0, buffer.length, 0);
+    if (signal?.aborted) {
+      throw new Error("Operation aborted");
+    }
+    return buffer.subarray(0, result.bytesRead);
+  } finally {
+    await handle.close().catch(() => {});
+  }
+}
+
 function buildTextReadResult(params: {
   requestedPath: string;
   resolvedPath: string;
-  buffer: Buffer;
+  content: string;
+  lineCount: number;
+  totalLines: number;
+  truncatedByBytes: boolean;
+  firstExcludedLineBytes?: number;
   offset?: number;
   limit?: number;
 }): AgentToolResult<ReadResultDetails> {
   const requestedOffset = params.offset ?? 1;
-  if (params.buffer.byteLength === 0) {
+  if (!params.content && params.totalLines === 0) {
     return {
       content: [
         {
@@ -463,9 +490,7 @@ function buildTextReadResult(params: {
     };
   }
 
-  const textContent = normalizeTextNewlines(params.buffer.toString("utf-8"));
-  const allLines = textContent.split("\n");
-  const totalLines = allLines.length;
+  const totalLines = params.totalLines;
   const startIndex = requestedOffset - 1;
 
   if (startIndex >= totalLines) {
@@ -489,17 +514,8 @@ function buildTextReadResult(params: {
     };
   }
 
-  const sliced =
-    params.limit !== undefined
-      ? allLines.slice(startIndex, Math.min(startIndex + params.limit, totalLines))
-      : allLines.slice(startIndex);
-  const truncation = truncateHead(sliced.join("\n"), {
-    maxBytes: DEFAULT_MAX_BYTES,
-    maxLines: DEFAULT_MAX_LINES,
-  });
-
-  if (truncation.firstLineExceedsLimit) {
-    const firstLineSize = formatSize(Buffer.byteLength(allLines[startIndex] ?? "", "utf-8"));
+  if (params.truncatedByBytes && params.lineCount === 0) {
+    const firstLineSize = formatSize(params.firstExcludedLineBytes ?? DEFAULT_MAX_BYTES + 1);
     return {
       content: [
         {
@@ -524,18 +540,24 @@ function buildTextReadResult(params: {
     };
   }
 
-  const outputLines = truncation.content ? truncation.content.split("\n") : [];
+  const outputLines = params.lineCount === 0 ? [] : params.content.split("\n");
   const startLine = requestedOffset;
   const endLine = outputLines.length > 0 ? startLine + outputLines.length - 1 : startLine - 1;
   const nextOffset = endLine + 1;
   const numberedBody = formatLineNumberedText(outputLines, startLine);
   let footer = "";
+  const effectiveLineLimit =
+    params.limit === undefined ? DEFAULT_MAX_LINES : Math.min(params.limit, DEFAULT_MAX_LINES);
+  const hitToolLineCap =
+    !params.truncatedByBytes &&
+    params.lineCount === effectiveLineLimit &&
+    totalLines > startIndex + params.lineCount &&
+    (params.limit === undefined || params.limit > DEFAULT_MAX_LINES);
 
-  if (truncation.truncated) {
-    footer =
-      truncation.truncatedBy === "lines"
-        ? `[Showing lines ${startLine}-${endLine} of ${totalLines}. Use offset=${nextOffset} to continue.]`
-        : `[Showing lines ${startLine}-${endLine} of ${totalLines} (${formatSize(DEFAULT_MAX_BYTES)} limit). Use offset=${nextOffset} to continue.]`;
+  if (params.truncatedByBytes || hitToolLineCap) {
+    footer = hitToolLineCap
+      ? `[Showing lines ${startLine}-${endLine} of ${totalLines}. Use offset=${nextOffset} to continue.]`
+      : `[Showing lines ${startLine}-${endLine} of ${totalLines} (${formatSize(DEFAULT_MAX_BYTES)} limit). Use offset=${nextOffset} to continue.]`;
   } else if (params.limit !== undefined && startIndex + outputLines.length < totalLines) {
     const remaining = totalLines - (startIndex + outputLines.length);
     footer = `[${remaining} more lines in file. Use offset=${nextOffset} to continue.]`;
@@ -555,8 +577,12 @@ function buildTextReadResult(params: {
       totalLines,
       requestedOffset,
       ...(params.limit !== undefined ? { requestedLimit: params.limit } : {}),
-      truncated: truncation.truncated,
-      ...(truncation.truncatedBy ? { truncatedBy: truncation.truncatedBy } : {}),
+      truncated: params.truncatedByBytes || hitToolLineCap,
+      ...(params.truncatedByBytes
+        ? { truncatedBy: "bytes" as const }
+        : hitToolLineCap
+          ? { truncatedBy: "lines" as const }
+          : {}),
       ...(footer ? { nextOffset } : {}),
     },
   };
@@ -904,7 +930,15 @@ async function buildWriteFailureFromError(params: {
   let firstChangedLine: number | undefined;
   if (params.normalizedPath && typeof params.attemptedContent === "string") {
     try {
-      const currentContent = await fsReadFile(params.normalizedPath, "utf8");
+      const handle = await fsOpen(params.normalizedPath, "r");
+      let currentContent = "";
+      try {
+        currentContent = normalizeTextNewlines(
+          (await readCapped(handle, MAX_DIFF_BYTES)).toString("utf8"),
+        );
+      } finally {
+        await handle.close().catch(() => {});
+      }
       const diffResult = buildLineDiff({
         before: currentContent,
         after: params.attemptedContent,
@@ -912,7 +946,10 @@ async function buildWriteFailureFromError(params: {
       diff = diffResult.diff;
       diffOmittedReason = diffResult.omittedReason;
       firstChangedLine = diffResult.firstChangedLine;
-    } catch {
+    } catch (error) {
+      if (error instanceof FileTooLargeError) {
+        diffOmittedReason = `file exceeded ${Math.floor(MAX_DIFF_BYTES / 1024)}KB diff cap`;
+      }
       // Best-effort diff only.
     }
   }
@@ -1020,7 +1057,7 @@ export function createOpenClawReadTool(
       const limit = parseReadIntegerParam(record?.limit, "limit", 1);
       const resolvedPath = await resolveFileToolPath({
         filePath: requestedPath,
-        cwd: options.cwd ?? process.cwd(),
+        cwd: options.cwd ?? resolveAgentRuntimeCwd(),
         sandboxRoot: options.sandboxRoot,
         readMode: true,
       });
@@ -1029,9 +1066,9 @@ export function createOpenClawReadTool(
         throw new Error("Operation aborted");
       }
 
-      const buffer = await fsReadFile(resolvedPath);
+      const prefix = await readFilePrefix(resolvedPath, 4096, signal);
       const sniffedMime = await detectMime({
-        buffer: buffer.subarray(0, Math.min(buffer.byteLength, 4096)),
+        buffer: prefix,
         filePath: resolvedPath,
       });
 
@@ -1040,10 +1077,11 @@ export function createOpenClawReadTool(
       }
 
       if (sniffedMime?.startsWith("image/")) {
+        const buffer = await fsReadFile(resolvedPath);
         if (options.stateTracker) {
           await options.stateTracker.recordRead({
             filePath: requestedPath,
-            cwd: options.cwd ?? process.cwd(),
+            cwd: options.cwd ?? resolveAgentRuntimeCwd(),
             sandboxRoot: options.sandboxRoot,
             result: {
               content: [{ type: "image", data: "", mimeType: sniffedMime }],
@@ -1072,17 +1110,31 @@ export function createOpenClawReadTool(
         });
       }
 
+      const effectiveLineLimit =
+        limit === undefined ? DEFAULT_MAX_LINES : Math.min(limit, DEFAULT_MAX_LINES);
+      const range = await readFileInRange(
+        resolvedPath,
+        Math.max(0, (offset ?? 1) - 1),
+        effectiveLineLimit,
+        DEFAULT_MAX_BYTES,
+        signal,
+        { truncateOnByteLimit: true },
+      );
       const result = buildTextReadResult({
         requestedPath,
         resolvedPath,
-        buffer,
+        content: range.content,
+        lineCount: range.lineCount,
+        totalLines: range.totalLines,
+        truncatedByBytes: range.truncatedByBytes === true,
+        firstExcludedLineBytes: range.firstExcludedLineBytes,
         offset,
         limit,
       });
       if (options.stateTracker) {
         await options.stateTracker.recordRead({
           filePath: requestedPath,
-          cwd: options.cwd ?? process.cwd(),
+          cwd: options.cwd ?? resolveAgentRuntimeCwd(),
           sandboxRoot: options.sandboxRoot,
           result,
           offset: offset ?? 1,
@@ -1159,7 +1211,7 @@ export function createOpenClawWriteTool(
       try {
         resolvedPath = await resolveFileToolPath({
           filePath: displayPath,
-          cwd: options.cwd ?? process.cwd(),
+          cwd: options.cwd ?? resolveAgentRuntimeCwd(),
           sandboxRoot: options.sandboxRoot,
         });
       } catch (error) {

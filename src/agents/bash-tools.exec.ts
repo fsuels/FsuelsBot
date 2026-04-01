@@ -52,6 +52,7 @@ import {
   truncateMiddle,
 } from "./bash-tools.shared.js";
 import { buildCursorPositionResponse, stripDsrRequests } from "./pty-dsr.js";
+import { resolveAgentRuntimeCwd } from "./runtime-context.js";
 import { getShellConfig, sanitizeBinaryOutput } from "./shell-utils.js";
 import { resolveTaskOutputPath, resolveTaskTranscriptPath } from "./task-output-artifacts.js";
 import { callGatewayTool } from "./tools/gateway.js";
@@ -1017,7 +1018,7 @@ export function createExecTool(
       }
 
       const sandbox = host === "sandbox" ? defaults?.sandbox : undefined;
-      const rawWorkdir = params.workdir?.trim() || defaults?.cwd || process.cwd();
+      const rawWorkdir = params.workdir?.trim() || defaults?.cwd || resolveAgentRuntimeCwd();
       let workdir = rawWorkdir;
       let containerWorkdir = sandbox?.containerWorkdir;
       if (sandbox) {

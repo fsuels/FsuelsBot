@@ -43,6 +43,7 @@ import {
 } from "./pi-tools.read.js";
 import { cleanToolSchemaForGemini, normalizeToolParameters } from "./pi-tools.schema.js";
 import { filterToolsForPlanMode } from "./plan-mode.js";
+import { resolveAgentRuntimeCwd } from "./runtime-context.js";
 import { applyToolContracts } from "./tool-contracts.js";
 import { applyToolDiscoveryMetadata } from "./tool-discovery.js";
 import {
@@ -253,7 +254,7 @@ export function createOpenClawCodingTools(options?: {
   const execConfig = resolveExecConfig(options?.config);
   const sandboxRoot = sandbox?.workspaceDir;
   const allowWorkspaceWrites = sandbox?.workspaceAccess !== "ro";
-  const workspaceRoot = options?.workspaceDir ?? process.cwd();
+  const workspaceRoot = options?.workspaceDir ?? resolveAgentRuntimeCwd();
   const fileToolRoot = sandboxRoot ?? workspaceRoot;
   const fileEditState = createFileEditStateTracker();
   const applyPatchConfig = options?.config?.tools?.exec?.applyPatch;

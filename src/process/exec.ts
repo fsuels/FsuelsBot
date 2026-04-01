@@ -116,10 +116,14 @@ function redactEnvForLog(env?: NodeJS.ProcessEnv): Record<string, string> | unde
   if (!env) {
     return undefined;
   }
-  const entries = Object.entries(env)
-    .filter(([, value]): value is string => typeof value === "string")
-    .map(([key, value]) => [key, SECRET_ENV_KEY_RE.test(key) ? "<redacted>" : value] as const);
-  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+  const redacted: Record<string, string> = {};
+  for (const [key, value] of Object.entries(env)) {
+    if (typeof value !== "string") {
+      continue;
+    }
+    redacted[key] = SECRET_ENV_KEY_RE.test(key) ? "<redacted>" : value;
+  }
+  return Object.keys(redacted).length > 0 ? redacted : undefined;
 }
 
 function shouldSuppressNpmFund(command: string, args: string[]): boolean {
@@ -454,10 +458,10 @@ export async function runCommandWithTimeout(
 
   const capture = await createOutputCapture(outputDir);
   const stdinMode = hasInput ? "pipe" : (options.stdin ?? "ignore");
-  const stdio =
+  const stdio: ["pipe" | "inherit" | "ignore", "pipe", "pipe"] =
     stdinMode === "inherit"
       ? resolveCommandStdio({ hasInput, preferInherit: true })
-      : ([stdinMode, "pipe", "pipe"] as const);
+      : [stdinMode, "pipe", "pipe"];
   const fallbackStdio = resolveCommandStdio({ hasInput, preferInherit: false });
   const spawnArgv = [resolveCommand(argv[0]), ...argv.slice(1)];
   let child: Awaited<ReturnType<typeof spawnWithFallback>>["child"];
