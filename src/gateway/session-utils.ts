@@ -21,6 +21,7 @@ import {
   loadSessionStore,
   resolveMainSessionKey,
   resolveStorePath,
+  resolveSessionTranscriptsDirForAgent,
   type SessionEntry,
   type SessionScope,
 } from "../config/sessions.js";
@@ -552,6 +553,187 @@ export function resolveSessionModelRef(
   return { provider, model };
 }
 
+function buildListedSessionCandidate(params: {
+  cfg: OpenClawConfig;
+  key: string;
+  entry?: SessionEntry;
+  sessionAgentId: string;
+  displayNameOverride?: string;
+}): {
+  key: string;
+  entry?: SessionEntry;
+  kind: GatewaySessionRow["kind"];
+  label?: string;
+  tag?: string;
+  displayName?: string;
+  channel?: string;
+  subject?: string;
+  groupChannel?: string;
+  space?: string;
+  chatType?: SessionEntry["chatType"];
+  origin?: SessionEntry["origin"];
+  updatedAt: number | null;
+  sessionId?: string;
+  systemSent?: boolean;
+  abortedLastRun?: boolean;
+  thinkingLevel?: string;
+  verboseLevel?: string;
+  reasoningLevel?: string;
+  elevatedLevel?: string;
+  sendPolicy?: SessionEntry["sendPolicy"];
+  collaborationMode?: SessionEntry["collaborationMode"];
+  planProfile?: SessionEntry["planProfile"];
+  inputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+  responseUsage?: SessionEntry["responseUsage"];
+  modelProvider?: string;
+  model?: string;
+  contextTokens?: number;
+  deliveryContext?: GatewaySessionRow["deliveryContext"];
+  workspaceFingerprint?: GatewaySessionRow["workspaceFingerprint"];
+  lastChannel?: SessionEntry["lastChannel"];
+  lastTo?: string;
+  lastAccountId?: string;
+} {
+  const entry = params.entry;
+  const updatedAt = entry?.updatedAt ?? null;
+  const input = entry?.inputTokens ?? 0;
+  const output = entry?.outputTokens ?? 0;
+  const total = entry?.totalTokens ?? input + output;
+  const parsed = parseGroupKey(params.key);
+  const channel = entry?.channel ?? parsed?.channel;
+  const subject = entry?.subject;
+  const groupChannel = entry?.groupChannel;
+  const space = entry?.space;
+  const id = parsed?.id;
+  const origin = entry?.origin;
+  const originLabel = origin?.label;
+  const displayName =
+    params.displayNameOverride ??
+    entry?.displayName ??
+    (channel
+      ? buildGroupDisplayName({
+          provider: channel,
+          subject,
+          groupChannel,
+          space,
+          id,
+          key: params.key,
+        })
+      : undefined) ??
+    entry?.label ??
+    originLabel;
+  const deliveryFields = normalizeSessionDeliveryFields(entry);
+  const resolvedModel = resolveSessionModelRef(params.cfg, entry, params.sessionAgentId);
+  return {
+    key: params.key,
+    entry,
+    kind: classifySessionKey(params.key, entry),
+    label: entry?.label,
+    tag: entry?.tag,
+    displayName,
+    channel,
+    subject,
+    groupChannel,
+    space,
+    chatType: entry?.chatType,
+    origin,
+    updatedAt,
+    sessionId: entry?.sessionId,
+    systemSent: entry?.systemSent,
+    abortedLastRun: entry?.abortedLastRun,
+    thinkingLevel: entry?.thinkingLevel,
+    verboseLevel: entry?.verboseLevel,
+    reasoningLevel: entry?.reasoningLevel,
+    elevatedLevel: entry?.elevatedLevel,
+    sendPolicy: entry?.sendPolicy,
+    collaborationMode: entry?.collaborationMode,
+    planProfile: entry?.planProfile,
+    inputTokens: entry?.inputTokens,
+    outputTokens: entry?.outputTokens,
+    totalTokens: total,
+    responseUsage: entry?.responseUsage,
+    modelProvider: resolvedModel.provider ?? DEFAULT_PROVIDER,
+    model: resolvedModel.model ?? DEFAULT_MODEL,
+    contextTokens: entry?.contextTokens,
+    deliveryContext: deliveryFields.deliveryContext,
+    workspaceFingerprint: entry?.workspaceFingerprint,
+    lastChannel: deliveryFields.lastChannel ?? entry?.lastChannel,
+    lastTo: deliveryFields.lastTo ?? entry?.lastTo,
+    lastAccountId: deliveryFields.lastAccountId ?? entry?.lastAccountId,
+  };
+}
+
+function discoverTranscriptOnlySessions(params: {
+  cfg: OpenClawConfig;
+  store: Record<string, SessionEntry>;
+  agentId?: string;
+  search?: string;
+  includeDerivedTitles?: boolean;
+}): ReturnType<typeof buildListedSessionCandidate>[] {
+  const knownSessionIds = new Set(
+    Object.values(params.store)
+      .map((entry) => entry?.sessionId?.trim())
+      .filter((sessionId): sessionId is string => Boolean(sessionId)),
+  );
+  const agentIds = params.agentId ? [params.agentId] : listConfiguredAgentIds(params.cfg);
+  const discovered: ReturnType<typeof buildListedSessionCandidate>[] = [];
+
+  for (const agentId of agentIds) {
+    const sessionsDir = resolveSessionTranscriptsDirForAgent(agentId);
+    let entries: fs.Dirent[] = [];
+    try {
+      entries = fs.readdirSync(sessionsDir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+
+    for (const entry of entries) {
+      if (!entry.isFile() || !entry.name.endsWith(".jsonl")) {
+        continue;
+      }
+      const sessionId = entry.name.slice(0, -".jsonl".length).trim();
+      if (!sessionId || knownSessionIds.has(sessionId)) {
+        continue;
+      }
+      const sessionFile = path.join(sessionsDir, entry.name);
+      let stat: fs.Stats;
+      try {
+        stat = fs.statSync(sessionFile);
+      } catch {
+        continue;
+      }
+
+      const syntheticEntry = {
+        sessionId,
+        sessionFile,
+        updatedAt: stat.mtimeMs,
+      } as SessionEntry;
+      const syntheticKey = `agent:${agentId}:${sessionId}`;
+      const needsTranscriptRead = params.includeDerivedTitles === true || Boolean(params.search);
+      const firstUserMessage = needsTranscriptRead
+        ? (readFirstUserMessageFromTranscript(sessionId, undefined, sessionFile, agentId) ??
+          undefined)
+        : undefined;
+      const displayName = deriveSessionTitle(syntheticEntry, firstUserMessage);
+
+      discovered.push(
+        buildListedSessionCandidate({
+          cfg: params.cfg,
+          key: syntheticKey,
+          entry: syntheticEntry,
+          sessionAgentId: agentId,
+          displayNameOverride: displayName,
+        }),
+      );
+      knownSessionIds.add(sessionId);
+    }
+  }
+
+  return discovered;
+}
+
 export function listSessionsFromStore(params: {
   cfg: OpenClawConfig;
   storePath: string;
@@ -575,7 +757,7 @@ export function listSessionsFromStore(params: {
       ? Math.max(1, Math.floor(opts.activeMinutes))
       : undefined;
 
-  let sessions = Object.entries(store)
+  const storedSessions = Object.entries(store)
     .filter(([key]) => {
       if (isCronRunSessionKey(key)) {
         return false;
@@ -619,78 +801,27 @@ export function listSessionsFromStore(params: {
       }
       return entry?.tag === tag;
     })
-    .map(([key, entry]) => {
-      const updatedAt = entry?.updatedAt ?? null;
-      const input = entry?.inputTokens ?? 0;
-      const output = entry?.outputTokens ?? 0;
-      const total = entry?.totalTokens ?? input + output;
-      const parsed = parseGroupKey(key);
-      const channel = entry?.channel ?? parsed?.channel;
-      const subject = entry?.subject;
-      const groupChannel = entry?.groupChannel;
-      const space = entry?.space;
-      const id = parsed?.id;
-      const origin = entry?.origin;
-      const originLabel = origin?.label;
-      const displayName =
-        entry?.displayName ??
-        (channel
-          ? buildGroupDisplayName({
-              provider: channel,
-              subject,
-              groupChannel,
-              space,
-              id,
-              key,
-            })
-          : undefined) ??
-        entry?.label ??
-        originLabel;
-      const deliveryFields = normalizeSessionDeliveryFields(entry);
-      const parsedAgent = parseAgentSessionKey(key);
-      const sessionAgentId = normalizeAgentId(parsedAgent?.agentId ?? resolveDefaultAgentId(cfg));
-      const resolvedModel = resolveSessionModelRef(cfg, entry, sessionAgentId);
-      const modelProvider = resolvedModel.provider ?? DEFAULT_PROVIDER;
-      const model = resolvedModel.model ?? DEFAULT_MODEL;
-      return {
+    .map(([key, entry]) =>
+      buildListedSessionCandidate({
+        cfg,
         key,
         entry,
-        kind: classifySessionKey(key, entry),
-        label: entry?.label,
-        tag: entry?.tag,
-        displayName,
-        channel,
-        subject,
-        groupChannel,
-        space,
-        chatType: entry?.chatType,
-        origin,
-        updatedAt,
-        sessionId: entry?.sessionId,
-        systemSent: entry?.systemSent,
-        abortedLastRun: entry?.abortedLastRun,
-        thinkingLevel: entry?.thinkingLevel,
-        verboseLevel: entry?.verboseLevel,
-        reasoningLevel: entry?.reasoningLevel,
-        elevatedLevel: entry?.elevatedLevel,
-        sendPolicy: entry?.sendPolicy,
-        collaborationMode: entry?.collaborationMode,
-        planProfile: entry?.planProfile,
-        inputTokens: entry?.inputTokens,
-        outputTokens: entry?.outputTokens,
-        totalTokens: total,
-        responseUsage: entry?.responseUsage,
-        modelProvider,
-        model,
-        contextTokens: entry?.contextTokens,
-        deliveryContext: deliveryFields.deliveryContext,
-        workspaceFingerprint: entry?.workspaceFingerprint,
-        lastChannel: deliveryFields.lastChannel ?? entry?.lastChannel,
-        lastTo: deliveryFields.lastTo ?? entry?.lastTo,
-        lastAccountId: deliveryFields.lastAccountId ?? entry?.lastAccountId,
-      };
-    })
-    .toSorted((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
+        sessionAgentId: normalizeAgentId(
+          parseAgentSessionKey(key)?.agentId ?? resolveDefaultAgentId(cfg),
+        ),
+      }),
+    );
+  const transcriptOnlySessions = discoverTranscriptOnlySessions({
+    cfg,
+    store,
+    agentId: agentId || undefined,
+    search,
+    includeDerivedTitles,
+  });
+
+  let sessions = [...storedSessions, ...transcriptOnlySessions].toSorted(
+    (a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0),
+  );
 
   if (search) {
     sessions = sessions.filter((s) => {

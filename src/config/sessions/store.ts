@@ -3,6 +3,7 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import type { MsgContext } from "../../auto-reply/templating.js";
+import { stripUtf8Bom } from "../../infra/json-parse.js";
 import {
   deliveryContextFromSession,
   mergeDeliveryContext,
@@ -137,7 +138,7 @@ export function loadSessionStore(
   let mtimeMs = getFileMtimeMs(storePath);
   try {
     const raw = fs.readFileSync(storePath, "utf-8");
-    const parsed = JSON5.parse(raw);
+    const parsed = JSON5.parse(stripUtf8Bom(raw));
     if (isSessionStoreRecord(parsed)) {
       store = parsed;
     }

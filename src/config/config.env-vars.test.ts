@@ -75,4 +75,56 @@ describe("config env vars", () => {
       });
     });
   });
+
+  it("does not export protected gateway auth env vars into process.env", async () => {
+    await withTempHome(async (home) => {
+      const configDir = path.join(home, ".openclaw");
+      await fs.mkdir(configDir, { recursive: true });
+      await fs.writeFile(
+        path.join(configDir, "openclaw.json"),
+        JSON.stringify(
+          {
+            env: { vars: { OPENCLAW_GATEWAY_TOKEN: "config-token" } },
+            gateway: { auth: { token: "${OPENCLAW_GATEWAY_TOKEN}" } },
+          },
+          null,
+          2,
+        ),
+        "utf-8",
+      );
+
+      await withEnvOverride({ OPENCLAW_GATEWAY_TOKEN: undefined }, async () => {
+        const { loadConfig } = await import("./config.js");
+        const cfg = loadConfig();
+        expect(process.env.OPENCLAW_GATEWAY_TOKEN).toBeUndefined();
+        expect(cfg.gateway?.auth?.token).toBe("config-token");
+      });
+    });
+  });
+
+  it("preserves original host-owned gateway env vars over config-defined values", async () => {
+    await withTempHome(async (home) => {
+      const configDir = path.join(home, ".openclaw");
+      await fs.mkdir(configDir, { recursive: true });
+      await fs.writeFile(
+        path.join(configDir, "openclaw.json"),
+        JSON.stringify(
+          {
+            env: { vars: { OPENCLAW_GATEWAY_TOKEN: "config-token" } },
+            gateway: { auth: { token: "${OPENCLAW_GATEWAY_TOKEN}" } },
+          },
+          null,
+          2,
+        ),
+        "utf-8",
+      );
+
+      await withEnvOverride({ OPENCLAW_GATEWAY_TOKEN: "shell-token" }, async () => {
+        const { loadConfig } = await import("./config.js");
+        const cfg = loadConfig();
+        expect(process.env.OPENCLAW_GATEWAY_TOKEN).toBe("shell-token");
+        expect(cfg.gateway?.auth?.token).toBe("shell-token");
+      });
+    });
+  });
 });

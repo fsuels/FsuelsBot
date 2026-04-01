@@ -2,6 +2,7 @@ import json5 from "json5";
 import fs from "node:fs";
 import type { OpenClawConfig } from "../config/types.js";
 import { resolveConfigPath } from "../config/paths.js";
+import { stripUtf8Bom } from "../infra/json-parse.js";
 
 type LoggingConfig = OpenClawConfig["logging"];
 
@@ -12,7 +13,7 @@ export function readLoggingConfig(): LoggingConfig | undefined {
       return undefined;
     }
     const raw = fs.readFileSync(configPath, "utf-8");
-    const parsed = json5.parse(raw);
+    const parsed = json5.parse(stripUtf8Bom(raw));
     const logging = parsed?.logging;
     if (!logging || typeof logging !== "object" || Array.isArray(logging)) {
       return undefined;

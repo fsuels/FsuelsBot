@@ -4,6 +4,7 @@ import path from "node:path";
 import type { SessionPreviewItem } from "./session-utils.types.js";
 import { resolveSessionTranscriptPath } from "../config/sessions.js";
 import { resolveRequiredHomeDir } from "../infra/home-dir.js";
+import { safeParseJson } from "../infra/json-parse.js";
 import { extractToolCallNames, hasToolCall } from "../utils/transcript-tools.js";
 import {
   extractVisibleMessageMeta,
@@ -102,7 +103,10 @@ function parseSessionHistoryPageItem(line: Buffer, cursor: number): SessionHisto
   }
 
   try {
-    const parsed = JSON.parse(trimmed.toString("utf-8")) as Record<string, unknown>;
+    const parsed = safeParseJson<Record<string, unknown>>(trimmed);
+    if (!parsed) {
+      return null;
+    }
     if ("message" in parsed) {
       return { cursor, message: parsed.message };
     }
@@ -329,7 +333,10 @@ export function readFirstUserMessageFromTranscript(
         continue;
       }
       try {
-        const parsed = JSON.parse(line);
+        const parsed = safeParseJson<Record<string, unknown>>(line);
+        if (!parsed) {
+          continue;
+        }
         const msg = parsed?.message as TranscriptMessage | undefined;
         if (msg?.role === "user") {
           const text = extractTextFromContent(msg.content);
@@ -387,7 +394,10 @@ export function readLastMessagePreviewFromTranscript(
     for (let i = tailLines.length - 1; i >= 0; i--) {
       const line = tailLines[i];
       try {
-        const parsed = JSON.parse(line);
+        const parsed = safeParseJson<Record<string, unknown>>(line);
+        if (!parsed) {
+          continue;
+        }
         const msg = parsed?.message as TranscriptMessage | undefined;
         if (msg?.role === "user" || msg?.role === "assistant") {
           const text = extractTextFromContent(msg.content);
@@ -580,7 +590,10 @@ function readRecentMessagesFromTranscript(
     for (let i = tailLines.length - 1; i >= 0; i--) {
       const line = tailLines[i];
       try {
-        const parsed = JSON.parse(line);
+        const parsed = safeParseJson<Record<string, unknown>>(line);
+        if (!parsed) {
+          continue;
+        }
         const msg = parsed?.message as TranscriptPreviewMessage | undefined;
         if (msg && typeof msg === "object") {
           collected.push(msg);

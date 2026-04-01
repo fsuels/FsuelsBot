@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { resolveSessionTranscriptsDirForAgent } from "../config/sessions/paths.js";
+import { safeParseJson } from "../infra/json-parse.js";
 import { redactSensitiveText } from "../logging/redact.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { hashText } from "./internal.js";
@@ -80,9 +81,8 @@ export async function buildSessionEntry(absPath: string): Promise<SessionFileEnt
         continue;
       }
       let record: unknown;
-      try {
-        record = JSON.parse(line);
-      } catch {
+      record = safeParseJson(line);
+      if (record === undefined) {
         continue;
       }
       if (

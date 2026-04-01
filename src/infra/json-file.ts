@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { writeTextFileAtomicSync } from "./atomic-file.js";
+import { safeParseJson } from "./json-parse.js";
 
 export function loadJsonFile(pathname: string): unknown {
   try {
@@ -8,7 +9,7 @@ export function loadJsonFile(pathname: string): unknown {
       return undefined;
     }
     const raw = fs.readFileSync(pathname, "utf8");
-    return JSON.parse(raw) as unknown;
+    return safeParseJson(raw);
   } catch {
     return undefined;
   }

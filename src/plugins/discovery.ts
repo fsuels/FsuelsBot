@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { PluginDiagnostic, PluginOrigin } from "./types.js";
+import { safeParseJson } from "../infra/json-parse.js";
 import { resolveConfigDir, resolveUserPath } from "../utils.js";
 import { resolveBundledPluginsDir } from "./bundled-dir.js";
 import {
@@ -44,7 +45,8 @@ function readPackageManifest(dir: string): PackageManifest | null {
   }
   try {
     const raw = fs.readFileSync(manifestPath, "utf-8");
-    return JSON.parse(raw) as PackageManifest;
+    const parsed = safeParseJson<PackageManifest>(raw);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : null;
   } catch {
     return null;
   }

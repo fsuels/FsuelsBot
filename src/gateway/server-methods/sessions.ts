@@ -112,14 +112,23 @@ export const sessionsHandlers: GatewayRequestHandlers = {
         const entry =
           target.storeKeys.map((candidate) => store[candidate]).find(Boolean) ??
           store[target.canonicalKey];
-        if (!entry?.sessionId) {
+        const parsed = parseAgentSessionKey(key);
+        const transcriptOnlySessionId =
+          !entry?.sessionId &&
+          parsed &&
+          typeof parsed.rest === "string" &&
+          parsed.rest.trim() &&
+          !parsed.rest.includes(":")
+            ? parsed.rest.trim()
+            : undefined;
+        if (!entry?.sessionId && !transcriptOnlySessionId) {
           previews.push({ key, status: "missing", items: [] });
           continue;
         }
         const items = readSessionPreviewItemsFromTranscript(
-          entry.sessionId,
+          entry?.sessionId ?? transcriptOnlySessionId!,
           target.storePath,
-          entry.sessionFile,
+          entry?.sessionFile,
           target.agentId,
           limit,
           maxChars,
