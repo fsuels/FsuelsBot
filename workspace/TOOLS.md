@@ -69,11 +69,7 @@ Purpose: Operational map of what tools exist, how to verify they work, and what 
 - `web_fetch`: Fetches content from a known URL
 - Policy: Never print or expose API keys in logs or chats.
 
-**Gemini CLI**
-
-- Auth: Google OAuth (terminal access)
-- Not currently installed globally — install via npm if needed
-- Constraint: rate-limited; use for high-value queries only.
+**Gemini CLI** — NOT USED. Research uses free tools instead (web search, ChatGPT browser, Grok browser, Claude sub-agents). No API keys needed.
 
 ---
 

@@ -53,7 +53,7 @@ Peak: ~$100K/yr (pandemic); dropped to ~$15K/yr after focus shift to crypto.
 - X/Grok — included in X subscription (browser only)
 - ChatGPT Pro — flat sub (browser only)
 - Open Arena — free (browser only)
-- Gemini CLI — free (Google OAuth, terminal)
+- Gemini CLI — NOT USED (research uses web search, ChatGPT, Grok, Claude sub-agents instead)
 
 ## Revenue Target
 
