@@ -1,5 +1,6 @@
 import type {
   TuiEditorKeybindingsConfig,
+import type { TuiCtrlCMode } from "../tui/tui-ctrl-c.js";
   TuiShortcutBindingsConfig,
 } from "../tui/tui-keybindings.js";
 import type { AgentBinding, AgentsConfig } from "./types.agents.js";
@@ -83,6 +84,8 @@ export type OpenClawConfig = {
       editor?: TuiEditorKeybindingsConfig;
       /** TUI-level shortcuts handled before editor input. Set an action to null to unbind it. */
       shortcuts?: TuiShortcutBindingsConfig;
+      /** Ctrl+C handling while the TUI is active. */
+      ctrlC?: TuiCtrlCMode;
     };
   };
   skills?: SkillsConfig;
