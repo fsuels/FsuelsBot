@@ -1,8 +1,8 @@
 import type {
   TuiEditorKeybindingsConfig,
-import type { TuiCtrlCMode } from "../tui/tui-ctrl-c.js";
   TuiShortcutBindingsConfig,
 } from "../tui/tui-keybindings.js";
+import type { TuiCtrlCMode } from "../tui/tui-ctrl-c.js";
 import type { AgentBinding, AgentsConfig } from "./types.agents.js";
 import type { ApprovalsConfig } from "./types.approvals.js";
 import type { AuthConfig } from "./types.auth.js";
