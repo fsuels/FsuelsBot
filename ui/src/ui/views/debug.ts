@@ -1,6 +1,7 @@
 import { html, nothing } from "lit";
 import type { TelemetrySnapshot } from "../../../../src/shared/telemetry-store.ts";
 import type { EventLogEntry } from "../app-events.ts";
+import type { RuntimeDiagnostic } from "../notice-center.ts";
 import { formatEventPayload } from "../presenter.ts";
 
 export type DebugProps = {
@@ -12,6 +13,7 @@ export type DebugProps = {
   eventLog: EventLogEntry[];
   telemetry: TelemetrySnapshot;
   lastTelemetry: TelemetrySnapshot | null;
+  runtimeDiagnostics: RuntimeDiagnostic[];
   callMethod: string;
   callParams: string;
   callResult: string | null;
@@ -132,6 +134,40 @@ export function renderDebug(props: DebugProps) {
             : nothing
         }
       </div>
+    </section>
+
+    <section class="card" style="margin-top: 18px;">
+      <div class="card-title">Runtime Diagnostics</div>
+      <div class="card-sub">
+        Persistent notices and health regressions retained after transient alerts fade.
+      </div>
+      ${
+        props.runtimeDiagnostics.length === 0
+          ? html`
+              <div class="muted" style="margin-top: 12px">No diagnostics captured yet.</div>
+            `
+          : html`
+              <div class="list" style="margin-top: 12px;">
+                ${props.runtimeDiagnostics.map(
+                  (entry) => html`
+                    <div class="list-item">
+                      <div class="list-main">
+                        <div class="list-title">
+                          ${entry.title}${entry.active ? " · active" : " · resolved"}
+                        </div>
+                        <div class="list-sub">
+                          ${entry.scope} · ${entry.level} · seen ${entry.count} time${entry.count === 1 ? "" : "s"}
+                        </div>
+                      </div>
+                      <div class="list-meta" style="max-width: 60%;">
+                        <pre class="code-block">${entry.detail ?? "No extra detail."}</pre>
+                      </div>
+                    </div>
+                  `,
+                )}
+              </div>
+            `
+      }
     </section>
 
     <section class="card" style="margin-top: 18px;">

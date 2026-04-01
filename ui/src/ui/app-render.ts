@@ -1228,6 +1228,7 @@ export function renderApp(state: AppViewState) {
                 eventLog: state.eventLog,
                 telemetry: state.getTelemetrySnapshot(),
                 lastTelemetry: state.getLastTelemetrySnapshot(),
+                runtimeDiagnostics: state.runtimeDiagnostics,
                 callMethod: state.debugCallMethod,
                 callParams: state.debugCallParams,
                 callResult: state.debugCallResult,

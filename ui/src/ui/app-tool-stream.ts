@@ -1,6 +1,14 @@
 import type { UiTelemetry } from "./types/internal.ts";
 import { renderToolOutputValue } from "./chat/tool-helpers.ts";
 import { truncateText } from "./format.ts";
+import {
+  dismissNoticesByScope,
+  publishNotice,
+  type AgentReaction,
+  type Notice,
+  type NoticeCenterHost,
+} from "./notice-center.ts";
+export type { AgentReaction } from "./notice-center.ts";
 
 const TOOL_STREAM_LIMIT = 50;
 const TOOL_STREAM_THROTTLE_MS = 80;
@@ -25,14 +33,6 @@ export type ToolStreamEntry = {
   startedAt: number;
   updatedAt: number;
   message: Record<string, unknown>;
-};
-
-export type AgentReaction = {
-  text: string;
-  createdAt: number;
-  ttlMs: number;
-  channel: "observer" | "system" | "tool";
-  style: "idle" | "success" | "warning" | "error";
 };
 
 type ToolStreamHost = {
@@ -133,44 +133,24 @@ export function resetToolStream(host: ToolStreamHost) {
   host.toolStreamById.clear();
   host.toolStreamOrder = [];
   host.chatToolMessages = [];
-  setAgentReaction(host as CompactionHost, null);
+  dismissNoticesByScope(host as NoticeHost, "agent");
   flushToolStreamSync(host);
 }
 
-type CompactionHost = ToolStreamHost & {
-  chatReaction?: AgentReaction | null;
-  chatReactionClearTimer?: number | null;
-};
+type NoticeHost = ToolStreamHost & NoticeCenterHost;
 
 const REACTION_TTL_MS = 5000;
 const ACTIVE_REACTION_TTL_MS = 60_000;
 
-function clearReactionTimer(host: CompactionHost) {
-  if (host.chatReactionClearTimer != null) {
-    window.clearTimeout(host.chatReactionClearTimer);
-    host.chatReactionClearTimer = null;
-  }
-}
-
-function scheduleReactionClear(host: CompactionHost, reaction: AgentReaction) {
-  clearReactionTimer(host);
-  if (!Number.isFinite(reaction.ttlMs) || reaction.ttlMs <= 0) {
-    return;
-  }
-  host.chatReactionClearTimer = window.setTimeout(() => {
-    if (host.chatReaction?.createdAt === reaction.createdAt) {
-      host.chatReaction = null;
-    }
-    host.chatReactionClearTimer = null;
-  }, reaction.ttlMs);
-}
-
-function setAgentReaction(host: CompactionHost, reaction: AgentReaction | null) {
-  clearReactionTimer(host);
-  host.chatReaction = reaction;
-  if (reaction) {
-    scheduleReactionClear(host, reaction);
-  }
+function foldCount(text: string): Notice["fold"] {
+  return (existing, incoming) => {
+    const nextCount = Math.max(1, existing.count ?? 1) + 1;
+    return {
+      ...incoming,
+      count: nextCount,
+      text: `${text} x${nextCount}`,
+    };
+  };
 }
 
 function startToolLabel(name: string): string {
@@ -194,7 +174,7 @@ function isRelevantAgentPayload(host: ToolStreamHost, payload: AgentEventPayload
   return true;
 }
 
-export function handleCompactionEvent(host: CompactionHost, payload: AgentEventPayload) {
+export function handleCompactionEvent(host: NoticeHost, payload: AgentEventPayload) {
   if (!isRelevantAgentPayload(host, payload)) {
     return;
   }
@@ -203,26 +183,109 @@ export function handleCompactionEvent(host: CompactionHost, payload: AgentEventP
   const ts = typeof payload.ts === "number" ? payload.ts : Date.now();
 
   if (phase === "start") {
-    setAgentReaction(host, {
-      text: "Compacting context...",
-      createdAt: ts,
-      ttlMs: ACTIVE_REACTION_TTL_MS,
-      channel: "system",
-      style: "idle",
-    });
+    publishNotice(
+      host,
+      {
+        key: "agent:compaction:active",
+        text: "Compacting context...",
+        createdAt: ts,
+        ttlMs: ACTIVE_REACTION_TTL_MS,
+        level: "info",
+        channel: "system",
+        scope: "agent",
+        invalidates: ["agent:compaction:done", "agent:compaction:retry"],
+      },
+      ts,
+    );
   } else if (phase === "end") {
     const willRetry = data.willRetry === true;
-    setAgentReaction(host, {
-      text: willRetry ? "Retrying compaction..." : "Context compacted",
-      createdAt: ts,
-      ttlMs: REACTION_TTL_MS,
-      channel: "system",
-      style: willRetry ? "warning" : "success",
-    });
+    publishNotice(
+      host,
+      {
+        key: willRetry ? "agent:compaction:retry" : "agent:compaction:done",
+        text: willRetry ? "Retrying compaction..." : "Context compacted",
+        createdAt: ts,
+        ttlMs: REACTION_TTL_MS,
+        level: willRetry ? "warning" : "success",
+        channel: "system",
+        scope: "agent",
+        invalidates: [
+          "agent:compaction:active",
+          willRetry ? "agent:compaction:done" : "agent:compaction:retry",
+        ],
+        fold: willRetry ? foldCount("Retrying compaction...") : undefined,
+      },
+      ts,
+    );
   }
 }
 
-function handleToolReactionEvent(host: CompactionHost, payload: AgentEventPayload) {
+function handleLifecycleNoticeEvent(host: NoticeHost, payload: AgentEventPayload) {
+  if (!isRelevantAgentPayload(host, payload)) {
+    return;
+  }
+  const data = payload.data ?? {};
+  const phase = typeof data.phase === "string" ? data.phase : "";
+  const ts = typeof payload.ts === "number" ? payload.ts : Date.now();
+
+  if (phase === "start") {
+    publishNotice(
+      host,
+      {
+        key: "agent:lifecycle:running",
+        text: "Agent running...",
+        createdAt: ts,
+        ttlMs: ACTIVE_REACTION_TTL_MS,
+        level: "info",
+        channel: "system",
+        scope: "agent",
+        invalidates: ["agent:lifecycle:done", "agent:lifecycle:error"],
+      },
+      ts,
+    );
+    return;
+  }
+
+  if (phase === "end") {
+    publishNotice(
+      host,
+      {
+        key: "agent:lifecycle:done",
+        text: "Run finished",
+        createdAt: ts,
+        ttlMs: 4_000,
+        level: "success",
+        channel: "system",
+        scope: "agent",
+        invalidates: ["agent:lifecycle:running", "agent:lifecycle:error"],
+      },
+      ts,
+    );
+    return;
+  }
+
+  if (phase === "error") {
+    const detail = typeof data.error === "string" ? data.error : undefined;
+    publishNotice(
+      host,
+      {
+        key: "agent:lifecycle:error",
+        text: "Run failed",
+        createdAt: ts,
+        ttlMs: 7_000,
+        level: "error",
+        channel: "system",
+        scope: "agent",
+        detail,
+        diagnosticKey: "agent:lifecycle:error",
+        invalidates: ["agent:lifecycle:running", "agent:lifecycle:done"],
+      },
+      ts,
+    );
+  }
+}
+
+function handleToolReactionEvent(host: NoticeHost, payload: AgentEventPayload) {
   if (!isRelevantAgentPayload(host, payload)) {
     return;
   }
@@ -233,13 +296,24 @@ function handleToolReactionEvent(host: CompactionHost, payload: AgentEventPayloa
   }
   const name = typeof data.name === "string" ? data.name : "tool";
   const ts = typeof payload.ts === "number" ? payload.ts : Date.now();
-  setAgentReaction(host, {
-    text: `${startToolLabel(name)} failed`,
-    createdAt: ts,
-    ttlMs: REACTION_TTL_MS,
-    channel: "tool",
-    style: "error",
-  });
+  const detail = typeof data.errorSummary === "string" ? data.errorSummary : undefined;
+  const label = `${startToolLabel(name)} failed`;
+  publishNotice(
+    host,
+    {
+      key: `agent:tool:error:${name}`,
+      text: label,
+      createdAt: ts,
+      ttlMs: REACTION_TTL_MS,
+      level: "error",
+      channel: "tool",
+      scope: "agent",
+      detail,
+      diagnosticKey: `agent:tool:error:${name}`,
+      fold: foldCount(label),
+    },
+    ts,
+  );
 }
 
 export function handleAgentEvent(host: ToolStreamHost, payload?: AgentEventPayload) {
@@ -249,12 +323,13 @@ export function handleAgentEvent(host: ToolStreamHost, payload?: AgentEventPaylo
 
   // Handle compaction events
   if (payload.stream === "compaction") {
-    handleCompactionEvent(host as CompactionHost, payload);
+    handleCompactionEvent(host as NoticeHost, payload);
     return;
   }
 
-  if (payload.stream === "tool") {
-    handleToolReactionEvent(host as CompactionHost, payload);
+  if (payload.stream === "lifecycle") {
+    handleLifecycleNoticeEvent(host as NoticeHost, payload);
+    return;
   }
 
   if (payload.stream !== "tool") {
@@ -316,4 +391,7 @@ export function handleAgentEvent(host: ToolStreamHost, payload?: AgentEventPaylo
   entry.message = buildToolStreamMessage(entry);
   trimToolStream(host);
   scheduleToolStreamSync(host, phase === "result");
+  if (phase === "result") {
+    handleToolReactionEvent(host as NoticeHost, payload);
+  }
 }

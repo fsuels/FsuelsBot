@@ -78,7 +78,6 @@ import {
 import {
   resetToolStream as resetToolStreamInternal,
   type ToolStreamEntry,
-  type AgentReaction,
 } from "./app-tool-stream.ts";
 import { resolveInjectedAssistantIdentity } from "./assistant-identity.ts";
 import { loadAssistantIdentity as loadAssistantIdentityInternal } from "./controllers/assistant-identity.ts";
@@ -86,6 +85,11 @@ import {
   createChatLifecycleGuard,
   type ChatLifecycleSnapshot,
 } from "./controllers/chat-lifecycle-guard.ts";
+import {
+  createNoticeCenterState,
+  type AgentReaction,
+  type RuntimeDiagnostic,
+} from "./notice-center.ts";
 import { loadSettings, type UiSettings } from "./storage.ts";
 import { createUiTelemetry } from "./telemetry.ts";
 import { type ChatAttachment, type ChatQueueItem, type CronFormState } from "./ui-types.ts";
@@ -333,6 +337,7 @@ export class OpenClawApp extends LitElement {
   @state() debugCallParams = "{}";
   @state() debugCallResult: string | null = null;
   @state() debugCallError: string | null = null;
+  @state() runtimeDiagnostics: RuntimeDiagnostic[] = [];
 
   @state() logsLoading = false;
   @state() logsError: string | null = null;
@@ -363,6 +368,8 @@ export class OpenClawApp extends LitElement {
   private toolStreamById = new Map<string, ToolStreamEntry>();
   private toolStreamOrder: string[] = [];
   private chatReactionClearTimer: number | null = null;
+  noticeCenterState = createNoticeCenterState();
+  runtimeDiagnosticsByKey = new Map<string, RuntimeDiagnostic>();
   execApprovalExpiryTimers = new Map<string, number>();
   refreshSessionsAfterChat = new Set<string>();
   basePath = "";

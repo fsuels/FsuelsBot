@@ -1,6 +1,5 @@
 import type { TelemetrySnapshot } from "../../../src/shared/telemetry-store.ts";
 import type { EventLogEntry } from "./app-events.ts";
-import type { AgentReaction } from "./app-tool-stream.ts";
 import type { DevicePairingList } from "./controllers/devices.ts";
 import type { ExecApprovalRequest } from "./controllers/exec-approval.ts";
 import type { ExecApprovalsFile, ExecApprovalsSnapshot } from "./controllers/exec-approvals.ts";
@@ -8,6 +7,7 @@ import type { SkillMessage } from "./controllers/skills.ts";
 import type { TasksData } from "./controllers/tasks.ts";
 import type { GatewayBrowserClient, GatewayHelloOk } from "./gateway.ts";
 import type { Tab } from "./navigation.ts";
+import type { AgentReaction, RuntimeDiagnostic } from "./notice-center.ts";
 import type { UiSettings } from "./storage.ts";
 import type { ThemeTransitionContext } from "./theme-transition.ts";
 import type { ThemeMode } from "./theme.ts";
@@ -218,6 +218,7 @@ export type AppViewState = {
   debugStatus: StatusSummary | null;
   debugHealth: HealthSnapshot | null;
   debugModels: unknown[];
+  runtimeDiagnostics: RuntimeDiagnostic[];
   debugHeartbeat: unknown;
   debugCallMethod: string;
   debugCallParams: string;

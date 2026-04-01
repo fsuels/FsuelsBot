@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { handleAgentEvent, resetToolStream, type AgentReaction } from "./app-tool-stream.ts";
+import { createNoticeCenterState, type RuntimeDiagnostic } from "./notice-center.ts";
 
 type TestHost = {
   sessionKey: string;
@@ -14,6 +15,9 @@ type TestHost = {
   };
   chatReaction: AgentReaction | null;
   chatReactionClearTimer: number | null;
+  noticeCenterState: ReturnType<typeof createNoticeCenterState>;
+  runtimeDiagnostics: RuntimeDiagnostic[];
+  runtimeDiagnosticsByKey: Map<string, RuntimeDiagnostic>;
 };
 
 function createHost(overrides: Partial<TestHost> = {}): TestHost {
@@ -30,12 +34,16 @@ function createHost(overrides: Partial<TestHost> = {}): TestHost {
     },
     chatReaction: null,
     chatReactionClearTimer: null,
+    noticeCenterState: createNoticeCenterState({ now: 0 }),
+    runtimeDiagnostics: [],
+    runtimeDiagnosticsByKey: new Map(),
     ...overrides,
   };
 }
 
 afterEach(() => {
   vi.useRealTimers();
+  localStorage.clear();
 });
 
 describe("app tool stream reactions", () => {
@@ -81,6 +89,7 @@ describe("app tool stream reactions", () => {
     vi.useFakeTimers();
     const host = createHost();
 
+    vi.setSystemTime(1_000);
     handleAgentEvent(host, {
       runId: "run-1",
       seq: 1,
@@ -91,6 +100,7 @@ describe("app tool stream reactions", () => {
     });
     expect(host.chatReaction?.text).toBe("Compacting context...");
 
+    vi.setSystemTime(1_500);
     handleAgentEvent(host, {
       runId: "run-1",
       seq: 2,

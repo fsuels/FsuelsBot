@@ -29,8 +29,13 @@ import {
 import { loadNodes } from "./controllers/nodes.ts";
 import { loadSessions } from "./controllers/sessions.ts";
 import { GatewayBrowserClient } from "./gateway.ts";
+import {
+  beginHealthNoticeGrace,
+  ingestHealthSnapshot,
+  type NoticeCenterHost,
+} from "./notice-center.ts";
 
-type GatewayHost = {
+type GatewayHost = NoticeCenterHost & {
   settings: UiSettings;
   password: string;
   client: GatewayBrowserClient | null;
@@ -168,6 +173,7 @@ export function connectGateway(host: GatewayHost) {
       host.connected = true;
       host.lastError = null;
       host.hello = hello;
+      beginHealthNoticeGrace(host);
       applySnapshot(host, hello);
       // Reset orphaned UI state from before disconnect and let replay/history restore
       // whatever is still relevant from the server side.
@@ -273,6 +279,12 @@ function handleGatewayEventUnsafe(host: GatewayHost, evt: GatewayEventFrame) {
     return;
   }
 
+  if (evt.event === "health") {
+    host.debugHealth = (evt.payload as HealthSnapshot | undefined) ?? null;
+    ingestHealthSnapshot(host, evt.payload);
+    return;
+  }
+
   if (evt.event === "cron" && host.tab === "cron") {
     void loadCron(host as unknown as Parameters<typeof loadCron>[0]);
   }
@@ -322,6 +334,7 @@ export function applySnapshot(host: GatewayHost, hello: GatewayHelloOk) {
   }
   if (snapshot?.health) {
     host.debugHealth = snapshot.health;
+    ingestHealthSnapshot(host, snapshot.health);
   }
   if (snapshot?.sessionDefaults) {
     applySessionDefaults(host, snapshot.sessionDefaults);
