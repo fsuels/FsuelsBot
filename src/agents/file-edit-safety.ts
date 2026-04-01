@@ -1,13 +1,17 @@
 import type { AgentToolResult } from "@mariozechner/pi-agent-core";
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
 import type { ToolFailureCode } from "./tool-contract.js";
+import {
+  assertNoNullBytes,
+  isWindowsUncPath,
+  normalizePathForConfigKey,
+  resolvePathAgainstBase,
+} from "../infra/path-safety.js";
 import { assertSandboxPath } from "./sandbox-paths.js";
 import { createStructuredToolFailureResult } from "./tool-contracts.js";
 
-const UNICODE_SPACES = /[\u00A0\u2000-\u200A\u202F\u205F\u3000]/g;
 const NARROW_NO_BREAK_SPACE = "\u202F";
 const UTF8_BOM = Buffer.from([0xef, 0xbb, 0xbf]);
 const UTF16LE_BOM = Buffer.from([0xff, 0xfe]);
@@ -58,14 +62,7 @@ export function normalizeFileStateKey(
   options?: { platform?: NodeJS.Platform; caseInsensitive?: boolean },
 ): string {
   const platform = options?.platform ?? process.platform;
-  const pathImpl = platform === "win32" ? path.win32 : path.posix;
-  let normalized = pathImpl.normalize(filePath.trim());
-  if (platform === "win32") {
-    normalized = normalized.replace(/\\/g, "/");
-  }
-  if (normalized.length > 1 && normalized.endsWith("/")) {
-    normalized = normalized.slice(0, -1);
-  }
+  let normalized = normalizePathForConfigKey(filePath, { platform });
   if (options?.caseInsensitive ?? platform === "win32") {
     normalized = normalized.toLowerCase();
   }
@@ -182,31 +179,8 @@ export class FileToolError extends Error {
   }
 }
 
-function normalizeUnicodeSpaces(value: string): string {
-  return value.replace(UNICODE_SPACES, " ");
-}
-
 function normalizeAtPrefix(value: string): string {
   return value.startsWith("@") ? value.slice(1) : value;
-}
-
-function expandPath(filePath: string): string {
-  const normalized = normalizeUnicodeSpaces(normalizeAtPrefix(filePath.trim()));
-  if (normalized === "~") {
-    return os.homedir();
-  }
-  if (normalized.startsWith("~/")) {
-    return os.homedir() + normalized.slice(1);
-  }
-  return normalized;
-}
-
-function resolveToCwd(filePath: string, cwd: string): string {
-  const expanded = expandPath(filePath);
-  if (path.isAbsolute(expanded)) {
-    return expanded;
-  }
-  return path.resolve(cwd, expanded);
 }
 
 function tryMacOSScreenshotPath(filePath: string): string {
@@ -251,17 +225,8 @@ async function resolveExistingPathVariant(filePath: string): Promise<string> {
   return filePath;
 }
 
-function isWindowsUncPath(rawPath: string): boolean {
-  if (/^\\\\[^\\/?*<>|]+[\\/][^\\/?*<>|]+/.test(rawPath)) {
-    return true;
-  }
-  if (/^\/\/[^/?*<>|]+\/[^/?*<>|]+/.test(rawPath)) {
-    return true;
-  }
-  return false;
-}
-
 export function assertSafeToolPathInput(toolName: string, filePath: string): void {
+  assertNoNullBytes(filePath);
   const trimmed = filePath.trim();
   if (isWindowsUncPath(trimmed)) {
     throw new FileToolError({
@@ -636,7 +601,7 @@ async function resolveRequestedPath(
     return resolved.resolved;
   }
 
-  const absolutePath = resolveToCwd(filePath, options.cwd);
+  const absolutePath = resolvePathAgainstBase(normalizeAtPrefix(filePath), options.cwd);
   assertSafeResolvedToolPath("file", absolutePath);
   if (options.readMode) {
     return await resolveExistingPathVariant(absolutePath);

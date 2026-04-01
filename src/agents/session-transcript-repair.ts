@@ -1,8 +1,10 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
+import { createHash } from "node:crypto";
 import {
   extractAssistantToolCallRecords,
   extractToolResultCorrelationId,
 } from "../utils/tool-call-correlation.js";
+import { sanitizeToolCallId, type ToolCallIdMode } from "./tool-call-id.js";
 
 const TOOL_CALL_TYPES = new Set(["toolCall", "toolUse", "functionCall"]);
 
@@ -117,12 +119,101 @@ export function sanitizeToolUseResultPairing(messages: AgentMessage[]): AgentMes
 export type ToolUseRepairReport = {
   messages: AgentMessage[];
   added: Array<Extract<AgentMessage, { role: "toolResult" }>>;
+  missingCount: number;
   droppedDuplicateCount: number;
   droppedOrphanCount: number;
+  rewrittenToolCallIds: number;
+  rewrittenToolResultIds: number;
   moved: boolean;
 };
 
-export function repairToolUseResultPairing(messages: AgentMessage[]): ToolUseRepairReport {
+function shortHash(text: string, length = 8): string {
+  return createHash("sha1").update(text).digest("hex").slice(0, length);
+}
+
+function makeUniqueToolCallId(params: {
+  id: string;
+  usedIds: Set<string>;
+  mode?: ToolCallIdMode;
+}): string {
+  const seed = params.id || "toolcall";
+  const initial = params.mode ? sanitizeToolCallId(seed, params.mode) : seed;
+  if (!params.usedIds.has(initial)) {
+    return initial;
+  }
+
+  for (let attempt = 2; attempt < 1_000; attempt += 1) {
+    const candidate =
+      params.mode === "strict9"
+        ? shortHash(`${seed}:${attempt}`, 9)
+        : params.mode === "strict"
+          ? sanitizeToolCallId(`${seed}${shortHash(`${seed}:${attempt}`, 6)}`, "strict")
+          : `${seed}#${attempt}`;
+    if (!params.usedIds.has(candidate)) {
+      return candidate;
+    }
+  }
+
+  return params.mode === "strict9"
+    ? shortHash(`${seed}:${params.usedIds.size}:fallback`, 9)
+    : params.mode === "strict"
+      ? sanitizeToolCallId(`${seed}${shortHash(`${seed}:fallback`, 8)}`, "strict")
+      : `${seed}#${params.usedIds.size + 1}`;
+}
+
+function rewriteAssistantToolCallIds(params: {
+  message: Extract<AgentMessage, { role: "assistant" }>;
+  idsByIndex: Map<number, string>;
+}): Extract<AgentMessage, { role: "assistant" }> {
+  if (params.idsByIndex.size === 0 || !Array.isArray(params.message.content)) {
+    return params.message;
+  }
+
+  let changed = false;
+  const nextContent = params.message.content.map((block, index) => {
+    const nextId = params.idsByIndex.get(index);
+    if (!nextId || !block || typeof block !== "object") {
+      return block;
+    }
+    const currentId = (block as { id?: unknown }).id;
+    if (currentId === nextId) {
+      return block;
+    }
+    changed = true;
+    return { ...(block as Record<string, unknown>), id: nextId };
+  });
+
+  return changed
+    ? ({ ...params.message, content: nextContent } as Extract<AgentMessage, { role: "assistant" }>)
+    : params.message;
+}
+
+function rewriteToolResultCorrelationId(params: {
+  message: Extract<AgentMessage, { role: "toolResult" }>;
+  toolCallId: string;
+}): Extract<AgentMessage, { role: "toolResult" }> {
+  const next = { ...params.message } as Extract<AgentMessage, { role: "toolResult" }> & {
+    toolUseId?: string;
+  };
+  if (typeof next.toolCallId === "string" && next.toolCallId) {
+    next.toolCallId = params.toolCallId;
+  }
+  if (typeof next.toolUseId === "string" && next.toolUseId) {
+    next.toolUseId = params.toolCallId;
+  }
+  if (!("toolCallId" in next) && !("toolUseId" in next)) {
+    next.toolCallId = params.toolCallId;
+  }
+  return next;
+}
+
+export function repairToolUseResultPairing(
+  messages: AgentMessage[],
+  options?: {
+    allowSyntheticToolResults?: boolean;
+    toolCallIdMode?: ToolCallIdMode;
+  },
+): ToolUseRepairReport {
   // Anthropic (and Cloud Code Assist) reject transcripts where assistant tool calls are not
   // immediately followed by matching tool results. Session files can end up with results
   // displaced (e.g. after user turns) or duplicated. Repair by:
@@ -131,9 +222,15 @@ export function repairToolUseResultPairing(messages: AgentMessage[]): ToolUseRep
   // - dropping duplicate toolResults for the same id (anywhere in the transcript)
   const out: AgentMessage[] = [];
   const added: Array<Extract<AgentMessage, { role: "toolResult" }>> = [];
+  const allowSyntheticToolResults = options?.allowSyntheticToolResults ?? true;
+  const seenToolCallIds = new Set<string>();
+  const seenOriginalToolCallIds = new Set<string>();
   const seenToolResultIds = new Set<string>();
+  let missingCount = 0;
   let droppedDuplicateCount = 0;
   let droppedOrphanCount = 0;
+  let rewrittenToolCallIds = 0;
+  let rewrittenToolResultIds = 0;
   let moved = false;
   let changed = false;
 
@@ -165,7 +262,12 @@ export function repairToolUseResultPairing(messages: AgentMessage[]): ToolUseRep
       if (role !== "toolResult") {
         out.push(msg);
       } else {
-        droppedOrphanCount += 1;
+        const id = extractToolResultCorrelationId(msg);
+        if (id && (seenOriginalToolCallIds.has(id) || seenToolResultIds.has(id))) {
+          droppedDuplicateCount += 1;
+        } else {
+          droppedOrphanCount += 1;
+        }
         changed = true;
       }
       continue;
@@ -186,17 +288,53 @@ export function repairToolUseResultPairing(messages: AgentMessage[]): ToolUseRep
     }
 
     const toolCalls = extractAssistantToolCallRecords(assistant).map((record) => ({
-      id: record.toolCallId,
+      sourceId: record.toolCallId,
       name: record.toolName,
+      indexWithinMessage: record.indexWithinMessage,
     }));
     if (toolCalls.length === 0) {
       out.push(msg);
       continue;
     }
 
-    const toolCallIds = new Set(toolCalls.map((t) => t.id));
+    const rewrittenIdsByIndex = new Map<number, string>();
+    const normalizedToolCalls = toolCalls.map((call) => {
+      seenOriginalToolCallIds.add(call.sourceId);
+      let toolCallId = call.sourceId;
+      if (seenToolCallIds.has(toolCallId)) {
+        toolCallId = makeUniqueToolCallId({
+          id: call.sourceId,
+          usedIds: seenToolCallIds,
+          mode: options?.toolCallIdMode,
+        });
+      }
+      if (toolCallId !== call.sourceId) {
+        rewrittenIdsByIndex.set(call.indexWithinMessage, toolCallId);
+        rewrittenToolCallIds += 1;
+        changed = true;
+      }
+      seenToolCallIds.add(toolCallId);
+      return {
+        sourceId: call.sourceId,
+        toolCallId,
+        name: call.name,
+      };
+    });
 
-    const spanResultsById = new Map<string, Extract<AgentMessage, { role: "toolResult" }>>();
+    const toolCallsBySourceId = new Map<
+      string,
+      Array<{
+        toolCallId: string;
+        name?: string;
+        result?: Extract<AgentMessage, { role: "toolResult" }>;
+      }>
+    >();
+    for (const call of normalizedToolCalls) {
+      const existing = toolCallsBySourceId.get(call.sourceId) ?? [];
+      existing.push({ toolCallId: call.toolCallId, name: call.name });
+      toolCallsBySourceId.set(call.sourceId, existing);
+    }
+
     const remainder: AgentMessage[] = [];
 
     let j = i + 1;
@@ -215,15 +353,31 @@ export function repairToolUseResultPairing(messages: AgentMessage[]): ToolUseRep
       if (nextRole === "toolResult") {
         const toolResult = next as Extract<AgentMessage, { role: "toolResult" }>;
         const id = extractToolResultCorrelationId(toolResult);
-        if (id && toolCallIds.has(id)) {
-          if (seenToolResultIds.has(id)) {
+        if (id && toolCallsBySourceId.has(id)) {
+          const pending = toolCallsBySourceId.get(id) ?? [];
+          const unresolved = pending.find((entry) => !entry.result);
+          if (!unresolved) {
             droppedDuplicateCount += 1;
             changed = true;
             continue;
           }
-          if (!spanResultsById.has(id)) {
-            spanResultsById.set(id, toolResult);
+          const nextToolResult =
+            unresolved.toolCallId === id
+              ? toolResult
+              : rewriteToolResultCorrelationId({
+                  message: toolResult,
+                  toolCallId: unresolved.toolCallId,
+                });
+          if (nextToolResult !== toolResult) {
+            rewrittenToolResultIds += 1;
+            changed = true;
           }
+          if (seenToolResultIds.has(unresolved.toolCallId)) {
+            droppedDuplicateCount += 1;
+            changed = true;
+            continue;
+          }
+          unresolved.result = nextToolResult;
           continue;
         }
       }
@@ -237,25 +391,37 @@ export function repairToolUseResultPairing(messages: AgentMessage[]): ToolUseRep
       }
     }
 
-    out.push(msg);
+    const nextAssistant = rewriteAssistantToolCallIds({
+      message: assistant,
+      idsByIndex: rewrittenIdsByIndex,
+    });
+    out.push(nextAssistant);
 
-    if (spanResultsById.size > 0 && remainder.length > 0) {
+    const matchedResultsCount = [...toolCallsBySourceId.values()]
+      .flat()
+      .filter((entry) => entry.result).length;
+    if (matchedResultsCount > 0 && remainder.length > 0) {
       moved = true;
       changed = true;
     }
 
-    for (const call of toolCalls) {
-      const existing = spanResultsById.get(call.id);
-      if (existing) {
-        pushToolResult(existing);
-      } else {
+    for (const call of normalizedToolCalls) {
+      const matching = (toolCallsBySourceId.get(call.sourceId) ?? []).find(
+        (entry) => entry.toolCallId === call.toolCallId,
+      );
+      if (matching?.result) {
+        pushToolResult(matching.result);
+      } else if (allowSyntheticToolResults) {
         const missing = makeMissingToolResult({
-          toolCallId: call.id,
+          toolCallId: call.toolCallId,
           toolName: call.name,
         });
         added.push(missing);
+        missingCount += 1;
         changed = true;
         pushToolResult(missing);
+      } else {
+        missingCount += 1;
       }
     }
 
@@ -273,8 +439,11 @@ export function repairToolUseResultPairing(messages: AgentMessage[]): ToolUseRep
   return {
     messages: changedOrMoved ? out : messages,
     added,
+    missingCount,
     droppedDuplicateCount,
     droppedOrphanCount,
+    rewrittenToolCallIds,
+    rewrittenToolResultIds,
     moved: changedOrMoved,
   };
 }

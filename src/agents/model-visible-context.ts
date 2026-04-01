@@ -2,18 +2,15 @@ import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { SessionManager } from "@mariozechner/pi-coding-agent";
 import type { OpenClawConfig } from "../config/config.js";
 import type { SessionSystemPromptReport } from "../config/sessions/types.js";
+import type { SanitizeSessionHistoryOptions } from "./pi-embedded-runner/google.js";
 import { resolveTaskScopedHistoryMessages } from "../sessions/task-context.js";
 import { estimateMessagesTokens } from "./compaction.js";
-import { validateAnthropicTurns, validateGeminiTurns } from "./pi-embedded-helpers.js";
-import {
-  sanitizeSessionHistory,
-  type SanitizeSessionHistoryOptions,
-} from "./pi-embedded-runner/google.js";
 import {
   getDmHistoryLimitFromSessionKey,
   limitHistoryTurns,
 } from "./pi-embedded-runner/history.js";
 import { truncateOversizedToolResultsInMessages } from "./pi-embedded-runner/tool-result-truncation.js";
+import { prepareMessagesForModel } from "./prepare-messages-for-model.js";
 import { resolveTranscriptPolicy, type TranscriptPolicy } from "./transcript-policy.js";
 
 const TOKENS_PER_CHAR_ESTIMATE = 0.25;
@@ -112,6 +109,7 @@ export async function projectConversationForModel(params: {
   sanitizeOptions?: SanitizeSessionHistoryOptions;
   historyMessagesOverride?: AgentMessage[];
   historyOverrideScoped?: boolean;
+  dropTrailingHumanTurnBeforePrompt?: boolean;
 }): Promise<ModelVisibleConversationProjection> {
   const branchMessages = params.sessionManager.buildSessionContext().messages;
   const branchHistoryTokens = estimateMessagesTokens(branchMessages);
@@ -133,27 +131,25 @@ export async function projectConversationForModel(params: {
     });
   const scopedHistoryTokens = estimateMessagesTokens(history.messages);
 
-  const sanitizedMessages = params.historyMessagesOverride
-    ? history.messages
-    : await sanitizeSessionHistory({
+  const prepared = params.historyMessagesOverride
+    ? {
+        sanitizedMessages: history.messages,
         messages: history.messages,
-        modelApi: params.modelApi,
-        modelId: params.modelId,
-        provider: params.provider,
+      }
+    : await prepareMessagesForModel({
+        messages: history.messages,
         sessionManager: params.sessionManager,
         sessionId: params.sessionId,
+        provider: params.provider,
+        modelId: params.modelId,
+        modelApi: params.modelApi,
         policy: transcriptPolicy,
-        options: params.sanitizeOptions,
+        sanitizeOptions: params.sanitizeOptions,
+        dropTrailingHumanTurnBeforePrompt: params.dropTrailingHumanTurnBeforePrompt,
       });
+  const sanitizedMessages = prepared.sanitizedMessages;
+  const validated = prepared.messages;
   const sanitizedHistoryTokens = estimateMessagesTokens(sanitizedMessages);
-  const validatedGemini =
-    params.historyMessagesOverride || !transcriptPolicy.validateGeminiTurns
-      ? sanitizedMessages
-      : validateGeminiTurns(sanitizedMessages);
-  const validated =
-    params.historyMessagesOverride || !transcriptPolicy.validateAnthropicTurns
-      ? validatedGemini
-      : validateAnthropicTurns(validatedGemini);
   const validatedHistoryTokens = estimateMessagesTokens(validated);
   const dmHistoryLimit = params.historyMessagesOverride
     ? undefined
