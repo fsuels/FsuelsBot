@@ -1219,7 +1219,7 @@ async function resolveWriteTarget(
     let writePath: string;
     try {
       writePath = await fs.realpath(targetPath);
-    } catch (err) {
+    } catch {
       throw new FileToolError({
         errorCode: "invalid_file_type",
         contractCode: "invalid_input",
