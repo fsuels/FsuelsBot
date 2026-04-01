@@ -1,5 +1,5 @@
 import { resolveCommitHash } from "../infra/git-commit.js";
-import { visibleWidth } from "../terminal/ansi.js";
+import { splitDisplayGraphemes, visibleWidth } from "../terminal/ansi.js";
 import { isRich, theme } from "../terminal/theme.js";
 import { pickTagline, type TaglineOptions } from "./tagline.js";
 
@@ -11,22 +11,6 @@ type BannerOptions = TaglineOptions & {
 };
 
 let bannerEmitted = false;
-
-const graphemeSegmenter =
-  typeof Intl !== "undefined" && "Segmenter" in Intl
-    ? new Intl.Segmenter(undefined, { granularity: "grapheme" })
-    : null;
-
-function splitGraphemes(value: string): string[] {
-  if (!graphemeSegmenter) {
-    return Array.from(value);
-  }
-  try {
-    return Array.from(graphemeSegmenter.segment(value), (seg) => seg.segment);
-  } catch {
-    return Array.from(value);
-  }
-}
 
 const hasJsonFlag = (argv: string[]) =>
   argv.some((arg) => arg === "--json" || arg.startsWith("--json="));
@@ -102,7 +86,7 @@ export function formatCliBannerArt(options: BannerOptions = {}): string {
         theme.accent("🦞")
       );
     }
-    return splitGraphemes(line).map(colorChar).join("");
+    return splitDisplayGraphemes(line).map(colorChar).join("");
   });
 
   return colored.join("\n");

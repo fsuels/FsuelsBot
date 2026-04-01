@@ -9,6 +9,7 @@ import {
   resolveRequiredHomeDir,
 } from "./infra/home-dir.js";
 import { supportsTerminalHyperlinks } from "./terminal/capabilities.js";
+import { formatOsc8Hyperlink } from "./terminal/codec.js";
 
 export async function ensureDir(dir: string) {
   await fs.promises.mkdir(dir, { recursive: true });
@@ -359,9 +360,6 @@ export function formatTerminalLink(
     stream?: Pick<NodeJS.WriteStream, "isTTY">;
   },
 ): string {
-  const esc = "\u001b";
-  const safeLabel = label.replaceAll(esc, "");
-  const safeUrl = url.replaceAll(esc, "");
   const allow =
     opts?.force === true
       ? true
@@ -369,9 +367,11 @@ export function formatTerminalLink(
         ? false
         : supportsTerminalHyperlinks({ env: opts?.env, stream: opts?.stream });
   if (!allow) {
+    const safeLabel = label.replaceAll("\u001b", "").replaceAll("\u0007", "");
+    const safeUrl = url.replaceAll("\u001b", "").replaceAll("\u0007", "");
     return opts?.fallback ?? `${safeLabel} (${safeUrl})`;
   }
-  return `\u001b]8;;${safeUrl}\u0007${safeLabel}\u001b]8;;\u0007`;
+  return formatOsc8Hyperlink(label, url);
 }
 
 // Configuration root; can be overridden via OPENCLAW_STATE_DIR.
