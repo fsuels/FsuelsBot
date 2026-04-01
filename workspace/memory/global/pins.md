@@ -12,6 +12,10 @@
   - id: pin_558d07c0-b65e-4d2c-91a0-cab6fca9ab37
   - updated: 2026-03-31T11:20:26.657Z
   - entity: sender:8438693397
+- [constraint] For DressLikeMommy, implementation of the agreed plan is executed by FsuelsBot (act on plan; escalate only true blockers).
+  - id: pin_4d2d1f3e-3d31-49f4-b9dd-implement-dlm-plan
+  - updated: 2026-03-31T22:05:00-04:00
+  - entity: sender:8438693397
 
 ## Facts (durable)
 

@@ -28,3 +28,8 @@
 
 - 12-listing workflow uses strict freshness gate with visible listing-date proof
 - Pomelli AI photoshoot task is blocked waiting on: image folder, Shopify access, product list
+- Durable tracking architecture (2026-03-31): Google & YouTube app is the only Google tracking source on Shopify; GTM must not be used for Google tags.
+- Measurement rule (2026-03-31): GA4 purchase value should equal subtotal only (exclude shipping and tax).
+- Ads rule (2026-03-31): Optimize on product revenue (not gross) and keep exactly one Primary purchase conversion in Google Ads.
+- Validation workflow (2026-03-31): reconcile transaction_id across Shopify, GA4, and Google Ads; do not persist order/revenue/conversion totals as durable memory facts.
+- Execution ownership (2026-03-31): FsuelsBot is expected to execute implementation of the active DLM plan directly and escalate only true blockers.
