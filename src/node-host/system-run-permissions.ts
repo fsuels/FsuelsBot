@@ -164,7 +164,7 @@ export function resolveSystemRunPermission(
     params.allowlistSatisfied &&
     params.segments.length === 1 &&
     (params.segments[0]?.argv.length ?? 0) > 0
-      ? params.segments[0]!.argv
+      ? params.segments[0].argv
       : params.argv;
 
   const allowAlwaysPatterns =

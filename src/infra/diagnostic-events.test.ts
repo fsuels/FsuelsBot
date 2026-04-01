@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, describe, expect, test } from "vitest";
-
 import {
   emitDiagnosticEvent,
   MEMORY_GUIDANCE_EVENT_VERSION,
@@ -10,14 +9,22 @@ import {
 } from "./diagnostic-events.js";
 
 function toRequestUrl(input: RequestInfo | URL): string {
-  if (typeof input === "string") return input;
-  if (input instanceof URL) return input.toString();
-  if (input instanceof Request) return input.url;
+  if (typeof input === "string") {
+    return input;
+  }
+  if (input instanceof URL) {
+    return input.toString();
+  }
+  if (input instanceof Request) {
+    return input.url;
+  }
   return "";
 }
 
 function toJsonBody(body: BodyInit | null | undefined): Record<string, unknown> {
-  if (typeof body !== "string") return {};
+  if (typeof body !== "string") {
+    return {};
+  }
   return JSON.parse(body) as Record<string, unknown>;
 }
 
@@ -50,8 +57,11 @@ describe("diagnostic-events", () => {
   afterEach(() => {
     for (const key of alertEnvKeys) {
       const prev = previousAlertEnv[key];
-      if (prev == null) delete process.env[key];
-      else process.env[key] = prev;
+      if (prev == null) {
+        delete process.env[key];
+      } else {
+        process.env[key] = prev;
+      }
     }
     globalThis.fetch = originalFetch;
   });
@@ -174,7 +184,7 @@ describe("diagnostic-events", () => {
         autoSwitched: false,
         ambiguous: false,
         decisionMode: "ask",
-      } as any),
+      } as unknown as Parameters<typeof emitDiagnosticEvent>[0]),
     ).toThrow(/expected 1/i);
 
     stop();
@@ -192,7 +202,7 @@ describe("diagnostic-events", () => {
         eventVersion: 999,
         mode: "supportive",
         shown: false,
-      } as any),
+      } as unknown as Parameters<typeof emitDiagnosticEvent>[0]),
     ).toThrow(/expected 1/i);
 
     stop();
@@ -210,7 +220,7 @@ describe("diagnostic-events", () => {
         eventVersion: 999,
         priorNudgeKind: "topic-switch",
         response: "acknowledged",
-      } as any),
+      } as unknown as Parameters<typeof emitDiagnosticEvent>[0]),
     ).toThrow(/expected 1/i);
 
     stop();
@@ -220,7 +230,7 @@ describe("diagnostic-events", () => {
   test("emits memory retrieval diagnostics with retrieval version fields", async () => {
     resetDiagnosticEventsForTest();
     const events: Array<Record<string, unknown>> = [];
-    const stop = onDiagnosticEvent((evt) => events.push(evt as any));
+    const stop = onDiagnosticEvent((evt) => events.push(evt as unknown as Record<string, unknown>));
 
     emitDiagnosticEvent({
       type: "memory.retrieval",
@@ -254,7 +264,9 @@ describe("diagnostic-events", () => {
     const alerts: Array<Record<string, unknown>> = [];
     const stop = onDiagnosticEvent((evt) => {
       types.push(evt.type);
-      if (evt.type === "memory.alert") alerts.push(evt as unknown as Record<string, unknown>);
+      if (evt.type === "memory.alert") {
+        alerts.push(evt as unknown as Record<string, unknown>);
+      }
     });
 
     emitDiagnosticEvent({

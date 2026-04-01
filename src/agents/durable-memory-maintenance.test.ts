@@ -204,8 +204,8 @@ describe("createDurableMemoryMaintenanceJob", () => {
 
   it("runs a trailing coalesced pass against the latest context", async () => {
     const { storePath, sessionKey, makeContext } = await setupSessionState();
-    const allowFirstToFinish = deferred<void>();
-    const firstStarted = deferred<void>();
+    const allowFirstToFinish = deferred();
+    const firstStarted = deferred();
     const prompts: string[] = [];
     const runExtractor = vi.fn(async (params: { prompt: string }) => {
       prompts.push(params.prompt);

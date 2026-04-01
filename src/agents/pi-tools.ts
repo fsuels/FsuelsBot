@@ -55,6 +55,7 @@ import {
   normalizeToolName,
   resolveToolProfilePolicy,
   stripPluginOnlyAllowlist,
+  type ToolPolicyLike,
 } from "./tool-policy.js";
 import { createGrepTool } from "./tools/grep-tool.js";
 
@@ -220,7 +221,7 @@ export function createOpenClawCodingTools(options?: {
   const profilePolicy = resolveToolProfilePolicy(profile);
   const providerProfilePolicy = resolveToolProfilePolicy(providerProfile);
 
-  const mergeAlsoAllow = (policy: typeof profilePolicy, alsoAllow?: string[]) => {
+  const mergeAlsoAllow = (policy: ToolPolicyLike | undefined, alsoAllow?: string[]) => {
     if (!policy?.allow || !Array.isArray(alsoAllow) || alsoAllow.length === 0) {
       return policy;
     }
@@ -447,7 +448,7 @@ export function createOpenClawCodingTools(options?: {
     tools: toolsByAuthorization,
     toolMeta: (tool) => getPluginToolMeta(tool),
   });
-  const resolvePolicy = (policy: typeof profilePolicy, label: string) => {
+  const resolvePolicy = (policy: ToolPolicyLike | undefined, label: string) => {
     const resolved = stripPluginOnlyAllowlist(policy, pluginGroups, coreToolNames);
     if (resolved.unknownAllowlist.length > 0) {
       const entries = resolved.unknownAllowlist.join(", ");

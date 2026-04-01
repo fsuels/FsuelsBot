@@ -39,10 +39,11 @@ export async function deliverWebReply(params: {
   const messageIds: string[] = [];
 
   const collectMessageId = (result: unknown) => {
-    const messageId =
+    const candidate =
       typeof result === "object" && result && "messageId" in result
-        ? String((result as { messageId?: unknown }).messageId ?? "").trim()
-        : "";
+        ? (result as { messageId?: unknown }).messageId
+        : undefined;
+    const messageId = typeof candidate === "string" ? candidate.trim() : "";
     if (messageId) {
       messageIds.push(messageId);
     }

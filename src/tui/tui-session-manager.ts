@@ -89,7 +89,7 @@ export function createTuiSessionManager(options: TuiSessionManagerOptions) {
   };
 
   const restoreStderrInterceptor = () => {
-    stderr.write = originalStderrWrite as typeof stderr.write;
+    stderr.write = originalStderrWrite;
   };
 
   const writeCleanupNotice = () => {

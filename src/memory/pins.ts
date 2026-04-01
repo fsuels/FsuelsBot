@@ -564,7 +564,7 @@ export async function validatePinRemoveIntent(params: {
     if (index < 0) {
       return { valid: false };
     }
-    const intent = intents[index]!;
+    const intent = intents[index];
     if (intent.expiresAt <= now) {
       // Clean up expired intent without removing the pin.
       const nextIntents = intents.filter((entry) => entry.token !== token);

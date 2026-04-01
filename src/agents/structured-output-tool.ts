@@ -1,5 +1,6 @@
 import type { AgentToolResult } from "@mariozechner/pi-agent-core";
 import type { ToolDefinition } from "@mariozechner/pi-coding-agent";
+import type { TSchema } from "@sinclair/typebox";
 import type { ErrorObject, ValidateFunction } from "ajv";
 import AjvPkg from "ajv";
 import { truncateUtf16Safe } from "../utils.js";
@@ -291,7 +292,7 @@ export function createStructuredOutputTool(
     name: toolName,
     description,
     schema: options.jsonSchema,
-  });
+  }) as TSchema;
 
   return {
     tool: {

@@ -22,22 +22,36 @@ export function inferTaskHintFromMessage(params: {
   message: string;
 }): InferredTaskHint | null {
   const taskMap = params.entry?.taskStateById;
-  if (!taskMap) return null;
+  if (!taskMap) {
+    return null;
+  }
   const messageText = params.message.trim();
-  if (!messageText) return null;
+  if (!messageText) {
+    return null;
+  }
   const messageLower = messageText.toLowerCase();
   const messageTokens = new Set(tokenizeTaskHintText(messageText));
-  if (messageTokens.size === 0) return null;
+  if (messageTokens.size === 0) {
+    return null;
+  }
 
   const candidates: Array<{ taskId: string; score: number }> = [];
   for (const [taskId, state] of Object.entries(taskMap)) {
-    if (!taskId || taskId === DEFAULT_SESSION_TASK_ID) continue;
-    if (state?.status === "completed" || state?.status === "archived") continue;
+    if (!taskId || taskId === DEFAULT_SESSION_TASK_ID) {
+      continue;
+    }
+    if (state?.status === "completed" || state?.status === "archived") {
+      continue;
+    }
     const candidateTokens = tokenizeTaskHintText(`${taskId} ${state?.title ?? ""}`);
-    if (candidateTokens.length === 0) continue;
+    if (candidateTokens.length === 0) {
+      continue;
+    }
     let matches = 0;
     for (const token of candidateTokens) {
-      if (messageTokens.has(token)) matches += 1;
+      if (messageTokens.has(token)) {
+        matches += 1;
+      }
     }
     let score = matches / candidateTokens.length;
     if (messageLower.includes(taskId.toLowerCase())) {
@@ -46,9 +60,11 @@ export function inferTaskHintFromMessage(params: {
     candidates.push({ taskId, score });
   }
 
-  const sorted = candidates.sort((a, b) => b.score - a.score);
+  const sorted = candidates.toSorted((a, b) => b.score - a.score);
   const best = sorted[0];
-  if (!best || best.score < 0.6) return null;
+  if (!best || best.score < 0.6) {
+    return null;
+  }
   const confidence: InferredTaskHint["confidence"] =
     best.score >= 0.8 ? "high" : best.score >= 0.7 ? "medium" : "low";
   const ambiguousTaskIds = sorted

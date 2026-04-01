@@ -14,7 +14,7 @@ type SubagentCapabilityProfileDefinition = {
   allow?: string[];
 };
 
-const PROFILE_ORDER: SubagentCapabilityProfileId[] = new Set([
+const PROFILE_ORDER = new Set<SubagentCapabilityProfileId>([
   "research",
   "planner",
   "implementation",

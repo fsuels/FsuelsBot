@@ -2,17 +2,9 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  commitMemoryEvents,
-  pruneExpiredTransientBufferItems,
-  upsertTaskRegistryTask,
-  upsertTransientBufferItem,
-} from "./task-memory-system.js";
-import { upsertMemoryPin, listMemoryPins } from "./pins.js";
-import {
-  resetRetentionCooldowns,
-  runRetentionPolicies,
-} from "./retention.js";
+import { listMemoryPins, upsertMemoryPin } from "./pins.js";
+import { resetRetentionCooldowns, runRetentionPolicies } from "./retention.js";
+import { upsertTransientBufferItem } from "./task-memory-system.js";
 
 describe("retention policies", () => {
   let workspaceDir: string;

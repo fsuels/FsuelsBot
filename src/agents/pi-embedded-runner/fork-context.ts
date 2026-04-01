@@ -185,7 +185,7 @@ export function buildCacheSafeForkContext(params: {
   const currentSystemJson = stringifyForStorage(params.system);
   const saved = params.liveOverride ?? readLatestSavedRequestContext(params.sessionManager);
   const savedMessages = saved ? parseMessagesJson(saved.messagesJson) : null;
-  if (savedMessages) {
+  if (saved && savedMessages) {
     return {
       messages: savedMessages,
       prefixHash: hashSerializedPrefix({

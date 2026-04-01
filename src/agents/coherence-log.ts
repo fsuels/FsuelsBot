@@ -246,10 +246,14 @@ export function buildToolCallCoherenceEntry(params: {
   const name = params.toolName.toLowerCase();
 
   // Only capture decision-making tool calls, not observation/read tools
-  if (!DECISION_TOOLS.has(name)) return null;
+  if (!DECISION_TOOLS.has(name)) {
+    return null;
+  }
 
   const summary = summarizeToolCall(name, params.toolParams);
-  if (!summary) return null;
+  if (!summary) {
+    return null;
+  }
 
   return {
     ts: now,
@@ -324,7 +328,9 @@ export function buildToolMetaCoherenceEntry(params: {
   now?: number;
 }): CoherenceEntry | null {
   const name = params.toolName.toLowerCase();
-  if (!DECISION_TOOLS.has(name)) return null;
+  if (!DECISION_TOOLS.has(name)) {
+    return null;
+  }
 
   const summary = params.meta ? `${capitalize(name)}: ${params.meta}` : `${capitalize(name)} call`;
 
@@ -390,7 +396,9 @@ const USER_CORRECTION_PATTERNS = [
  * that happen to contain negation words.
  */
 export function isUserCorrection(message: string): boolean {
-  if (!message || message.length > USER_CORRECTION_MAX_LENGTH) return false;
+  if (!message || message.length > USER_CORRECTION_MAX_LENGTH) {
+    return false;
+  }
   return USER_CORRECTION_PATTERNS.some((p) => p.test(message));
 }
 
@@ -450,7 +458,7 @@ export function scoreEvent(event: CoherenceEntry, pinned: CoherenceEntry[], now?
   }
 
   // Recency: exponential decay with configurable half-life
-  score += 5 * Math.exp((-0.693 * ageMinutes) / RECENCY_HALF_LIFE_MINUTES);
+  score += 5 * Math.exp((-Math.LN2 * ageMinutes) / RECENCY_HALF_LIFE_MINUTES);
 
   // Verb bonus
   if (event.verb) {
@@ -467,13 +475,17 @@ export function scoreEvent(event: CoherenceEntry, pinned: CoherenceEntry[], now?
 export function selectEventsForInjection(state: CoherenceLogState, now?: number): CoherenceEntry[] {
   const all = [...state.pinned, ...state.entries];
   const structured = all.filter(isStructuredEvent);
-  if (structured.length === 0) return [];
+  if (structured.length === 0) {
+    return [];
+  }
 
   // Deduplicate (same entry may be in both pinned and entries)
   const seen = new Set<string>();
   const unique = structured.filter((e) => {
     const key = `${e.ts}:${e.summary}`;
-    if (seen.has(key)) return false;
+    if (seen.has(key)) {
+      return false;
+    }
     seen.add(key);
     return true;
   });
@@ -488,8 +500,12 @@ export function selectEventsForInjection(state: CoherenceLogState, now?: number)
  */
 function formatAge(ts: number, now?: number): string {
   const elapsed = ((now ?? Date.now()) - ts) / 60_000;
-  if (elapsed < 1) return "<1m ago";
-  if (elapsed < 60) return `${Math.floor(elapsed)}m ago`;
+  if (elapsed < 1) {
+    return "<1m ago";
+  }
+  if (elapsed < 60) {
+    return `${Math.floor(elapsed)}m ago`;
+  }
   return `${Math.floor(elapsed / 60)}h ago`;
 }
 
@@ -498,7 +514,9 @@ function formatAge(ts: number, now?: number): string {
  * Returns null if no events to inject (self-gating).
  */
 export function formatEventMemoryInjection(events: CoherenceEntry[], now?: number): string | null {
-  if (events.length === 0) return null;
+  if (events.length === 0) {
+    return null;
+  }
 
   const lines: string[] = ["## Event Memory"];
   for (const e of events) {
@@ -513,13 +531,17 @@ export function formatEventMemoryInjection(events: CoherenceEntry[], now?: numbe
   const hints: string[] = [];
   const seenVerbs = new Set<string>();
   for (const e of events) {
-    if (!e.verb || seenVerbs.has(e.verb)) continue;
+    if (!e.verb || seenVerbs.has(e.verb)) {
+      continue;
+    }
     seenVerbs.add(e.verb);
     const label = VERB_QUESTION_MAP[e.verb];
     if (label && e.subject) {
       hints.push(`${label}: ${e.subject}`);
     }
-    if (hints.length >= 3) break;
+    if (hints.length >= 3) {
+      break;
+    }
   }
   if (hints.length > 0) {
     lines.push(hints.join(". ") + ".");
@@ -559,7 +581,7 @@ export function formatEventMemoryStatus(state: CoherenceLogState, now?: number):
   }
 
   const distribution = [...verbCounts.entries()]
-    .sort((a, b) => b[1] - a[1])
+    .toSorted((a, b) => b[1] - a[1])
     .map(([v, c]) => `${v}=${c}`)
     .join(", ");
 
@@ -688,15 +710,19 @@ export function analyzeVerbTaxonomy(entries: CoherenceEntry[]): VerbTaxonomyRepo
     const verbs = [...byVerb.keys()];
     for (let i = 0; i < verbs.length; i++) {
       for (let j = i + 1; j < verbs.length; j++) {
-        const verbA = verbs[i]!;
-        const verbB = verbs[j]!;
+        const verbA = verbs[i];
+        const verbB = verbs[j];
         let both = 0;
         let either = 0;
         for (const win of windows) {
           const hasA = win.some((e) => e.verb === verbA);
           const hasB = win.some((e) => e.verb === verbB);
-          if (hasA || hasB) either++;
-          if (hasA && hasB) both++;
+          if (hasA || hasB) {
+            either++;
+          }
+          if (hasA && hasB) {
+            both++;
+          }
         }
         if (either > 0) {
           const rate = both / either;
@@ -760,10 +786,12 @@ export function analyzeVerbTaxonomy(entries: CoherenceEntry[]): VerbTaxonomyRepo
   // Check for FAILED→same-subject CHANGED (retry pattern)
   let retryCount = 0;
   for (let i = 0; i < structured.length; i++) {
-    const e = structured[i]!;
-    if (e.verb !== EventVerb.FAILED) continue;
+    const e = structured[i];
+    if (e.verb !== EventVerb.FAILED) {
+      continue;
+    }
     for (let j = i + 1; j < Math.min(i + 3, structured.length); j++) {
-      const next = structured[j]!;
+      const next = structured[j];
       if (next.verb === EventVerb.CHANGED && next.subject === e.subject) {
         retryCount++;
         break;
@@ -835,20 +863,23 @@ export function computeTrustSignals(events: CoherenceEntry[]): TrustSignals {
   const failedSubjects = new Map<string, number>();
 
   for (let i = 0; i < structured.length; i++) {
-    const e = structured[i]!;
+    const e = structured[i];
 
     if (e.verb === EventVerb.DECIDED) {
       // Check if this decision held (no REJECTED on same subject within 5 events)
       let rejected = false;
       for (let j = i + 1; j < Math.min(i + 6, structured.length); j++) {
-        const next = structured[j]!;
+        const next = structured[j];
         if (next.verb === EventVerb.REJECTED && next.subject === e.subject) {
           rejected = true;
           break;
         }
       }
-      if (rejected) contradictions++;
-      else decisionsHeld++;
+      if (rejected) {
+        contradictions++;
+      } else {
+        decisionsHeld++;
+      }
     }
 
     if (e.verb === EventVerb.FAILED) {
@@ -858,7 +889,7 @@ export function computeTrustSignals(events: CoherenceEntry[]): TrustSignals {
 
       // Check if this failure was recovered (CHANGED on same subject within 3 events)
       for (let j = i + 1; j < Math.min(i + 4, structured.length); j++) {
-        const next = structured[j]!;
+        const next = structured[j];
         if (next.verb === EventVerb.CHANGED && next.subject === e.subject) {
           failuresRecovered++;
           break;
@@ -869,7 +900,7 @@ export function computeTrustSignals(events: CoherenceEntry[]): TrustSignals {
     if (e.verb === EventVerb.BLOCKED) {
       // Check if block was surfaced early (different approach within 2 events)
       for (let j = i + 1; j < Math.min(i + 3, structured.length); j++) {
-        const next = structured[j]!;
+        const next = structured[j];
         if (
           (next.verb === EventVerb.CHANGED || next.verb === EventVerb.DECIDED) &&
           next.subject !== e.subject
@@ -888,7 +919,9 @@ export function computeTrustSignals(events: CoherenceEntry[]): TrustSignals {
   // Count repeated failure groups
   let repeatedFailures = 0;
   for (const count of failedSubjects.values()) {
-    if (count >= 3) repeatedFailures++;
+    if (count >= 3) {
+      repeatedFailures++;
+    }
   }
 
   const positiveSignals = decisionsHeld + failuresRecovered + blocksSurfacedEarly;
@@ -1024,7 +1057,9 @@ export function evaluatePromotionCandidates(params: {
   const processedKeys = new Set<string>();
   for (const e of [...eligible, ...pinnedEligible]) {
     const key = `${e.verb}:${e.subject}:${e.outcome}`;
-    if (processedKeys.has(key)) continue;
+    if (processedKeys.has(key)) {
+      continue;
+    }
     processedKeys.add(key);
 
     // Check if already promoted — reinforce if so
@@ -1073,7 +1108,7 @@ export function evaluatePromotionCandidates(params: {
     if (candidate.seenInSessions.length >= threshold && promoted.length < MAX_PROMOTED_EVENTS) {
       // Promote!
       promoted.push({
-        verb: candidate.verb as EventVerb,
+        verb: candidate.verb,
         subject: candidate.subject,
         outcome: candidate.outcome,
         occurrences: candidate.seenInSessions.length,
@@ -1086,9 +1121,9 @@ export function evaluatePromotionCandidates(params: {
       candidates = candidates.filter(
         (c) =>
           !(
-            c.verb === candidate!.verb &&
-            c.subject === candidate!.subject &&
-            c.outcome === candidate!.outcome
+            c.verb === candidate.verb &&
+            c.subject === candidate.subject &&
+            c.outcome === candidate.outcome
           ),
       );
     }
@@ -1124,7 +1159,9 @@ export function formatPromotedEventsInjection(
   now?: number,
 ): string | null {
   const active = pruneRetiredPromotedEvents(events, now);
-  if (active.length === 0) return null;
+  if (active.length === 0) {
+    return null;
+  }
 
   const lines: string[] = ["## Cross-Session Memory"];
   const shown = active.slice(0, MAX_PROMOTED_INJECTION_LINES);
@@ -1187,13 +1224,19 @@ export function formatPromotedEventsStatus(
  * Shannon entropy in bits.
  */
 function shannonEntropy(values: string[]): number {
-  if (values.length === 0) return 0;
+  if (values.length === 0) {
+    return 0;
+  }
   const freq = new Map<string, number>();
-  for (const v of values) freq.set(v, (freq.get(v) ?? 0) + 1);
+  for (const v of values) {
+    freq.set(v, (freq.get(v) ?? 0) + 1);
+  }
   let h = 0;
   for (const count of freq.values()) {
     const p = count / values.length;
-    if (p > 0) h -= p * Math.log2(p);
+    if (p > 0) {
+      h -= p * Math.log2(p);
+    }
   }
   return h;
 }
@@ -1202,17 +1245,19 @@ function shannonEntropy(values: string[]): number {
  * Group events into turn windows (events within windowMs of each other).
  */
 function groupIntoTurnWindows(events: CoherenceEntry[], windowMs: number): CoherenceEntry[][] {
-  if (events.length === 0) return [];
-  const sorted = [...events].sort((a, b) => a.ts - b.ts);
+  if (events.length === 0) {
+    return [];
+  }
+  const sorted = [...events].toSorted((a, b) => a.ts - b.ts);
   const windows: CoherenceEntry[][] = [];
-  let current: CoherenceEntry[] = [sorted[0]!];
+  let current: CoherenceEntry[] = [sorted[0]];
 
   for (let i = 1; i < sorted.length; i++) {
-    if (sorted[i]!.ts - sorted[i - 1]!.ts <= windowMs) {
-      current.push(sorted[i]!);
+    if (sorted[i].ts - sorted[i - 1].ts <= windowMs) {
+      current.push(sorted[i]);
     } else {
       windows.push(current);
-      current = [sorted[i]!];
+      current = [sorted[i]];
     }
   }
   windows.push(current);

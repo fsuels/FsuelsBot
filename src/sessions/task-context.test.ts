@@ -1,7 +1,6 @@
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import { SessionManager } from "@mariozechner/pi-coding-agent";
 import { describe, expect, it } from "vitest";
-
 import type { SessionEntry } from "../config/sessions/types.js";
 import {
   appendTaskContextMarker,
@@ -11,8 +10,12 @@ import {
 
 function messageText(message: AgentMessage): string {
   const content = (message as { content?: unknown }).content;
-  if (typeof content === "string") return content;
-  if (!Array.isArray(content)) return "";
+  if (typeof content === "string") {
+    return content;
+  }
+  if (!Array.isArray(content)) {
+    return "";
+  }
   return content
     .filter(
       (block): block is { type?: string; text?: string } =>

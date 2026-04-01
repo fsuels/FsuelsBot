@@ -306,8 +306,11 @@ export type SessionSystemPromptReport = {
   };
   systemPrompt: {
     chars: number;
+    tokens?: number;
     projectContextChars: number;
+    projectContextTokens?: number;
     nonProjectContextChars: number;
+    nonProjectContextTokens?: number;
   };
   cache?: {
     boundaryMarker: string;
@@ -325,29 +328,53 @@ export type SessionSystemPromptReport = {
     path: string;
     missing: boolean;
     rawChars: number;
+    rawTokens?: number;
     injectedChars: number;
+    injectedTokens?: number;
     truncated: boolean;
     synthetic?: boolean;
-    sourceGroup?: "project" | "user" | "managed" | "built-in" | "unknown";
+    sourceGroup?: "project" | "project-local" | "user" | "managed" | "built-in" | "unknown";
+    provenance?: Array<{
+      path: string;
+      sourceGroup: "project" | "project-local" | "user" | "managed" | "built-in" | "unknown";
+      parentInclude?: string;
+      rawChars: number;
+      transformedChars: number;
+    }>;
   }>;
   skills: {
     promptChars: number;
+    promptTokens?: number;
     availableCount?: number;
     loadedCount?: number;
     entries: Array<{
       name: string;
       blockChars: number;
+      blockTokens?: number;
       sourceCategory?: "bundled" | "workspace" | "managed" | "plugin" | "extra" | "unknown";
     }>;
   };
   tools: {
     listChars: number;
+    listTokens?: number;
     schemaChars: number;
+    schemaTokens?: number;
     entries: Array<{
       name: string;
       summaryChars: number;
+      summaryTokens?: number;
       schemaChars: number;
+      schemaTokens?: number;
       propertiesCount?: number | null;
+    }>;
+  };
+  dynamicTooling?: {
+    loadedCount: number;
+    pendingProviders?: string[];
+    entries: Array<{
+      name: string;
+      summaryChars: number;
+      summaryTokens?: number;
     }>;
   };
   modelView?: {

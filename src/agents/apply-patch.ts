@@ -1,4 +1,4 @@
-import type { AgentTool } from "@mariozechner/pi-agent-core";
+import type { AgentTool, AgentToolResult } from "@mariozechner/pi-agent-core";
 import { Type } from "@sinclair/typebox";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -120,7 +120,10 @@ export function createApplyPatchTool(
         });
       } catch (err) {
         if (err instanceof FileToolError) {
-          return fileToolErrorToResult("apply_patch", err);
+          return fileToolErrorToResult(
+            "apply_patch",
+            err,
+          ) as AgentToolResult<ApplyPatchToolDetails>;
         }
         throw err;
       }

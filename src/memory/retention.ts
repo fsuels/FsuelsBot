@@ -1,9 +1,5 @@
 import { emitDiagnosticEvent } from "../infra/diagnostic-events.js";
-import {
-  applyWalRetentionPolicy,
-  pruneExpiredTransientBufferItems,
-} from "./task-memory-system.js";
-import { forgetMemoryPins } from "./pins.js";
+import { applyWalRetentionPolicy, pruneExpiredTransientBufferItems } from "./task-memory-system.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -169,10 +165,7 @@ export async function runRetentionPolicies(params: {
  * Remove expired temporary pins (those with TTL that has passed).
  * Uses the existing forgetMemoryPins with time-based filtering.
  */
-async function pruneExpiredPins(params: {
-  workspaceDir: string;
-  now?: number;
-}): Promise<number> {
+async function pruneExpiredPins(params: { workspaceDir: string; now?: number }): Promise<number> {
   const { listMemoryPins, removeMemoryPin } = await import("./pins.js");
   const now = params.now ?? Date.now();
 
@@ -191,7 +184,9 @@ async function pruneExpiredPins(params: {
       workspaceDir: params.workspaceDir,
       id,
     });
-    if (success) removed += 1;
+    if (success) {
+      removed += 1;
+    }
   }
   return removed;
 }

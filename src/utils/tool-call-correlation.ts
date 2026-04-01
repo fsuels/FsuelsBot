@@ -17,7 +17,7 @@ function asNonEmptyString(value: unknown): string | undefined {
 function resolveAssistantMessageId(
   message: Extract<AgentMessage, { role: "assistant" }>,
 ): string | undefined {
-  const record = message as Record<string, unknown>;
+  const record = message as unknown as Record<string, unknown>;
   return asNonEmptyString(record.id) ?? asNonEmptyString(record.messageId);
 }
 

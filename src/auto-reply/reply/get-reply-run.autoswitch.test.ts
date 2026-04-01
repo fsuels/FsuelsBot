@@ -107,6 +107,80 @@ vi.mock("../../sessions/task-context.js", () => ({
 
 import { runPreparedReply } from "./get-reply-run.js";
 
+type RunPreparedReplyInput = Parameters<typeof runPreparedReply>[0];
+type SessionStoreEntry = NonNullable<RunPreparedReplyInput["sessionEntry"]>;
+
+function cast<T>(value: unknown): T {
+  return value as T;
+}
+
+function buildRunPreparedReplyInput(params: {
+  sessionKey: string;
+  sessionStore: Record<string, SessionStoreEntry>;
+  cfg?: RunPreparedReplyInput["cfg"];
+}): RunPreparedReplyInput {
+  return {
+    ctx: cast<RunPreparedReplyInput["ctx"]>({
+      Body: "continue API work",
+      RawBody: "continue API work",
+      WasMentioned: false,
+    }),
+    sessionCtx: cast<RunPreparedReplyInput["sessionCtx"]>({
+      Body: "continue API work",
+      BodyStripped: "continue API work",
+      ChatType: "private",
+      Provider: "telegram",
+    }),
+    cfg: params.cfg ?? cast<RunPreparedReplyInput["cfg"]>({}),
+    agentId: "main",
+    agentDir: ".",
+    agentCfg: cast<RunPreparedReplyInput["agentCfg"]>({}),
+    sessionCfg: cast<RunPreparedReplyInput["sessionCfg"]>({}),
+    commandAuthorized: true,
+    command: cast<RunPreparedReplyInput["command"]>({
+      isAuthorizedSender: true,
+      abortKey: "abort:key",
+      ownerList: [],
+    }),
+    commandSource: "text",
+    allowTextCommands: true,
+    directives: cast<RunPreparedReplyInput["directives"]>({
+      hasThinkDirective: false,
+    }),
+    defaultActivation: cast<RunPreparedReplyInput["defaultActivation"]>("mention"),
+    resolvedThinkLevel: undefined,
+    resolvedVerboseLevel: "off",
+    resolvedReasoningLevel: cast<RunPreparedReplyInput["resolvedReasoningLevel"]>("off"),
+    resolvedElevatedLevel: "off",
+    elevatedEnabled: false,
+    elevatedAllowed: false,
+    blockStreamingEnabled: false,
+    resolvedBlockStreamingBreak: "message_end",
+    modelState: cast<RunPreparedReplyInput["modelState"]>({
+      resolveDefaultThinkingLevel: async () => undefined,
+    }),
+    provider: "openai",
+    model: "gpt-5",
+    typing: cast<RunPreparedReplyInput["typing"]>({
+      cleanup: () => undefined,
+      onReplyStart: async () => undefined,
+    }),
+    opts: {},
+    defaultProvider: "openai",
+    defaultModel: "gpt-5",
+    timeoutMs: 10_000,
+    isNewSession: false,
+    resetTriggered: false,
+    systemSent: true,
+    sessionEntry: params.sessionStore[params.sessionKey],
+    sessionStore: params.sessionStore,
+    sessionKey: params.sessionKey,
+    sessionId: "session-a",
+    workspaceDir: ".",
+    abortedLastRun: false,
+  };
+}
+
 describe("get-reply-run autoswitch gating", () => {
   beforeEach(() => {
     resetDiagnosticEventsForTest();
@@ -125,7 +199,7 @@ describe("get-reply-run autoswitch gating", () => {
     });
 
     const sessionKey = "agent:main:main";
-    const sessionStore: Record<string, any> = {
+    const sessionStore: Record<string, SessionStoreEntry> = {
       [sessionKey]: {
         sessionId: "session-a",
         activeTaskId: "task-a",
@@ -137,66 +211,7 @@ describe("get-reply-run autoswitch gating", () => {
       },
     };
 
-    const result = await runPreparedReply({
-      ctx: {
-        Body: "continue API work",
-        RawBody: "continue API work",
-        WasMentioned: false,
-      } as any,
-      sessionCtx: {
-        Body: "continue API work",
-        BodyStripped: "continue API work",
-        ChatType: "private",
-        Provider: "telegram",
-      } as any,
-      cfg: {} as any,
-      agentId: "main",
-      agentDir: ".",
-      agentCfg: {} as any,
-      sessionCfg: {} as any,
-      commandAuthorized: true,
-      command: {
-        isAuthorizedSender: true,
-        abortKey: "abort:key",
-        ownerList: [],
-      } as any,
-      commandSource: "text",
-      allowTextCommands: true,
-      directives: {
-        hasThinkDirective: false,
-      } as any,
-      defaultActivation: "mention" as any,
-      resolvedThinkLevel: undefined,
-      resolvedVerboseLevel: "off",
-      resolvedReasoningLevel: "off" as any,
-      resolvedElevatedLevel: "off",
-      elevatedEnabled: false,
-      elevatedAllowed: false,
-      blockStreamingEnabled: false,
-      resolvedBlockStreamingBreak: "message_end",
-      modelState: {
-        resolveDefaultThinkingLevel: async () => undefined,
-      } as any,
-      provider: "openai",
-      model: "gpt-5",
-      typing: {
-        cleanup: () => undefined,
-        onReplyStart: async () => undefined,
-      } as any,
-      opts: {},
-      defaultProvider: "openai",
-      defaultModel: "gpt-5",
-      timeoutMs: 10_000,
-      isNewSession: false,
-      resetTriggered: false,
-      systemSent: true,
-      sessionEntry: sessionStore[sessionKey],
-      sessionStore,
-      sessionKey,
-      sessionId: "session-a",
-      workspaceDir: ".",
-      abortedLastRun: false,
-    });
+    const result = await runPreparedReply(buildRunPreparedReplyInput({ sessionKey, sessionStore }));
 
     expect(result).toEqual({ text: "ok" });
     expect(sessionStore[sessionKey]?.activeTaskId).toBe("task-a");
@@ -220,7 +235,7 @@ describe("get-reply-run autoswitch gating", () => {
     });
 
     const sessionKey = "agent:main:main";
-    const sessionStore: Record<string, any> = {
+    const sessionStore: Record<string, SessionStoreEntry> = {
       [sessionKey]: {
         sessionId: "session-a",
         activeTaskId: "task-a",
@@ -235,66 +250,7 @@ describe("get-reply-run autoswitch gating", () => {
       },
     };
 
-    await runPreparedReply({
-      ctx: {
-        Body: "continue API work",
-        RawBody: "continue API work",
-        WasMentioned: false,
-      } as any,
-      sessionCtx: {
-        Body: "continue API work",
-        BodyStripped: "continue API work",
-        ChatType: "private",
-        Provider: "telegram",
-      } as any,
-      cfg: {} as any,
-      agentId: "main",
-      agentDir: ".",
-      agentCfg: {} as any,
-      sessionCfg: {} as any,
-      commandAuthorized: true,
-      command: {
-        isAuthorizedSender: true,
-        abortKey: "abort:key",
-        ownerList: [],
-      } as any,
-      commandSource: "text",
-      allowTextCommands: true,
-      directives: {
-        hasThinkDirective: false,
-      } as any,
-      defaultActivation: "mention" as any,
-      resolvedThinkLevel: undefined,
-      resolvedVerboseLevel: "off",
-      resolvedReasoningLevel: "off" as any,
-      resolvedElevatedLevel: "off",
-      elevatedEnabled: false,
-      elevatedAllowed: false,
-      blockStreamingEnabled: false,
-      resolvedBlockStreamingBreak: "message_end",
-      modelState: {
-        resolveDefaultThinkingLevel: async () => undefined,
-      } as any,
-      provider: "openai",
-      model: "gpt-5",
-      typing: {
-        cleanup: () => undefined,
-        onReplyStart: async () => undefined,
-      } as any,
-      opts: {},
-      defaultProvider: "openai",
-      defaultModel: "gpt-5",
-      timeoutMs: 10_000,
-      isNewSession: false,
-      resetTriggered: false,
-      systemSent: true,
-      sessionEntry: sessionStore[sessionKey],
-      sessionStore,
-      sessionKey,
-      sessionId: "session-a",
-      workspaceDir: ".",
-      abortedLastRun: false,
-    });
+    await runPreparedReply(buildRunPreparedReplyInput({ sessionKey, sessionStore }));
 
     expect(sessionStore[sessionKey]?.activeTaskId).toBe("task-a");
     expect(mockCommitMemoryEvents).not.toHaveBeenCalled();
@@ -315,7 +271,7 @@ describe("get-reply-run autoswitch gating", () => {
     });
 
     const sessionKey = "agent:main:main";
-    const sessionStore: Record<string, any> = {
+    const sessionStore: Record<string, SessionStoreEntry> = {
       [sessionKey]: {
         sessionId: "session-a",
         activeTaskId: "task-a",
@@ -332,66 +288,13 @@ describe("get-reply-run autoswitch gating", () => {
     });
 
     try {
-      await runPreparedReply({
-        ctx: {
-          Body: "continue API work",
-          RawBody: "continue API work",
-          WasMentioned: false,
-        } as any,
-        sessionCtx: {
-          Body: "continue API work",
-          BodyStripped: "continue API work",
-          ChatType: "private",
-          Provider: "telegram",
-        } as any,
-        cfg: { diagnostics: { enabled: true } } as any,
-        agentId: "main",
-        agentDir: ".",
-        agentCfg: {} as any,
-        sessionCfg: {} as any,
-        commandAuthorized: true,
-        command: {
-          isAuthorizedSender: true,
-          abortKey: "abort:key",
-          ownerList: [],
-        } as any,
-        commandSource: "text",
-        allowTextCommands: true,
-        directives: {
-          hasThinkDirective: false,
-        } as any,
-        defaultActivation: "mention" as any,
-        resolvedThinkLevel: undefined,
-        resolvedVerboseLevel: "off",
-        resolvedReasoningLevel: "off" as any,
-        resolvedElevatedLevel: "off",
-        elevatedEnabled: false,
-        elevatedAllowed: false,
-        blockStreamingEnabled: false,
-        resolvedBlockStreamingBreak: "message_end",
-        modelState: {
-          resolveDefaultThinkingLevel: async () => undefined,
-        } as any,
-        provider: "openai",
-        model: "gpt-5",
-        typing: {
-          cleanup: () => undefined,
-          onReplyStart: async () => undefined,
-        } as any,
-        opts: {},
-        defaultProvider: "openai",
-        defaultModel: "gpt-5",
-        timeoutMs: 10_000,
-        isNewSession: false,
-        resetTriggered: false,
-        systemSent: true,
-        sessionEntry: sessionStore[sessionKey],
-        sessionStore,
-        sessionKey,
-        sessionId: "session-a",
-        workspaceDir: ".",
-        abortedLastRun: false,
-      });
+      await runPreparedReply(
+        buildRunPreparedReplyInput({
+          sessionKey,
+          sessionStore,
+          cfg: cast<RunPreparedReplyInput["cfg"]>({ diagnostics: { enabled: true } }),
+        }),
+      );
     } finally {
       unsubscribe();
     }

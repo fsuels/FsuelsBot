@@ -107,7 +107,9 @@ export function resolveToolFailureState(raw: { toolFailures?: unknown }): ToolFa
 }
 
 export function resolveFailureSignatures(raw: { failureSignatures?: unknown }): FailureSignature[] {
-  if (!Array.isArray(raw.failureSignatures)) return [];
+  if (!Array.isArray(raw.failureSignatures)) {
+    return [];
+  }
   return (raw.failureSignatures as FailureSignature[])
     .filter(
       (s): s is FailureSignature =>
@@ -142,7 +144,7 @@ export function recordToolOutcome(
   if (succeeded) {
     // Reset consecutive failures on success
     if (idx >= 0) {
-      records[idx] = { ...records[idx]!, consecutiveFailures: 0, lastTs: ts };
+      records[idx] = { ...records[idx], consecutiveFailures: 0, lastTs: ts };
     }
     return { records };
   }
@@ -151,8 +153,8 @@ export function recordToolOutcome(
   const normalizedError = normalizeErrorPattern(errorHint ?? "");
   if (idx >= 0) {
     records[idx] = {
-      ...records[idx]!,
-      consecutiveFailures: records[idx]!.consecutiveFailures + 1,
+      ...records[idx],
+      consecutiveFailures: records[idx].consecutiveFailures + 1,
       lastError: normalizedError,
       lastTs: ts,
     };
@@ -184,7 +186,7 @@ export function recordFailureSignature(
   const idx = result.findIndex((s) => s.toolName === toolName && s.errorPattern === pattern);
 
   if (idx >= 0) {
-    result[idx] = { ...result[idx]!, count: result[idx]!.count + 1, lastTs: ts };
+    result[idx] = { ...result[idx], count: result[idx].count + 1, lastTs: ts };
   } else {
     result.push({ toolName, errorPattern: pattern, count: 1, lastTs: ts });
   }
@@ -202,7 +204,9 @@ export function recordFailureSignature(
  */
 export function buildToolAvoidanceInjection(state: ToolFailureState): string | null {
   const failing = state.records.filter((r) => r.consecutiveFailures >= AVOIDANCE_THRESHOLD);
-  if (failing.length === 0) return null;
+  if (failing.length === 0) {
+    return null;
+  }
 
   const lines = ["## Tool Reliability"];
   for (const record of failing) {
@@ -230,7 +234,9 @@ export function buildFailureMemoryHint(
   const recurring = signatures.filter(
     (s) => s.count >= FAILURE_MEMORY_THRESHOLD && ts - s.lastTs < SIGNATURE_DECAY_MS,
   );
-  if (recurring.length === 0) return null;
+  if (recurring.length === 0) {
+    return null;
+  }
 
   const lines: string[] = [];
   for (const sig of recurring) {
@@ -256,8 +262,12 @@ export function resolveToolDisabledUntil(
 ): number | null {
   const ts = now ?? Date.now();
   const record = state.records.find((r) => r.toolName === toolName);
-  if (!record) return null;
-  if (record.consecutiveFailures < DYNAMIC_DISABLE_THRESHOLD) return null;
+  if (!record) {
+    return null;
+  }
+  if (record.consecutiveFailures < DYNAMIC_DISABLE_THRESHOLD) {
+    return null;
+  }
 
   // Compute cooldown from when the last failure occurred
   const disabledUntil = record.lastTs + DYNAMIC_DISABLE_COOLDOWN_MS;

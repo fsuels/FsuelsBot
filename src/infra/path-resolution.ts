@@ -142,7 +142,7 @@ async function resolvePathState(
   let symlinkInvolved = false;
 
   for (let index = 0; index < segments.length; index += 1) {
-    const candidate = normalizeAbsolutePath(path.join(current, segments[index] as string));
+    const candidate = normalizeAbsolutePath(path.join(current, segments[index]));
     checkedPaths.add(candidate);
 
     let stat: fsSync.Stats;
@@ -272,7 +272,7 @@ function resolvePathStateSync(
   let symlinkInvolved = false;
 
   for (let index = 0; index < segments.length; index += 1) {
-    const candidate = normalizeAbsolutePath(path.join(current, segments[index] as string));
+    const candidate = normalizeAbsolutePath(path.join(current, segments[index]));
     checkedPaths.add(candidate);
 
     let stat: fsSync.Stats;

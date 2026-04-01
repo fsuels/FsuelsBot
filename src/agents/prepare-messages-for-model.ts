@@ -60,7 +60,7 @@ function resolveRole(message: AgentMessage | undefined): string | undefined {
 }
 
 function assistantMessageId(message: AssistantMessage): string | undefined {
-  const record = message as Record<string, unknown>;
+  const record = message as unknown as Record<string, unknown>;
   return typeof record.id === "string" && record.id.trim()
     ? record.id
     : typeof record.messageId === "string" && record.messageId.trim()
@@ -171,7 +171,7 @@ function mergeAdjacentAssistantFragments(messages: AgentMessage[]): {
     }
     const assistant = message as AssistantMessage;
     const previous = out.at(-1);
-    if (resolveRole(previous as AgentMessage | undefined) !== "assistant") {
+    if (resolveRole(previous) !== "assistant") {
       out.push(message);
       continue;
     }
@@ -218,7 +218,7 @@ export function isProgressOrAttachmentMessage(message: AgentMessage | undefined)
   if (!message || typeof message !== "object") {
     return false;
   }
-  const record = message as Record<string, unknown>;
+  const record = message as unknown as Record<string, unknown>;
   if (Array.isArray(record.attachments) && record.attachments.length > 0) {
     return true;
   }
@@ -344,10 +344,7 @@ export async function prepareMessagesForModel(params: {
   recordRepair(stats, "user_turns_merged", Math.max(0, validatedGemini.length - validated.length));
 
   let finalMessages = validated;
-  if (
-    params.dropTrailingHumanTurnBeforePrompt &&
-    isHumanTurnMessage(finalMessages.at(-1) as AgentMessage | undefined)
-  ) {
+  if (params.dropTrailingHumanTurnBeforePrompt && isHumanTurnMessage(finalMessages.at(-1))) {
     finalMessages = finalMessages.slice(0, -1);
     recordRepair(stats, "trailing_human_turn_dropped", 1);
   }

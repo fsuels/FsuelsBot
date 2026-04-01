@@ -106,7 +106,7 @@ function getReplayToolsByName(
     if (!tool.outputSchema) {
       continue;
     }
-    byName.set(normalizeToolName(tool.name || "tool"), tool as AnyOpenClawTool);
+    byName.set(normalizeToolName(tool.name || "tool"), tool);
   }
   replayToolCache.set(cacheKey, byName);
   return byName;

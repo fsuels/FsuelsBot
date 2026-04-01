@@ -35,8 +35,8 @@ describe("upsertCapability", () => {
     ];
     const result = upsertCapability(existing, "exec", "pnpm test", 2000);
     expect(result).toHaveLength(1);
-    expect(result[0]!.verifiedCount).toBe(4);
-    expect(result[0]!.lastVerifiedTs).toBe(2000);
+    expect(result[0].verifiedCount).toBe(4);
+    expect(result[0].lastVerifiedTs).toBe(2000);
   });
 
   it("updates how only when new meta is longer", () => {
@@ -46,16 +46,16 @@ describe("upsertCapability", () => {
 
     // Shorter meta → keep existing how
     const r1 = upsertCapability(existing, "exec", "npm", 2000);
-    expect(r1[0]!.how).toBe("pnpm test");
+    expect(r1[0].how).toBe("pnpm test");
 
     // Longer meta → update how
     const r2 = upsertCapability(existing, "exec", "pnpm test --coverage", 2000);
-    expect(r2[0]!.how).toBe("pnpm test --coverage");
+    expect(r2[0].how).toBe("pnpm test --coverage");
   });
 
   it("uses toolName as fallback when how is undefined", () => {
     const result = upsertCapability([], "read", undefined, 1000);
-    expect(result[0]!.how).toBe("read");
+    expect(result[0].how).toBe("read");
   });
 
   it("evicts least-recently-verified when exceeding cap", () => {
@@ -110,7 +110,7 @@ describe("resolveCapabilityLedger", () => {
     const result = resolveCapabilityLedger({ capabilityLedger: oversized });
     expect(result).toHaveLength(MAX_CAPABILITY_ENTRIES);
     // Should keep the most recently verified (highest ts)
-    expect(result[0]!.lastVerifiedTs).toBe((MAX_CAPABILITY_ENTRIES + 4) * 1000);
+    expect(result[0].lastVerifiedTs).toBe((MAX_CAPABILITY_ENTRIES + 4) * 1000);
   });
 });
 
@@ -130,9 +130,9 @@ describe("selectCapabilitiesForInjection", () => {
       { toolName: "c", how: "c", lastVerifiedTs: 2000, verifiedCount: 5 },
     ];
     const result = selectCapabilitiesForInjection(entries);
-    expect(result[0]!.toolName).toBe("c"); // count=5, ts=2000 (higher ts)
-    expect(result[1]!.toolName).toBe("b"); // count=5, ts=1000
-    expect(result[2]!.toolName).toBe("a"); // count=1
+    expect(result[0].toolName).toBe("c"); // count=5, ts=2000 (higher ts)
+    expect(result[1].toolName).toBe("b"); // count=5, ts=1000
+    expect(result[2].toolName).toBe("a"); // count=1
   });
 
   it("caps at maxLines", () => {
@@ -309,7 +309,7 @@ describe("computeCapabilityReliability", () => {
     ];
     const result = computeCapabilityReliability(caps, []);
     expect(result).toHaveLength(1);
-    expect(result[0]!.reliabilityBand).toBe("unproven");
+    expect(result[0].reliabilityBand).toBe("unproven");
   });
 
   it("returns emerging for tool with 3 uses, 1 failure, 1 recovery", () => {
@@ -321,9 +321,9 @@ describe("computeCapabilityReliability", () => {
       mkEvent(EventVerb.CHANGED, "exec", 1100), // recovery within 3 turns
     ];
     const result = computeCapabilityReliability(caps, events);
-    expect(result[0]!.reliabilityBand).toBe("emerging");
-    expect(result[0]!.recentFailures).toBe(1);
-    expect(result[0]!.recoveries).toBe(1);
+    expect(result[0].reliabilityBand).toBe("emerging");
+    expect(result[0].recentFailures).toBe(1);
+    expect(result[0].recoveries).toBe(1);
   });
 
   it("returns reliable for tool with 5 uses and 0 failures", () => {
@@ -331,7 +331,7 @@ describe("computeCapabilityReliability", () => {
       { toolName: "exec", how: "pnpm test", lastVerifiedTs: 5000, verifiedCount: 5 },
     ];
     const result = computeCapabilityReliability(caps, []);
-    expect(result[0]!.reliabilityBand).toBe("reliable");
+    expect(result[0].reliabilityBand).toBe("reliable");
   });
 
   it("returns emerging for tool with 10 uses but 2 recent failures", () => {
@@ -343,8 +343,8 @@ describe("computeCapabilityReliability", () => {
       mkEvent(EventVerb.FAILED, "exec", 2000),
     ];
     const result = computeCapabilityReliability(caps, events);
-    expect(result[0]!.reliabilityBand).toBe("emerging");
-    expect(result[0]!.recentFailures).toBe(2);
+    expect(result[0].reliabilityBand).toBe("emerging");
+    expect(result[0].recentFailures).toBe(2);
   });
 
   it("detects FAILED→CHANGED recovery within 3 turns", () => {
@@ -357,7 +357,7 @@ describe("computeCapabilityReliability", () => {
       mkEvent(EventVerb.CHANGED, "write", 1200), // recovery at position i+2 (within 3)
     ];
     const result = computeCapabilityReliability(caps, events);
-    expect(result[0]!.recoveries).toBe(1);
+    expect(result[0].recoveries).toBe(1);
   });
 
   it("does NOT count recovery beyond 3 turns", () => {
@@ -372,8 +372,8 @@ describe("computeCapabilityReliability", () => {
       mkEvent(EventVerb.CHANGED, "write", 1400), // position i+4, beyond window
     ];
     const result = computeCapabilityReliability(caps, events);
-    expect(result[0]!.recoveries).toBe(0);
-    expect(result[0]!.recentFailures).toBe(1);
+    expect(result[0].recoveries).toBe(0);
+    expect(result[0].recentFailures).toBe(1);
   });
 
   it("excludes tools not in capability ledger", () => {
@@ -385,8 +385,8 @@ describe("computeCapabilityReliability", () => {
     ];
     const result = computeCapabilityReliability(caps, events);
     expect(result).toHaveLength(1);
-    expect(result[0]!.toolName).toBe("exec");
-    expect(result[0]!.recentFailures).toBe(0);
+    expect(result[0].toolName).toBe("exec");
+    expect(result[0].recentFailures).toBe(0);
   });
 
   it("returns empty array for empty capabilities", () => {
@@ -400,8 +400,8 @@ describe("computeCapabilityReliability", () => {
     // Legacy entry without verb field
     const events: CoherenceEntry[] = [{ ts: 1000, source: "tool_call", summary: "FAILED exec" }];
     const result = computeCapabilityReliability(caps, events);
-    expect(result[0]!.recentFailures).toBe(0); // not counted — no verb
-    expect(result[0]!.reliabilityBand).toBe("reliable");
+    expect(result[0].recentFailures).toBe(0); // not counted — no verb
+    expect(result[0].reliabilityBand).toBe("reliable");
   });
 });
 

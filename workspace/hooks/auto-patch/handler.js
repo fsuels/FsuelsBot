@@ -19,8 +19,6 @@ const HISTORY_MARKER = "stripLeadingOrphanedToolResults";
 const TRANSFORM_MARKER = "Third pass: strip orphaned toolResult";
 
 function findClawdbotRoot() {
-  // Walk up from this file to find the clawdbot package
-  const here = path.dirname(fileURLToPath(import.meta.url));
   // Workspace hooks live at <workspace>/hooks/auto-patch/handler.js
   // clawdbot is at the global npm prefix
   const candidates = [
@@ -32,7 +30,9 @@ function findClawdbotRoot() {
   ];
 
   for (const c of candidates) {
-    if (fs.existsSync(path.join(c, "package.json"))) return c;
+    if (fs.existsSync(path.join(c, "package.json"))) {
+      return c;
+    }
   }
 
   // Fallback: resolve from require
@@ -43,7 +43,9 @@ function findClawdbotRoot() {
       const idx = resolved.indexOf("clawdbot");
       if (idx !== -1) {
         const root = resolved.slice(0, idx + "clawdbot".length);
-        if (fs.existsSync(path.join(root, "package.json"))) return root;
+        if (fs.existsSync(path.join(root, "package.json"))) {
+          return root;
+        }
       }
     }
   } catch {}
@@ -53,10 +55,14 @@ function findClawdbotRoot() {
 
 function patchHistory(root) {
   const filePath = path.join(root, "dist", "agents", "pi-embedded-runner", "history.js");
-  if (!fs.existsSync(filePath)) return false;
+  if (!fs.existsSync(filePath)) {
+    return false;
+  }
 
   let src = fs.readFileSync(filePath, "utf-8");
-  if (src.includes(HISTORY_MARKER)) return false; // already patched
+  if (src.includes(HISTORY_MARKER)) {
+    return false;
+  } // already patched
 
   // Replace the return inside limitHistoryTurns
   const oldReturn = /if \(userCount > limit\) \{\s*return messages\.slice\(lastUserIndex\);\s*\}/;
@@ -70,7 +76,7 @@ function patchHistory(root) {
     `if (userCount > limit) {
                 const sliced = messages.slice(lastUserIndex);
                 return stripLeadingOrphanedToolResults(sliced);
-            }`
+            }`,
   );
 
   const stripFn = `
@@ -104,7 +110,7 @@ function stripLeadingOrphanedToolResults(messages) {
   // Insert helper before getDmHistoryLimitFromSessionKey
   src = src.replace(
     /\/\*\*\s*\n\s*\* Extract provider \+ user ID/,
-    stripFn + "\n/**\n * Extract provider + user ID"
+    stripFn + "\n/**\n * Extract provider + user ID",
   );
 
   fs.writeFileSync(filePath, src, "utf-8");
@@ -113,12 +119,22 @@ function stripLeadingOrphanedToolResults(messages) {
 
 function patchTransformMessages(root) {
   const filePath = path.join(
-    root, "node_modules", "@mariozechner", "pi-ai", "dist", "providers", "transform-messages.js"
+    root,
+    "node_modules",
+    "@mariozechner",
+    "pi-ai",
+    "dist",
+    "providers",
+    "transform-messages.js",
   );
-  if (!fs.existsSync(filePath)) return false;
+  if (!fs.existsSync(filePath)) {
+    return false;
+  }
 
   let src = fs.readFileSync(filePath, "utf-8");
-  if (src.includes(TRANSFORM_MARKER)) return false; // already patched
+  if (src.includes(TRANSFORM_MARKER)) {
+    return false;
+  } // already patched
 
   const thirdPass = `
     // Third pass: strip orphaned toolResult messages whose tool_use_id has no
@@ -151,7 +167,10 @@ function patchTransformMessages(root) {
   }
 
   const afterClose = src.indexOf("\n", lastReturn + "    return result;\n}".length);
-  src = src.slice(0, lastReturn) + thirdPass + "\n}" +
+  src =
+    src.slice(0, lastReturn) +
+    thirdPass +
+    "\n}" +
     (afterClose !== -1 ? src.slice(afterClose) : "\n");
 
   fs.writeFileSync(filePath, src, "utf-8");
@@ -159,7 +178,9 @@ function patchTransformMessages(root) {
 }
 
 const handler = async (event) => {
-  if (event.type !== "gateway" || event.action !== "startup") return;
+  if (event.type !== "gateway" || event.action !== "startup") {
+    return;
+  }
 
   const root = findClawdbotRoot();
   if (!root) {
@@ -171,8 +192,12 @@ const handler = async (event) => {
   const p2 = patchTransformMessages(root);
 
   if (p1 || p2) {
-    console.log(`[auto-patch] Applied orphaned tool_result fixes (history=${p1}, transform=${p2}).`);
-    console.log("[auto-patch] Note: patches take effect on the NEXT agent request (no restart needed).");
+    console.log(
+      `[auto-patch] Applied orphaned tool_result fixes (history=${p1}, transform=${p2}).`,
+    );
+    console.log(
+      "[auto-patch] Note: patches take effect on the NEXT agent request (no restart needed).",
+    );
   }
 };
 

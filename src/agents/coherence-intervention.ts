@@ -9,6 +9,13 @@
  * hints (v2.1 item 4) into a single injection to minimize param threading.
  */
 
+import type { SessionEntry } from "../config/sessions/types.js";
+import { resolveThreadParentSessionKey } from "../sessions/session-key-utils.js";
+import {
+  resolveCapabilityLedger,
+  formatCapabilityInjection,
+  computeCapabilityReliability,
+} from "./capability-ledger.js";
 import {
   type CoherenceLogState,
   resolveCoherenceLog,
@@ -24,13 +31,6 @@ import {
   buildToolAvoidanceInjection,
   buildFailureMemoryHint,
 } from "./tool-failure-tracker.js";
-import {
-  resolveCapabilityLedger,
-  formatCapabilityInjection,
-  computeCapabilityReliability,
-} from "./capability-ledger.js";
-import type { SessionEntry } from "../config/sessions/types.js";
-import { resolveThreadParentSessionKey } from "../sessions/session-key-utils.js";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -126,7 +126,9 @@ export function resolveCoherenceInterventionForSession(
     maxInjectionChars?: number;
   },
 ): CoherenceIntervention | null {
-  if (!entry) return null;
+  if (!entry) {
+    return null;
+  }
 
   const maxChars = opts?.maxInjectionChars ?? DEFAULT_MAX_INJECTION_CHARS;
 
@@ -193,7 +195,9 @@ export function resolveCoherenceInterventionForSession(
     prioritized.push({ priority: 6, text: failureHint });
   }
 
-  if (prioritized.length === 0) return null;
+  if (prioritized.length === 0) {
+    return null;
+  }
 
   // Enforce budget: include sections in priority order until budget is exhausted.
   // Sort by priority (lowest number = highest priority).
@@ -213,7 +217,9 @@ export function resolveCoherenceInterventionForSession(
     // else: drop section entirely (budget exhausted)
   }
 
-  if (included.length === 0) return null;
+  if (included.length === 0) {
+    return null;
+  }
   return { text: included.join("\n\n") };
 }
 

@@ -182,10 +182,11 @@ async function ensureSessionEntry(params: {
     sessionId: randomUUID(),
     updatedAt: Date.now(),
   };
-  params.sessionStore[params.sessionKey] = created;
+  const sessionKey = params.sessionKey;
+  params.sessionStore[sessionKey] = created;
   if (params.storePath) {
     await updateSessionStore(params.storePath, (store) => {
-      store[params.sessionKey] = created;
+      store[sessionKey] = created;
     });
   }
   return created;

@@ -228,7 +228,7 @@ describe("task-tracker", () => {
     expect(first.state.activeTasks).toHaveLength(1);
     expect(first.state.activeTasks[0]?.type).toBe("verification");
 
-    const verificationTask = first.state.activeTasks[0]!;
+    const verificationTask = first.state.activeTasks[0];
     const finished = await replaceTaskTrackerState({
       context,
       tasks: [{ ...verificationTask, status: "completed" }],

@@ -127,9 +127,10 @@ function resolvePluginModuleExport(moduleExport: unknown): {
   return {};
 }
 
-function normalizeAvailabilityResult(
-  result: OpenClawPluginAvailabilityResult | undefined,
-): { available: boolean; reason?: string } {
+function normalizeAvailabilityResult(result: OpenClawPluginAvailabilityResult | undefined): {
+  available: boolean;
+  reason?: string;
+} {
   if (typeof result === "boolean") {
     return { available: result };
   }
@@ -138,7 +139,7 @@ function normalizeAvailabilityResult(
   }
   const reason = typeof result.reason === "string" ? result.reason.trim() : "";
   return {
-    available: result.available !== false,
+    available: result.available,
     reason: reason || undefined,
   };
 }

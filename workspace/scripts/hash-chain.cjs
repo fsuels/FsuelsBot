@@ -57,7 +57,7 @@ function canonicalJSON(obj) {
  * Input: event object INCLUDING prevHash, EXCLUDING hash
  */
 function computeHash(event) {
-  const { hash, ...eventWithoutHash } = event;
+  const { hash: _hash, ...eventWithoutHash } = event;
   const input = canonicalJSON(eventWithoutHash);
   return crypto.createHash("sha256").update(input).digest("hex").slice(0, 16);
 }
@@ -83,7 +83,7 @@ function getLastHash(filePath) {
       if (event.hash) {
         return event.hash;
       }
-    } catch (e) {
+    } catch {
       continue; // Skip malformed lines
     }
   }

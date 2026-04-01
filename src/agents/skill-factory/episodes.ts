@@ -87,7 +87,7 @@ export function medianDurationMs(episodes: SkillFactoryEpisode[]): number {
     .toSorted((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
   if (sorted.length % 2 === 0) {
-    return Math.round((sorted[mid - 1]! + sorted[mid]!) / 2);
+    return Math.round((sorted[mid - 1] + sorted[mid]) / 2);
   }
   return sorted[mid] ?? 0;
 }

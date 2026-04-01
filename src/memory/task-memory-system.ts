@@ -1167,7 +1167,7 @@ async function readTaskRegistryStore(workspaceDir: string): Promise<TaskRegistry
     const raw = await fs.readFile(absPath, "utf-8");
     const parsed = JSON.parse(raw) as Partial<TaskRegistryStore>;
     const tasks = (Array.isArray(parsed.tasks) ? parsed.tasks : [])
-      .map((entry) => normalizeTaskRecord(entry as TaskRegistryRecord))
+      .map((entry) => normalizeTaskRecord(entry))
       .filter((entry): entry is TaskRegistryRecord => Boolean(entry));
     return {
       version: 1,
@@ -1443,7 +1443,7 @@ function normalizeWalEventRecord(value: unknown): MemoryEventRecord | null {
     scope,
     ...(scope === "task" ? { taskId } : {}),
     type,
-    payload: payload as Record<string, unknown>,
+    payload: payload,
     timestamp,
     actor,
     ...(typeof event.envelopeVersion === "number" && Number.isFinite(event.envelopeVersion)
@@ -1912,9 +1912,9 @@ async function readWalReplayRaw(params: {
   const baselineSignature = baseline.endSignature;
 
   if (selectedSegments.length > 0) {
-    const firstSelectedSeq = selectedSegments[0]!.seq;
+    const firstSelectedSeq = selectedSegments[0].seq;
     const hasOlder = manifest.segments.some((entry) => entry.seq < firstSelectedSeq);
-    const first = selectedSegments[0]!;
+    const first = selectedSegments[0];
     const expectedPrev = first.startPrevSignature ?? null;
     const baselinePrev = baselineSignature ?? null;
     if (hasOlder && !baselinePrev && expectedPrev) {
@@ -2062,7 +2062,7 @@ export async function compactWalSegments(params: {
   }
 
   const compactable: WalSegmentManifestEntry[] = [];
-  let expectedSeq = baseline.endSequence > 0 ? baseline.endSequence + 1 : eligible[0]!.seq;
+  let expectedSeq = baseline.endSequence > 0 ? baseline.endSequence + 1 : eligible[0].seq;
   for (const segment of eligible) {
     if (compactable.length >= limit) {
       break;
@@ -2120,7 +2120,7 @@ export async function compactWalSegments(params: {
     signatureSeed = parsed.lastSignature ?? signatureSeed;
   }
 
-  const lastCompactedSeq = compactable[compactable.length - 1]!.seq;
+  const lastCompactedSeq = compactable[compactable.length - 1].seq;
   const nextBaseline: WalBaselineStore = {
     version: 1,
     updatedAt: now,
@@ -2488,9 +2488,7 @@ function normalizeIncomingEvent(params: {
       ? Math.floor(params.event.timestamp)
       : params.timestamp;
   const payload =
-    params.event.payload && typeof params.event.payload === "object"
-      ? (params.event.payload as Record<string, unknown>)
-      : {};
+    params.event.payload && typeof params.event.payload === "object" ? params.event.payload : {};
   const payloadSchemaError = validateEventPayloadSchema(type, payload);
   if (payloadSchemaError) {
     throw new Error(`memory event payload schema violation (${type}): ${payloadSchemaError}`);
@@ -2897,7 +2895,7 @@ async function readTransientBufferStore(workspaceDir: string): Promise<Transient
         if (!entry || typeof entry !== "object") {
           continue;
         }
-        const item = entry as TransientBufferItem;
+        const item = entry;
         const itemId = typeof item.itemId === "string" && item.itemId.trim() ? item.itemId : null;
         const content =
           typeof item.content === "string" && item.content.trim() ? item.content.trim() : null;

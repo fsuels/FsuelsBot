@@ -28,7 +28,7 @@ import { CustomEditor } from "./components/custom-editor.js";
 import { GatewayChatClient } from "./gateway-chat.js";
 import { editorTheme, theme } from "./theme/theme.js";
 import { createCommandHandlers } from "./tui-command-handlers.js";
-import { resolveTuiCtrlCAction, type TuiCtrlCMode } from "./tui-ctrl-c.js";
+import { resolveTuiCtrlCAction } from "./tui-ctrl-c.js";
 import { createEventHandlers } from "./tui-event-handlers.js";
 import { formatTokens } from "./tui-formatters.js";
 import { InterceptingTerminal } from "./tui-intercepting-terminal.js";
@@ -548,7 +548,7 @@ export async function runTui(opts: TuiOptions) {
   };
 
   const { openOverlay, closeOverlay, hasActiveOverlay } = createOverlayHandlers(tui, editor);
-  const ctrlCMode = (config.ui?.tui?.ctrlC ?? "double-press-exit") as TuiCtrlCMode;
+  const ctrlCMode = config.ui?.tui?.ctrlC ?? "double-press-exit";
 
   const initialSessionAgentId = (() => {
     if (!initialSessionInput) {

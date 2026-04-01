@@ -12,7 +12,6 @@
  * - Compaction targets 80% utilization AFTER deducting fixed allocations
  */
 
-import { estimateTokens } from "@mariozechner/pi-coding-agent";
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import { estimateMessagesTokens } from "./compaction.js";
 
@@ -49,16 +48,16 @@ export type ContextBudget = {
 const MAX_INJECTION_SHARE = 0.15; // 15%
 
 /** Maximum share of context window for bootstrap files. */
-const MAX_BOOTSTRAP_SHARE = 0.20; // 20%
+const MAX_BOOTSTRAP_SHARE = 0.2; // 20%
 
 /** Minimum guaranteed share for conversation history. */
-const MIN_HISTORY_SHARE = 0.20; // 20%
+const MIN_HISTORY_SHARE = 0.2; // 20%
 
 /** Minimum guaranteed share for injections (prevents compaction from over-pruning). */
 const MIN_INJECTION_SHARE = 0.05; // 5%
 
 /** Proactive compaction threshold — trigger when utilization exceeds this. */
-const PROACTIVE_COMPACTION_THRESHOLD = 0.80; // 80%
+const PROACTIVE_COMPACTION_THRESHOLD = 0.8; // 80%
 
 /** Approximate tokens-per-char ratio for budget conversion. */
 const TOKENS_PER_CHAR = 0.25; // ~4 chars per token
@@ -96,7 +95,10 @@ export function computeContextBudget(params: {
   // Allocate shares with minimum guarantees
   const injectionBudgetTokens = Math.max(
     Math.floor(total * MIN_INJECTION_SHARE),
-    Math.min(Math.floor(availableTokens * MAX_INJECTION_SHARE), Math.floor(total * MAX_INJECTION_SHARE)),
+    Math.min(
+      Math.floor(availableTokens * MAX_INJECTION_SHARE),
+      Math.floor(total * MAX_INJECTION_SHARE),
+    ),
   );
 
   const bootstrapBudgetTokens = Math.min(

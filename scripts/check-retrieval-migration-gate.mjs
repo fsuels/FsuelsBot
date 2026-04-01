@@ -22,12 +22,16 @@ function runGit(command) {
 function listChangedPaths() {
   const baseRef = process.env.RETRIEVAL_MIGRATION_GATE_BASE_REF?.trim();
   const rangesToTry = [];
-  if (baseRef) rangesToTry.push(`${baseRef}...HEAD`);
+  if (baseRef) {
+    rangesToTry.push(`${baseRef}...HEAD`);
+  }
   rangesToTry.push("HEAD~1...HEAD", "HEAD^...HEAD", "HEAD");
   for (const range of rangesToTry) {
     try {
       const output = runGit(`git diff --name-only ${range}`);
-      if (!output) return [];
+      if (!output) {
+        return [];
+      }
       return output
         .split(/\r?\n/)
         .map((line) => line.trim())
@@ -58,7 +62,9 @@ if (process.env.RETRIEVAL_MIGRATION_GATE_BYPASS === "true") {
 
 const touchedRunbook = changedPaths.includes(requiredDoc);
 if (touchedRunbook) {
-  console.log(`retrieval-migration-gate: pass (${requiredDoc} updated with retrieval-sensitive changes).`);
+  console.log(
+    `retrieval-migration-gate: pass (${requiredDoc} updated with retrieval-sensitive changes).`,
+  );
   process.exit(0);
 }
 

@@ -1,13 +1,13 @@
 import { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { ensureMemoryIndexSchema } from "./memory-schema.js";
-import { type ClaimRecord, getClaim, upsertClaim } from "./claims.js";
-import { storeQaPair, getQaPair } from "./qa-store.js";
 import {
   evaluateClaimPromotion,
   processClaimFeedback,
   processQaFeedback,
 } from "./claim-promotion.js";
+import { type ClaimRecord, getClaim, upsertClaim } from "./claims.js";
+import { ensureMemoryIndexSchema } from "./memory-schema.js";
+import { storeQaPair, getQaPair } from "./qa-store.js";
 
 describe("claim promotion", () => {
   let db: DatabaseSync;
@@ -72,8 +72,8 @@ describe("claim promotion", () => {
       expect(result).not.toBeNull();
       expect(result!.feedback).toBe("positive");
       expect(result!.claimUpdates).toHaveLength(1);
-      expect(result!.claimUpdates[0]!.previousConfidence).toBe(0.5);
-      expect(result!.claimUpdates[0]!.newConfidence).toBe(0.65); // 0.5 + 0.15
+      expect(result!.claimUpdates[0].previousConfidence).toBe(0.5);
+      expect(result!.claimUpdates[0].newConfidence).toBe(0.65); // 0.5 + 0.15
 
       const claim = getClaim(db, claimId);
       expect(claim!.confidence).toBe(0.65);
@@ -83,8 +83,8 @@ describe("claim promotion", () => {
       const { qaId, claimId } = seedQaWithClaim();
       const result = processQaFeedback({ db, qaId, feedback: "negative" });
       expect(result).not.toBeNull();
-      expect(result!.claimUpdates[0]!.newStatus).toBe("disputed");
-      expect(result!.claimUpdates[0]!.newConfidence).toBe(0.25); // 0.5 - 0.25
+      expect(result!.claimUpdates[0].newStatus).toBe("disputed");
+      expect(result!.claimUpdates[0].newConfidence).toBe(0.25); // 0.5 - 0.25
 
       const claim = getClaim(db, claimId);
       expect(claim!.status).toBe("disputed");
@@ -116,8 +116,8 @@ describe("claim promotion", () => {
       });
 
       const result = processQaFeedback({ db, qaId, feedback: "positive" });
-      expect(result!.claimUpdates[0]!.newStatus).toBe("verified");
-      expect(result!.claimUpdates[0]!.newConfidence).toBe(0.9); // 0.75 + 0.15
+      expect(result!.claimUpdates[0].newStatus).toBe("verified");
+      expect(result!.claimUpdates[0].newConfidence).toBe(0.9); // 0.75 + 0.15
     });
 
     it("auto-deprecates claim when confidence drops below threshold", () => {
@@ -132,8 +132,8 @@ describe("claim promotion", () => {
 
       const result = processQaFeedback({ db, qaId, feedback: "negative" });
       // 0.3 - 0.25 = 0.05, below 0.2 threshold
-      expect(result!.claimUpdates[0]!.newConfidence).toBeCloseTo(0.05);
-      expect(result!.claimUpdates[0]!.newStatus).toBe("deprecated");
+      expect(result!.claimUpdates[0].newConfidence).toBeCloseTo(0.05);
+      expect(result!.claimUpdates[0].newStatus).toBe("deprecated");
     });
 
     it("processes multiple claim refs from single Q/A pair", () => {
@@ -165,7 +165,7 @@ describe("claim promotion", () => {
 
       const result = processQaFeedback({ db, qaId, feedback: "positive" });
       expect(result!.claimUpdates).toHaveLength(1);
-      expect(result!.claimUpdates[0]!.claimId).toBe("claim_exists");
+      expect(result!.claimUpdates[0].claimId).toBe("claim_exists");
     });
   });
 

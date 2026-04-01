@@ -2,8 +2,8 @@ import nodeFs from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { withTempHome } from "./test-helpers.js";
 import { createConfigIO } from "./io.js";
+import { withTempHome } from "./test-helpers.js";
 
 describe("config migration write safety", () => {
   it("keeps the original config file intact when a write rename fails", async () => {
@@ -29,7 +29,7 @@ describe("config migration write safety", () => {
           }
           return Reflect.get(target, prop, receiver);
         },
-      }) as typeof nodeFs;
+      });
 
       const io = createConfigIO({
         fs: failingFs,

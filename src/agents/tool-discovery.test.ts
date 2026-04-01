@@ -247,6 +247,6 @@ describe("tool discovery", () => {
     expect(activated.activated).toEqual(["browser"]);
     expect(session.agent.state.tools).toBe(initialRef);
     expect(session.agent.state.tools.map((tool) => tool.name)).toEqual(["read", "browser"]);
-    expect(session.agent.setSystemPrompt).toHaveBeenLastCalledWith("read,browser");
+    expect(session.agent.setSystemPrompt.mock.lastCall?.[0]).toBe("read,browser");
   });
 });

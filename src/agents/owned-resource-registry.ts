@@ -51,7 +51,11 @@ function ensureLoaded() {
     return;
   }
   const typed = raw as Partial<PersistedOwnedResourceRegistry>;
-  if (typed.version !== REGISTRY_VERSION || !typed.resources || typeof typed.resources !== "object") {
+  if (
+    typed.version !== REGISTRY_VERSION ||
+    !typed.resources ||
+    typeof typed.resources !== "object"
+  ) {
     return;
   }
   for (const entry of Object.values(typed.resources)) {
@@ -75,7 +79,9 @@ function ensureLoaded() {
       sessionKey,
       createdByTool,
       linkedSidecars: Array.isArray(entry.linkedSidecars)
-        ? entry.linkedSidecars.filter((value): value is string => typeof value === "string" && value.trim())
+        ? entry.linkedSidecars
+            .filter((value): value is string => typeof value === "string" && Boolean(value.trim()))
+            .map((value) => value.trim())
         : undefined,
       createdAt:
         typeof entry.createdAt === "number" && Number.isFinite(entry.createdAt)
@@ -115,7 +121,10 @@ export function registerOwnedResource(entry: OwnedResourceRecord) {
         ? entry.createdAt
         : Date.now(),
   };
-  ownedResources.set(buildOwnedResourceKey(normalized.resourceType, normalized.resourceId), normalized);
+  ownedResources.set(
+    buildOwnedResourceKey(normalized.resourceType, normalized.resourceId),
+    normalized,
+  );
   persistOwnedResources();
   return normalized;
 }

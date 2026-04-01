@@ -4,7 +4,6 @@ import {
   type SessionEntry as PiSessionEntry,
   type SessionManager,
 } from "@mariozechner/pi-coding-agent";
-
 import type { SessionEntry, SessionTaskState } from "../config/sessions/types.js";
 
 export const DEFAULT_SESSION_TASK_ID = "default";
@@ -47,18 +46,28 @@ type SessionTaskView = {
 };
 
 function normalizeTaskStack(value: unknown, activeTaskId?: string): string[] {
-  if (!Array.isArray(value)) return [];
+  if (!Array.isArray(value)) {
+    return [];
+  }
   const out: string[] = [];
   const seen = new Set<string>();
   const active = normalizeTaskId(activeTaskId);
   for (const raw of value) {
     const taskId = normalizeTaskId(raw);
-    if (!taskId) continue;
-    if (taskId === active) continue;
-    if (seen.has(taskId)) continue;
+    if (!taskId) {
+      continue;
+    }
+    if (taskId === active) {
+      continue;
+    }
+    if (seen.has(taskId)) {
+      continue;
+    }
     seen.add(taskId);
     out.push(taskId);
-    if (out.length >= 3) break;
+    if (out.length >= 3) {
+      break;
+    }
   }
   return out;
 }
@@ -67,13 +76,17 @@ const hasOwn = (obj: object, key: string): boolean =>
   Object.prototype.hasOwnProperty.call(obj, key);
 
 const normalizeTaskCount = (value: unknown): number | undefined => {
-  if (typeof value !== "number" || !Number.isFinite(value)) return undefined;
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return undefined;
+  }
   const next = Math.floor(value);
   return next >= 0 ? next : undefined;
 };
 
 export function normalizeTaskId(value: unknown): string | undefined {
-  if (typeof value !== "string") return undefined;
+  if (typeof value !== "string") {
+    return undefined;
+  }
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : undefined;
 }
@@ -178,8 +191,11 @@ export function applySessionTaskUpdate(
 
   if (hasOwn(params, "title")) {
     const normalizedTitle = normalizeTaskId(params.title ?? undefined);
-    if (normalizedTitle) nextState.title = normalizedTitle;
-    else delete nextState.title;
+    if (normalizedTitle) {
+      nextState.title = normalizedTitle;
+    } else {
+      delete nextState.title;
+    }
   }
   if (hasOwn(params, "status")) {
     const status = params.status;
@@ -218,7 +234,9 @@ export function applySessionTaskUpdate(
   }
   const existingStack = normalizeTaskStack(entry.taskStack, nextTaskId);
   const nextTaskStack = (() => {
-    if (!switched || !previousTaskId) return existingStack;
+    if (!switched || !previousTaskId) {
+      return existingStack;
+    }
     const merged = [previousTaskId, ...existingStack];
     return normalizeTaskStack(merged, nextTaskId);
   })();
@@ -261,11 +279,17 @@ export function ensureSessionTaskState(
 }
 
 function asTaskMarkerEntry(entry: PiSessionEntry): TaskMarkerEntry | null {
-  if (entry.type !== "custom" || entry.customType !== TASK_CONTEXT_CUSTOM_TYPE) return null;
-  if (!entry.data || typeof entry.data !== "object") return null;
+  if (entry.type !== "custom" || entry.customType !== TASK_CONTEXT_CUSTOM_TYPE) {
+    return null;
+  }
+  if (!entry.data || typeof entry.data !== "object") {
+    return null;
+  }
   const data = entry.data as TaskContextMarkerData;
   const taskId = normalizeTaskId(data.taskId);
-  if (!taskId) return null;
+  if (!taskId) {
+    return null;
+  }
   return {
     ...entry,
     customType: TASK_CONTEXT_CUSTOM_TYPE,
@@ -296,7 +320,9 @@ export function readLastTaskContextMarker(
   const entries = sessionManager.getEntries();
   for (let i = entries.length - 1; i >= 0; i -= 1) {
     const marker = asTaskMarkerEntry(entries[i]);
-    if (!marker?.data) continue;
+    if (!marker?.data) {
+      continue;
+    }
     return marker.data;
   }
   return null;
@@ -348,8 +374,12 @@ export function resolveTaskScopedHistoryMessages(params: {
       sawMarker = true;
       continue;
     }
-    if (currentTaskId !== taskId) continue;
-    if (!isTaskReplayEntry(entry)) continue;
+    if (currentTaskId !== taskId) {
+      continue;
+    }
+    if (!isTaskReplayEntry(entry)) {
+      continue;
+    }
     scopedEntries.push(entry);
   }
 

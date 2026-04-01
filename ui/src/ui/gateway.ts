@@ -350,7 +350,7 @@ export class GatewayBrowserClient {
       params.lastEventSeq = this.lastSeq;
     }
 
-    void this.request<unknown>("connect", params)
+    void this.request("connect", params)
       .then((helloRaw) => {
         this.clearConnectResponseTimeout();
         const helloResult = validateGatewayHelloOk(helloRaw);

@@ -237,9 +237,9 @@ describe("SearchableSelectList", () => {
 
     list.setItems([
       { value: "other/model", label: "other/model", description: "Other" },
-      testItems[1]!,
-      testItems[2]!,
-      testItems[3]!,
+      testItems[1],
+      testItems[2],
+      testItems[3],
     ]);
 
     expect(list.getSelectedItem()?.value).toBe("openai/gpt-4");

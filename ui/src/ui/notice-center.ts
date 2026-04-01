@@ -471,7 +471,9 @@ export function ingestHealthSnapshot(host: NoticeCenterHost, snapshot: unknown, 
     const channelLabel =
       (typeof labels?.[channelId] === "string" && String(labels[channelId])) || channelId;
     const accounts = asRecord(channel.accounts);
-    const accountEntries = accounts ? Object.entries(accounts) : [["default", channelValue]];
+    const accountEntries: Array<[string, unknown]> = accounts
+      ? Object.entries(accounts)
+      : [["default", channelValue]];
 
     for (const [entryAccountId, accountValue] of accountEntries) {
       const account = asRecord(accountValue);
@@ -479,7 +481,9 @@ export function ingestHealthSnapshot(host: NoticeCenterHost, snapshot: unknown, 
         continue;
       }
       const accountId =
-        (typeof account.accountId === "string" && account.accountId.trim()) || entryAccountId;
+        typeof account.accountId === "string" && account.accountId.trim()
+          ? account.accountId.trim()
+          : entryAccountId;
       const baseKey = `health:${channelId}:${accountId}`;
       const label = formatHealthLabel(channelLabel, accountId);
       const resolved = resolveHealthState(account);
@@ -488,7 +492,7 @@ export function ingestHealthSnapshot(host: NoticeCenterHost, snapshot: unknown, 
       }
 
       const previousState = host.noticeCenterState.healthLastStateByKey.get(baseKey);
-      const hasEverConnected = host.noticeCenterState.healthEverConnected[baseKey] === true;
+      const hasEverConnected = host.noticeCenterState.healthEverConnected[baseKey];
       const detail = healthDiagnosticDetail(account);
 
       if (resolved.state === "connected") {

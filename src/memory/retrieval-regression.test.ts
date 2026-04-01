@@ -259,7 +259,7 @@ beforeAll(async () => {
   const filePaths = new Set(CORPUS.map((c) => c.path));
   for (const fp of filePaths) {
     const source = fp.startsWith("sessions/") ? "sessions" : "memory";
-    insertFile(db, fp, source as "memory" | "sessions");
+    insertFile(db, fp, source);
   }
   for (const chunk of CORPUS) {
     insertChunk(db, chunk);
@@ -328,7 +328,7 @@ describe("retrieval regression corpus", () => {
     expect(durableIdx).toBeGreaterThanOrEqual(0);
     expect(transcriptIdx).toBeGreaterThanOrEqual(0);
     // Durable score should be >= transcript score (both have similar embeddings)
-    expect(results[durableIdx]!.score).toBeGreaterThanOrEqual(results[transcriptIdx]!.score);
+    expect(results[durableIdx].score).toBeGreaterThanOrEqual(results[transcriptIdx].score);
   });
 
   // Case 3: Durable memory outranks transcripts for deploy topic
@@ -339,7 +339,7 @@ describe("retrieval regression corpus", () => {
     const transcriptIdx = results.findIndex((r) => r.id === "sess_deploy_chat");
     expect(durableIdx).toBeGreaterThanOrEqual(0);
     expect(transcriptIdx).toBeGreaterThanOrEqual(0);
-    expect(results[durableIdx]!.score).toBeGreaterThanOrEqual(results[transcriptIdx]!.score);
+    expect(results[durableIdx].score).toBeGreaterThanOrEqual(results[transcriptIdx].score);
   });
 
   // Case 4: Multi-task isolation — task A content doesn't leak into unrelated query
@@ -422,8 +422,8 @@ describe("retrieval regression corpus", () => {
 
     // Claim similarity should be at least as high as transcript similarity
     // (claims have more precise embeddings and higher authority)
-    const topClaimScore = claimResults[0]!.similarityScore;
-    const topTranscriptScore = chunkResults[0]!.score;
+    const topClaimScore = claimResults[0].similarityScore;
+    const topTranscriptScore = chunkResults[0].score;
     expect(topClaimScore).toBeGreaterThanOrEqual(topTranscriptScore);
   });
 
@@ -434,9 +434,9 @@ describe("retrieval regression corpus", () => {
     const chunkResults = searchChunks(db, queryVec, { sourceFilter: "sessions", limit: 3 });
 
     expect(claimResults.length).toBeGreaterThan(0);
-    expect(claimResults[0]!.text).toContain("pricing");
+    expect(claimResults[0].text).toContain("pricing");
     if (chunkResults.length > 0) {
-      expect(claimResults[0]!.similarityScore).toBeGreaterThanOrEqual(chunkResults[0]!.score);
+      expect(claimResults[0].similarityScore).toBeGreaterThanOrEqual(chunkResults[0].score);
     }
   });
 

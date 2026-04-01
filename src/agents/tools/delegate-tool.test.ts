@@ -1,7 +1,5 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
-
 import { completeSimple } from "@mariozechner/pi-ai";
-
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import { getApiKeyForModel } from "../model-auth.js";
 import { resolveModel } from "../pi-embedded-runner/model.js";
 import { createDelegateTool } from "./delegate-tool.js";
@@ -13,7 +11,9 @@ vi.mock("@mariozechner/pi-ai", () => ({
 vi.mock("../model-auth.js", () => ({
   getApiKeyForModel: vi.fn(),
   requireApiKey: vi.fn((auth: { apiKey?: string }, _provider: string) => {
-    if (!auth.apiKey) throw new Error("No API key");
+    if (!auth.apiKey) {
+      throw new Error("No API key");
+    }
     return auth.apiKey;
   }),
 }));

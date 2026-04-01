@@ -139,7 +139,7 @@ function shouldExposeAsNative(command: ChatCommandDefinition, provider?: string)
   if (!providerKey) {
     return false;
   }
-  return PROVIDER_TEXT_NATIVE_COMMANDS[providerKey]?.has(command.key) === true;
+  return PROVIDER_TEXT_NATIVE_COMMANDS[providerKey]?.has(command.key);
 }
 
 function resolveNativeName(command: ChatCommandDefinition, provider?: string): string | undefined {

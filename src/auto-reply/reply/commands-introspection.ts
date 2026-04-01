@@ -102,6 +102,14 @@ function extractTextPartsFromContent(content: unknown): string[] {
   return texts;
 }
 
+function splitNonEmptyLines(value: string): string[] {
+  return value
+    .replaceAll("\r", "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
 function extractTranscriptMessages(raw: string): TranscriptMessageSummary[] {
   const messages: TranscriptMessageSummary[] = [];
   for (const line of raw.split(/\r?\n/)) {
@@ -173,7 +181,7 @@ function summarizeFinalAssistantText(messages: TranscriptMessageSummary[]): stri
 }
 
 function sanitizeExportBasename(value: string): string {
-  const ascii = value.normalize("NFKD").replace(/[^\x00-\x7F]+/g, "");
+  const ascii = value.normalize("NFKD").replace(/[^\u0020-\u007E]+/g, "");
   const sanitized = ascii
     .replace(/[^a-zA-Z0-9._-]+/g, "-")
     .replace(/-+/g, "-")

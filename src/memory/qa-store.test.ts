@@ -175,8 +175,8 @@ describe("Q/A vector search", () => {
 
     const results = searchQaByVector(db, [0.85, 0.15, 0, 0]);
     expect(results.length).toBeGreaterThanOrEqual(1);
-    expect(results[0]!.question).toContain("auth");
-    expect(results[0]!.similarityScore).toBeGreaterThan(0.8);
+    expect(results[0].question).toContain("auth");
+    expect(results[0].similarityScore).toBeGreaterThan(0.8);
   });
 
   it("returns empty for zero-length query vector", () => {

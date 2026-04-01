@@ -52,7 +52,7 @@ export function resolveSessionTranscriptPath(
 
 export function resolveSessionFilePath(
   sessionId: string,
-  entry?: SessionEntry,
+  entry?: Pick<SessionEntry, "sessionFile">,
   opts?: { agentId?: string },
 ): string {
   const candidate = entry?.sessionFile?.trim();

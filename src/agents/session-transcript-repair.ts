@@ -180,7 +180,7 @@ function rewriteAssistantToolCallIds(params: {
       return block;
     }
     changed = true;
-    return { ...(block as Record<string, unknown>), id: nextId };
+    return { ...(block as unknown as Record<string, unknown>), id: nextId };
   });
 
   return changed
@@ -192,8 +192,9 @@ function rewriteToolResultCorrelationId(params: {
   message: Extract<AgentMessage, { role: "toolResult" }>;
   toolCallId: string;
 }): Extract<AgentMessage, { role: "toolResult" }> {
-  const next = { ...params.message } as Extract<AgentMessage, { role: "toolResult" }> & {
+  const next = { ...params.message } as {
     toolUseId?: string;
+    toolCallId?: string;
   };
   if (typeof next.toolCallId === "string" && next.toolCallId) {
     next.toolCallId = params.toolCallId;
@@ -204,7 +205,7 @@ function rewriteToolResultCorrelationId(params: {
   if (!("toolCallId" in next) && !("toolUseId" in next)) {
     next.toolCallId = params.toolCallId;
   }
-  return next;
+  return next as Extract<AgentMessage, { role: "toolResult" }>;
 }
 
 export function repairToolUseResultPairing(

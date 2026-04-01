@@ -113,12 +113,18 @@ export function resolveProactivityLevel(
   reliabilityBand: ReliabilityBand,
 ): ProactivityLevel {
   if (reliabilityBand === "reliable") {
-    if (trustTier === "established" || trustTier === "proven") return "autonomous";
-    if (trustTier === "emerging") return "offer";
+    if (trustTier === "established" || trustTier === "proven") {
+      return "autonomous";
+    }
+    if (trustTier === "emerging") {
+      return "offer";
+    }
     return "confirm";
   }
   // emerging band (unproven is filtered before reaching here)
-  if (trustTier === "established" || trustTier === "proven") return "offer";
+  if (trustTier === "established" || trustTier === "proven") {
+    return "offer";
+  }
   return "confirm";
 }
 
@@ -131,11 +137,15 @@ export function resolveCapabilityLedger(raw: {
   capabilityLedger?: CapabilityEntry[];
 }): CapabilityEntry[] {
   const ledger = raw.capabilityLedger;
-  if (!Array.isArray(ledger)) return [];
-  if (ledger.length <= MAX_CAPABILITY_ENTRIES) return ledger;
+  if (!Array.isArray(ledger)) {
+    return [];
+  }
+  if (ledger.length <= MAX_CAPABILITY_ENTRIES) {
+    return ledger;
+  }
   // Cap: keep most-recently-verified
   return [...ledger]
-    .sort((a, b) => b.lastVerifiedTs - a.lastVerifiedTs)
+    .toSorted((a, b) => b.lastVerifiedTs - a.lastVerifiedTs)
     .slice(0, MAX_CAPABILITY_ENTRIES);
 }
 
@@ -159,7 +169,7 @@ export function upsertCapability(
   const idx = result.findIndex((c) => c.toolName === toolName);
 
   if (idx >= 0) {
-    const existing = result[idx]!;
+    const existing = result[idx];
     result[idx] = {
       ...existing,
       lastVerifiedTs: now,
@@ -193,11 +203,15 @@ export function selectCapabilitiesForInjection(
   capabilities: CapabilityEntry[],
   maxLines: number = MAX_CAPABILITY_INJECTION,
 ): CapabilityEntry[] {
-  if (capabilities.length === 0) return [];
+  if (capabilities.length === 0) {
+    return [];
+  }
 
   return [...capabilities]
-    .sort((a, b) => {
-      if (b.verifiedCount !== a.verifiedCount) return b.verifiedCount - a.verifiedCount;
+    .toSorted((a, b) => {
+      if (b.verifiedCount !== a.verifiedCount) {
+        return b.verifiedCount - a.verifiedCount;
+      }
       return b.lastVerifiedTs - a.lastVerifiedTs;
     })
     .slice(0, maxLines);
@@ -220,7 +234,9 @@ export function formatCapabilityInjection(
   trustTier?: TrustTier,
 ): string | null {
   const selected = selectCapabilitiesForInjection(capabilities);
-  if (selected.length === 0) return null;
+  if (selected.length === 0) {
+    return null;
+  }
 
   // Build lookup for reliability bands
   const bandByTool = new Map<string, ReliabilityBand>();
@@ -241,7 +257,9 @@ export function formatCapabilityInjection(
   for (const cap of selected) {
     const band = bandByTool.get(cap.toolName);
     // RSC v3.3: Filter out unproven capabilities when reliability data is available
-    if (band === "unproven") continue;
+    if (band === "unproven") {
+      continue;
+    }
 
     if (band && trustTier) {
       // RSC v3.4: Full proactivity annotation
@@ -261,7 +279,9 @@ export function formatCapabilityInjection(
   }
 
   // If all capabilities were filtered out (all unproven), return null
-  if (!hasContent) return null;
+  if (!hasContent) {
+    return null;
+  }
 
   // RSC v3.4: Trust-tier-aware footer, or v3.3 static footer
   if (trustTier) {
@@ -297,9 +317,15 @@ function resolveReliabilityBand(
   recentFailures: number,
   recoveries: number,
 ): ReliabilityBand {
-  if (verifiedCount < EMERGING_THRESHOLD) return "unproven";
-  if (verifiedCount >= RELIABLE_THRESHOLD && recentFailures === 0) return "reliable";
-  if (recoveries >= recentFailures) return "emerging";
+  if (verifiedCount < EMERGING_THRESHOLD) {
+    return "unproven";
+  }
+  if (verifiedCount >= RELIABLE_THRESHOLD && recentFailures === 0) {
+    return "reliable";
+  }
+  if (recoveries >= recentFailures) {
+    return "emerging";
+  }
   return "emerging";
 }
 
@@ -315,7 +341,9 @@ export function computeCapabilityReliability(
   capabilities: CapabilityEntry[],
   events: CoherenceEntry[],
 ): CapabilityReliability[] {
-  if (capabilities.length === 0) return [];
+  if (capabilities.length === 0) {
+    return [];
+  }
 
   const structured = events.filter(isStructuredEvent);
 
@@ -324,16 +352,20 @@ export function computeCapabilityReliability(
   const recoveriesByTool = new Map<string, number>();
 
   for (let i = 0; i < structured.length; i++) {
-    const e = structured[i]!;
-    if (e.verb !== EventVerb.FAILED) continue;
+    const e = structured[i];
+    if (e.verb !== EventVerb.FAILED) {
+      continue;
+    }
     const tool = e.subject;
-    if (!tool) continue;
+    if (!tool) {
+      continue;
+    }
 
     failuresByTool.set(tool, (failuresByTool.get(tool) ?? 0) + 1);
 
     // Check for recovery: CHANGED on same subject within RECOVERY_WINDOW events
     for (let j = i + 1; j < Math.min(i + RECOVERY_WINDOW + 1, structured.length); j++) {
-      const next = structured[j]!;
+      const next = structured[j];
       if (next.verb === EventVerb.CHANGED && next.subject === tool) {
         recoveriesByTool.set(tool, (recoveriesByTool.get(tool) ?? 0) + 1);
         break;
@@ -372,7 +404,9 @@ export function formatCapabilityStatus(
   reliability?: CapabilityReliability[],
   trustTier?: TrustTier,
 ): string | null {
-  if (capabilities.length === 0) return null;
+  if (capabilities.length === 0) {
+    return null;
+  }
 
   const bandByTool = new Map<string, ReliabilityBand>();
   if (reliability) {
@@ -381,7 +415,7 @@ export function formatCapabilityStatus(
     }
   }
 
-  const sorted = [...capabilities].sort((a, b) => b.verifiedCount - a.verifiedCount);
+  const sorted = [...capabilities].toSorted((a, b) => b.verifiedCount - a.verifiedCount);
   const lines: string[] = [`Capability Ledger (${sorted.length} entries):`];
   for (const cap of sorted) {
     const age = Date.now() - cap.lastVerifiedTs;
@@ -410,7 +444,9 @@ export function formatCapabilityStatus(
     if (trustTier) {
       const proactivityCounts = { confirm: 0, offer: 0, autonomous: 0 };
       for (const r of reliability) {
-        if (r.reliabilityBand === "unproven") continue;
+        if (r.reliabilityBand === "unproven") {
+          continue;
+        }
         proactivityCounts[resolveProactivityLevel(trustTier, r.reliabilityBand)]++;
       }
       lines.push(

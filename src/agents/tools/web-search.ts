@@ -506,11 +506,12 @@ function applyDomainFiltersToQuery(params: {
   allowedDomains?: string[];
   blockedDomains?: string[];
 }): string {
+  const allowedDomains = params.allowedDomains ?? [];
   const parts = [params.query.trim()].filter(Boolean);
-  if (params.allowedDomains?.length === 1) {
-    parts.push(`site:${params.allowedDomains[0]}`);
-  } else if ((params.allowedDomains?.length ?? 0) > 1) {
-    parts.push(`(${params.allowedDomains.map((domain) => `site:${domain}`).join(" OR ")})`);
+  if (allowedDomains.length === 1) {
+    parts.push(`site:${allowedDomains[0]}`);
+  } else if (allowedDomains.length > 1) {
+    parts.push(`(${allowedDomains.map((domain) => `site:${domain}`).join(" OR ")})`);
   }
   if (params.blockedDomains?.length) {
     parts.push(...params.blockedDomains.map((domain) => `-site:${domain}`));

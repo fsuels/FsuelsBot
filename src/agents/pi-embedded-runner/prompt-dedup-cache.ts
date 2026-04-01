@@ -13,8 +13,8 @@
  * to avoid stale responses.
  */
 
-import { createHash } from "node:crypto";
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
+import { createHash } from "node:crypto";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -54,7 +54,7 @@ export function hashPromptState(systemPrompt: string, messages: AgentMessage[]):
       hash.update(JSON.stringify(msg));
     } catch {
       // Fallback for non-serializable messages (shouldn't happen in practice)
-      hash.update(String(msg));
+      hash.update(Object.prototype.toString.call(msg));
     }
   }
   return hash.digest("hex").slice(0, 32);
@@ -74,7 +74,9 @@ export class PromptDedupCache<T> {
   get(hash: string, now?: number): T | undefined {
     const ts = now ?? Date.now();
     const entry = this.entries.get(hash);
-    if (!entry) return undefined;
+    if (!entry) {
+      return undefined;
+    }
 
     // Check TTL
     if (ts - entry.ts > CACHE_TTL_MS) {
@@ -108,7 +110,9 @@ export class PromptDedupCache<T> {
           oldestKey = key;
         }
       }
-      if (oldestKey) this.entries.delete(oldestKey);
+      if (oldestKey) {
+        this.entries.delete(oldestKey);
+      }
     }
 
     this.entries.set(hash, { response, ts });

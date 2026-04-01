@@ -6,15 +6,10 @@
  * effects — suitable for Vitest regression tests.
  */
 
+import type { AgentPosture, PostureTransition, PostureSignals } from "./agent-posture.js";
+import type { TurnTrace } from "./cognitive-telemetry.js";
 import type { DriftLevel } from "./drift-detection.js";
-import type {
-  AgentPosture,
-  PostureMode,
-  PostureTransition,
-  PostureSignals,
-} from "./agent-posture.js";
 import { createInitialPosture, updatePosture, validatePostureInvariants } from "./agent-posture.js";
-import type { TurnTrace, PostureSnapshot } from "./cognitive-telemetry.js";
 
 // ---------------------------------------------------------------------------
 // Types

@@ -1,7 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import type { GatewayRequestHandlers } from "./types.js";
-import { resolveAgentWorkspaceDir } from "../../agents/workspace.js";
+import { resolveAgentWorkspaceDir } from "../../agents/agent-scope.js";
 import { loadConfig } from "../../config/config.js";
 import { decorateTaskWithReadiness } from "../../infra/task-readiness.js";
 import { ErrorCodes, errorShape } from "../protocol/index.js";

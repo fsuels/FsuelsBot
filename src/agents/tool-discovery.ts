@@ -255,11 +255,9 @@ export function applyToolDiscoveryMetadata(
   const isProviderTool =
     tool.isProviderTool ??
     (options?.isPluginTool === true || PROVIDER_BACKED_TOOL_NAMES.has(normalizedName));
-  const shouldDefer =
-    alwaysLoad === true
-      ? false
-      : (tool.shouldDefer ??
-        (isProviderTool || DEFERRED_BY_DEFAULT_TOOL_NAMES.has(normalizedName)));
+  const shouldDefer = alwaysLoad
+    ? false
+    : (tool.shouldDefer ?? (isProviderTool || DEFERRED_BY_DEFAULT_TOOL_NAMES.has(normalizedName)));
   const searchSummary = resolveToolSearchSummary(tool);
 
   return {
@@ -334,9 +332,7 @@ export function resolveDeferredToolQuery(params: {
     matches = allIndexedTools
       .filter((tool) => matchesRequiredTerms(tool, requiredTerms))
       .map((tool) => ({ tool, score: scoreToolForTerms(tool, rankingTerms) }))
-      .filter(
-        ({ score, tool }) => score > 0 || rankingTerms.length === 0 || requiredTerms.length > 0,
-      )
+      .filter(({ score }) => score > 0 || rankingTerms.length === 0 || requiredTerms.length > 0)
       .toSorted((left, right) => {
         if (right.score !== left.score) {
           return right.score - left.score;

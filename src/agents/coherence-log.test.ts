@@ -337,8 +337,8 @@ describe("selectEventsForInjection", () => {
     const selected = selectEventsForInjection(state, now);
     expect(selected).toHaveLength(2);
     // FAILED should come first (higher verb bonus)
-    expect(selected[0]!.verb).toBe(EventVerb.FAILED);
-    expect(selected[1]!.verb).toBe(EventVerb.CHANGED);
+    expect(selected[0].verb).toBe(EventVerb.FAILED);
+    expect(selected[1].verb).toBe(EventVerb.CHANGED);
   });
 
   it("caps at MAX_EVENT_LINES (8)", () => {
@@ -503,7 +503,7 @@ describe("backward compatibility", () => {
     // selectEventsForInjection should only pick up the structured one
     const selected = selectEventsForInjection(state, now);
     expect(selected).toHaveLength(1);
-    expect(selected[0]!.verb).toBe(EventVerb.CHANGED);
+    expect(selected[0].verb).toBe(EventVerb.CHANGED);
   });
 });
 
@@ -902,8 +902,8 @@ describe("evaluatePromotionCandidates", () => {
       now: 2000,
     });
     expect(candidates).toHaveLength(1);
-    expect(candidates[0]!.verb).toBe(EventVerb.FAILED);
-    expect(candidates[0]!.seenInSessions).toEqual(["s1"]);
+    expect(candidates[0].verb).toBe(EventVerb.FAILED);
+    expect(candidates[0].seenInSessions).toEqual(["s1"]);
     expect(promoted).toHaveLength(0);
   });
 
@@ -957,8 +957,8 @@ describe("evaluatePromotionCandidates", () => {
       now,
     });
     expect(promoted).toHaveLength(1);
-    expect(promoted[0]!.verb).toBe(EventVerb.FAILED);
-    expect(promoted[0]!.occurrences).toBe(3);
+    expect(promoted[0].verb).toBe(EventVerb.FAILED);
+    expect(promoted[0].occurrences).toBe(3);
     // Candidate should be removed after promotion
     expect(candidates.find((c) => c.subject === "exec")).toBeUndefined();
   });
@@ -994,8 +994,8 @@ describe("evaluatePromotionCandidates", () => {
       now,
     });
     expect(promoted).toHaveLength(1);
-    expect(promoted[0]!.occurrences).toBe(4);
-    expect(promoted[0]!.sourceSessionKeys).toContain("s4");
+    expect(promoted[0].occurrences).toBe(4);
+    expect(promoted[0].sourceSessionKeys).toContain("s4");
   });
 
   it("promotes pinned events at lower threshold (2 sessions)", () => {
@@ -1036,7 +1036,7 @@ describe("evaluatePromotionCandidates", () => {
       now,
     });
     expect(promoted).toHaveLength(1);
-    expect(promoted[0]!.occurrences).toBe(2);
+    expect(promoted[0].occurrences).toBe(2);
   });
 });
 
@@ -1067,7 +1067,7 @@ describe("pruneRetiredPromotedEvents", () => {
     ];
     const pruned = pruneRetiredPromotedEvents(events, now);
     expect(pruned).toHaveLength(1);
-    expect(pruned[0]!.subject).toBe("b");
+    expect(pruned[0].subject).toBe("b");
   });
 });
 

@@ -638,7 +638,7 @@ function rejectUnsupportedReadBinary(params: {
     contractCode: "invalid_input",
     message:
       `read only supports text files and images here. ` +
-      `${params.mimeType ? `This file appears to be ${params.mimeType}. ` : ""}` +
+      (params.mimeType ? `This file appears to be ${params.mimeType}. ` : "") +
       "Use a more appropriate tool for binary content.",
     details: {
       path: params.resolvedPath,

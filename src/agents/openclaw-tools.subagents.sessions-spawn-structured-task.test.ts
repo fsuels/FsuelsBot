@@ -33,8 +33,12 @@ describe("sessions_spawn structured task specs", () => {
     callGatewayMock.mockImplementation(async (opts: unknown) => {
       const request = opts as { method?: string; params?: Record<string, unknown> };
       if (request.method === "agent") {
+        const idempotencyKey =
+          typeof request.params?.idempotencyKey === "string"
+            ? request.params.idempotencyKey
+            : "run-1";
         return {
-          runId: String(request.params?.idempotencyKey ?? "run-1"),
+          runId: idempotencyKey,
           status: "accepted",
         };
       }
@@ -90,8 +94,12 @@ describe("sessions_spawn structured task specs", () => {
     callGatewayMock.mockImplementation(async (opts: unknown) => {
       const request = opts as { method?: string; params?: Record<string, unknown> };
       if (request.method === "agent") {
+        const idempotencyKey =
+          typeof request.params?.idempotencyKey === "string"
+            ? request.params.idempotencyKey
+            : "run-2";
         return {
-          runId: String(request.params?.idempotencyKey ?? "run-2"),
+          runId: idempotencyKey,
           status: "accepted",
         };
       }

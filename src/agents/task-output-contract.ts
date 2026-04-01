@@ -25,7 +25,7 @@ export type TaskAwaitingInput = {
 
 export type TaskOutput = {
   task_id: string;
-  task_type: "shell" | "agent" | "remote_agent" | string;
+  task_type: string;
   status: TaskOutputStatus;
   description: string;
   output_path?: string;

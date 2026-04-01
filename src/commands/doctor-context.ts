@@ -203,9 +203,7 @@ async function loadDoctorContextPayload(cfg: OpenClawConfig): Promise<DoctorCont
     provider: modelRef.provider,
     model: modelRef.model,
     contextTokens: contextInfo.tokens,
-    messageProvider: (sessionEntry?.channel ?? sessionEntry?.lastChannel ?? undefined) as
-      | string
-      | undefined,
+    messageProvider: sessionEntry?.channel ?? sessionEntry?.lastChannel ?? undefined,
     senderIsOwner: true,
     resolvedThinkLevel: sessionEntry?.thinkingLevel as
       | "off"

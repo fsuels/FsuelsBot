@@ -166,7 +166,7 @@ export type EmbeddedRuntimeState = {
     durationMs: number;
     details?: Record<string, unknown>;
   }) => EmbeddedRuntimeSlowOperationEntry;
-  setExtensionRuntime: (key: string, value: unknown | null) => void;
+  setExtensionRuntime: (key: string, value: unknown) => void;
   getExtensionRuntime: <T = unknown>(key: string) => T | null;
   getSessionSnapshot: () => EmbeddedRuntimeSessionSnapshot;
   getPathsSnapshot: () => EmbeddedRuntimePathsSnapshot;
@@ -532,7 +532,7 @@ export function wrapStreamFnWithRuntimeState(params: {
         provider: model?.provider,
         api: model?.api,
       },
-      options: isRecord(options) ? (options as Record<string, unknown>) : undefined,
+      options: isRecord(options) ? options : undefined,
       system: (context as { system?: unknown }).system,
       messages: ((context as { messages?: AgentMessage[] }).messages ?? []).slice(),
       wasPostCompaction,

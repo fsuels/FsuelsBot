@@ -82,15 +82,16 @@ export function processQaFeedback(params: {
   }
 
   // Record feedback on the Q/A pair
-  const feedbackText =
-    feedback === "correction" ? `correction: ${correction ?? ""}` : feedback;
+  const feedbackText = feedback === "correction" ? `correction: ${correction ?? ""}` : feedback;
   updateQaFeedback(db, qaId, feedbackText, correction);
 
   // Process referenced claims
   const claimUpdates: FeedbackResult["claimUpdates"] = [];
   for (const claimId of qa.claimRefs) {
     const claim = getClaim(db, claimId);
-    if (!claim) continue;
+    if (!claim) {
+      continue;
+    }
 
     const updated = applyFeedbackToClaim({
       claim,
@@ -136,10 +137,14 @@ export function processClaimFeedback(params: {
   const thresholds = { ...DEFAULT_THRESHOLDS, ...params.thresholds };
 
   const claim = getClaim(db, claimId);
-  if (!claim) return null;
+  if (!claim) {
+    return null;
+  }
 
   const updated = applyFeedbackToClaim({ claim, feedback, thresholds, now });
-  if (!updated) return null;
+  if (!updated) {
+    return null;
+  }
 
   upsertClaim(db, { ...claim, confidence: updated.newConfidence, updatedAt: now });
   if (updated.newStatus !== claim.status) {
@@ -283,7 +288,10 @@ export function applyImplicitAcceptance(params: {
 
   // Guardrail (b): Multi-turn validation — require 2+ consecutive non-dispute turns
   if (consecutiveNonDisputeTurns < 2) {
-    return { applied: false, reason: `Only ${consecutiveNonDisputeTurns} non-dispute turns (need 2)` };
+    return {
+      applied: false,
+      reason: `Only ${consecutiveNonDisputeTurns} non-dispute turns (need 2)`,
+    };
   }
 
   const claim = getClaim(db, claimId);
@@ -298,7 +306,10 @@ export function applyImplicitAcceptance(params: {
 
   // Guardrail (a): Confidence gate
   if (claim.confidence < IMPLICIT_MIN_CONFIDENCE_GATE) {
-    return { applied: false, reason: `Confidence ${claim.confidence} below gate ${IMPLICIT_MIN_CONFIDENCE_GATE}` };
+    return {
+      applied: false,
+      reason: `Confidence ${claim.confidence} below gate ${IMPLICIT_MIN_CONFIDENCE_GATE}`,
+    };
   }
 
   // Guardrail (d): Cap at IMPLICIT_MAX_CONFIDENCE

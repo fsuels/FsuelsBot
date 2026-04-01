@@ -5,12 +5,7 @@
  * and persist drift/coherence state to the session store.
  */
 
-import {
-  type CorrectionEvent,
-  resolveDriftState,
-  recordTurnOutcome,
-  buildDriftPromptInjection,
-} from "../../agents/drift-detection.js";
+import { resolveCapabilityLedger, upsertCapability } from "../../agents/capability-ledger.js";
 import {
   resolveCoherenceLog,
   appendCoherenceEntry,
@@ -22,15 +17,20 @@ import {
   evaluatePromotionCandidates,
 } from "../../agents/coherence-log.js";
 import {
+  type CorrectionEvent,
+  resolveDriftState,
+  recordTurnOutcome,
+  buildDriftPromptInjection,
+} from "../../agents/drift-detection.js";
+import {
   resolveToolFailureState,
   recordToolOutcome,
   recordFailureSignature,
   resolveFailureSignatures,
 } from "../../agents/tool-failure-tracker.js";
-import { resolveCapabilityLedger, upsertCapability } from "../../agents/capability-ledger.js";
 import { updateSessionStoreEntry, type SessionEntry } from "../../config/sessions.js";
-import { resolveThreadParentSessionKey } from "../../sessions/session-key-utils.js";
 import { logVerbose } from "../../globals.js";
+import { resolveThreadParentSessionKey } from "../../sessions/session-key-utils.js";
 
 export type TurnCorrectionSignals = {
   /** Whether a model fallback was used (provider/model differs from configured default). */
@@ -66,7 +66,9 @@ export async function persistDriftCoherenceUpdate(params: {
   userCorrectionHint?: string;
 }): Promise<void> {
   const { storePath, sessionKey, signals } = params;
-  if (!storePath || !sessionKey) return;
+  if (!storePath || !sessionKey) {
+    return;
+  }
 
   const now = Date.now();
 
@@ -311,7 +313,9 @@ export async function persistDriftCoherenceUpdate(params: {
             );
           }
 
-          if (turnEvents.length === 0) return null;
+          if (turnEvents.length === 0) {
+            return null;
+          }
 
           const { candidates, promoted } = evaluatePromotionCandidates({
             sessionKey,
@@ -326,7 +330,9 @@ export async function persistDriftCoherenceUpdate(params: {
           const candidatesChanged =
             candidates.length !== (parentEntry.promotionCandidates ?? []).length;
           const promotedChanged = promoted.length !== (parentEntry.promotedEvents ?? []).length;
-          if (!candidatesChanged && !promotedChanged) return null;
+          if (!candidatesChanged && !promotedChanged) {
+            return null;
+          }
 
           return {
             promotionCandidates: candidates,
@@ -347,7 +353,9 @@ export async function persistDriftCoherenceUpdate(params: {
 export function resolveDriftInjectionForSession(
   entry?: SessionEntry,
 ): ReturnType<typeof buildDriftPromptInjection> {
-  if (!entry) return null;
+  if (!entry) {
+    return null;
+  }
   const state = resolveDriftState({
     driftEvents: entry.driftEvents,
     driftBaselineRate: entry.driftBaselineRate,

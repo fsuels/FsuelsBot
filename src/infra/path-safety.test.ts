@@ -61,7 +61,7 @@ describe("path-safety", () => {
   });
 
   it("rejects null bytes in paths", () => {
-    expect(() => assertNoNullBytes(`bad${"\0"}path`)).toThrow(/null byte/i);
+    expect(() => assertNoNullBytes("bad\0path")).toThrow(/null byte/i);
   });
 
   it("supports @-prefixed edit paths via stripAtPrefix", () => {

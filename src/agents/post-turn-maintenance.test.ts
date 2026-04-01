@@ -80,8 +80,8 @@ describe("shouldSchedulePostTurnMaintenance", () => {
 
 describe("createPostTurnMaintenanceManager", () => {
   it("coalesces overlapping schedules and keeps only the latest trailing context", async () => {
-    const firstStarted = deferred<void>();
-    const allowFirstToFinish = deferred<void>();
+    const firstStarted = deferred();
+    const allowFirstToFinish = deferred();
     const seenTaskIds: string[] = [];
     const manager = createPostTurnMaintenanceManager([
       {
@@ -108,10 +108,10 @@ describe("createPostTurnMaintenanceManager", () => {
   });
 
   it("drains one queue without waiting for unrelated queues", async () => {
-    const queueABlocked = deferred<void>();
-    const queueBBlocked = deferred<void>();
-    const queueAStarted = deferred<void>();
-    const queueBStarted = deferred<void>();
+    const queueABlocked = deferred();
+    const queueBBlocked = deferred();
+    const queueAStarted = deferred();
+    const queueBStarted = deferred();
     let queueBReleased = false;
 
     const manager = createPostTurnMaintenanceManager([
@@ -146,8 +146,8 @@ describe("createPostTurnMaintenanceManager", () => {
   });
 
   it("creates fresh isolated state for each manager instance", async () => {
-    const blocker = deferred<void>();
-    const started = deferred<void>();
+    const blocker = deferred();
+    const started = deferred();
     const managerA = createPostTurnMaintenanceManager([
       {
         name: "test-job",

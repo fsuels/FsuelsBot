@@ -168,7 +168,7 @@ describe("memory_search task context", () => {
       },
     };
     const tool = createMemorySearchTool({
-      config: cfg as any,
+      config: cfg as unknown as NonNullable<Parameters<typeof createMemorySearchTool>[0]["config"]>,
       agentSessionKey: "agent:main:main",
       taskId: "task-a",
     });

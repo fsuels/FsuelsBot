@@ -133,17 +133,13 @@ async function withCleanupTransition(runId: string, task: () => Promise<void>) {
   if (existing) {
     return existing;
   }
-  let promise: Promise<void>;
-  promise = (async () => {
-    try {
-      await task();
-    } finally {
-      if (cleanupTransitions.get(runId) === promise) {
-        cleanupTransitions.delete(runId);
-      }
-    }
-  })();
+  const promise = task();
   cleanupTransitions.set(runId, promise);
+  void promise.finally(() => {
+    if (cleanupTransitions.get(runId) === promise) {
+      cleanupTransitions.delete(runId);
+    }
+  });
   return promise;
 }
 

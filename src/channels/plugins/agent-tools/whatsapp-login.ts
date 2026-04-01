@@ -27,7 +27,7 @@ function buildAuthResult(payload: WhatsAppAuthPayload) {
 }
 
 export function createWhatsAppLoginTool(): ChannelAgentTool {
-  return {
+  const tool: ChannelAgentTool = {
     label: "WhatsApp Login",
     name: "whatsapp_login",
     description:
@@ -43,7 +43,6 @@ export function createWhatsAppLoginTool(): ChannelAgentTool {
       timeoutMs: Type.Optional(Type.Number()),
       force: Type.Optional(Type.Boolean()),
     }),
-    isConcurrencySafe: () => false,
     execute: async (_toolCallId, args) => {
       const { startWebLoginWithQr, waitForWebLogin } = await import("../../../web/login-qr.js");
       const action = (args as { action?: string })?.action ?? "start";
@@ -92,4 +91,7 @@ export function createWhatsAppLoginTool(): ChannelAgentTool {
       });
     },
   };
+  return Object.assign(tool, {
+    isConcurrencySafe: () => false,
+  });
 }

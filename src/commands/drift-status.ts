@@ -5,7 +5,13 @@
  * Used for threshold calibration and debugging.
  */
 
-import { resolveDriftState, formatDriftStatus } from "../agents/drift-detection.js";
+import type { SessionEntry } from "../config/sessions/types.js";
+import type { RuntimeEnv } from "../runtime.js";
+import {
+  resolveCapabilityLedger,
+  formatCapabilityStatus,
+  computeCapabilityReliability,
+} from "../agents/capability-ledger.js";
 import {
   resolveCoherenceLog,
   formatCoherenceLog,
@@ -16,15 +22,9 @@ import {
   formatTrustStatus,
   formatPromotedEventsStatus,
 } from "../agents/coherence-log.js";
-import {
-  resolveCapabilityLedger,
-  formatCapabilityStatus,
-  computeCapabilityReliability,
-} from "../agents/capability-ledger.js";
-import { loadSessionStore, resolveStorePath } from "../config/sessions.js";
+import { resolveDriftState, formatDriftStatus } from "../agents/drift-detection.js";
 import { loadConfig } from "../config/config.js";
-import type { SessionEntry } from "../config/sessions/types.js";
-import type { RuntimeEnv } from "../runtime.js";
+import { loadSessionStore, resolveStorePath } from "../config/sessions.js";
 
 export async function driftStatusCommand(
   params: {
@@ -66,7 +66,9 @@ export async function driftStatusCommand(
   }> = [];
 
   for (const [key, entry] of Object.entries(entries)) {
-    if (!entry) continue;
+    if (!entry) {
+      continue;
+    }
 
     const driftState = resolveDriftState({
       driftEvents: entry.driftEvents,

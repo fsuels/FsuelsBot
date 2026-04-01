@@ -218,8 +218,8 @@ describe("vector search", () => {
     // Query vector close to claimA
     const results = searchClaimsByVector(db, [0.9, 0.1, 0, 0]);
     expect(results.length).toBeGreaterThanOrEqual(1);
-    expect(results[0]!.id).toBe(claimA.id);
-    expect(results[0]!.similarityScore).toBeGreaterThan(0.8);
+    expect(results[0].id).toBe(claimA.id);
+    expect(results[0].similarityScore).toBeGreaterThan(0.8);
   });
 
   it("respects scope filter in vector search", () => {

@@ -97,7 +97,9 @@ function isCorrection(event: CorrectionEvent): boolean {
  * More recent events contribute more heavily.
  */
 function computeWeightedRate(events: CorrectionEvent[]): number {
-  if (events.length === 0) return 0;
+  if (events.length === 0) {
+    return 0;
+  }
 
   let weightedCorrections = 0;
   let totalWeight = 0;
@@ -108,7 +110,7 @@ function computeWeightedRate(events: CorrectionEvent[]): number {
     const recency = i; // higher = more recent
     const weight = Math.exp((ln2 * recency) / DECAY_HALF_LIFE_TURNS);
     totalWeight += weight;
-    if (isCorrection(events[i]!)) {
+    if (isCorrection(events[i])) {
       weightedCorrections += weight;
     }
   }
@@ -171,7 +173,9 @@ export function resolveDriftState(raw: {
       : 0;
   const level = (() => {
     const v = raw.driftLevel;
-    if (v === "warning" || v === "drift" || v === "critical") return v;
+    if (v === "warning" || v === "drift" || v === "critical") {
+      return v;
+    }
     return "normal" as const;
   })();
   const levelChangedAt =
@@ -320,13 +324,19 @@ export function shouldEscalateThinking(params: {
   canEscalate: boolean; // from canEscalateThinking(posture)
 }): string | undefined {
   // Only escalate on critical drift
-  if (params.driftLevel !== "critical") return undefined;
+  if (params.driftLevel !== "critical") {
+    return undefined;
+  }
 
   // Only in struggling or degraded posture
-  if (params.postureMode !== "struggling" && params.postureMode !== "degraded") return undefined;
+  if (params.postureMode !== "struggling" && params.postureMode !== "degraded") {
+    return undefined;
+  }
 
   // Escalation cap check (Invariant 3: max 1 per run)
-  if (!params.canEscalate) return undefined;
+  if (!params.canEscalate) {
+    return undefined;
+  }
 
   const currentIndex = THINKING_ESCALATION_CHAIN.indexOf(params.currentThinkingLevel);
   if (currentIndex < 0) {
@@ -335,7 +345,9 @@ export function shouldEscalateThinking(params: {
   }
 
   // Already at max
-  if (currentIndex >= THINKING_ESCALATION_CHAIN.length - 1) return undefined;
+  if (currentIndex >= THINKING_ESCALATION_CHAIN.length - 1) {
+    return undefined;
+  }
 
   return THINKING_ESCALATION_CHAIN[currentIndex + 1];
 }
@@ -372,12 +384,24 @@ export function formatDriftStatus(state: DriftState): string {
     contextOverflow: 0,
   };
   for (const event of state.events) {
-    if (event.modelFallback) breakdown.modelFallback++;
-    if (event.toolRetry) breakdown.toolRetry++;
-    if (event.forcedCompaction) breakdown.forcedCompaction++;
-    if (event.thinkingEscalation) breakdown.thinkingEscalation++;
-    if (event.sessionReset) breakdown.sessionReset++;
-    if (event.contextOverflow) breakdown.contextOverflow++;
+    if (event.modelFallback) {
+      breakdown.modelFallback++;
+    }
+    if (event.toolRetry) {
+      breakdown.toolRetry++;
+    }
+    if (event.forcedCompaction) {
+      breakdown.forcedCompaction++;
+    }
+    if (event.thinkingEscalation) {
+      breakdown.thinkingEscalation++;
+    }
+    if (event.sessionReset) {
+      breakdown.sessionReset++;
+    }
+    if (event.contextOverflow) {
+      breakdown.contextOverflow++;
+    }
   }
   const parts = Object.entries(breakdown)
     .filter(([, count]) => count > 0)

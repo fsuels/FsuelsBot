@@ -158,11 +158,7 @@ export function createTaskPlanTool(opts?: {
           });
         }
 
-        const payload = {
-          action,
-          changed: result.changed,
-          ...result,
-        };
+        const payload = { action, ...result };
         return {
           content: [{ type: "text" as const, text: renderTaskPlanResult(payload) }],
           details: payload,

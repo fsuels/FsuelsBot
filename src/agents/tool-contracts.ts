@@ -38,9 +38,9 @@ type LegacyValidateInput = (params: {
   toolCallId: string;
   signal?: AbortSignal;
 }) =>
-  | Promise<ToolInputValidationResult | ToolValidationResult<unknown>>
+  | Promise<ToolInputValidationResult | ToolValidationResult>
   | ToolInputValidationResult
-  | ToolValidationResult<unknown>;
+  | ToolValidationResult;
 
 type OpenClawValidateInput = (
   input: unknown,

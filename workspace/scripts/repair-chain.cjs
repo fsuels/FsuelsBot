@@ -32,7 +32,7 @@ function repairChain(filePath) {
     let event;
     try {
       event = JSON.parse(line);
-    } catch (e) {
+    } catch {
       newLines.push(line);
       continue;
     }

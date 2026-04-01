@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from "vitest";
-
 import type { SessionsListResult } from "../types";
 import { loadSessions, patchSession, type SessionsState } from "./sessions";
 
@@ -13,7 +12,9 @@ function createSessionsResult(): SessionsListResult {
   };
 }
 
-function createState(request: (method: string, params: unknown) => Promise<unknown>): SessionsState {
+function createState(
+  request: (method: string, params: unknown) => Promise<unknown>,
+): SessionsState {
   return {
     client: { request } as unknown as SessionsState["client"],
     connected: true,
@@ -31,12 +32,12 @@ function createState(request: (method: string, params: unknown) => Promise<unkno
 describe("sessions controller", () => {
   it("loads sessions and model catalog together", async () => {
     const request = vi.fn(async (method: string) => {
-      if (method === "sessions.list") return createSessionsResult();
+      if (method === "sessions.list") {
+        return createSessionsResult();
+      }
       if (method === "models.list") {
         return {
-          models: [
-            { provider: "openai-codex", id: "gpt-5.2", name: "GPT-5.2" },
-          ],
+          models: [{ provider: "openai-codex", id: "gpt-5.2", name: "GPT-5.2" }],
         };
       }
       return {};
@@ -59,8 +60,12 @@ describe("sessions controller", () => {
 
   it("sends model updates through sessions.patch", async () => {
     const request = vi.fn(async (method: string) => {
-      if (method === "sessions.list") return createSessionsResult();
-      if (method === "models.list") return { models: [] };
+      if (method === "sessions.list") {
+        return createSessionsResult();
+      }
+      if (method === "models.list") {
+        return { models: [] };
+      }
       return {};
     });
     const state = createState(request);

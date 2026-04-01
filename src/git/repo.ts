@@ -317,11 +317,13 @@ export function hashGitRepositoryIdentity(params: {
   remotes?: string[];
 }): string | undefined {
   const remotes = Array.isArray(params.remotes)
-    ? params.remotes.map((remote) => normalizeGitRemoteUrl(remote)).filter(Boolean)
+    ? params.remotes
+        .map((remote) => normalizeGitRemoteUrl(remote))
+        .filter((remote): remote is string => Boolean(remote))
     : [];
   const parts =
     remotes.length > 0
-      ? [...new Set(remotes)].toSorted()
+      ? [...new Set(remotes)].toSorted((left, right) => left.localeCompare(right))
       : [params.gitCommonDir ?? params.canonicalRoot].filter(Boolean);
   if (parts.length === 0) {
     return undefined;

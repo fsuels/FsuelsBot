@@ -383,7 +383,8 @@ export async function persistTaskCheckpointIfDue(params: {
         });
       }
     } catch (err) {
-      log.warn(`periodic task checkpoint failed: ${err}`);
+      const detail = err instanceof Error ? err.message : Object.prototype.toString.call(err);
+      log.warn(`periodic task checkpoint failed: ${detail}`);
     }
   }
 }

@@ -246,7 +246,9 @@ export function supportsTerminalHyperlinks(options?: TerminalCapabilityOptions):
   return getTerminalCapabilities(options).supportsHyperlinks;
 }
 
-export function createTerminalChalk(options: TerminalCapabilityOptions = {}): Chalk {
+export function createTerminalChalk(
+  options: TerminalCapabilityOptions = {},
+): InstanceType<typeof Chalk> {
   return new Chalk({
     level: resolveTerminalCapabilities(options).colorLevel,
   });

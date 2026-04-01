@@ -42,9 +42,9 @@ describe("extractClaimsFromSnapshot", () => {
       scope: "global",
     });
     expect(claims).toHaveLength(2);
-    expect(claims[0]!.claimType).toBe("decision");
-    expect(claims[0]!.confidence).toBe(0.7);
-    expect(claims[0]!.text).toBe("Use PostgreSQL for data storage");
+    expect(claims[0].claimType).toBe("decision");
+    expect(claims[0].confidence).toBe(0.7);
+    expect(claims[0].text).toBe("Use PostgreSQL for data storage");
   });
 
   it("extracts goal as a decision claim", () => {
@@ -64,9 +64,9 @@ describe("extractClaimsFromSnapshot", () => {
       taskId: "task-goal",
     });
     expect(claims).toHaveLength(1);
-    expect(claims[0]!.claimType).toBe("decision");
-    expect(claims[0]!.text).toBe("Migrate to microservices architecture");
-    expect(claims[0]!.taskId).toBe("task-goal");
+    expect(claims[0].claimType).toBe("decision");
+    expect(claims[0].text).toBe("Migrate to microservices architecture");
+    expect(claims[0].taskId).toBe("task-goal");
   });
 
   it("extracts key entities as fact claims with confidence 0.6", () => {
@@ -105,9 +105,9 @@ describe("extractClaimsFromSnapshot", () => {
       scope: "global",
     });
     expect(claims).toHaveLength(3);
-    expect(claims[0]!.claimType).toBe("rule"); // "Must" → rule
-    expect(claims[1]!.claimType).toBe("preference"); // "prefers" → preference
-    expect(claims[2]!.claimType).toBe("fact"); // default → fact
+    expect(claims[0].claimType).toBe("rule"); // "Must" → rule
+    expect(claims[1].claimType).toBe("preference"); // "prefers" → preference
+    expect(claims[2].claimType).toBe("fact"); // default → fact
     for (const claim of claims) {
       expect(claim.confidence).toBe(0.9);
     }
@@ -212,12 +212,12 @@ describe("extractClaimsFromPins", () => {
 
     const claims = extractClaimsFromPins({ db, pins });
     expect(claims).toHaveLength(2);
-    expect(claims[0]!.claimType).toBe("fact");
-    expect(claims[0]!.evidenceRefs).toEqual(["pin_001"]);
-    expect(claims[0]!.confidence).toBe(0.9);
-    expect(claims[1]!.claimType).toBe("rule"); // constraint → rule
-    expect(claims[1]!.scope).toBe("task");
-    expect(claims[1]!.taskId).toBe("task-b");
+    expect(claims[0].claimType).toBe("fact");
+    expect(claims[0].evidenceRefs).toEqual(["pin_001"]);
+    expect(claims[0].confidence).toBe(0.9);
+    expect(claims[1].claimType).toBe("rule"); // constraint → rule
+    expect(claims[1].scope).toBe("task");
+    expect(claims[1].taskId).toBe("task-b");
   });
 
   it("maps pin types to claim types correctly", () => {
@@ -249,10 +249,10 @@ describe("extractClaimsFromPins", () => {
       },
     ];
     const claims = extractClaimsFromPins({ db, pins });
-    expect(claims[0]!.claimType).toBe("fact");
-    expect(claims[1]!.claimType).toBe("preference");
-    expect(claims[2]!.claimType).toBe("rule");
-    expect(claims[3]!.claimType).toBe("fact"); // temporary → fact
+    expect(claims[0].claimType).toBe("fact");
+    expect(claims[1].claimType).toBe("preference");
+    expect(claims[2].claimType).toBe("rule");
+    expect(claims[3].claimType).toBe("fact"); // temporary → fact
   });
 });
 
@@ -283,7 +283,7 @@ describe("storeExtractedClaims", () => {
     expect(stored2).toBe(0);
 
     // Verify in DB
-    const retrieved = getClaim(db, claims[0]!.id);
+    const retrieved = getClaim(db, claims[0].id);
     expect(retrieved).not.toBeNull();
     expect(retrieved!.text).toBe("Store claim test");
   });

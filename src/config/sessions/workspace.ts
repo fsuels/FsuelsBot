@@ -41,7 +41,11 @@ function normalizeStringArray(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) {
     return undefined;
   }
-  const normalized = [...new Set(value.map(normalizeStringValue).filter(Boolean))].toSorted();
+  const normalized = [
+    ...new Set(
+      value.map(normalizeStringValue).filter((entry): entry is string => typeof entry === "string"),
+    ),
+  ].toSorted();
   return normalized.length > 0 ? normalized : undefined;
 }
 

@@ -182,7 +182,7 @@ export async function promoteBotQueueTaskIfIdle(params: {
         return { status: "skipped", reason: "bot-queue-empty", path: boardPath };
       }
 
-      const nextTaskId = botQueue[0] as string;
+      const nextTaskId = botQueue[0];
       lanes.bot_current = [nextTaskId];
       lanes.bot_queue = botQueue.slice(1);
 

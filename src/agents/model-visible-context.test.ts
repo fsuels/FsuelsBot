@@ -155,8 +155,6 @@ describe("projectConversationForModel", () => {
       key: "projected",
       changed: true,
     });
-    expect(messageText(projection.projectedMessages[1] as AgentMessage)).toContain(
-      "Content truncated",
-    );
+    expect(messageText(projection.projectedMessages[1])).toContain("Content truncated");
   });
 });

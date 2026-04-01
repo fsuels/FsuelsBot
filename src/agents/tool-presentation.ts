@@ -60,9 +60,9 @@ function safeJsonStringify(value: unknown): string {
   }
   try {
     const serialized = JSON.stringify(value);
-    return typeof serialized === "string" ? serialized : String(value);
+    return typeof serialized === "string" ? serialized : Object.prototype.toString.call(value);
   } catch {
-    return String(value);
+    return Object.prototype.toString.call(value);
   }
 }
 
@@ -548,6 +548,6 @@ export function renderToolResultText(
   try {
     return JSON.stringify(record, null, 2);
   } catch {
-    return String(result);
+    return Object.prototype.toString.call(result);
   }
 }

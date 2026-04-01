@@ -133,7 +133,7 @@ export function extractVisibleMessageMeta(message: unknown): VisibleMessageMeta 
   const record = raw as Record<string, unknown>;
   const attachments = Array.isArray(record.attachments)
     ? record.attachments
-        .map((attachment) => {
+        .map((attachment): VisibleAttachment | null => {
           if (!attachment || typeof attachment !== "object" || Array.isArray(attachment)) {
             return null;
           }
@@ -148,16 +148,17 @@ export function extractVisibleMessageMeta(message: unknown): VisibleMessageMeta 
           if (!name || !source) {
             return null;
           }
+          const sizeBytes =
+            typeof value.sizeBytes === "number" && Number.isFinite(value.sizeBytes)
+              ? value.sizeBytes
+              : undefined;
           return {
             kind,
             name,
             source,
-            mimeType,
-            sizeBytes:
-              typeof value.sizeBytes === "number" && Number.isFinite(value.sizeBytes)
-                ? value.sizeBytes
-                : undefined,
-          } satisfies VisibleAttachment;
+            ...(mimeType ? { mimeType } : {}),
+            ...(sizeBytes !== undefined ? { sizeBytes } : {}),
+          };
         })
         .filter((value): value is VisibleAttachment => value !== null)
     : undefined;

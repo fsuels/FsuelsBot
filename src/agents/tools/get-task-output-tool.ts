@@ -66,7 +66,7 @@ function buildWaitingUpdate(taskId: string) {
   return {
     content: [
       {
-        type: "text",
+        type: "text" as const,
         text: `Waiting for task ${taskId} to finish...`,
       },
     ],

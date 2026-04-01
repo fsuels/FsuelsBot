@@ -20,7 +20,9 @@ const logger = createSubsystemLogger("lmstudio-switch");
  * Runs entirely in the background — does not block the caller.
  */
 export function switchLmStudioModelIfNeeded(modelId: string): void {
-  if (!modelId || !existsSync(LMS_CLI)) return;
+  if (!modelId || !existsSync(LMS_CLI)) {
+    return;
+  }
 
   logger.info(`switching LM Studio model to ${modelId}`);
 

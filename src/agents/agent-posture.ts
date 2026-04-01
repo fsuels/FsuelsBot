@@ -152,7 +152,11 @@ function computeTargetMode(signals: PostureSignals): PostureMode {
 export function updatePosture(
   current: AgentPosture,
   signals: PostureSignals,
-): { posture: AgentPosture; transition?: PostureTransition; violations: PostureInvariantViolation[] } {
+): {
+  posture: AgentPosture;
+  transition?: PostureTransition;
+  violations: PostureInvariantViolation[];
+} {
   const violations: PostureInvariantViolation[] = [];
 
   // Update signal fields
@@ -233,7 +237,9 @@ export function updatePosture(
     };
     recentTransitions.push({ turn: signals.currentTurn, from: current.mode, to: newMode });
     // Keep only last 5 transitions
-    while (recentTransitions.length > 5) recentTransitions.shift();
+    while (recentTransitions.length > 5) {
+      recentTransitions.shift();
+    }
 
     next.mode = newMode;
     next.previousMode = current.mode;
@@ -245,12 +251,24 @@ export function updatePosture(
   return { posture: next, transition, violations };
 }
 
-function buildTransitionReason(signals: PostureSignals, from: PostureMode, to: PostureMode): string {
+function buildTransitionReason(
+  signals: PostureSignals,
+  from: PostureMode,
+  to: PostureMode,
+): string {
   const parts: string[] = [];
-  if (signals.driftLevel !== "normal") parts.push(`drift=${signals.driftLevel}`);
-  if (signals.contextPressure > 0.7) parts.push(`pressure=${(signals.contextPressure * 100).toFixed(0)}%`);
-  if (signals.toolHealthRatio < 0.8) parts.push(`toolHealth=${(signals.toolHealthRatio * 100).toFixed(0)}%`);
-  if (!signals.memoryAvailable) parts.push("memory=unavailable");
+  if (signals.driftLevel !== "normal") {
+    parts.push(`drift=${signals.driftLevel}`);
+  }
+  if (signals.contextPressure > 0.7) {
+    parts.push(`pressure=${(signals.contextPressure * 100).toFixed(0)}%`);
+  }
+  if (signals.toolHealthRatio < 0.8) {
+    parts.push(`toolHealth=${(signals.toolHealthRatio * 100).toFixed(0)}%`);
+  }
+  if (!signals.memoryAvailable) {
+    parts.push("memory=unavailable");
+  }
   return `${from}→${to}: ${parts.join(", ") || "recovery"}`;
 }
 
@@ -296,7 +314,9 @@ export function assertToolDisableCeiling(
   disabledCount: number,
   totalCount: number,
 ): PostureInvariantViolation | null {
-  if (totalCount === 0) return null;
+  if (totalCount === 0) {
+    return null;
+  }
   if (disabledCount / totalCount > MAX_TOOL_DISABLE_FRACTION) {
     return {
       invariant: "tool_disable_ceiling",

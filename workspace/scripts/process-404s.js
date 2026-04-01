@@ -595,8 +595,6 @@ const rawUrls = [
   "https://www.dresslikemommy.com/en-au/products/family-matching-battery-t-shirts",
 ];
 
-const domain = "https://www.dresslikemommy.com";
-
 // Collection mapping for known discontinued collections
 const collectionMapping = {
   "maternity-dresses": "/collections/all",
@@ -630,7 +628,7 @@ function getRedirectTarget(fullUrl) {
     const u = new URL(fullUrl);
     path = u.pathname;
     // Strip query params and variants for the redirect path (Shopify redirects don't support query params)
-  } catch (e) {
+  } catch {
     return null;
   }
 
@@ -708,7 +706,7 @@ for (const fullUrl of rawUrls) {
     fromPath = u.pathname;
     // Shopify redirects only work with path (no query string)
     // But we need to include the path as-is
-  } catch (e) {
+  } catch {
     skipped++;
     continue;
   }
@@ -749,7 +747,7 @@ const stats = {
   patterns: {},
 };
 
-for (const [from, to] of redirects) {
+for (const [from] of redirects) {
   if (from.match(/^\/en-[a-z]{2}\//)) {
     stats.patterns["locale_prefix"] = (stats.patterns["locale_prefix"] || 0) + 1;
   } else if (from.match(/^\/collections\/[^/]+\/products\//)) {

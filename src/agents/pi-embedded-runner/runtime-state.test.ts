@@ -81,7 +81,7 @@ describe("embedded runtime state", () => {
     });
 
     state.markPostCompaction();
-    wrapped(
+    void wrapped(
       { id: "claude", provider: "anthropic", api: "anthropic-messages" } as never,
       {
         system: "sys",

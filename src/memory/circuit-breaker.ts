@@ -58,7 +58,7 @@ export class EmbeddingCircuitBreaker {
    * Record a successful embedding call.
    * Resets failure count; if half-open, closes the breaker.
    */
-  recordSuccess(now?: number): void {
+  recordSuccess(_now?: number): void {
     this.consecutiveFailures = 0;
     if (this.state === "half-open") {
       this.state = "closed";
@@ -146,7 +146,9 @@ export class EmbeddingCircuitBreaker {
   /** Get snapshot for serialization/logging. */
   snapshot(now?: number): CircuitBreakerSnapshot {
     // Trigger state transition check
-    if (now !== undefined) this.shouldAllowCall(now);
+    if (now !== undefined) {
+      this.shouldAllowCall(now);
+    }
     return {
       state: this.state,
       consecutiveFailures: this.consecutiveFailures,

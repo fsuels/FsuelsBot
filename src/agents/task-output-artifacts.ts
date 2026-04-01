@@ -112,7 +112,15 @@ function validateArtifactPath(pathname: string, env: NodeJS.ProcessEnv = process
   return resolvedPath;
 }
 
-function readArtifactTextFile(pathname: string, env: NodeJS.ProcessEnv = process.env) {
+type ArtifactTextReadResult =
+  | { exists: false }
+  | { exists: true; text: string }
+  | { exists: true; error: string };
+
+function readArtifactTextFile(
+  pathname: string,
+  env: NodeJS.ProcessEnv = process.env,
+): ArtifactTextReadResult {
   const existingStat = tryLstat(pathname);
   if (!existingStat) {
     return { exists: false as const };
