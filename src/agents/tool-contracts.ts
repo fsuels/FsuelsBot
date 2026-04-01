@@ -1,4 +1,4 @@
-import type { ErrorObject, ValidateFunction } from "ajv";
+import type { ValidateFunction } from "ajv";
 import Ajv from "ajv";
 import type {
   AnyOpenClawTool,
@@ -8,7 +8,9 @@ import type {
 } from "./tool-contract.js";
 import type { AnyAgentTool } from "./tools/common.js";
 import { coerceToolDataToResult, finalizeToolExecutionResult } from "./tool-contract.js";
+import { hardenToolInputForSchema } from "./tool-input-hardening.js";
 import { normalizeToolName } from "./tool-policy.js";
+import { buildValidationIssues, renderValidationIssueText } from "./tool-validation-format.js";
 import { jsonResult } from "./tools/common.js";
 
 export type ToolFailurePayload = {
@@ -54,6 +56,7 @@ const ajv = new Ajv.default({
   allErrors: true,
   allowUnionTypes: true,
   strict: false,
+  coerceTypes: true,
 });
 const validatorCache = new WeakMap<object, ValidateFunction>();
 
@@ -98,36 +101,6 @@ function getValidator(schema: unknown): ValidateFunction | null {
   } catch {
     return null;
   }
-}
-
-function formatValidationPath(err: ErrorObject): string {
-  if (err.keyword === "additionalProperties") {
-    const extra =
-      err.params && typeof err.params === "object" && "additionalProperty" in err.params
-        ? String((err.params as { additionalProperty?: unknown }).additionalProperty)
-        : undefined;
-    return extra ? `/${extra}` : "/";
-  }
-  return err.instancePath?.trim() || "/";
-}
-
-function formatValidationMessage(err: ErrorObject): string {
-  if (err.keyword === "additionalProperties") {
-    const extra =
-      err.params && typeof err.params === "object" && "additionalProperty" in err.params
-        ? String((err.params as { additionalProperty?: unknown }).additionalProperty)
-        : undefined;
-    return extra ? `unexpected property "${extra}"` : "unexpected property";
-  }
-  return err.message?.trim() || "invalid value";
-}
-
-function buildValidationIssues(errors: ErrorObject[] | null | undefined) {
-  return (errors ?? []).map((err) => ({
-    path: formatValidationPath(err),
-    message: formatValidationMessage(err),
-    keyword: err.keyword,
-  }));
 }
 
 function createToolFailureResult(params: {
@@ -224,17 +197,40 @@ async function runCustomValidation(args: {
 
 function validateSchemaInput(tool: AnyAgentTool, input: unknown) {
   const validator = getValidator(tool.parameters);
-  if (!validator) {
-    return { ok: true } as const;
+  let nextInput = input;
+  try {
+    nextInput = hardenToolInputForSchema(tool.parameters, input).value;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return {
+      ok: false,
+      result: createToolFailureResult({
+        toolName: tool.name,
+        code: "invalid_input",
+        message,
+        details: {
+          issues: [
+            {
+              path: "/",
+              message,
+              keyword: "input_sanitization",
+            },
+          ],
+        },
+      }),
+    } as const;
   }
-  const valid = validator(input);
+  if (!validator) {
+    return { ok: true, params: nextInput } as const;
+  }
+  const valid = validator(nextInput);
   if (valid) {
-    return { ok: true } as const;
+    return { ok: true, params: nextInput } as const;
   }
   const issues = buildValidationIssues(validator.errors);
   const message =
     issues.length > 0
-      ? issues.map((issue) => `${issue.path} ${issue.message}`).join("; ")
+      ? issues.map((issue) => renderValidationIssueText(issue)).join("; ")
       : "input failed schema validation";
   return {
     ok: false,
@@ -286,11 +282,11 @@ export function applyToolContracts<T extends ContractAwareTool>(tool: T): T {
         return schemaValidation.result;
       }
 
-      let nextInput = input;
+      let nextInput = schemaValidation.params ?? input;
       if (typeof tool.validateInput === "function") {
         const validation = await runCustomValidation({
           tool,
-          input,
+          input: nextInput,
           toolCallId,
           signal,
         });
@@ -303,7 +299,11 @@ export function applyToolContracts<T extends ContractAwareTool>(tool: T): T {
           });
         }
         if (validation.params !== undefined) {
-          nextInput = validation.params;
+          const normalizedValidation = validateSchemaInput(tool, validation.params);
+          if (!normalizedValidation.ok) {
+            return normalizedValidation.result;
+          }
+          nextInput = normalizedValidation.params ?? validation.params;
         }
       }
 

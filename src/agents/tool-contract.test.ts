@@ -1,7 +1,7 @@
+import { Type } from "@sinclair/typebox";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { Type } from "@sinclair/typebox";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createStrictEmptyObjectSchema,
@@ -36,6 +36,31 @@ describe("tool contract", () => {
     ).rejects.toThrow(/Validation failed/);
 
     expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it("formats nested validation paths for thrown schema errors", async () => {
+    const tool = defineOpenClawTool({
+      name: "nested_input",
+      label: "Nested input",
+      description: "Nested args",
+      parameters: Type.Object({
+        todos: Type.Array(
+          Type.Object({
+            activeForm: Type.String(),
+          }),
+        ),
+      }),
+      execute: async () => jsonResult({ ok: true }),
+    });
+
+    await expect(
+      executeToolWithContract({
+        tool,
+        rawInput: { todos: [{ activeForm: { invalid: true } }] },
+        context: { toolCallId: "call-nested-invalid", source: "embedded" },
+        invoke: vi.fn(async () => jsonResult({ ok: true })),
+      }),
+    ).rejects.toThrow(/todos\[0\]\.activeForm: type mismatch \(expected string\)/);
   });
 
   it("stops at validateInput before permission checks", async () => {
@@ -121,6 +146,66 @@ describe("tool contract", () => {
     });
 
     expect(invoke).toHaveBeenCalledWith({ value: "HELLO" });
+  });
+
+  it("sanitizes hidden Unicode and coerces semantic scalar strings before invoke", async () => {
+    const invoke = vi.fn(async (input) => jsonResult({ ok: true, input }));
+    const tool = defineOpenClawTool({
+      name: "harden_input",
+      label: "Harden Input",
+      description: "Sanitize tool input before validation",
+      parameters: Type.Object({
+        query: Type.String(),
+        recursive: Type.Boolean(),
+        limit: Type.Number(),
+      }),
+      execute: async () => jsonResult({ ok: true }),
+    });
+
+    await executeToolWithContract({
+      tool,
+      rawInput: {
+        "qu\u2066ery": "Ｆｏｏ\u2069",
+        recursive: "false",
+        limit: "30",
+      },
+      context: { toolCallId: "call-harden", source: "embedded" },
+      invoke,
+    });
+
+    expect(invoke).toHaveBeenCalledWith({
+      query: "Foo",
+      recursive: false,
+      limit: 30,
+    });
+  });
+
+  it("keeps invalid quoted scalar values as validation errors", async () => {
+    const invoke = vi.fn(async (input) => jsonResult({ ok: true, input }));
+    const tool = defineOpenClawTool({
+      name: "strict_scalars",
+      label: "Strict Scalars",
+      description: "Reject invalid quoted scalars",
+      parameters: Type.Object({
+        recursive: Type.Boolean(),
+        limit: Type.Number(),
+      }),
+      execute: async () => jsonResult({ ok: true }),
+    });
+
+    await expect(
+      executeToolWithContract({
+        tool,
+        rawInput: {
+          recursive: "definitely",
+          limit: "thirty",
+        },
+        context: { toolCallId: "call-invalid-scalars", source: "embedded" },
+        invoke,
+      }),
+    ).rejects.toThrow(/Validation failed/);
+
+    expect(invoke).not.toHaveBeenCalled();
   });
 
   it("resolves ask permissions before invoking and only executes once", async () => {
@@ -234,6 +319,47 @@ describe("tool contract", () => {
     expect(toolText.length).toBeLessThan(10_000);
     const artifactDirEntries = await fs.readdir(resolveToolResultArtifactsDir(process.env));
     expect(artifactDirEntries.length).toBeGreaterThan(0);
+  });
+
+  it("reuses the same artifact path for identical oversized text output", async () => {
+    const stateDir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-tool-result-stable-"));
+    vi.stubEnv("OPENCLAW_STATE_DIR", stateDir);
+    const tool = defineOpenClawTool({
+      name: "stable_large_result",
+      label: "Stable Large Result",
+      description: "Stable artifact path",
+      parameters: Type.Object({}),
+      execute: async () => jsonResult({ ok: true }),
+    });
+    const hugeText = ["heading", "alpha", "beta", "gamma", "delta".repeat(5_000)].join("\n");
+
+    const first = await executeToolWithContract({
+      tool,
+      rawInput: {},
+      context: { toolCallId: "call-large-1", source: "embedded" },
+      invoke: async () => ({
+        content: [{ type: "text", text: hugeText }],
+        details: { ok: true },
+      }),
+    });
+    const second = await executeToolWithContract({
+      tool,
+      rawInput: {},
+      context: { toolCallId: "call-large-2", source: "embedded" },
+      invoke: async () => ({
+        content: [{ type: "text", text: hugeText }],
+        details: { ok: true },
+      }),
+    });
+
+    const firstText = first.content.find((block) => block.type === "text");
+    const secondText = second.content.find((block) => block.type === "text");
+    const firstToolText = firstText && "text" in firstText ? firstText.text : "";
+    const secondToolText = secondText && "text" in secondText ? secondText.text : "";
+
+    expect(firstToolText).toBe(secondToolText);
+    const artifactDirEntries = await fs.readdir(resolveToolResultArtifactsDir(process.env));
+    expect(artifactDirEntries).toHaveLength(1);
   });
 
   it("externalizes base64 data URLs as binary artifacts", async () => {

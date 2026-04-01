@@ -70,4 +70,32 @@ describe("pi tool definition adapter", () => {
       error: expect.stringContaining("Validation failed"),
     });
   });
+
+  it("preserves structured process error fields when a tool throws them", async () => {
+    const tool = {
+      name: "exec",
+      label: "Exec",
+      description: "throws process details",
+      parameters: {},
+      execute: async () => {
+        throw Object.assign(new Error("command failed"), {
+          exitCode: 2,
+          stdout: "partial output",
+          stderr: "fatal: bad revision",
+        });
+      },
+    } satisfies AgentTool<unknown, unknown>;
+
+    const defs = toToolDefinitions([tool]);
+    const result = await defs[0].execute("call4", {}, undefined, undefined);
+
+    expect(result.details).toMatchObject({
+      status: "error",
+      tool: "exec",
+      error: "command failed",
+      exitCode: 2,
+      stdout: "partial output",
+      stderr: "fatal: bad revision",
+    });
+  });
 });

@@ -36,7 +36,7 @@ describe("tool contracts", () => {
       tool: "sample",
     });
     expect(result.details).toMatchObject({
-      issues: [{ path: "/extra" }],
+      issues: [{ path: "extra" }],
     });
   });
 
@@ -94,6 +94,50 @@ describe("tool contracts", () => {
       undefined,
     );
     expect(result.details).toEqual({ value: "HELLO" });
+  });
+
+  it("sanitizes hidden Unicode keys and coerces semantic scalars on direct execution", async () => {
+    const execute = vi.fn(async (_toolCallId: string, params: unknown) => ({
+      content: [{ type: "text" as const, text: "ok" }],
+      details: params,
+    }));
+
+    const tool = applyToolContracts(
+      defineOpenClawTool({
+        name: "direct_harden",
+        label: "Direct Harden",
+        description: "test",
+        parameters: Type.Object({
+          query: Type.String(),
+          recursive: Type.Boolean(),
+          limit: Type.Number(),
+        }),
+        execute,
+      }),
+    );
+
+    const result = await tool.execute("call-direct-harden", {
+      "qu\u2066ery": "Ｆｏｏ\u2069",
+      recursive: "false",
+      limit: "30",
+    });
+
+    expect(execute).toHaveBeenCalledOnce();
+    expect(execute).toHaveBeenCalledWith(
+      "call-direct-harden",
+      {
+        query: "Foo",
+        recursive: false,
+        limit: 30,
+      },
+      undefined,
+      undefined,
+    );
+    expect(result.details).toEqual({
+      query: "Foo",
+      recursive: false,
+      limit: 30,
+    });
   });
 
   it("uses call for direct execution when available so runtime paths stay aligned", async () => {
@@ -225,5 +269,39 @@ describe("tool contracts", () => {
     );
 
     await expect(tool.execute("call-output", {})).rejects.toThrow(/output_checked output/i);
+  });
+
+  it("formats nested schema issues with dot and index paths", async () => {
+    const execute = vi.fn(async (_toolCallId: string, params: unknown) => ({
+      content: [{ type: "text" as const, text: "ok" }],
+      details: params,
+    }));
+
+    const tool = applyToolContracts({
+      name: "nested",
+      label: "Nested",
+      description: "nested schema",
+      parameters: Type.Object({
+        todos: Type.Array(
+          Type.Object({
+            activeForm: Type.String(),
+          }),
+        ),
+      }),
+      execute,
+    } satisfies AgentTool);
+
+    const result = await tool.execute("call-nested", {
+      todos: [{ activeForm: { invalid: true } }],
+    });
+
+    expect(execute).not.toHaveBeenCalled();
+    expect(result.details).toMatchObject({
+      code: "invalid_input",
+      issues: [{ path: "todos[0].activeForm", message: "type mismatch (expected string)" }],
+    });
+    expect((result.details as { message?: string }).message).toContain(
+      "todos[0].activeForm: type mismatch (expected string)",
+    );
   });
 });

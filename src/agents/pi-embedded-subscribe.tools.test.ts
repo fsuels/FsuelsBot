@@ -52,7 +52,7 @@ describe("extractToolErrorPresentation", () => {
 
     expect(presented).toMatchObject({
       classification: "validation",
-      text: "Invalid tool input:\n- /path field required",
+      text: "Invalid tool input:\n- path: field required",
     });
   });
 
