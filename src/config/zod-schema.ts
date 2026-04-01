@@ -278,6 +278,13 @@ export const OpenClawSchema = z
           .object({
             editor: TuiEditorKeybindingsSchema,
             shortcuts: TuiShortcutBindingsSchema,
+            ctrlC: z
+              .union([
+                z.literal("double-press-exit"),
+                z.literal("exit"),
+                z.literal("abort-or-exit"),
+              ])
+              .optional(),
           })
           .strict()
           .optional(),

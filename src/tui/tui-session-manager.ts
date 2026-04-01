@@ -1,4 +1,4 @@
-import type { ProcessTerminal, TUI } from "@mariozechner/pi-tui";
+import type { Terminal, TUI } from "@mariozechner/pi-tui";
 import { restoreTerminalState } from "../terminal/restore.js";
 
 type MutableTuiState = {
@@ -14,7 +14,7 @@ type StdoutLike = Pick<NodeJS.WriteStream, "columns" | "rows">;
 
 export type TuiSessionManagerOptions = {
   tui: Pick<TUI, "requestRender" | "stop" | "invalidate">;
-  terminal: Pick<ProcessTerminal, "drainInput">;
+  terminal: Pick<Terminal, "drainInput">;
   stderr?: StderrLike;
   stdout?: StdoutLike;
   onResizeSync?: () => void;

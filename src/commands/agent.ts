@@ -501,8 +501,6 @@ export async function agentCommand(
             startedAt,
             endedAt: Date.now(),
             aborted: result.meta.aborted ?? false,
-            structuredOutput: result.meta.structuredOutput,
-            structuredOutputRequired: result.meta.structuredOutputRequired ?? false,
           },
         });
       }

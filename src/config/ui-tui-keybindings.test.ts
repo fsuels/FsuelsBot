@@ -6,6 +6,7 @@ describe("ui.tui keybindings", () => {
     const res = validateConfigObject({
       ui: {
         tui: {
+          ctrlC: "abort-or-exit",
           shortcuts: {
             abortRun: null,
             forceRedraw: "Ctrl+R",
@@ -20,6 +21,25 @@ describe("ui.tui keybindings", () => {
     });
 
     expect(res.ok).toBe(true);
+  });
+
+  it("rejects invalid ctrl+c policies", () => {
+    const res = validateConfigObject({
+      ui: {
+        tui: {
+          ctrlC: "banana",
+        },
+      },
+    });
+
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.issues).toContainEqual(
+        expect.objectContaining({
+          path: "ui.tui.ctrlC",
+        }),
+      );
+    }
   });
 
   it("rejects invalid shortcut key ids", () => {

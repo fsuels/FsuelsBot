@@ -9,6 +9,8 @@ type StatusLineTheme = {
   accentSoft: (value: string) => string;
 };
 
+const BUSY_SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+
 export function resolveStatusTickMs(
   snapshot: TuiTurnLifecycleSnapshot,
   _nowMs: number,
@@ -56,8 +58,13 @@ export function buildBusyStatusLine(params: {
     );
   }
 
+  const animatedLabel =
+    params.snapshot.activityLabel === "paused"
+      ? params.snapshot.activityLabel
+      : `${BUSY_SPINNER_FRAMES[params.tick % BUSY_SPINNER_FRAMES.length] ?? BUSY_SPINNER_FRAMES[0]} ${params.snapshot.activityLabel}`;
+
   return clipStatusLine(
-    `${params.theme.bold(params.theme.accentSoft(params.snapshot.activityLabel))} • ${elapsed} | ${params.connectionStatus}`,
+    `${params.theme.bold(params.theme.accentSoft(animatedLabel))} • ${elapsed} | ${params.connectionStatus}`,
     params.width,
   );
 }

@@ -11,13 +11,7 @@ import {
 import { SESSION_LABEL_MAX_LENGTH, parseSessionLabel } from "../../sessions/session-label.js";
 import { normalizeDeliveryContext } from "../../utils/delivery-context.js";
 import { resolveAgentConfig } from "../agent-scope.js";
-import { DEFAULT_PROVIDER } from "../defaults.js";
 import { AGENT_LANE_SUBAGENT } from "../lanes.js";
-import {
-  buildModelAliasIndex,
-  isCliProvider,
-  resolveModelRefFromString,
-} from "../model-selection.js";
 import { optionalStringEnum } from "../schema/typebox.js";
 import { buildSubagentSystemPrompt } from "../subagent-announce.js";
 import {
@@ -196,18 +190,6 @@ const SessionsSpawnToolSchema = Type.Object(
         }),
       ),
     ),
-    structuredOutputSchema: Type.Optional(
-      Type.Unknown({
-        description:
-          "Optional JSON Schema for machine-readable child completion when the target provider supports structured output.",
-      }),
-    ),
-    structuredOutputName: Type.Optional(
-      Type.String({
-        minLength: 1,
-        description: "Optional tool name override for the child structured output contract.",
-      }),
-    ),
   },
   { additionalProperties: false },
 );
@@ -238,15 +220,10 @@ const SESSIONS_SPAWN_INVOCATION_CONTRACT: ToolInvocationContract = {
     "agentId: optional cross-agent target when allowlisted.",
     "taskType/purpose/facts/doneCriteria/...: optional structured handoff fields for self-contained worker prompts.",
     "profile, requiredTools, toolAllow, toolDeny: worker capability controls.",
-    "structuredOutputSchema/structuredOutputName: optional machine-readable child completion contract.",
     "runTimeoutSeconds: optional wait timeout for the child run.",
     "cleanup: keep or delete the child session after it finishes.",
   ],
 };
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
 
 export function createSessionsSpawnTool(opts?: {
   agentSessionKey?: string;
@@ -308,8 +285,6 @@ export function createSessionsSpawnTool(opts?: {
           "requiredTools",
           "toolAllow",
           "toolDeny",
-          "structuredOutputSchema",
-          "structuredOutputName",
         ],
         { label: "sessions_spawn" },
       );
@@ -372,26 +347,6 @@ export function createSessionsSpawnTool(opts?: {
       const requiredTools = normalizeSubagentRequiredTools(params.requiredTools);
       const toolAllow = normalizeSubagentRequiredTools(params.toolAllow);
       const toolDeny = normalizeSubagentRequiredTools(params.toolDeny);
-      const structuredOutputSchemaRaw = params.structuredOutputSchema;
-      const structuredOutputSchema =
-        structuredOutputSchemaRaw === undefined
-          ? undefined
-          : isPlainObject(structuredOutputSchemaRaw)
-            ? structuredOutputSchemaRaw
-            : null;
-      if (structuredOutputSchema === null) {
-        return jsonResult({
-          status: "error",
-          error: "structuredOutputSchema must be a JSON object.",
-        });
-      }
-      const structuredOutputNameRaw = readStringParam(params, "structuredOutputName");
-      if (structuredOutputNameRaw && !structuredOutputSchema) {
-        return jsonResult({
-          status: "error",
-          error: "structuredOutputName requires structuredOutputSchema.",
-        });
-      }
       const sessionToolPolicy = buildSubagentSessionToolPolicy({
         profile,
         toolAllow,
@@ -491,25 +446,6 @@ export function createSessionsSpawnTool(opts?: {
 
       const { childSessionKey, childIdempotencyKey, resolvedModel, resolvedThinking } =
         launch.value;
-      let structuredOutputApplied = false;
-      let structuredOutputWarning: string | undefined;
-      if (structuredOutputSchema) {
-        const aliasIndex = buildModelAliasIndex({
-          cfg,
-          defaultProvider: DEFAULT_PROVIDER,
-        });
-        const structuredOutputModel = resolveModelRefFromString({
-          raw: resolvedModel ?? "",
-          defaultProvider: DEFAULT_PROVIDER,
-          aliasIndex,
-        });
-        if (structuredOutputModel && isCliProvider(structuredOutputModel.ref.provider, cfg)) {
-          structuredOutputWarning =
-            "Structured output is unavailable for CLI-backed subagents; using text fallback instead.";
-        } else {
-          structuredOutputApplied = true;
-        }
-      }
       const toolResolution = resolveSubagentToolSurface({
         config: cfg,
         targetAgentId,
@@ -605,11 +541,6 @@ export function createSessionsSpawnTool(opts?: {
             groupId: opts?.agentGroupId ?? undefined,
             groupChannel: opts?.agentGroupChannel ?? undefined,
             groupSpace: opts?.agentGroupSpace ?? undefined,
-            structuredOutputSchema: structuredOutputApplied ? structuredOutputSchema : undefined,
-            structuredOutputName:
-              structuredOutputApplied && structuredOutputNameRaw
-                ? structuredOutputNameRaw
-                : undefined,
           },
           timeoutMs: 10_000,
         });
@@ -667,8 +598,7 @@ export function createSessionsSpawnTool(opts?: {
         modelApplied: resolvedModel ? modelApplied : undefined,
         modelResolved: resolvedModel,
         thinkingResolved: resolvedThinking,
-        structuredOutputApplied: structuredOutputSchema ? structuredOutputApplied : undefined,
-        warning: [modelWarning, structuredOutputWarning].filter(Boolean).join(" · ") || undefined,
+        warning: modelWarning,
       });
     },
   };

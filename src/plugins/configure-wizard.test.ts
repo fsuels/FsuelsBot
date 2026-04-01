@@ -188,4 +188,67 @@ describe("plugin configure wizard", () => {
     expect(steps.map((step) => step.key)).toContain("retryCount");
     expect(steps.map((step) => step.key)).not.toContain("advancedField");
   });
+
+  it("supports enum labels and multi-select enum fields", async () => {
+    const select = vi.fn().mockResolvedValue("safe");
+    const multiselect = vi.fn().mockResolvedValue(["daily", "alerts"]);
+    const prompter = makePrompter({ select, multiselect });
+
+    const result = await runPluginConfigWizard({
+      config: {},
+      pluginId: "scheduler",
+      prompter,
+      mode: "guided",
+      descriptor: {
+        pluginId: "scheduler",
+        name: "Scheduler",
+        configSchema: {
+          type: "object",
+          properties: {
+            mode: {
+              oneOf: [
+                { const: "fast", title: "Fast Mode" },
+                { const: "safe", title: "Safe Mode" },
+              ],
+            },
+            channels: {
+              type: "array",
+              items: {
+                oneOf: [
+                  { const: "daily", title: "Daily Summary" },
+                  { const: "alerts", title: "Alerts" },
+                ],
+              },
+            },
+          },
+        },
+      },
+    });
+
+    expect(result.status).toBe("configured");
+    if (result.status !== "configured") {
+      return;
+    }
+
+    expect(select).toHaveBeenCalledWith({
+      message: "Scheduler: Mode\nChoose one of: Fast Mode, Safe Mode.",
+      options: [
+        { value: "fast", label: "Fast Mode" },
+        { value: "safe", label: "Safe Mode" },
+      ],
+      initialValue: "fast",
+    });
+    expect(multiselect).toHaveBeenCalledWith({
+      message: "Scheduler: Channels\nChoose one or more of: Daily Summary, Alerts.",
+      options: [
+        { value: "daily", label: "Daily Summary" },
+        { value: "alerts", label: "Alerts" },
+      ],
+      initialValues: undefined,
+    });
+    expect(result.config.plugins?.entries?.scheduler?.config).toEqual({
+      mode: "safe",
+      channels: ["daily", "alerts"],
+    });
+  });
 });

@@ -1,7 +1,6 @@
 import { Type } from "@sinclair/typebox";
 import type { GatewayMessageChannel } from "../../utils/message-channel.js";
 import type { AnyAgentTool } from "./common.js";
-import { getSubagentRun } from "../subagent-registry.js";
 import { getTaskOutput } from "../task-output.js";
 import {
   completeActiveVerificationTask,
@@ -24,9 +23,6 @@ const DEFAULT_PARTIAL_CONFIDENCE = 0.5;
 const PASS_CONFIDENCE_THRESHOLD = 0.75;
 const FAIL_CONFIDENCE_THRESHOLD = 0.85;
 const ADVERSARIAL_PROBE_PREFIX = "Adversarial probe:";
-const VERIFICATION_JSON_BEGIN = "<verification-json>";
-const VERIFICATION_JSON_END = "</verification-json>";
-const VERIFICATION_STRUCTURED_OUTPUT_NAME = "verification_report";
 
 const VerificationGateToolSchema = Type.Object(
   {
@@ -144,7 +140,6 @@ type VerificationTaskHandle = {
   childSessionKey?: string;
   outputPath?: string;
   transcriptPath?: string;
-  structuredOutputApplied?: boolean;
 };
 
 type VerificationGateDeps = {
@@ -158,8 +153,6 @@ type VerificationGateDeps = {
     timeoutMs: number,
   ) => Promise<{
     finalText?: string;
-    structuredOutput?: unknown;
-    structuredOutputRequired?: boolean;
     outputPath?: string;
     transcriptPath?: string;
     error?: string;
@@ -221,58 +214,6 @@ function buildJsonSchemaReminder() {
   );
 }
 
-function buildVerificationStructuredOutputSchema() {
-  return {
-    type: "object",
-    additionalProperties: false,
-    required: [
-      "verdict",
-      "summary",
-      "confidence",
-      "commands_executed",
-      "verified",
-      "unverified",
-      "failure_reasons",
-    ],
-    properties: {
-      verdict: {
-        type: "string",
-        enum: ["PASS", "FAIL", "PARTIAL"],
-      },
-      summary: { type: "string" },
-      confidence: { type: "number" },
-      commands_executed: {
-        type: "array",
-        items: {
-          type: "object",
-          additionalProperties: false,
-          required: ["command", "status"],
-          properties: {
-            command: { type: "string" },
-            status: {
-              type: "string",
-              enum: ["passed", "failed", "skipped"],
-            },
-            relevant_output: { type: "string" },
-          },
-        },
-      },
-      verified: {
-        type: "array",
-        items: { type: "string" },
-      },
-      unverified: {
-        type: "array",
-        items: { type: "string" },
-      },
-      failure_reasons: {
-        type: "array",
-        items: { type: "string" },
-      },
-    },
-  } as const;
-}
-
 export function buildPrimaryVerifierTask(params: {
   changeSummary: string;
   files: string[];
@@ -330,8 +271,7 @@ export function buildPrimaryVerifierTask(params: {
     "- Set confidence as a number from 0.0 to 1.0.",
     "- If a requested command or check cannot be completed, list it under unverified instead of guessing.",
     "- If anything fails, explain the specific failure reason.",
-    `- If the Structured Output tool is available, call ${VERIFICATION_STRUCTURED_OUTPUT_NAME} exactly once with the final result.`,
-    `- Otherwise return ONLY the JSON object wrapped between ${VERIFICATION_JSON_BEGIN} and ${VERIFICATION_JSON_END}.`,
+    "- Return ONLY valid JSON. No markdown fences, no prose before or after.",
     buildJsonSchemaReminder(),
   );
   return lines.join("\n");
@@ -359,8 +299,7 @@ export function buildSpotCheckVerifierTask(params: {
     "- Return PARTIAL if you cannot rerun one or more commands or the evidence is ambiguous.",
     "- Capture the exact decisive command output in commands_executed[].relevant_output whenever you rerun a command.",
     "- Set confidence as a number from 0.0 to 1.0.",
-    `- If the Structured Output tool is available, call ${VERIFICATION_STRUCTURED_OUTPUT_NAME} exactly once with the final result.`,
-    `- Otherwise return ONLY the JSON object wrapped between ${VERIFICATION_JSON_BEGIN} and ${VERIFICATION_JSON_END}.`,
+    "- Return ONLY valid JSON. No markdown fences, no prose before or after.",
     buildJsonSchemaReminder(),
   ].join("\n");
 }
@@ -383,12 +322,11 @@ function tryParseJsonObject(text: string): unknown {
       // fall through
     }
   }
-  const markerMatch = trimmed.match(
-    new RegExp(`${VERIFICATION_JSON_BEGIN}\\s*([\\s\\S]*?)\\s*${VERIFICATION_JSON_END}`, "i"),
-  );
-  if (markerMatch?.[1]) {
+  const firstBrace = trimmed.indexOf("{");
+  const lastBrace = trimmed.lastIndexOf("}");
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
     try {
-      return JSON.parse(markerMatch[1]);
+      return JSON.parse(trimmed.slice(firstBrace, lastBrace + 1));
     } catch {
       return undefined;
     }
@@ -651,25 +589,6 @@ function parseVerificationReportText(text?: string, fallbackError?: string): Ver
   });
 }
 
-function parseVerificationReportResult(result: {
-  finalText?: string;
-  structuredOutput?: unknown;
-  structuredOutputRequired?: boolean;
-  error?: string;
-}): VerificationReport {
-  if (result.structuredOutput && typeof result.structuredOutput === "object") {
-    return applyVerificationConfidencePolicy(normalizeVerificationReport(result.structuredOutput));
-  }
-  if (result.structuredOutputRequired) {
-    return parseVerificationReportText(
-      undefined,
-      result.error?.trim() ||
-        "Verifier did not return machine-readable structured output as required.",
-    );
-  }
-  return parseVerificationReportText(result.finalText, result.error);
-}
-
 function selectSpotCheckCommands(
   report: VerificationReport,
   requestedCommands: string[],
@@ -803,8 +722,6 @@ function buildDefaultDeps(opts?: {
         profile: "test-runner",
         cleanup: "keep",
         runTimeoutSeconds: Math.ceil(timeoutMs / 1000),
-        structuredOutputSchema: buildVerificationStructuredOutputSchema(),
-        structuredOutputName: VERIFICATION_STRUCTURED_OUTPUT_NAME,
       });
       const details = result.details as Record<string, unknown>;
       const status = typeof details.status === "string" ? details.status : "error";
@@ -828,10 +745,6 @@ function buildDefaultDeps(opts?: {
         outputPath: typeof details.output_path === "string" ? details.output_path : undefined,
         transcriptPath:
           typeof details.transcript_path === "string" ? details.transcript_path : undefined,
-        structuredOutputApplied:
-          typeof details.structuredOutputApplied === "boolean"
-            ? details.structuredOutputApplied
-            : undefined,
       };
     },
     waitForTask: async (taskId, timeoutMs) => {
@@ -849,11 +762,8 @@ function buildDefaultDeps(opts?: {
               : "Verification result was not available.",
         };
       }
-      const subagent = getSubagentRun(taskId);
       return {
         finalText: retrieval.task.final_text,
-        structuredOutput: subagent?.structuredOutput,
-        structuredOutputRequired: subagent?.structuredOutputRequired,
         outputPath: retrieval.task.output_path,
         transcriptPath: retrieval.task.transcript_path,
         error: retrieval.task.error,
@@ -962,7 +872,10 @@ export function createVerificationGateTool(
         phase: "primary",
       });
       const primaryResult = await resolvedDeps.waitForTask(primaryHandle.taskId, timeoutMs);
-      const primaryReport = parseVerificationReportResult(primaryResult);
+      const primaryReport = parseVerificationReportText(
+        primaryResult.finalText,
+        primaryResult.error,
+      );
 
       const spotCheckCommands =
         primaryReport.verdict === "PASS"
@@ -980,7 +893,10 @@ export function createVerificationGateTool(
           phase: "spotcheck",
         });
         const spotCheckResult = await resolvedDeps.waitForTask(spotCheckHandle.taskId, timeoutMs);
-        spotCheckReport = parseVerificationReportResult(spotCheckResult);
+        spotCheckReport = parseVerificationReportText(
+          spotCheckResult.finalText,
+          spotCheckResult.error,
+        );
       }
 
       const finalReport = combineVerificationReports({

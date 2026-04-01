@@ -2,19 +2,19 @@ import type { OpenClawConfig } from "../config/config.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
 import type { PluginConfigUiHint } from "./types.js";
 import { WizardCancelledError } from "../wizard/prompts.js";
+import {
+  getEnumLabels,
+  getEnumValues,
+  getFormatHint,
+  getMultiSelectLabels,
+  getMultiSelectValues,
+  isEnumSchema,
+  isMultiSelectEnumSchema,
+  resolveSupportedFieldSchema,
+  type SupportedFieldSchema,
+  validateInputSync,
+} from "../wizard/schema-input-validation.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
-
-type JsonSchemaObject = Record<string, unknown>;
-
-type SupportedFieldType = "string" | "integer" | "number" | "boolean" | "string[]";
-
-type SupportedFieldSchema = {
-  type: SupportedFieldType;
-  enum?: string[];
-  minimum?: number;
-  maximum?: number;
-  pattern?: string;
-};
 
 export type PluginConfigWizardMode = "required" | "guided";
 
@@ -64,50 +64,8 @@ function cloneRecord(value: Record<string, unknown> | undefined): Record<string,
   return value ? structuredClone(value) : {};
 }
 
-function asSchemaObject(value: unknown): JsonSchemaObject | null {
+function asSchemaObject(value: unknown): Record<string, unknown> | null {
   return isRecord(value) ? value : null;
-}
-
-function normalizeEnum(value: unknown): string[] | undefined {
-  if (!Array.isArray(value)) {
-    return undefined;
-  }
-  const values = value
-    .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
-    .filter(Boolean);
-  return values.length > 0 ? values : undefined;
-}
-
-function resolveSupportedFieldSchema(value: unknown): SupportedFieldSchema | null {
-  const schema = asSchemaObject(value);
-  if (!schema) {
-    return null;
-  }
-  const type = typeof schema.type === "string" ? schema.type : "";
-  if (type === "string") {
-    return {
-      type,
-      enum: normalizeEnum(schema.enum),
-      pattern: typeof schema.pattern === "string" ? schema.pattern : undefined,
-    };
-  }
-  if (type === "integer" || type === "number") {
-    return {
-      type,
-      minimum: typeof schema.minimum === "number" ? schema.minimum : undefined,
-      maximum: typeof schema.maximum === "number" ? schema.maximum : undefined,
-    };
-  }
-  if (type === "boolean") {
-    return { type };
-  }
-  if (type === "array") {
-    const items = asSchemaObject(schema.items);
-    if (items?.type === "string") {
-      return { type: "string[]" };
-    }
-  }
-  return null;
 }
 
 function formatPathSegmentLabel(segment: string): string {
@@ -202,7 +160,8 @@ function collectPluginConfigStepsFromSchema(params: {
         key: path.join("."),
         path,
         title,
-        subtitle: hint?.help?.trim(),
+        subtitle:
+          [hint?.help?.trim(), getFormatHint(fieldSchema)].filter(Boolean).join("\n") || undefined,
         schema: fieldSchema,
         sensitive: hint?.sensitive === true,
         required,
@@ -257,41 +216,8 @@ function validateTextStepInput(step: PluginConfigStep, rawValue: string): string
     }
     return undefined;
   }
-
-  if (step.schema.type === "integer") {
-    if (!/^-?\d+$/.test(trimmed)) {
-      return "Enter an integer";
-    }
-    const value = Number.parseInt(trimmed, 10);
-    if (step.schema.minimum !== undefined && value < step.schema.minimum) {
-      return `Must be at least ${step.schema.minimum}`;
-    }
-    if (step.schema.maximum !== undefined && value > step.schema.maximum) {
-      return `Must be at most ${step.schema.maximum}`;
-    }
-  }
-
-  if (step.schema.type === "number") {
-    const value = Number(trimmed);
-    if (!Number.isFinite(value)) {
-      return "Enter a number";
-    }
-    if (step.schema.minimum !== undefined && value < step.schema.minimum) {
-      return `Must be at least ${step.schema.minimum}`;
-    }
-    if (step.schema.maximum !== undefined && value > step.schema.maximum) {
-      return `Must be at most ${step.schema.maximum}`;
-    }
-  }
-
-  if (step.schema.type === "string" && step.schema.pattern) {
-    const pattern = new RegExp(step.schema.pattern);
-    if (!pattern.test(trimmed)) {
-      return "Value does not match the required format";
-    }
-  }
-
-  return undefined;
+  const validated = validateInputSync(rawValue, step.schema);
+  return validated.isValid ? undefined : validated.error;
 }
 
 function formatInitialValue(step: PluginConfigStep): string | undefined {
@@ -334,30 +260,17 @@ function applyResolvedValue(
     return { shouldWrite: true, value: rawValue };
   }
 
-  const textValue = typeof rawValue === "string" ? rawValue.trim() : "";
-  if (textValue === "") {
+  if (typeof rawValue === "string" && rawValue.trim() === "") {
     if (step.currentValue !== undefined) {
       return { shouldWrite: false };
     }
     return { shouldWrite: false };
   }
-
-  if (step.schema.type === "integer") {
-    return { shouldWrite: true, value: Number.parseInt(textValue, 10) };
+  const validated = validateInputSync(rawValue, step.schema);
+  if (!validated.isValid) {
+    throw new Error(validated.error);
   }
-  if (step.schema.type === "number") {
-    return { shouldWrite: true, value: Number(textValue) };
-  }
-  if (step.schema.type === "string[]") {
-    return {
-      shouldWrite: true,
-      value: textValue
-        .split(",")
-        .map((entry) => entry.trim())
-        .filter(Boolean),
-    };
-  }
-  return { shouldWrite: true, value: textValue };
+  return { shouldWrite: true, value: validated.value };
 }
 
 export function buildPluginConfigSteps(params: {
@@ -399,21 +312,38 @@ async function promptForStep(
   step: PluginConfigStep,
   pluginLabel: string,
 ) {
-  const message = `${pluginLabel}: ${step.title}`;
+  const message = step.subtitle
+    ? `${pluginLabel}: ${step.title}\n${step.subtitle}`
+    : `${pluginLabel}: ${step.title}`;
   if (step.schema.type === "boolean") {
     return await prompter.confirm({
       message,
       initialValue: typeof step.currentValue === "boolean" ? step.currentValue : false,
     });
   }
-  if (step.schema.enum && step.schema.enum.length > 0) {
+  if (isEnumSchema(step.schema)) {
+    const values = getEnumValues(step.schema);
+    const labels = getEnumLabels(step.schema);
     return await prompter.select<string>({
       message,
-      options: step.schema.enum.map((value) => ({ value, label: value })),
+      options: values.map((value, index) => ({ value, label: labels[index] ?? value })),
       initialValue:
-        typeof step.currentValue === "string" && step.schema.enum.includes(step.currentValue)
+        typeof step.currentValue === "string" && values.includes(step.currentValue)
           ? step.currentValue
-          : step.schema.enum[0],
+          : values[0],
+    });
+  }
+  if (isMultiSelectEnumSchema(step.schema)) {
+    const values = getMultiSelectValues(step.schema);
+    const labels = getMultiSelectLabels(step.schema);
+    return await prompter.multiselect<string>({
+      message,
+      options: values.map((value, index) => ({ value, label: labels[index] ?? value })),
+      initialValues: Array.isArray(step.currentValue)
+        ? step.currentValue.filter(
+            (entry): entry is string => typeof entry === "string" && values.includes(entry),
+          )
+        : undefined,
     });
   }
   return await prompter.text({

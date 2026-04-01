@@ -1,8 +1,8 @@
 import {
   CombinedAutocompleteProvider,
   Container,
-  Loader,
   ProcessTerminal,
+  isKeyRelease,
   setEditorKeybindings,
   Text,
   TUI,
@@ -28,8 +28,10 @@ import { CustomEditor } from "./components/custom-editor.js";
 import { GatewayChatClient } from "./gateway-chat.js";
 import { editorTheme, theme } from "./theme/theme.js";
 import { createCommandHandlers } from "./tui-command-handlers.js";
+import { resolveTuiCtrlCAction, type TuiCtrlCMode } from "./tui-ctrl-c.js";
 import { createEventHandlers } from "./tui-event-handlers.js";
 import { formatTokens } from "./tui-formatters.js";
+import { InterceptingTerminal } from "./tui-intercepting-terminal.js";
 import { createEditorKeybindingsManager, TuiShortcutManager } from "./tui-keybindings.js";
 import { formatTuiFooterLine, formatTuiHeaderLine } from "./tui-layout.js";
 import { createLocalShellRunner } from "./tui-local-shell.js";
@@ -264,9 +266,12 @@ export async function runTui(opts: TuiOptions) {
   });
 
   const processTerminal = new ProcessTerminal();
-  const tui = new TUI(processTerminal);
+  const terminal = new InterceptingTerminal(processTerminal);
+  const tui = new TUI(terminal);
   const header = new Text("", 1, 0);
   const statusContainer = new Container();
+  const statusText = new Text("", 1, 0);
+  statusContainer.addChild(statusText);
   const footer = new Text("", 1, 0);
   const chatLog = new ChatLog();
   const editor = new CustomEditor(tui, editorTheme);
@@ -343,52 +348,24 @@ export async function runTui(opts: TuiOptions) {
     );
   };
 
-  let statusText: Text | null = null;
-  let statusLoader: Loader | null = null;
-
-  const ensureStatusText = () => {
-    if (statusText) {
-      return;
-    }
-    statusContainer.clear();
-    statusLoader?.stop();
-    statusLoader = null;
-    statusText = new Text("", 1, 0);
-    statusContainer.addChild(statusText);
-  };
-
-  const ensureStatusLoader = () => {
-    if (statusLoader) {
-      return;
-    }
-    statusContainer.clear();
-    statusText = null;
-    statusLoader = new Loader(
-      tui,
-      (spinner) => theme.accent(spinner),
-      (text) => theme.bold(theme.accentSoft(text)),
-      "",
-    );
-    statusContainer.addChild(statusLoader);
-  };
-
-  let waitingTick = 0;
+  let statusTick = 0;
+  let lastBusyActivity: string | null = null;
   let statusTickTimer: NodeJS.Timeout | null = null;
   let statusTickDelayMs: number | null = null;
 
   const updateBusyStatusMessage = () => {
     const snapshot = turnLifecycle.getSnapshot();
-    if (!statusLoader || !snapshot.isLoading) {
+    if (!snapshot.isLoading) {
       return;
     }
-    statusLoader.setMessage(
+    statusText.setText(
       buildBusyStatusLine({
         snapshot,
         connectionStatus,
         width: process.stdout.columns ?? 80,
         theme,
         nowMs: Date.now(),
-        tick: waitingTick,
+        tick: statusTick,
       }),
     );
   };
@@ -422,10 +399,9 @@ export async function runTui(opts: TuiOptions) {
           stopStatusTicker();
           return;
         }
-        if (current.activityLabel === "waiting") {
-          waitingTick += 1;
-        }
+        statusTick += 1;
         updateBusyStatusMessage();
+        tui.requestRender();
         syncStatusTicker();
       }, nextDelay);
       statusTickTimer.unref?.();
@@ -437,19 +413,17 @@ export async function runTui(opts: TuiOptions) {
   const renderStatus = () => {
     const snapshot = turnLifecycle.getSnapshot();
     if (snapshot.isLoading) {
-      ensureStatusLoader();
-      if (snapshot.activityLabel !== "waiting") {
-        waitingTick = 0;
+      if (lastBusyActivity !== snapshot.activityLabel) {
+        statusTick = 0;
+        lastBusyActivity = snapshot.activityLabel;
       }
       syncStatusTicker();
       updateBusyStatusMessage();
     } else {
-      waitingTick = 0;
+      statusTick = 0;
+      lastBusyActivity = null;
       stopStatusTicker();
-      statusLoader?.stop();
-      statusLoader = null;
-      ensureStatusText();
-      statusText?.setText(
+      statusText.setText(
         buildIdleStatusLine({
           connectionStatus,
           activityStatus,
@@ -470,17 +444,22 @@ export async function runTui(opts: TuiOptions) {
       statusTimeout = setTimeout(() => {
         connectionStatus = isConnected ? "connected" : "disconnected";
         renderStatus();
+        tui.requestRender();
       }, ttlMs);
+      statusTimeout.unref?.();
     }
+    tui.requestRender();
   };
 
   const setActivityStatus = (text: string) => {
     activityStatus = text;
     renderStatus();
+    tui.requestRender();
   };
 
   turnLifecycle.subscribe(() => {
     renderStatus();
+    tui.requestRender();
   });
 
   const updateFooter = () => {
@@ -516,7 +495,7 @@ export async function runTui(opts: TuiOptions) {
 
   const sessionManager = createTuiSessionManager({
     tui,
-    terminal: processTerminal,
+    terminal,
     onResizeSync: () => {
       updateHeader();
       updateFooter();
@@ -569,6 +548,7 @@ export async function runTui(opts: TuiOptions) {
   };
 
   const { openOverlay, closeOverlay, hasActiveOverlay } = createOverlayHandlers(tui, editor);
+  const ctrlCMode = (config.ui?.tui?.ctrlC ?? "double-press-exit") as TuiCtrlCMode;
 
   const initialSessionAgentId = (() => {
     if (!initialSessionInput) {
@@ -656,6 +636,46 @@ export async function runTui(opts: TuiOptions) {
     handleBangLine: runLocalShellLine,
   });
 
+  const handleCtrlCShortcut = () => {
+    const decision = resolveTuiCtrlCAction({
+      nowMs: Date.now(),
+      lastCtrlCAt,
+      mode: ctrlCMode,
+      hasActiveOverlay: hasActiveOverlay(),
+      hasEditorText: editor.getText().trim().length > 0,
+      hasActiveRun: Boolean(turnLifecycle.getSnapshot().activeRunId),
+    });
+    lastCtrlCAt = decision.nextLastCtrlCAt;
+
+    if (decision.action === "close-overlay") {
+      closeOverlay();
+    } else if (decision.action === "clear-input") {
+      editor.setText("");
+    } else if (decision.action === "abort") {
+      void abortActive();
+    } else if (decision.action === "exit") {
+      requestExit(0);
+      return;
+    }
+
+    if (decision.statusText) {
+      setActivityStatus(decision.statusText);
+    } else {
+      tui.requestRender();
+    }
+  };
+
+  terminal.setInputInterceptor((data) => {
+    if (isKeyRelease(data)) {
+      return false;
+    }
+    if (!shortcutManager.matches(data, "clearInputOrExit")) {
+      return false;
+    }
+    handleCtrlCShortcut();
+    return true;
+  });
+
   editor.setShortcutHandler("abortRun", () => {
     handleOverlayEscape({
       hasActiveOverlay,
@@ -666,20 +686,7 @@ export async function runTui(opts: TuiOptions) {
     });
   });
   editor.setShortcutHandler("clearInputOrExit", () => {
-    const now = Date.now();
-    if (editor.getText().trim().length > 0) {
-      editor.setText("");
-      setActivityStatus("cleared input");
-      tui.requestRender();
-      return;
-    }
-    if (now - lastCtrlCAt < 1000) {
-      requestExit(0);
-      return;
-    }
-    lastCtrlCAt = now;
-    setActivityStatus("press ctrl+c again to exit");
-    tui.requestRender();
+    handleCtrlCShortcut();
   });
   editor.setShortcutHandler("exit", () => {
     requestExit(0);

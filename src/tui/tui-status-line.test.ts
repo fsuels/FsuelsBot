@@ -77,4 +77,38 @@ describe("tui status line", () => {
     expect(idle).toContain("idle");
     expect(idle).toContain("connected");
   });
+
+  it("animates non-waiting busy lines from the shared tick", () => {
+    const snapshot = {
+      phase: "running",
+      runId: "run-1",
+      activeRunId: "run-1",
+      activeSinceMs: 0,
+      activityLabel: "running",
+      isExternalLoading: false,
+      isTurnActive: true,
+      isLoading: true,
+    } as const;
+
+    const first = buildBusyStatusLine({
+      snapshot,
+      connectionStatus: "connected",
+      width: 80,
+      theme,
+      nowMs: 1_000,
+      tick: 0,
+    });
+    const second = buildBusyStatusLine({
+      snapshot,
+      connectionStatus: "connected",
+      width: 80,
+      theme,
+      nowMs: 1_000,
+      tick: 1,
+    });
+
+    expect(first).toContain("running");
+    expect(second).toContain("running");
+    expect(first).not.toBe(second);
+  });
 });

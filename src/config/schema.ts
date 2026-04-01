@@ -134,6 +134,7 @@ const FIELD_LABELS: Record<string, string> = {
   "ui.tui": "TUI",
   "ui.tui.editor": "TUI Editor Keybindings",
   "ui.tui.shortcuts": "TUI Shortcuts",
+  "ui.tui.ctrlC": "TUI Ctrl+C Policy",
   "gateway.auth.token": "Gateway Token",
   "gateway.auth.password": "Gateway Password",
   "tools.media.image.enabled": "Enable Image Understanding",
