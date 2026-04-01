@@ -21,6 +21,13 @@ export type ClientToolDefinition = {
   };
 };
 
+export type EmbeddedRunPurpose =
+  | "primary_user"
+  | "background"
+  | "maintenance"
+  | "memory_flush"
+  | "internal";
+
 export type RunEmbeddedPiAgentParams = {
   sessionId: string;
   sessionKey?: string;
@@ -68,6 +75,8 @@ export type RunEmbeddedPiAgentParams = {
   config?: OpenClawConfig;
   skillsSnapshot?: SkillSnapshot;
   prompt: string;
+  /** Classifies the run so post-turn maintenance only follows true user-facing turns. */
+  runPurpose?: EmbeddedRunPurpose;
   images?: ImageContent[];
   /** Optional client-provided tools (OpenResponses hosted tools). */
   clientTools?: ClientToolDefinition[];

@@ -150,6 +150,7 @@ export async function runMemoryFlushIfNeeded(params: {
         return runEmbeddedPiAgent({
           sessionId: params.followupRun.run.sessionId,
           sessionKey: params.sessionKey,
+          runPurpose: "memory_flush",
           taskId: params.followupRun.run.taskId,
           taskTitle: params.followupRun.run.taskTitle,
           agentId: params.followupRun.run.agentId,

@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolveOpenClawPackageRoot } from "../infra/openclaw-root.js";
+import { resolveAgentRuntimeCwd } from "./runtime-context.js";
 
 const FALLBACK_TEMPLATE_DIR = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -35,7 +36,7 @@ export async function resolveWorkspaceTemplateDir(opts?: {
   resolvingTemplateDir = (async () => {
     const moduleUrl = opts?.moduleUrl ?? import.meta.url;
     const argv1 = opts?.argv1 ?? process.argv[1];
-    const cwd = opts?.cwd ?? process.cwd();
+    const cwd = opts?.cwd ?? resolveAgentRuntimeCwd();
 
     const packageRoot = await resolveOpenClawPackageRoot({ moduleUrl, argv1, cwd });
     const candidates = [

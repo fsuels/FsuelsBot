@@ -12,6 +12,7 @@ import { runExec } from "../../process/exec.js";
 import { buildTtsSystemPromptHint } from "../../tts/tts.js";
 import { escapeRegExp } from "../../utils.js";
 import { resolveDefaultModelForAgent } from "../model-selection.js";
+import { resolveAgentRuntimeCwd } from "../runtime-context.js";
 import { detectRuntimeShell } from "../shell-utils.js";
 import { buildSystemPromptParams } from "../system-prompt-params.js";
 import { buildAgentSystemPrompt } from "../system-prompt.js";
@@ -216,7 +217,7 @@ export function buildSystemPrompt(params: {
     config: params.config,
     agentId: params.agentId,
     workspaceDir: params.workspaceDir,
-    cwd: process.cwd(),
+    cwd: resolveAgentRuntimeCwd(params.workspaceDir),
     runtime: {
       host: "openclaw",
       os: `${os.type()} ${os.release()}`,

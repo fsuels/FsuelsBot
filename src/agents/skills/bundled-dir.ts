@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolveOpenClawPackageRootSync } from "../../infra/openclaw-root.js";
+import { resolveAgentRuntimeCwd } from "../runtime-context.js";
 
 function looksLikeSkillsDir(dir: string): boolean {
   try {
@@ -58,7 +59,7 @@ export function resolveBundledSkillsDir(
     const moduleUrl = opts.moduleUrl ?? import.meta.url;
     const moduleDir = path.dirname(fileURLToPath(moduleUrl));
     const argv1 = opts.argv1 ?? process.argv[1];
-    const cwd = opts.cwd ?? process.cwd();
+    const cwd = opts.cwd ?? resolveAgentRuntimeCwd();
     const packageRoot = resolveOpenClawPackageRootSync({
       argv1,
       moduleUrl,

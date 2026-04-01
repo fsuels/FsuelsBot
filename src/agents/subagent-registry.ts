@@ -63,6 +63,8 @@ export type SubagentRunRecord = {
   outputPath?: string;
   transcriptPath?: string;
   finalText?: string;
+  structuredOutput?: unknown;
+  structuredOutputRequired?: boolean;
   notified?: boolean;
   runtimeInstanceId?: string;
   runtimePid?: number;
@@ -683,6 +685,12 @@ function ensureListener() {
     } else {
       entry.outcome = { status: "ok" };
     }
+    if (evt.data && typeof evt.data === "object" && "structuredOutput" in evt.data) {
+      entry.structuredOutput = evt.data.structuredOutput;
+    }
+    if (typeof evt.data?.structuredOutputRequired === "boolean") {
+      entry.structuredOutputRequired = evt.data.structuredOutputRequired;
+    }
     persistAndSyncSubagentRun(evt.runId);
     scheduleSubagentCleanup(evt.runId, "lifecycle");
   });
@@ -873,6 +881,8 @@ async function waitForSubagentCompletion(runId: string, waitTimeoutMs: number) {
       startedAt?: number;
       endedAt?: number;
       error?: string;
+      structuredOutput?: unknown;
+      structuredOutputRequired?: boolean;
     }>({
       method: "agent.wait",
       params: {
@@ -917,6 +927,14 @@ async function waitForSubagentCompletion(runId: string, waitTimeoutMs: number) {
       mutated = true;
     }
     const waitError = typeof wait.error === "string" ? wait.error : undefined;
+    if ("structuredOutput" in wait) {
+      entry.structuredOutput = wait.structuredOutput;
+      mutated = true;
+    }
+    if (typeof wait.structuredOutputRequired === "boolean") {
+      entry.structuredOutputRequired = wait.structuredOutputRequired;
+      mutated = true;
+    }
     entry.outcome =
       wait.status === "error"
         ? { status: "error", error: waitError }

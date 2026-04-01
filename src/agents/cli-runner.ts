@@ -29,6 +29,7 @@ import {
 import { resolveOpenClawDocsPath } from "./docs-path.js";
 import { FailoverError, resolveFailoverStatus } from "./failover-error.js";
 import { classifyFailoverReason, isFailoverErrorMessage } from "./pi-embedded-helpers.js";
+import { resolveAgentRuntimeCwd } from "./runtime-context.js";
 import { processSkillFactoryEpisodeDetached } from "./skill-factory/orchestrator.js";
 import { redactRunIdentifier, resolveRunWorkspaceDir } from "./workspace-run.js";
 
@@ -106,7 +107,7 @@ export async function runCliAgent(params: {
   const docsPath = await resolveOpenClawDocsPath({
     workspaceDir,
     argv1: process.argv[1],
-    cwd: process.cwd(),
+    cwd: resolveAgentRuntimeCwd(workspaceDir),
     moduleUrl: import.meta.url,
   });
   const systemPrompt = buildSystemPrompt({

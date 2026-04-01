@@ -137,6 +137,17 @@ export type SessionClarificationTelemetry = {
   changedExecutionPath?: boolean;
 };
 
+export type SessionDurableMemoryMaintenanceState = {
+  cursorVisibleMessageCount?: number;
+  eligibleTurns?: number;
+  updatedAt?: number;
+  lastSkipReason?: string;
+};
+
+export type SessionMaintenanceState = {
+  durableMemory?: SessionDurableMemoryMaintenanceState;
+};
+
 export type SessionEntry = {
   /**
    * Last delivered heartbeat payload (used to suppress duplicate heartbeat notifications).
@@ -251,6 +262,7 @@ export type SessionEntry = {
   replyCount?: number;
   pendingClarification?: SessionClarificationPending;
   clarificationTelemetry?: SessionClarificationTelemetry[];
+  maintenance?: SessionMaintenanceState;
 };
 
 export function mergeSessionEntry(

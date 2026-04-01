@@ -1,8 +1,8 @@
+import type { TuiCtrlCMode } from "../tui/tui-ctrl-c.js";
 import type {
   TuiEditorKeybindingsConfig,
   TuiShortcutBindingsConfig,
 } from "../tui/tui-keybindings.js";
-import type { TuiCtrlCMode } from "../tui/tui-ctrl-c.js";
 import type { AgentBinding, AgentsConfig } from "./types.agents.js";
 import type { ApprovalsConfig } from "./types.approvals.js";
 import type { AuthConfig } from "./types.auth.js";
@@ -113,8 +113,13 @@ export type OpenClawConfig = {
 };
 
 export type ConfigValidationIssue = {
+  file?: string;
   path: string;
   message: string;
+  expected?: string;
+  invalidValue?: unknown;
+  suggestion?: string;
+  docLink?: string;
 };
 
 export type LegacyConfigIssue = {

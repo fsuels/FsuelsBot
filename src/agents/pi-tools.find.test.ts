@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import "./test-helpers/fast-coding-tools.js";
 import { createOpenClawFindTool } from "./pi-tools.find.js";
 import { createOpenClawCodingTools } from "./pi-tools.js";
+import { runWithAgentContext } from "./runtime-context.js";
 import { executeToolWithContract } from "./tool-contract.js";
 import { applyToolContracts } from "./tool-contracts.js";
 
@@ -48,7 +49,7 @@ describe("createOpenClawFindTool", () => {
     };
 
     expect(details.code).toBe("invalid_input");
-    expect(details.issues?.some((issue) => issue.path === "/nope")).toBe(true);
+    expect(details.issues?.some((issue) => issue.path?.endsWith("nope"))).toBe(true);
   });
 
   it.each(["undefined", "null"])('rejects "%s" sentinel path strings', async (value) => {
@@ -217,6 +218,31 @@ describe("createOpenClawFindTool", () => {
 
     expect(details.filenames).toEqual(["src/main.ts"]);
     expect(details.truncated).toBe(false);
+  });
+
+  it("isolates default workspace resolution across concurrent runtime contexts", async () => {
+    const workspaceA = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-find-ctx-a-"));
+    const workspaceB = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-find-ctx-b-"));
+    await fs.writeFile(path.join(workspaceA, "only-a.txt"), "a", "utf-8");
+    await fs.writeFile(path.join(workspaceB, "only-b.txt"), "b", "utf-8");
+    const operations = {
+      glob: async (_pattern: string, root: string) =>
+        (await fs.readdir(root))
+          .filter((entry) => entry.endsWith(".txt"))
+          .map((entry) => path.join(root, entry)),
+    };
+
+    const [resultA, resultB] = await Promise.all([
+      runWithAgentContext({ sessionId: "ctx-a", cwd: workspaceA }, async () =>
+        runFindTool(createOpenClawFindTool({ operations }), { pattern: "*.txt" }),
+      ),
+      runWithAgentContext({ sessionId: "ctx-b", cwd: workspaceB }, async () =>
+        runFindTool(createOpenClawFindTool({ operations }), { pattern: "*.txt" }),
+      ),
+    ]);
+
+    expect((resultA.details as { filenames?: string[] }).filenames).toEqual(["only-a.txt"]);
+    expect((resultB.details as { filenames?: string[] }).filenames).toEqual(["only-b.txt"]);
   });
 
   it("returns a stable zero-match response", async () => {

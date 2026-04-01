@@ -16,6 +16,7 @@ import type {
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { clearPluginManifestRegistryCache } from "../../plugins/manifest-registry.js";
 import { CONFIG_DIR, resolveUserPath } from "../../utils.js";
+import { resolveAgentRuntimeCwd } from "../runtime-context.js";
 import { resolveBundledSkillsDir } from "./bundled-dir.js";
 import { shouldIncludeSkill } from "./config.js";
 import {
@@ -557,10 +558,7 @@ function buildWorkspaceSkillEntriesCacheKey(params: {
   });
 }
 
-function deleteWorkspaceScopedCacheEntries<T>(
-  cache: Map<string, T>,
-  workspaceDir: string,
-): void {
+function deleteWorkspaceScopedCacheEntries<T>(cache: Map<string, T>, workspaceDir: string): void {
   const marker = `"workspaceDir":${JSON.stringify(workspaceDir)}`;
   for (const key of cache.keys()) {
     if (key.includes(marker)) {
@@ -952,7 +950,7 @@ export async function syncSkillsToWorkspace(params: {
 export function filterWorkspaceSkillEntries(
   entries: SkillEntry[],
   config?: OpenClawConfig,
-  workspaceDir = process.cwd(),
+  workspaceDir = resolveAgentRuntimeCwd(),
 ): SkillEntry[] {
   return filterSkillEntries(entries, workspaceDir, config);
 }

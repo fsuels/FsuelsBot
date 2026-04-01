@@ -25,6 +25,7 @@ apps/android/.cxx/
 *.bun-build
 apps/macos/.build/
 apps/shared/MoltbotKit/.build/
+apps/shared/OpenClawKit/.build/
 **/ModuleCache/
 bin/
 bin/clawdbot-mac
@@ -32,6 +33,7 @@ bin/docs-list
 apps/macos/.build-local/
 apps/macos/.swiftpm/
 apps/shared/MoltbotKit/.swiftpm/
+apps/shared/OpenClawKit/.swiftpm/
 Core/
 apps/ios/*.xcodeproj/
 apps/ios/*.xcworkspace/
@@ -76,6 +78,7 @@ USER.md
 
 # Agent credentials and memory (NEVER COMMIT)
 /memory/
+/auth-profiles.json
 .agent/*.json
 !.agent/workflows/
 local/

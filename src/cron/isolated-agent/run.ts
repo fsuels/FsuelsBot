@@ -408,6 +408,7 @@ export async function runCronIsolatedAgentTurn(params: {
         return runEmbeddedPiAgent({
           sessionId: cronSession.sessionEntry.sessionId,
           sessionKey: agentSessionKey,
+          runPurpose: "background",
           taskId: activeTask.taskId,
           taskTitle: activeTask.title,
           agentId,
