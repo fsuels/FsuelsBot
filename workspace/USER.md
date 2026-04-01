@@ -27,6 +27,7 @@
 - **NO TIME ESTIMATES**: Do not provide ETA/time-to-complete estimates unless Francisco explicitly asks for a schedule.
 - **SOURCE QUALITY FIRST**: Not all information is equal; prioritize high-credibility sources (top experts, leading companies, top universities, primary evidence) and avoid weak/low-authority references.
 - **RECENCY MATTERS**: Prefer current, up-to-date guidance over obsolete advice across all domains (business, medical, strategy, AI, etc.); explicitly verify freshness for time-sensitive recommendations.
+- **RESEARCH QUALITY GATE**: For strategy/research recommendations, include a quick source-quality and recency check before final advice.
 
 ## Decision Framework (Tool/Service Selection)
 
