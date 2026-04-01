@@ -38,3 +38,25 @@ FsuelsBot, 123LegalDoc, DressLikeMommy, Mission Control
 ## Core Directive (2026-01-27)
 
 "I want to customize you to the best of your potential. I want to be in the very cutting edge of this technology."
+
+## DressLikeMommy — Durable Working Rules (2026-03-31)
+
+### Tracking Architecture
+
+- Google & YouTube app is the **only** Google tracking source on Shopify.
+- Do **not** use GTM for Google tags.
+- GA4 purchase value should equal **subtotal only** (exclude shipping and tax).
+
+### Ads Strategy
+
+- Optimize on **product revenue**, not gross revenue.
+- Keep exactly **one** Primary purchase conversion in Google Ads.
+
+### Workflow
+
+- Validate tracking by reconciling `transaction_id` across Shopify, GA4, and Google Ads.
+- Do **not** store order counts, revenue totals, or conversion totals as memory facts.
+
+### Execution Expectation
+
+- Implementation ownership is on FsuelsBot: execute the active plan steps directly, report receipts, and only escalate true blockers.
