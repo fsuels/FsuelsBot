@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { resolveStateDir } from "../config/paths.js";
@@ -19,6 +19,28 @@ export function resolveToolResultArtifactsDir(env: NodeJS.ProcessEnv = process.e
 
 function sha256Hex(value: Buffer | string): string {
   return createHash("sha256").update(value).digest("hex");
+}
+
+function buildArtifactPath(dir: string, sha256: string, ext: string): string {
+  return path.join(dir, `${sha256}${ext}`);
+}
+
+async function writeArtifactIfMissing(
+  targetPath: string,
+  content: Buffer | string,
+  options?: { encoding?: BufferEncoding; mode?: number },
+): Promise<void> {
+  try {
+    await fs.writeFile(targetPath, content, {
+      flag: "wx",
+      ...(options?.encoding ? { encoding: options.encoding } : {}),
+      ...(typeof options?.mode === "number" ? { mode: options.mode } : {}),
+    });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException | null)?.code !== "EEXIST") {
+      throw error;
+    }
+  }
 }
 
 async function ensureArtifactsDir(env: NodeJS.ProcessEnv = process.env) {
@@ -52,12 +74,13 @@ export async function persistToolResultTextArtifact(
 ): Promise<PersistedToolResultArtifact> {
   const dir = await ensureArtifactsDir(env);
   const { ext, mimeType } = inferTextArtifactType(text);
-  const targetPath = path.join(dir, `${randomUUID()}${ext}`);
-  await fs.writeFile(targetPath, text, { encoding: "utf8", mode: 0o600 });
+  const sha256 = sha256Hex(text);
+  const targetPath = buildArtifactPath(dir, sha256, ext);
+  await writeArtifactIfMissing(targetPath, text, { encoding: "utf8", mode: 0o600 });
   return {
     path: targetPath,
     sizeBytes: Buffer.byteLength(text, "utf8"),
-    sha256: sha256Hex(text),
+    sha256,
     mimeType,
   };
 }
@@ -71,12 +94,13 @@ export async function persistToolResultBinaryArtifact(
 ): Promise<PersistedToolResultArtifact> {
   const dir = await ensureArtifactsDir(params?.env);
   const ext = extensionForMime(params?.mimeType) ?? ".bin";
-  const targetPath = path.join(dir, `${randomUUID()}${ext}`);
-  await fs.writeFile(targetPath, buffer, { mode: 0o600 });
+  const sha256 = sha256Hex(buffer);
+  const targetPath = buildArtifactPath(dir, sha256, ext);
+  await writeArtifactIfMissing(targetPath, buffer, { mode: 0o600 });
   return {
     path: targetPath,
     sizeBytes: buffer.byteLength,
-    sha256: sha256Hex(buffer),
+    sha256,
     mimeType: params?.mimeType,
   };
 }

@@ -9,10 +9,12 @@ import AjvPkg, { type ErrorObject, type ValidateFunction } from "ajv";
 import { Buffer } from "node:buffer";
 import { truncateUtf16Safe } from "../utils.js";
 import { sanitizeToolResultImages } from "./tool-images.js";
+import { hardenToolInputForSchema } from "./tool-input-hardening.js";
 import {
   persistToolResultBinaryArtifact,
   persistToolResultTextArtifact,
 } from "./tool-result-artifacts.js";
+import { formatValidationErrorsSummary } from "./tool-validation-format.js";
 
 const Ajv = AjvPkg as unknown as new (opts?: object) => import("ajv").default;
 
@@ -202,19 +204,11 @@ function formatValidationErrors(
   toolName: string,
   errors: ErrorObject[] | null | undefined,
 ): string {
-  if (!errors || errors.length === 0) {
-    return `Validation failed for tool "${toolName}".`;
-  }
-  const details = errors
-    .map((err) => {
-      const path = err.instancePath ? err.instancePath.slice(1) : "";
-      const target =
-        path ||
-        (typeof err.params.missingProperty === "string" ? err.params.missingProperty : "root");
-      return `- ${target}: ${err.message ?? "invalid value"}`;
-    })
-    .join("\n");
-  return `Validation failed for tool "${toolName}":\n${details}`;
+  return formatValidationErrorsSummary(toolName, errors);
+}
+
+function formatToolInputHardeningError(toolName: string, message: string): string {
+  return `Validation failed for tool "${toolName}":\n- input: ${message}`;
 }
 
 export function validateToolInputSchema<TParameters extends TSchema, TDetails = unknown>(
@@ -227,8 +221,17 @@ export function validateToolInputSchema<TParameters extends TSchema, TDetails = 
   }
   const validate = getValidator(schema);
   const cloned = structuredClone(input ?? {});
-  if (validate(cloned)) {
-    return cloned as Static<TParameters>;
+  let hardened = cloned;
+  try {
+    hardened = hardenToolInputForSchema(schema, cloned).value;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(formatToolInputHardeningError(tool.name || "tool", message), {
+      cause: err,
+    });
+  }
+  if (validate(hardened)) {
+    return hardened as Static<TParameters>;
   }
   throw new Error(formatValidationErrors(tool.name || "tool", validate.errors));
 }

@@ -56,6 +56,46 @@ function describeToolExecutionError(err: unknown): {
   return { message: String(err) };
 }
 
+function trimOptionalString(value: unknown): string | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  return trimmed || undefined;
+}
+
+function extractStructuredToolErrorFields(err: unknown): Record<string, unknown> {
+  if (!isPlainObject(err)) {
+    return {};
+  }
+  const details = isPlainObject(err.details) ? err.details : undefined;
+  const source = details ?? err;
+  const result: Record<string, unknown> = {};
+
+  const code = source.code;
+  if (typeof code === "string" || typeof code === "number") {
+    result.code = code;
+  }
+  if (typeof source.exitCode === "number") {
+    result.exitCode = source.exitCode;
+  } else if (typeof source.exit_code === "number") {
+    result.exitCode = source.exit_code;
+  }
+  const stdout = trimOptionalString(source.stdout);
+  if (stdout) {
+    result.stdout = stdout;
+  }
+  const stderr = trimOptionalString(source.stderr);
+  if (stderr) {
+    result.stderr = stderr;
+  }
+  if (Array.isArray(source.issues)) {
+    result.issues = source.issues;
+  }
+
+  return result;
+}
+
 function splitToolExecuteArgs(args: ToolExecuteArgsAny): {
   toolCallId: string;
   params: unknown;
@@ -163,6 +203,7 @@ export function toToolDefinitions(tools: AnyOpenClawTool[]): ToolDefinition[] {
               status: "error",
               tool: normalizedName,
               error: described.message,
+              ...extractStructuredToolErrorFields(err),
             });
           }
         },

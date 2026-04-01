@@ -173,7 +173,9 @@ function summarizeFinalAssistantText(messages: TranscriptMessageSummary[]): stri
 }
 
 function sanitizeExportBasename(value: string): string {
-  const ascii = value.normalize("NFKD").replace(/[^\x00-\x7F]+/g, "");
+  const ascii = Array.from(value.normalize("NFKD"))
+    .filter((char) => char.charCodeAt(0) <= 0x7f)
+    .join("");
   const sanitized = ascii
     .replace(/[^a-zA-Z0-9._-]+/g, "-")
     .replace(/-+/g, "-")

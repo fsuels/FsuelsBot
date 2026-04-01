@@ -28,7 +28,7 @@ describe("tool-error-presenter", () => {
 
     expect(presented).toMatchObject({
       classification: "validation",
-      text: 'Invalid tool input:\n- /path unexpected property "bogus"\n- /content must be string',
+      text: 'Invalid tool input:\n- path: unexpected property "bogus"\n- content: must be string',
     });
   });
 
@@ -50,7 +50,9 @@ describe("tool-error-presenter", () => {
       truncated: true,
       hiddenLineCount: 2,
     });
-    expect(presented?.text).toContain("+2 more lines");
+    expect(presented?.text).toContain("...[2 more lines]...");
+    expect(presented?.text).toContain("line 1");
+    expect(presented?.text).toContain("line 12");
     expect(presented?.fullText).toContain("line 12");
   });
 
@@ -66,5 +68,25 @@ describe("tool-error-presenter", () => {
       text: "connection timeout",
       classification: "generic",
     });
+  });
+
+  it("formats process errors with exit code, stderr, and stdout", () => {
+    const presented = presentToolError({
+      details: {
+        status: "failed",
+        exitCode: 2,
+        stderr: "fatal: bad revision",
+        stdout: "partial output",
+      },
+    });
+
+    expect(presented).toMatchObject({
+      classification: "generic",
+    });
+    expect(presented?.text).toContain("Command failed (exit code 2)");
+    expect(presented?.text).toContain("stderr:");
+    expect(presented?.text).toContain("fatal: bad revision");
+    expect(presented?.text).toContain("stdout:");
+    expect(presented?.text).toContain("partial output");
   });
 });
