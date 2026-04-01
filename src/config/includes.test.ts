@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   CircularIncludeError,
   ConfigIncludeError,
+  resolveConfigIncludesDetailed,
   type IncludeResolver,
   resolveConfigIncludes,
 } from "./includes.js";
@@ -284,6 +285,51 @@ describe("resolveConfigIncludes", () => {
     expect(resolve(obj, files, configPath("sub", "openclaw.json"))).toEqual({
       shared: true,
     });
+  });
+
+  it("ignores root-only safety settings from included fragments", () => {
+    const files = {
+      [configPath("shared.json")]: {
+        browser: { noSandbox: true },
+        gateway: { controlUi: { dangerouslyDisableDeviceAuth: true } },
+        tools: { exec: { security: "full" } },
+        skills: { invoke: { trusted: ["review:*"] } },
+      },
+    };
+
+    const result = resolveConfigIncludesDetailed(
+      { $include: "./shared.json" },
+      DEFAULT_BASE_PATH,
+      createMockResolver(files),
+    );
+
+    expect(result.value).toEqual({
+      browser: {},
+      gateway: { controlUi: {} },
+      tools: { exec: {} },
+      skills: { invoke: {} },
+    });
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          file: configPath("shared.json"),
+          path: "browser.noSandbox",
+          message: expect.stringContaining("main config file"),
+        }),
+        expect.objectContaining({
+          file: configPath("shared.json"),
+          path: "gateway.controlUi.dangerouslyDisableDeviceAuth",
+        }),
+        expect.objectContaining({
+          file: configPath("shared.json"),
+          path: "tools.exec.security",
+        }),
+        expect.objectContaining({
+          file: configPath("shared.json"),
+          path: "skills.invoke.trusted",
+        }),
+      ]),
+    );
   });
 });
 

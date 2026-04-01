@@ -1,5 +1,6 @@
 import chokidar from "chokidar";
 import type { OpenClawConfig, ConfigFileSnapshot, GatewayReloadMode } from "../config/config.js";
+import { shouldSuppressConfigWatchEvent } from "../config/watch-events.js";
 import { type ChannelId, listChannelPlugins } from "../channels/plugins/index.js";
 import { getActivePluginRegistry } from "../plugins/runtime.js";
 
@@ -42,6 +43,7 @@ const DEFAULT_RELOAD_SETTINGS: GatewayReloadSettings = {
   mode: "hybrid",
   debounceMs: 300,
 };
+const DELETE_RECREATE_GRACE_MS = 450;
 
 const BASE_RELOAD_RULES: ReloadRule[] = [
   { prefix: "gateway.remote", kind: "none" },
@@ -133,6 +135,10 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
     !Array.isArray(value) &&
     Object.prototype.toString.call(value) === "[object Object]",
   );
+}
+
+function cloneConfigSnapshot(config: OpenClawConfig): OpenClawConfig {
+  return structuredClone(config);
 }
 
 export function diffConfigPaths(prev: unknown, next: unknown, prefix = ""): string[] {
@@ -265,9 +271,10 @@ export function startGatewayConfigReloader(opts: {
   };
   watchPath: string;
 }): GatewayConfigReloader {
-  let currentConfig = opts.initialConfig;
+  let currentConfig = cloneConfigSnapshot(opts.initialConfig);
   let settings = resolveGatewayReloadSettings(currentConfig);
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  let unlinkTimer: ReturnType<typeof setTimeout> | null = null;
   let pending = false;
   let running = false;
   let stopped = false;
@@ -306,9 +313,10 @@ export function startGatewayConfigReloader(opts: {
         opts.log.warn(`config reload skipped (invalid config): ${issues}`);
         return;
       }
-      const nextConfig = snapshot.config;
-      const changedPaths = diffConfigPaths(currentConfig, nextConfig);
-      currentConfig = nextConfig;
+      const nextConfig = cloneConfigSnapshot(snapshot.config);
+      const nextBaseline = cloneConfigSnapshot(snapshot.config);
+      const changedPaths = diffConfigPaths(currentConfig, nextBaseline);
+      currentConfig = nextBaseline;
       settings = resolveGatewayReloadSettings(nextConfig);
       if (changedPaths.length === 0) {
         return;
@@ -361,9 +369,35 @@ export function startGatewayConfigReloader(opts: {
     usePolling: Boolean(process.env.VITEST),
   });
 
-  watcher.on("add", schedule);
-  watcher.on("change", schedule);
-  watcher.on("unlink", schedule);
+  const clearUnlinkTimer = () => {
+    if (unlinkTimer) {
+      clearTimeout(unlinkTimer);
+      unlinkTimer = null;
+    }
+  };
+
+  const handleWatchEvent = (eventName: "add" | "change" | "unlink") => {
+    if (stopped) {
+      return;
+    }
+    if (shouldSuppressConfigWatchEvent(opts.watchPath, eventName)) {
+      return;
+    }
+    if (eventName === "unlink") {
+      clearUnlinkTimer();
+      unlinkTimer = setTimeout(() => {
+        unlinkTimer = null;
+        schedule();
+      }, DELETE_RECREATE_GRACE_MS);
+      return;
+    }
+    clearUnlinkTimer();
+    schedule();
+  };
+
+  watcher.on("add", () => handleWatchEvent("add"));
+  watcher.on("change", () => handleWatchEvent("change"));
+  watcher.on("unlink", () => handleWatchEvent("unlink"));
   let watcherClosed = false;
   watcher.on("error", (err) => {
     if (watcherClosed) {
@@ -381,6 +415,7 @@ export function startGatewayConfigReloader(opts: {
         clearTimeout(debounceTimer);
       }
       debounceTimer = null;
+      clearUnlinkTimer();
       watcherClosed = true;
       await watcher.close().catch(() => {});
     },

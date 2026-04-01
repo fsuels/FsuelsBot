@@ -6,6 +6,7 @@
 
 - [Threat Model](./THREAT-MODEL-ATLAS.md) - MITRE ATLAS-based threat model for the OpenClaw ecosystem
 - [Contributing to the Threat Model](./CONTRIBUTING-THREAT-MODEL.md) - How to add threats, mitigations, and attack chains
+- [Config Runtime Safety](./config-runtime-safety.md) - Trust boundaries, validation metadata, and live-reload hardening for config changes
 
 ## Reporting Vulnerabilities
 
