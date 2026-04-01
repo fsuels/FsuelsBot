@@ -24,6 +24,16 @@ import {
  */
 export type PromptMode = "full" | "minimal" | "none";
 
+export type DynamicToolDeltaEntry = {
+  name: string;
+  summary?: string;
+};
+
+export type DynamicToolDelta = {
+  loadedTools: DynamicToolDeltaEntry[];
+  pendingProviders?: string[];
+};
+
 function buildSkillsSection(params: {
   skillsPrompt?: string;
   isMinimal: boolean;
@@ -252,6 +262,50 @@ function buildReplyTagsSection(isMinimal: boolean) {
   ];
 }
 
+function buildDynamicToolDeltaSection(params: {
+  isMinimal: boolean;
+  dynamicToolDelta?: DynamicToolDelta;
+}) {
+  if (params.isMinimal) {
+    return [];
+  }
+  const loadedTools = (params.dynamicToolDelta?.loadedTools ?? [])
+    .map((tool) => ({
+      name: tool.name.trim(),
+      summary: tool.summary?.trim() || undefined,
+    }))
+    .filter((tool) => tool.name)
+    .toSorted((left, right) => left.name.localeCompare(right.name));
+  const pendingProviders = (params.dynamicToolDelta?.pendingProviders ?? [])
+    .map((provider) => provider.trim())
+    .filter(Boolean);
+  if (loadedTools.length === 0 && pendingProviders.length === 0) {
+    return [];
+  }
+
+  const lines = [
+    "## Tool Surface Updates",
+    "This section is dynamic runtime state. Treat it as the source of truth for deferred or request-scoped tools that became callable after the stable base prompt was built.",
+  ];
+
+  if (loadedTools.length > 0) {
+    lines.push("Callable now:");
+    for (const tool of loadedTools) {
+      lines.push(tool.summary ? `- ${tool.name}: ${tool.summary}` : `- ${tool.name}`);
+    }
+  }
+
+  if (pendingProviders.length > 0) {
+    lines.push(
+      `Pending provider connections: ${pendingProviders.join(", ")}.`,
+      "Pending providers are not callable until they are loaded or connected.",
+    );
+  }
+
+  lines.push("");
+  return lines;
+}
+
 function buildMessagingSection(params: {
   isMinimal: boolean;
   availableTools: Set<string>;
@@ -330,6 +384,7 @@ export type BuildAgentSystemPromptParams = {
   toolNames?: string[];
   toolSummaries?: Record<string, string>;
   toolManuals?: Record<string, string>;
+  dynamicToolDelta?: DynamicToolDelta;
   modelAliasLines?: string[];
   userTimezone?: string;
   userTime?: string;
@@ -632,6 +687,7 @@ export function buildAgentSystemPromptArtifacts(
   const toolingSectionLines = [
     "## Tooling",
     "Tool availability (filtered by policy):",
+    "This list is the stable base tool surface for the run.",
     "Tool names are case-sensitive. Call tools exactly as listed.",
     toolLines.length > 0
       ? toolLines.join("\n")
@@ -658,6 +714,7 @@ export function buildAgentSystemPromptArtifacts(
           "- task_tracker: persist structured task state for multi-step execution work",
         ].join("\n"),
     "TOOLS.md does not control tool availability; it is user guidance for how to use external tools.",
+    "Deferred or request-scoped tool activations, when present, appear later under Dynamic Runtime Context.",
     ...(availableTools.has("tool_discovery")
       ? [
           "If a needed capability is not listed, call `tool_discovery` to load matching deferred tools by exact name, prefix, or keyword search.",
@@ -872,6 +929,10 @@ export function buildAgentSystemPromptArtifacts(
           ];
         })()
       : [];
+  const dynamicToolDeltaSection = buildDynamicToolDeltaSection({
+    isMinimal,
+    dynamicToolDelta: params.dynamicToolDelta,
+  });
 
   const runtimeSection = [
     "## Runtime",
@@ -952,6 +1013,11 @@ export function buildAgentSystemPromptArtifacts(
           ? ["## Tool Operator Manuals", ...toolManualLines]
           : [],
       "tool manuals depend on the currently enabled tool set",
+    ),
+    uncachedPromptSection(
+      "dynamic-tool-delta",
+      () => dynamicToolDeltaSection,
+      "deferred and request-scoped tool activation is runtime-specific",
     ),
     uncachedPromptSection(
       "workspace",

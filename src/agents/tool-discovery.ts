@@ -423,6 +423,14 @@ function syncActiveToolNames(params: {
   const nextToolNameSet = new Set(currentToolNames.map(normalizeToolName));
   const activated = nextToolNames.filter((name) => !nextToolNameSet.has(normalizeToolName(name)));
 
+  log.info("tool discovery activated", {
+    mode: params.mode,
+    requestedToolNames,
+    activated,
+    alreadyLoaded,
+    activeToolCount: nextToolNames.length,
+  });
+
   return {
     activated,
     alreadyLoaded,

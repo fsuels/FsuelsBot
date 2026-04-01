@@ -11,6 +11,7 @@
 import { completeSimple, type TextContent } from "@mariozechner/pi-ai";
 import type { OpenClawConfig } from "../../../config/config.js";
 import { hasAnyKeywordTrigger } from "../../../shared/text/keyword-trigger.js";
+import { createAbortControllerWithParents } from "../../abort-tree.js";
 import { getApiKeyForModel, requireApiKey } from "../../model-auth.js";
 import { resolveModel } from "../model.js";
 
@@ -281,13 +282,8 @@ export async function tryDelegateRoute(opts: {
     const auth = await getApiKeyForModel({ model: resolved.model, cfg: config, agentDir });
     const apiKey = requireApiKey(auth, provider);
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), timeoutMs);
-    if (abortSignal?.aborted) {
-      controller.abort();
-    } else {
-      abortSignal?.addEventListener("abort", () => controller.abort(), { once: true });
-    }
+    const linkedAbort = createAbortControllerWithParents([abortSignal]);
+    const timeout = setTimeout(() => linkedAbort.controller.abort(), timeoutMs);
 
     try {
       const systemPrompt =
@@ -303,7 +299,7 @@ export async function tryDelegateRoute(opts: {
           systemPrompt,
           messages: [{ role: "user" as const, content: prompt, timestamp: Date.now() }],
         },
-        { apiKey, maxTokens, temperature, signal: controller.signal },
+        { apiKey, maxTokens, temperature, signal: linkedAbort.signal },
       );
 
       const text = res.content
@@ -329,6 +325,7 @@ export async function tryDelegateRoute(opts: {
       };
     } finally {
       clearTimeout(timeout);
+      linkedAbort.dispose();
     }
   } catch {
     // Any error → fall back to main agent

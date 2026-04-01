@@ -2,6 +2,7 @@ import { completeSimple, type TextContent } from "@mariozechner/pi-ai";
 import { Type } from "@sinclair/typebox";
 import type { OpenClawConfig } from "../../config/config.js";
 import type { AnyAgentTool } from "./common.js";
+import { createAbortControllerWithParents } from "../abort-tree.js";
 import { getApiKeyForModel, requireApiKey } from "../model-auth.js";
 import { resolveModel } from "../pi-embedded-runner/model.js";
 import { jsonResult, readNumberParam, readStringParam } from "./common.js";
@@ -101,15 +102,8 @@ export function createDelegateTool(opts?: {
         });
         const apiKey = requireApiKey(auth, provider);
 
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), timeoutMs);
-
-        // Chain parent signal if available
-        if (signal?.aborted) {
-          controller.abort();
-        } else {
-          signal?.addEventListener("abort", () => controller.abort(), { once: true });
-        }
+        const linkedAbort = createAbortControllerWithParents([signal]);
+        const timeout = setTimeout(() => linkedAbort.controller.abort(), timeoutMs);
 
         try {
           const res = await completeSimple(
@@ -128,7 +122,7 @@ export function createDelegateTool(opts?: {
               apiKey,
               maxTokens,
               temperature,
-              signal: controller.signal,
+              signal: linkedAbort.signal,
             },
           );
 
@@ -160,6 +154,7 @@ export function createDelegateTool(opts?: {
           });
         } finally {
           clearTimeout(timeout);
+          linkedAbort.dispose();
         }
       } catch (err) {
         const error = err as Error;

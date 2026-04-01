@@ -7,6 +7,7 @@ import type { DriftPromptInjection } from "../drift-detection.js";
 import type { EmbeddedContextFile } from "../pi-embedded-helpers.js";
 import type { CollaborationMode, PlanModeProfile } from "../plan-mode.js";
 import type { PromptAssemblyArtifact } from "../system-prompt-sections.js";
+import type { DynamicToolDelta } from "../system-prompt.js";
 import type { EmbeddedSandboxInfo } from "./types.js";
 import type { ReasoningLevel, ThinkLevel } from "./utils.js";
 import {
@@ -52,6 +53,7 @@ export function buildEmbeddedSystemPrompt(params: {
   messageToolHints?: string[];
   sandboxInfo?: EmbeddedSandboxInfo;
   tools: AgentTool[];
+  dynamicToolDelta?: DynamicToolDelta;
   modelAliasLines: string[];
   userTimezone: string;
   userTime?: string;
@@ -91,6 +93,7 @@ export function buildEmbeddedSystemPrompt(params: {
     toolNames: params.tools.map((tool) => tool.name),
     toolSummaries: buildToolSummaryMap(params.tools),
     toolManuals: buildToolOperatorManualMap(params.tools),
+    dynamicToolDelta: params.dynamicToolDelta,
     modelAliasLines: params.modelAliasLines,
     userTimezone: params.userTimezone,
     userTime: params.userTime,
@@ -137,6 +140,7 @@ export function buildEmbeddedSystemPromptArtifacts(params: {
   messageToolHints?: string[];
   sandboxInfo?: EmbeddedSandboxInfo;
   tools: AgentTool[];
+  dynamicToolDelta?: DynamicToolDelta;
   modelAliasLines: string[];
   userTimezone: string;
   userTime?: string;
@@ -173,6 +177,7 @@ export function buildEmbeddedSystemPromptArtifacts(params: {
     toolNames: params.tools.map((tool) => tool.name),
     toolSummaries: buildToolSummaryMap(params.tools),
     toolManuals: buildToolOperatorManualMap(params.tools),
+    dynamicToolDelta: params.dynamicToolDelta,
     modelAliasLines: params.modelAliasLines,
     userTimezone: params.userTimezone,
     userTime: params.userTime,
