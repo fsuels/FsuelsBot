@@ -26,10 +26,15 @@ export async function resolveBootstrapFilesForRun(params: {
   sessionKey?: string;
   sessionId?: string;
   agentId?: string;
+  warn?: (message: string) => void;
+  targetPath?: string;
 }): Promise<WorkspaceBootstrapFile[]> {
   const sessionKey = params.sessionKey ?? params.sessionId;
   const bootstrapFiles = filterBootstrapFilesForSession(
-    await loadWorkspaceBootstrapFiles(params.workspaceDir),
+    await loadWorkspaceBootstrapFiles(params.workspaceDir, {
+      warn: params.warn,
+      targetPath: params.targetPath,
+    }),
     sessionKey,
   );
   return applyBootstrapHookOverrides({
@@ -50,6 +55,7 @@ export async function resolveBootstrapContextForRun(params: {
   agentId?: string;
   provider?: string;
   warn?: (message: string) => void;
+  targetPath?: string;
   /**
    * Context pressure (0-1). When provided, bootstrap budget shrinks as sessions
    * grow to leave room for conversation history. (Working Memory P3)
@@ -62,7 +68,15 @@ export async function resolveBootstrapContextForRun(params: {
   bootstrapFiles: WorkspaceBootstrapFile[];
   contextFiles: EmbeddedContextFile[];
 }> {
-  const bootstrapFiles = await resolveBootstrapFilesForRun(params);
+  const bootstrapFiles = await resolveBootstrapFilesForRun({
+    workspaceDir: params.workspaceDir,
+    config: params.config,
+    sessionKey: params.sessionKey,
+    sessionId: params.sessionId,
+    agentId: params.agentId,
+    warn: params.warn,
+    targetPath: params.targetPath,
+  });
   let maxChars = resolveBootstrapMaxChars(params.config, params.provider);
 
   // Dynamic bootstrap budget: shrink allocation under context pressure (Working Memory P3)

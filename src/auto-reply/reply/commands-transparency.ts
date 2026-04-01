@@ -91,7 +91,13 @@ export const handleFilesInContextCommand: CommandHandler = async (params, allowT
     for (const file of report.injectedWorkspaceFiles) {
       const status = file.missing ? "missing" : file.truncated ? "truncated" : "ok";
       const sizeLabel = file.missing ? "" : `, injected ${file.injectedChars} chars`;
-      lines.push(`- ${formatDisplayPath(file.path, workspaceDir)} [${status}${sizeLabel}]`);
+      const includeLabel =
+        file.provenance && file.provenance.length > 1
+          ? `, includes ${file.provenance.length - 1}`
+          : "";
+      lines.push(
+        `- ${formatDisplayPath(file.path, workspaceDir)} [${status}${sizeLabel}${includeLabel}]`,
+      );
     }
     lines.push("", "More: /context detail");
   }
