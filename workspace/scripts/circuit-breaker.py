@@ -12,7 +12,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, Any
 from enum import Enum
 
-WORKSPACE = Path(r"C:\dev\FsuelsBot\workspace")
+WORKSPACE = Path(__file__).resolve().parent.parent
 CIRCUITS_FILE = WORKSPACE / "memory" / "circuits.json"
 
 class CircuitState(Enum):

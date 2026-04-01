@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 from zoneinfo import ZoneInfo
 
-WORKSPACE = Path(r"C:\dev\FsuelsBot\workspace")
+WORKSPACE = Path(__file__).resolve().parent.parent
 CRON_RUNS_DIR = WORKSPACE / "memory" / "cron-runs"
 EST = ZoneInfo("America/New_York")
 

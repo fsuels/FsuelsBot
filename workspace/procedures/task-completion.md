@@ -1,6 +1,6 @@
 ---
-updated: 2026-02-01
-version: "2.0"
+updated: 2026-03-31
+version: "3.0"
 confidence: high
 type: procedure
 ---
@@ -9,38 +9,23 @@ type: procedure
 
 > **Trigger:** Before marking ANY task as done
 > **Rule:** No task moves to done_today without verification gate + peer review
-> **Updated:** 2026-02-01 (added mandatory peer review)
-
-## 🧭 THE MOTTO (Applies to EVERY completion)
-
-```
-EVERY task I complete
-        ↓
-   VERIFIED EVIDENCE
-        ↓
-   PEER REVIEWED ← NEW!
-```
 
 ---
 
-## VERIFICATION GATE (MANDATORY)
+## STEP 1: LIST CLAIMS
 
-Before marking a task complete, you MUST:
-
-### Step 1: List Your Claims
 What are you claiming to have done?
+
 ```json
 "epistemic": {
-    "claims": [
-        "Created file X",
-        "Fixed bug Y",
-        "Tested scenario Z"
-    ]
+    "claims": ["Created file X", "Fixed bug Y", "Tested scenario Z"]
 }
 ```
 
-### Step 2: Provide Evidence
+## STEP 2: PROVIDE EVIDENCE
+
 How can this be verified?
+
 ```json
 "epistemic": {
     "verified": [
@@ -51,96 +36,133 @@ How can this be verified?
 }
 ```
 
-### Step 3: Set Verification Status
+## STEP 3: SET VERIFICATION STATUS
+
 Choose honestly:
+
 - `human_verified` — Francisco confirmed it works
 - `evidence_provided` — Proof exists (file, test, screenshot)
 - `auto_verified` — Automated test passed
 - `claimed` — No evidence (acceptable ONLY for trivial tasks)
 
-### Step 4: Run Verification Script
-```powershell
-powershell -ExecutionPolicy Bypass -File "scripts/verify-before-done.ps1" -TaskId "T###"
+## STEP 4: PEER REVIEW
+
+### 4a. Pre-Review Checklist
+
+Before requesting peer review, the completing agent MUST have:
+
+- [ ] `epistemic.claims[]` populated
+- [ ] `epistemic.verified[]` populated
+- [ ] All claimed artifacts actually exist
+- [ ] Task status set to `pending_review` (NOT `done`)
+
+### 4b. Spawn Reviewer Sub-Agent
+
+Use this prompt:
+
+```
+PEER REVIEW: {Task ID} - {Title}
+
+CLAIMS: {epistemic.claims}
+EVIDENCE: {epistemic.verified}
+ARTIFACTS: {file paths, URLs}
+
+YOUR CHECKLIST:
+1. [ ] Each evidence item actually exists (read the files!)
+2. [ ] Evidence supports ALL claims (not partial)
+3. [ ] No obvious errors (syntax, typos, broken links)
+4. [ ] Task is actually complete (not just started)
+
+RESPOND:
+APPROVED — [reason, what you checked]
+REJECTED — [specific issue, how to fix]
+
+BE STRICT. If unsure, REJECT.
 ```
 
-If it returns `BLOCKED`, fix the issues before completing.
+### 4c. Reviewer Independence Rules
+
+- Same sub-agent CANNOT review its own work
+- Main agent CANNOT self-approve without spawning reviewer
+- A fresh sub-agent spawned for review IS independent
+
+### 4d. Handle Result
+
+**If APPROVED:**
+
+1. Set `peer_review.status = "approved"`
+2. Move task to `done_today`
+3. Log completion to events.jsonl
+
+**If REJECTED:**
+
+1. Keep task in `bot_current`
+2. Add rejection reason to task notes
+3. Fix identified issues
+4. Re-request peer review (back to 4b)
+
+### 4e. Skip Conditions
+
+Peer review can be skipped ONLY when:
+
+1. Francisco explicitly verified (`human_verified`)
+2. Task has `peer_review.skip = true` (admin/bookkeeping tasks)
+3. Francisco explicitly says "skip review" in chat
+
+## STEP 5: RECORD RESULT
+
+Add to task in tasks.json:
+
+```json
+"peer_review": {
+  "status": "approved" | "rejected" | "skipped",
+  "reviewer": "subagent:peer-review-XXXX",
+  "reviewed_at": "ISO timestamp",
+  "reason": "Why approved/rejected",
+  "evidence_checked": ["list of verified items"],
+  "issues_found": [],
+  "attempts": 1
+}
+```
 
 ---
+
+## SUCCESS CRITERIA
+
+- Task has `epistemic.claims[]` with at least 1 entry
+- Task has `epistemic.verified[]` with evidence matching each claim
+- `peer_review.status` is `approved` or `skipped` (with valid reason)
+- All claimed artifacts exist and are accessible
+
+## ERROR HANDLING
+
+| Error                                   | Action                                          |
+| --------------------------------------- | ----------------------------------------------- |
+| Reviewer rejects                        | Fix issues, re-submit. Do NOT self-approve.     |
+| No evidence for a claim                 | Either produce the evidence or remove the claim |
+| Task stuck in `pending_review` > 1 hour | Escalate in heartbeat report                    |
+| Reviewer unavailable (sub-agent fails)  | Log error, retry once, then flag for human      |
 
 ## FORBIDDEN
 
-- ❌ Marking done without `epistemic` field
-- ❌ Saying `evidence_provided` with empty `verified[]`
-- ❌ Completing without any `claims[]`
-- ❌ Skipping the verification gate
+- Marking done without `epistemic` field
+- Saying `evidence_provided` with empty `verified[]`
+- Self-approving ("I reviewed my work and it looks good")
+- Soft rejection treated as approval ("Mostly good, minor issues" = REJECTED)
 
 ---
 
-## Examples
+## ANTI-PATTERNS
 
-### Good Completion
-```json
-{
-    "status": "done",
-    "completed": "2026-01-31T22:00:00",
-    "epistemic": {
-        "verification_status": "evidence_provided",
-        "claims": [
-            "Created heartbeat-checks.ps1",
-            "Reduced heartbeat time from 3s to 600ms"
-        ],
-        "verified": [
-            "File exists: scripts/heartbeat-checks.ps1",
-            "Timing test: Measure-Command returned 585ms"
-        ]
-    }
-}
-```
-
-### Bad Completion (WILL BE BLOCKED)
-```json
-{
-    "status": "done"
-    // No epistemic field = BLOCKED
-}
-```
+- **Evidence Theater:** Listing evidence without actually checking it
+- **Rushing:** Approving without reading files/checking paths
+- **Scope Creep:** Reviewer adding new requirements not in original task
+- **Fake Planning:** Writing peer review results after marking done
 
 ---
 
----
+## METRICS
 
-## 🔍 STEP 5: PEER REVIEW (NEW — MANDATORY)
-
-After self-verification, you MUST get independent peer review.
-
-**See:** `procedures/peer-review.md` for full protocol.
-
-**Quick Version:**
-1. Set task status to `"pending_review"` (not "done")
-2. Spawn Reviewer sub-agent with prompt:
-   ```
-   PEER REVIEW: {Task ID} - {Title}
-   CLAIMS: {epistemic.claims}
-   EVIDENCE: {epistemic.verified}
-   Check: Evidence exists? Claims match? No errors? Complete?
-   Respond: ✅ APPROVED [reason] or ❌ REJECTED [issue + fix]
-   ```
-3. Add result to task: `peer_review: { status: "approved/rejected", ... }`
-4. Only move to done_today if `peer_review.status = "approved"`
-
-**Skip Conditions:**
-- Francisco explicitly verified (human_verified)
-- Task has `peer_review.skip = true` (admin only)
-
----
-
-## Enforcement
-
-The system now enforces this automatically:
-1. `verify-before-done.ps1` — Blocks completion without verification
-2. `audit-unverified-completions.ps1` — Catches any that slip through
-3. Heartbeat check — Reports `unverifiedCompletions` count
-4. **Peer review gate** — Tasks cannot move to done_today without `peer_review.status = "approved"`
-
-**If heartbeat shows unverifiedCompletions > 0, STOP and fix immediately.**
-**If task in done_today has no peer_review, STOP and review it.**
+- `peer_review_approval_rate` — Target >80% first-time approval
+- `common_rejection_reasons` — Track for systematic improvement
+- Red flag: <50% approval rate = systematic self-deception

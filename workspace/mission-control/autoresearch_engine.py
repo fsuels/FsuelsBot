@@ -16,6 +16,7 @@ import json
 import os
 import random
 import re
+import shlex
 import shutil
 import signal
 import subprocess
@@ -482,9 +483,9 @@ def evaluate_command(
     command = replace_placeholders(
         command,
         {
-            "output_file": str(output_file),
-            "item_path": item_path,
-            "repo_root": str(repo_root),
+            "output_file": shlex.quote(str(output_file)),
+            "item_path": shlex.quote(item_path),
+            "repo_root": shlex.quote(str(repo_root)),
         },
     )
 

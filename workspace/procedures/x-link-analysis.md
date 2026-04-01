@@ -15,6 +15,7 @@ EVERY action I take
 ```
 
 ### Before completing this procedure, verify:
+
 - [ ] Logic is sound (no gaps in reasoning)
 - [ ] Evidence is verified (not assumed)
 - [ ] Fallacies checked (see list below)
@@ -34,10 +35,13 @@ EVERY action I take
 ## Routing Mode (Default vs Deep Mode)
 
 ### Default Mode (normal links)
+
 Use the standard workflow when content is short/clear and does not require decomposition.
 
 ### Deep Mode (heavy links) — Phase 1
+
 Auto-trigger Deep Mode when **any** condition matches:
+
 1. Long source content (thread, paper, repo docs, long article)
 2. High ambiguity or mixed claims that need separation
 3. Multiple implementation options with non-trivial tradeoffs
@@ -58,13 +62,16 @@ Set and enforce budgets at start of analysis:
 - `timeout_minutes: 12`
 
 ### Early stop conditions
+
 Stop and return partial findings if any condition is hit:
+
 - Budget exhausted (`steps`, `subcalls`, or `tokens`)
 - Timeout reached
 - Confidence remains low after 2 decomposition rounds
 - Conflicting evidence cannot be resolved safely
 
 When stopping early, explicitly report:
+
 - what is known
 - what is uncertain
 - minimum next action to reduce uncertainty
@@ -74,6 +81,7 @@ When stopping early, explicitly report:
 ## Automatic Workflow
 
 ### Step 1: Create Task Card Immediately
+
 ```
 Title: "X Analysis: [Author] - [Topic Summary]"
 Priority: P1
@@ -81,19 +89,23 @@ Status: in_progress
 ```
 
 ### Step 2: Read the Post Deeply
+
 - Open the link in browser
 - Read the FULL post text
 - Note: author, credentials, engagement (views/likes/reposts)
 - Capture the core thesis/idea
 
 ### Step 3: Read ALL Comments/Replies
+
 - Scroll through replies
 - Extract valuable insights from commenters
 - Note skeptics/critics — what are their objections?
 - Note supporters — what do they add?
 
 ### Step 4: Evaluate for Our Business
+
 Answer these questions in the task card:
+
 1. **What is the core idea?**
 2. **Is this relevant to Fsuelsbot / our current projects?**
 3. **What can we LEARN and APPLY?**
@@ -101,7 +113,9 @@ Answer these questions in the task card:
 5. **Are there specific techniques/approaches we should adopt?**
 
 ### Step 4.5: FALLACY CHECK (MANDATORY)
+
 Before accepting ANY claim from the post, verify:
+
 - [ ] **Not Ad Hominem** — attacks argument, not person
 - [ ] **Not Bandwagon** — popularity ≠ truth ("everyone is doing X")
 - [ ] **Not False Cause** — correlation ≠ causation
@@ -113,6 +127,7 @@ Before accepting ANY claim from the post, verify:
 **If ANY fallacy detected:** Note it in `analysis.fallacies_detected` field and discount that claim.
 
 ### Step 5: Deep Mode Structured Output (Required when Deep Mode is active) — Phase 1
+
 Return this structure exactly:
 
 1. **What we have now**
@@ -123,6 +138,7 @@ Return this structure exactly:
 This output is mandatory in Deep Mode to keep decisions auditable and actionable.
 
 ### Step 6: Recursive Decomposition (Deep Mode only) — Phase 2
+
 If source is still too large/complex after initial pass:
 
 1. Split into chunks/questions:
@@ -135,7 +151,9 @@ If source is still too large/complex after initial pass:
 4. Merge findings with the scoring rubric below
 
 ### Step 7: Scoring Rubric Merge (Deep Mode only) — Phase 2
+
 Score each candidate recommendation 1–5 on:
+
 - **impact**
 - **effort**
 - **risk**
@@ -146,18 +164,23 @@ Compute priority using:
 `priority_score = (impact * confidence) - (effort + risk)`
 
 Then rank and output:
+
 - Top 1–3 recommended actions
 - Why each ranked where it did
 - One "do now" action (highest ROI)
 
 ### Step 8: Decide on Engagement (Secondary)
+
 Only AFTER learning extraction:
+
 - Should we reply? (adds value, not just promotion)
 - Should we follow the author?
 - Should we save for future reference?
 
 ### Step 9: Report to Francisco
+
 Summarize:
+
 - What I learned
 - What I recommend we do
 - Link to full task card for audit trail
@@ -189,10 +212,10 @@ Summarize:
     "comments_summary": "[Key insights from replies]",
     "what_we_have_now": "[Current Fsuelsbot baseline relevant to this link]",
     "what_this_link_adds": "[Net-new idea or capability]",
-    "adopt": ["[Adopt as-is]"] ,
-    "adapt": ["[Adapt with constraints]"] ,
+    "adopt": ["[Adopt as-is]"],
+    "adapt": ["[Adapt with constraints]"],
     "ignore": ["[Ignore and rationale]"],
-    "risks": ["[Main failure modes]"] ,
+    "risks": ["[Main failure modes]"],
     "next_actions": ["[Concrete steps]"]
   },
   "decomposition": {
@@ -211,12 +234,12 @@ Summarize:
     ]
   },
   "steps": [
-    {"step": "Read post deeply", "status": "done"},
-    {"step": "Read comments", "status": "done"},
-    {"step": "Evaluate for business", "status": "done"},
-    {"step": "Deep mode structure completed", "status": "done"},
-    {"step": "Recursive decomposition (if needed)", "status": "done"},
-    {"step": "Report to Francisco", "status": "done"}
+    { "step": "Read post deeply", "status": "done" },
+    { "step": "Read comments", "status": "done" },
+    { "step": "Evaluate for business", "status": "done" },
+    { "step": "Deep mode structure completed", "status": "done" },
+    { "step": "Recursive decomposition (if needed)", "status": "done" },
+    { "step": "Report to Francisco", "status": "done" }
   ]
 }
 ```
@@ -236,6 +259,7 @@ Summarize:
 ## ⚠️ MANDATORY: Audit Trail (NON-NEGOTIABLE)
 
 **EVERY task card MUST have `audit_trail` containing:**
+
 - `source_url` — clickable link to original
 - `captured_at` — timestamp when I read it
 - `original_post.full_text` — THE ACTUAL TEXT, not a summary
@@ -249,6 +273,35 @@ Summarize:
 **If the audit trail is missing or incomplete, the task is NOT DONE.**
 
 This rule exists because:
+
 1. Context gets compacted — the original content disappears
 2. Francisco needs to verify my analysis against the source
 3. Without receipts, there's no accountability
+
+---
+
+## SUCCESS CRITERIA
+
+An X link analysis is complete when ALL of:
+
+- [ ] Task card created with all required fields populated
+- [ ] `audit_trail` section complete (source_url, full_text, author, engagement, key_replies)
+- [ ] `analysis` section has all 5 evaluation questions answered
+- [ ] Fallacy check completed (even if no fallacies found -- document the check)
+- [ ] Report delivered to Francisco with actionable recommendations
+- [ ] If Deep Mode: structured output (What we have / What this adds / Adopt-Adapt-Ignore / Risks)
+- [ ] `termination_reason` documented
+
+---
+
+## ERROR HANDLING
+
+| Error                       | Action                                                                                              |
+| --------------------------- | --------------------------------------------------------------------------------------------------- |
+| Post deleted or unavailable | Log `termination_reason: "source_unavailable"`, report to Francisco, check if cached version exists |
+| Account is private/locked   | Log `termination_reason: "access_denied"`, report to Francisco                                      |
+| Browser fails to load X     | Retry once with fresh tab. If still fails, try API/alternative extraction. Log failure.             |
+| Thread has 100+ replies     | Sample top 20 by engagement + 10 most recent. Note sampling in audit trail.                         |
+| X rate-limits or blocks     | Wait 5 min, retry once. If blocked, report and defer.                                               |
+| Deep Mode budget exhausted  | Return partial findings per existing early-stop protocol. Always include "minimum next action."     |
+| Content is not in English   | Note language, provide translation of key points, flag uncertainty in translation accuracy          |

@@ -8,14 +8,14 @@
 
 Each agent is tagged with specialties that determine which tasks they can claim:
 
-| Agent Type | Specialty | Example Tasks |
-|------------|-----------|---------------|
-| `research` | Web research, fact-checking, competitive analysis | X analysis, market research, docs audit |
-| `content` | Writing, drafts, descriptions, copy | Product listings, blog posts, social media |
-| `audit` | Verification, quality checks, compliance | SEO audits, evidence verification, procedure review |
-| `analytics` | Data analysis, metrics, reporting | Sales analysis, conversion tracking, forecasting |
-| `code` | Development, scripts, automation | PowerShell scripts, Python tools, web scraping |
-| `general` | Any task (fallback) | Simple tasks, coordination |
+| Agent Type  | Specialty                                         | Example Tasks                                       |
+| ----------- | ------------------------------------------------- | --------------------------------------------------- |
+| `research`  | Web research, fact-checking, competitive analysis | X analysis, market research, docs audit             |
+| `content`   | Writing, drafts, descriptions, copy               | Product listings, blog posts, social media          |
+| `audit`     | Verification, quality checks, compliance          | SEO audits, evidence verification, procedure review |
+| `analytics` | Data analysis, metrics, reporting                 | Sales analysis, conversion tracking, forecasting    |
+| `code`      | Development, scripts, automation                  | PowerShell scripts, Python tools, web scraping      |
+| `general`   | Any task (fallback)                               | Simple tasks, coordination                          |
 
 ---
 
@@ -24,31 +24,35 @@ Each agent is tagged with specialties that determine which tasks they can claim:
 Priority score is calculated dynamically: `priority_score = urgency + impact + dependency_boost`
 
 ### Urgency (0-40 points)
-| Condition | Points |
-|-----------|--------|
-| Past due date | 40 |
-| Due within 24h | 30 |
-| Due within 3 days | 20 |
-| Due within 7 days | 10 |
-| No deadline | 0 |
+
+| Condition         | Points |
+| ----------------- | ------ |
+| Past due date     | 40     |
+| Due within 24h    | 30     |
+| Due within 3 days | 20     |
+| Due within 7 days | 10     |
+| No deadline       | 0      |
 
 ### Impact (0-40 points)
-| Level | Points | Criteria |
-|-------|--------|----------|
-| `critical` | 40 | Revenue-blocking, customer-facing emergency |
-| `high` | 30 | Significant revenue/growth impact |
-| `medium` | 20 | Noticeable improvement |
-| `low` | 10 | Nice-to-have, minor improvement |
-| `none` | 0 | No measurable business impact |
+
+| Level      | Points | Criteria                                    |
+| ---------- | ------ | ------------------------------------------- |
+| `critical` | 40     | Revenue-blocking, customer-facing emergency |
+| `high`     | 30     | Significant revenue/growth impact           |
+| `medium`   | 20     | Noticeable improvement                      |
+| `low`      | 10     | Nice-to-have, minor improvement             |
+| `none`     | 0      | No measurable business impact               |
 
 ### Dependency Boost (0-20 points)
-| Condition | Points |
-|-----------|--------|
-| Task blocks 3+ other tasks | 20 |
-| Task blocks 1-2 other tasks | 10 |
-| No dependents | 0 |
+
+| Condition                   | Points |
+| --------------------------- | ------ |
+| Task blocks 3+ other tasks  | 20     |
+| Task blocks 1-2 other tasks | 10     |
+| No dependents               | 0      |
 
 ### Final Priority
+
 - **P0 (Critical):** Score 80-100
 - **P1 (High):** Score 60-79
 - **P2 (Medium):** Score 40-59
@@ -60,22 +64,26 @@ Priority score is calculated dynamically: `priority_score = urgency + impact + d
 ## Claiming Protocol
 
 ### 1. Agent Requests Work
+
 ```
 Agent: "Claiming tasks for specialty: research"
 ```
 
 ### 2. System Returns Eligible Tasks
+
 - Filter by `required_agent` matching agent's specialty
 - Sort by `priority_score` descending
 - Exclude tasks already claimed by other agents
 - Return top N available tasks
 
 ### 3. Agent Claims Task
+
 - Sets `claimed_by: { agent_id, claimed_at, specialty }`
 - Sets `status: in_progress`
 - Logs to `memory/parallel-execution.jsonl`
 
 ### 4. Parallel Execution Rules
+
 - **Max concurrent per agent:** 1 (focus on completion)
 - **Max concurrent total:** 5 (resource limit)
 - **Claim timeout:** 30 minutes idle = auto-release
@@ -86,6 +94,7 @@ Agent: "Claiming tasks for specialty: research"
 ## Schema Extensions for tasks.json
 
 ### Task-Level Fields
+
 ```json
 {
   "T123": {
@@ -114,6 +123,7 @@ Agent: "Claiming tasks for specialty: research"
 ```
 
 ### Top-Level Fields
+
 ```json
 {
   "version": 235,
@@ -123,7 +133,7 @@ Agent: "Claiming tasks for specialty: research"
     "active_agents": [
       {
         "agent_id": "subagent:abc123",
-        "agent_name": "Research Agent", 
+        "agent_name": "Research Agent",
         "specialty": "research",
         "current_task": "T123",
         "started_at": "2026-02-01T...",
@@ -141,17 +151,20 @@ Agent: "Claiming tasks for specialty: research"
 ## Mission Control Display
 
 ### Visual Indicators
+
 - 🔴 **P0 tasks:** Red border, pulsing indicator
 - 🟠 **P1 tasks:** Orange accent
-- 🟡 **P2 tasks:** Yellow accent  
+- 🟡 **P2 tasks:** Yellow accent
 - 🟢 **P3/P4 tasks:** Default styling
 
 ### Agent Badges
+
 - Show agent specialty emoji: 🔬 Research | ✍️ Content | 🔍 Audit | 📊 Analytics | 💻 Code
 - Show claim status: "🤖 Agent X working..."
 - Show parallel count: "3 agents active"
 
 ### Claim Pool View
+
 - Unclaimed tasks sorted by priority
 - Filter by specialty
 - One-click claim button for eligible agents
@@ -168,3 +181,54 @@ Agent: "Claiming tasks for specialty: research"
 - [ ] Create claim/release functions
 - [ ] Update Mission Control UI
 - [ ] Create parallel execution log
+
+---
+
+## TRIGGER CONDITIONS
+
+The task claim pool activates when:
+
+1. Multiple sub-agents are spawned (e.g., night shift parallel execution)
+2. A task's `required_agent` field matches a specific specialty
+3. The orchestrator decides to parallelize work (complexity warrants it)
+
+**Current status:** DESIGN PHASE. Multi-agent parallel execution is not yet operational. This procedure defines the target architecture for when it is activated.
+
+---
+
+## SUCCESS CRITERIA
+
+- [ ] No two agents claim the same task simultaneously (locking works)
+- [ ] Tasks are completed faster with parallel agents than sequential
+- [ ] Claim timeouts correctly release abandoned tasks
+- [ ] Priority scoring produces intuitive ordering (P0 always first)
+- [ ] Handoff notes are sufficient for another agent to continue
+
+---
+
+## ERROR HANDLING
+
+| Error                               | Action                                                                                           |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Two agents claim same task          | Last-write-wins with version check. Losing agent picks next task.                                |
+| Agent crashes mid-task              | Claim timeout (30 min) auto-releases. Task returns to pool with agent's partial notes preserved. |
+| All high-priority tasks are claimed | Agent works on next available or enters standby with heartbeat.                                  |
+| Priority score ties                 | Break ties by: (1) oldest task first, (2) fewest dependencies, (3) smallest scope.               |
+| Agent specialty mismatch            | `general` agents can claim any unclaimed task. Specialized agents get priority for their domain. |
+| tasks.json version conflict         | Retry with fresh read. If 3 consecutive conflicts, escalate to orchestrator.                     |
+
+---
+
+## IMPLEMENTATION STATUS
+
+- [x] Agent specialties defined
+- [x] Priority scoring algorithm defined
+- [x] Schema extensions defined
+- [ ] tasks.json updated with new fields
+- [ ] Claim/release functions implemented
+- [ ] Priority calculation script created
+- [ ] Mission Control UI updated
+- [ ] Parallel execution log created
+- [ ] Integration tested with 2+ agents
+
+**Note:** Until implementation is complete, this procedure serves as a design specification. Do not attempt multi-agent claiming without the supporting code.

@@ -1,4 +1,4 @@
-# Recall Pack - 2026-03-18
+# Recall Pack - 2026-03-31
 
 _Auto-generated context for session start (lightweight)_
 
@@ -16,10 +16,7 @@ _Auto-generated context for session start (lightweight)_
 ## Open Loops (Index)
 
 - Open commitments: 0 (`memory/index/open-loops.json`)
-- **WAITING_HUMAN tasks:** 10 (`memory/tasks.json` → lanes.human)
-  - GhostBroker Cloudflare fix (needs Cloudflare access)
-  - GhostBroker X engagement (needs approval)
-  - GhostBroker credibility/influencer plan files missing
+- **WAITING_HUMAN tasks:** (check `memory/tasks.json` → lanes.human)
   - BuckyDrop checks need login/attached tab
 
 ## Recent Ships (evidence)

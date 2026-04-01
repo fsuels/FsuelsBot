@@ -1,5 +1,7 @@
 # AGENTS.md — FsuelsBot Workspace Guide
 
+_Last reviewed: 2026-03-31_
+
 This folder is home. Treat it that way.
 
 ## What This Is
@@ -14,24 +16,43 @@ FsuelsBot is Francisco Suels's personal AI agent, built on top of the OpenClaw f
 
 ```
 workspace/
-├── SOUL.md          — Core personality, rules, and protocols
-├── IDENTITY.md      — Who I am (FsuelsBot)
-├── USER.md          — About Francisco
-├── AGENTS.md        — This file (workspace guide)
-├── MEMORY.md        — Long-term memory (business context, lessons)
-├── TOOLS.md         — Available tools and environment
-├── BOOTSTRAP.md     — Startup instructions
-├── HEARTBEAT.md     — Check-in protocols
-├── MISSION.md       — Global mission
-├── CONSTITUTION.md  — Governance rules
+├── SOUL.md              — Core personality, rules, and protocols
+├── IDENTITY.md          — Who I am (FsuelsBot)
+├── USER.md              — About Francisco
+├── AGENTS.md            — This file (workspace guide)
+├── MEMORY.md            — Long-term memory (business context, lessons)
+├── TOOLS.md             — Available tools and environment
+├── BOOTSTRAP.md         — Startup instructions
+├── BOOT.md              — Boot sequence
+├── HEARTBEAT.md         — Check-in protocols
+├── backlog.md           — Project backlog
+├── current-task.json    — Active task pointer
+├── team.json            — Team/agent configuration
 ├── references/
-│   ├── fallacies.md              — Full logical fallacy catalog
-│   └── prompt-injection-defense.md — Security defense protocols
+│   ├── fallacies.md              — Logical fallacy catalog
+│   ├── prompt-injection-defense.md — Security defense protocols
+│   └── threat-model.md          — Threat model
 ├── memory/
-│   ├── tasks.json   — Task queue (source of truth)
-│   └── *.md         — Daily memory files
-├── skills/          — Installed skills
-└── procedures/      — Documented procedures for specific workflows
+│   ├── tasks.json       — Task queue (source of truth)
+│   ├── active-thread.md — Current thread context
+│   ├── *.md             — Daily memory files (2026-MM-DD.md)
+│   ├── checkpoints/     — Session checkpoints
+│   ├── episodes/        — Episodic memory
+│   ├── research_sources/— Research source files
+│   ├── *.json/*.jsonl   — Structured memory (ledger, knowledge graph, etc.)
+│   └── ...
+├── skills/              — Installed skills (10 ClawdHub installs)
+├── procedures/          — Documented procedures (30+ workflows)
+├── mission-control/     — Dashboard, activity server, SEO tools, data
+├── knowledge/           — Knowledge base files
+├── content/             — Content assets
+├── plans/               — Project plans
+├── designs/             — Design files
+├── templates/           — Templates
+├── hooks/               — Hook scripts
+├── scripts/             — Utility scripts
+├── recall/              — Recall/retrieval data
+└── tests/               — Test files
 ```
 
 ## Key Rules
@@ -55,14 +76,7 @@ workspace/
 - **NEVER force-push to main**
 - **NEVER commit secrets** (.env, API keys, tokens)
 
-### Development Notes
-
-- TypeScript codebase, compiled with `pnpm build`
-- Source: `src/` → Output: `dist/`
-- Gateway: runs via launchd (`bot.molt.gateway`)
-- Config: `~/.clawdbot/moltbot.json`
-- Sessions: `~/.clawdbot/agents/main/sessions/sessions.json`
-- Logs: `~/.clawdbot/logs/gateway.log`
+_For gateway paths, config locations, and logs: see TOOLS.md Sections 13-16._
 
 ### Task Management
 

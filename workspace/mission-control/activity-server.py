@@ -36,7 +36,7 @@ if not DASHBOARD_KEY:
     DASHBOARD_KEY = secrets.token_hex(32)
     _generated_dashboard_key = True
 MISSION_CONTROL_TRUST_LAN = os.environ.get("MISSION_CONTROL_TRUST_LAN", "1").strip().lower() in ("1", "true", "yes", "on")
-MISSION_CONTROL_DISABLE_AUTH = os.environ.get("MISSION_CONTROL_DISABLE_AUTH", "1").strip().lower() in ("1", "true", "yes", "on")
+MISSION_CONTROL_DISABLE_AUTH = os.environ.get("MISSION_CONTROL_DISABLE_AUTH", "0").strip().lower() in ("1", "true", "yes", "on")
 
 # Session tokens for wifi auth
 _valid_sessions = {}
@@ -1085,6 +1085,142 @@ def _stop_autoresearch_run():
     return {"ok": True, "stopped": True, "runId": active.get("runId")}
 
 
+def _clear_autoresearch_history():
+    """Remove active.json so failed runs stop showing in the dashboard."""
+    paths = _autoresearch_paths()
+    removed = False
+    if paths["active"].exists():
+        try:
+            paths["active"].unlink()
+            removed = True
+        except OSError:
+            pass
+    return {"ok": True, "cleared": removed}
+
+
+# ── Research Queue ────────────────────────────────────────────────────
+
+_DEFAULT_RESEARCH_QUEUE = [
+    {
+        "id": "error-log-recurring",
+        "title": "Analyze recurring errors",
+        "description": "Analyze error-log.jsonl — which errors are actually recurring?",
+        "logFile": "workspace/memory/error-log.jsonl",
+        "minEntries": 10,
+        "checked": False,
+        "lastRun": None,
+        "status": None,
+    },
+    {
+        "id": "reflection-calibration",
+        "title": "Calibrate reflection thresholds",
+        "description": "Calibrate reflection thresholds using reflection-calibration-log.jsonl",
+        "logFile": "workspace/memory/reflection-calibration-log.jsonl",
+        "minEntries": 20,
+        "checked": False,
+        "lastRun": None,
+        "status": None,
+    },
+    {
+        "id": "backlog-scoring",
+        "title": "Tune backlog scoring",
+        "description": "Tune backlog scoring using real completion rates from tasks.json",
+        "logFile": "workspace/memory/tasks.json",
+        "minEntries": 30,
+        "checked": False,
+        "lastRun": None,
+        "status": None,
+    },
+    {
+        "id": "epistemic-fix-metrics",
+        "title": "Analyze auto-fix effectiveness",
+        "description": "Analyze epistemic-fix-metrics.jsonl — are auto-fixes actually working?",
+        "logFile": "workspace/memory/epistemic-fix-metrics.jsonl",
+        "minEntries": 5,
+        "checked": False,
+        "lastRun": None,
+        "status": None,
+    },
+]
+
+
+def _research_queue_path():
+    return _autoresearch_paths()["root"] / "research-queue.json"
+
+
+def _count_log_entries(log_file_rel):
+    """Count entries in a log file. For .jsonl, counts lines. For .json, counts completed tasks."""
+    full_path = REPO_ROOT / log_file_rel
+    if not full_path.exists():
+        return 0
+    try:
+        if full_path.suffix == ".json":
+            data = load_json_file(full_path)
+            if isinstance(data, dict) and "lanes" in data:
+                count = 0
+                for lane in data.get("lanes", {}).values():
+                    if isinstance(lane, dict):
+                        count += len(lane.get("items", []))
+                return count
+            return len(data) if isinstance(data, (list, dict)) else 0
+        else:
+            with open(full_path, "r", encoding="utf-8", errors="replace") as f:
+                return sum(1 for line in f if line.strip())
+    except Exception:
+        return 0
+
+
+def _read_research_queue():
+    """Read research queue with readiness status for each item."""
+    qpath = _research_queue_path()
+    if qpath.exists():
+        items = load_json_file(qpath)
+        if not isinstance(items, list):
+            items = list(_DEFAULT_RESEARCH_QUEUE)
+    else:
+        items = list(_DEFAULT_RESEARCH_QUEUE)
+        qpath.parent.mkdir(parents=True, exist_ok=True)
+        write_json_file(qpath, items)
+
+    enriched = []
+    for item in items:
+        entry_count = _count_log_entries(item.get("logFile", ""))
+        min_entries = item.get("minEntries", 10)
+        ready = entry_count >= min_entries
+        enriched.append({
+            **item,
+            "entryCount": entry_count,
+            "ready": ready,
+        })
+    return {"ok": True, "items": enriched}
+
+
+def _update_research_queue(data):
+    """Toggle checked state for a research queue item."""
+    item_id = data.get("id")
+    if not item_id:
+        raise ValueError("Missing 'id' field")
+
+    qpath = _research_queue_path()
+    items = load_json_file(qpath) if qpath.exists() else list(_DEFAULT_RESEARCH_QUEUE)
+    if not isinstance(items, list):
+        items = list(_DEFAULT_RESEARCH_QUEUE)
+
+    found = False
+    for item in items:
+        if item.get("id") == item_id:
+            item["checked"] = data.get("checked", not item.get("checked", False))
+            found = True
+            break
+
+    if not found:
+        raise ValueError(f"Item '{item_id}' not found")
+
+    qpath.parent.mkdir(parents=True, exist_ok=True)
+    write_json_file(qpath, items)
+    return _read_research_queue()
+
+
 def _latest_log_for_source(source):
     try:
         log_dir = source["dir"]
@@ -1577,6 +1713,41 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                 self.wfile.write(json.dumps(result, ensure_ascii=False).encode('utf-8'))
             except Exception as e:
                 self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}, ensure_ascii=False).encode('utf-8'))
+            return
+
+        if path == '/api/autoresearch/clear':
+            try:
+                result = _clear_autoresearch_history()
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps(result, ensure_ascii=False).encode('utf-8'))
+            except Exception as e:
+                self.send_response(500)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps({"error": str(e)}, ensure_ascii=False).encode('utf-8'))
+            return
+
+        if path == '/api/research-queue':
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8')
+            try:
+                data = json.loads(body) if body else {}
+            except Exception:
+                data = {}
+            action = data.get('action', 'toggle')
+            try:
+                result = _update_research_queue(data)
+                self.send_response(200)
+                self.send_header('Content-Type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps(result, ensure_ascii=False).encode('utf-8'))
+            except Exception as e:
+                self.send_response(400)
                 self.send_header('Content-Type', 'application/json')
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": str(e)}, ensure_ascii=False).encode('utf-8'))
@@ -2868,6 +3039,19 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": str(e)}).encode())
                 return
+
+        if path == '/api/research-queue':
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json; charset=utf-8')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.send_header('Cache-Control', 'no-cache')
+            self.end_headers()
+            try:
+                payload = _read_research_queue()
+                self.wfile.write(json.dumps(payload, ensure_ascii=False).encode('utf-8'))
+            except Exception as e:
+                self.wfile.write(json.dumps({"error": str(e)}, ensure_ascii=False).encode('utf-8'))
+            return
 
         if path == '/api/autoresearch/status':
             self.send_response(200)

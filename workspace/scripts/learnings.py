@@ -21,7 +21,7 @@ import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
-WORKSPACE = Path(r"C:\dev\FsuelsBot\workspace")
+WORKSPACE = Path(__file__).resolve().parent.parent
 DB_PATH = WORKSPACE / "memory" / "learnings.db"
 
 def get_db():

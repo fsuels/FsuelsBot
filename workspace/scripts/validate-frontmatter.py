@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 from datetime import datetime
 
-WORKSPACE = Path(r"C:\dev\FsuelsBot\workspace")
+WORKSPACE = Path(__file__).resolve().parent.parent
 
 # Council A+: Schema definition for frontmatter
 FRONTMATTER_SCHEMA = {

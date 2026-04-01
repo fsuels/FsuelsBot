@@ -2,8 +2,8 @@
 
 _Master catalog of all knowledge. Search here first._
 
-**Last Updated:** 2026-02-01
-**Total Items:** 7 (initialized)
+**Last Updated:** 2026-03-31
+**Total Items:** 8
 
 ---
 
@@ -12,7 +12,7 @@ _Master catalog of all knowledge. Search here first._
 | Category      | Path                       | Items    |
 | ------------- | -------------------------- | -------- |
 | 🏢 Business   | [business/](business/)     | 2        |
-| 🔧 Technical  | [technical/](technical/)   | 0        |
+| 🔧 Technical  | [technical/](technical/)   | 1        |
 | 🔬 Research   | [research/](research/)     | 1        |
 | 📋 Procedures | [procedures/](procedures/) | existing |
 | 👥 People     | [people/](people/)         | 2        |
@@ -24,15 +24,16 @@ _Master catalog of all knowledge. Search here first._
 
 ## Recently Added
 
-| Date       | Type         | Title                       | Path                                                                                                         |
-| ---------- | ------------ | --------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| 2026-02-01 | architecture | Knowledge Base Architecture | [ARCHITECTURE.md](ARCHITECTURE.md)                                                                           |
-| 2026-02-01 | fact         | DLM Business Model          | [business/dlm/fact-business-model.md](business/dlm/fact-business-model.md)                                   |
-| 2026-02-01 | entity       | BuckyDrop Vendor            | [people/vendors/entity-buckydrop.md](people/vendors/entity-buckydrop.md)                                     |
-| 2026-02-01 | entity       | X Researchers List          | [people/experts/entity-x-researchers.md](people/experts/entity-x-researchers.md)                             |
-| 2026-02-01 | research     | AI Agent Security Crisis    | [research/market/research-ai-agent-security-crisis.md](research/market/research-ai-agent-security-crisis.md) |
-| 2026-02-01 | insight      | Bot vs Human Speed          | [insights/learnings/insight-bot-speed-reality.md](insights/learnings/insight-bot-speed-reality.md)           |
-| 2026-02-01 | insight      | Epistemic Motto Pattern     | [insights/patterns/insight-epistemic-motto.md](insights/patterns/insight-epistemic-motto.md)                 |
+| Date       | Type         | Title                          | Path                                                                                                         |
+| ---------- | ------------ | ------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| 2026-03-31 | architecture | Gateway Architecture (ADR-020) | [technical/gateway-architecture.md](technical/gateway-architecture.md)                                       |
+| 2026-02-01 | architecture | Knowledge Base Architecture    | [ARCHITECTURE.md](ARCHITECTURE.md)                                                                           |
+| 2026-02-01 | fact         | DLM Business Model             | [business/dlm/fact-business-model.md](business/dlm/fact-business-model.md)                                   |
+| 2026-02-01 | entity       | BuckyDrop Vendor               | [people/vendors/entity-buckydrop.md](people/vendors/entity-buckydrop.md)                                     |
+| 2026-02-01 | entity       | X Researchers List             | [people/experts/entity-x-researchers.md](people/experts/entity-x-researchers.md)                             |
+| 2026-02-01 | research     | AI Agent Security Crisis       | [research/market/research-ai-agent-security-crisis.md](research/market/research-ai-agent-security-crisis.md) |
+| 2026-02-01 | insight      | Bot vs Human Speed             | [insights/learnings/insight-bot-speed-reality.md](insights/learnings/insight-bot-speed-reality.md)           |
+| 2026-02-01 | insight      | Epistemic Motto Pattern        | [insights/patterns/insight-epistemic-motto.md](insights/patterns/insight-epistemic-motto.md)                 |
 
 ---
 
@@ -51,6 +52,10 @@ _Master catalog of all knowledge. Search here first._
 ---
 
 ### 🔧 Technical (TECH)
+
+#### Architecture
+
+- ✅ [gateway-architecture.md](technical/gateway-architecture.md) — OpenClaw gateway internals: message flow, sessions, model selection, prompt assembly, channels, config, failure modes
 
 #### Tools
 
