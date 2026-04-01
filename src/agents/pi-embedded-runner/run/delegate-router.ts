@@ -10,6 +10,7 @@
 
 import { completeSimple, type TextContent } from "@mariozechner/pi-ai";
 import type { OpenClawConfig } from "../../../config/config.js";
+import { hasAnyKeywordTrigger } from "../../../shared/text/keyword-trigger.js";
 import { getApiKeyForModel, requireApiKey } from "../../model-auth.js";
 import { resolveModel } from "../model.js";
 
@@ -19,21 +20,22 @@ const DEFAULT_TEMPERATURE = 0.3;
 const DEFAULT_TIMEOUT_MS = 30_000;
 
 /** Pattern sets for classification. All patterns are case-insensitive. */
+const TRANSLATE_KEYWORDS = ["translate", "translation"];
 const TRANSLATE_PATTERNS = [
-  /\btranslat(e|ion)\b/i,
   /\bin\s+(spanish|french|german|japanese|arabic|chinese|korean|portuguese|italian|russian|hindi|dutch|swedish|turkish|polish|czech|thai|vietnamese|indonesian|malay|hebrew|greek|danish|norwegian|finnish)\b/i,
   /\bto\s+(spanish|french|german|japanese|arabic|chinese|korean|portuguese|italian|russian|hindi|dutch|swedish|turkish|polish|czech|thai|vietnamese|indonesian|malay|hebrew|greek|danish|norwegian|finnish)\b/i,
 ];
 
+const SUMMARIZE_KEYWORDS = ["summarize", "summarise", "summary"];
 const SUMMARIZE_PATTERNS = [
-  /\bsummar(ize|y|ise)\b/i,
   /\btl;?dr\b/i,
   /\bgive me (a |the )?(brief|short|quick)\b/i,
   /\bin (one|two|three|a few|2|3) sentence/i,
 ];
 
+const FORMAT_KEYWORDS = ["reformat"];
 const FORMAT_PATTERNS = [
-  /\b(reformat|re-format)\b/i,
+  /\bre-format\b/i,
   /\bconvert .+ (to|into) (json|csv|yaml|xml|markdown|html|table)\b/i,
   /\bformat (this|the|my)\b/i,
 ];
@@ -44,14 +46,10 @@ const BOILERPLATE_PATTERNS = [
   /\bfollow.?up email\b/i,
 ];
 
-const GRAMMAR_PATTERNS = [
-  /\b(fix|correct|check) .{0,20}(grammar|spelling|typo|punctuation)\b/i,
-  /\bproofread\b/i,
-];
+const GRAMMAR_PATTERNS = [/\b(fix|correct|check) .{0,20}(grammar|spelling|typo|punctuation)\b/i];
 
 const FACTUAL_QA_PATTERNS = [
   /^what (is|are|was|were) .{3,}[?]?\s*$/i,
-  /^define\b/i,
   /^explain (what|how|the concept)\b/i,
 ];
 
@@ -65,18 +63,71 @@ const LIST_PATTERNS = [
  * Negative patterns — if any of these match, NEVER delegate.
  * These indicate the user wants the agent's judgment, tools, or context.
  */
+const NEVER_DELEGATE_KEYWORDS = [
+  "analyze",
+  "analyse",
+  "evaluate",
+  "assess",
+  "review",
+  "critique",
+  "search",
+  "browse",
+  "fetch",
+  "open",
+  "navigate",
+  "screenshot",
+  "run",
+  "execute",
+  "install",
+  "build",
+  "file",
+  "folder",
+  "directory",
+  "path",
+  "code",
+  "script",
+  "function",
+  "bug",
+  "error",
+  "debug",
+  "remember",
+  "recall",
+  "session",
+  "history",
+  "context",
+  "send",
+  "telegram",
+  "whatsapp",
+  "discord",
+  "slack",
+  "schedule",
+  "cron",
+  "reminder",
+  "alarm",
+  "timer",
+  "wake",
+  "weather",
+  "time",
+  "date",
+  "news",
+  "image",
+  "photo",
+  "picture",
+  "canvas",
+  "draw",
+  "generate",
+  "plan",
+  "strategy",
+  "design",
+  "architect",
+  "decision",
+];
+
 const NEVER_DELEGATE_PATTERNS = [
   /\b(your|you) (think|opinion|perspective|take|view|thought)\b/i,
-  /\b(analyze|analyse|evaluate|assess|review|critique)\b/i,
-  /\b(search|browse|fetch|open|navigate|screenshot|run|execute|install|build)\b/i,
-  /\b(file|folder|directory|path|code|script|function|bug|error|fix|debug)\b/i,
-  /\b(remember|recall|last time|earlier|before|session|history|context)\b/i,
-  /\b(send|message|telegram|whatsapp|discord|slack|email to)\b/i,
-  /\b(schedule|cron|reminder|alarm|timer|wake)\b/i,
-  /\b(weather|time|date|news)\b/i,
-  /\b(image|photo|picture|screenshot|canvas|draw|generate)\b/i,
-  /\b(help me|walk me through|guide|teach|explain to me how)\b/i,
-  /\b(plan|strategy|design|architect|decision)\b/i,
+  /\blast time\b/i,
+  /\b(email to)\b/i,
+  /\b(help me|walk me through|guide me|teach me|explain to me how)\b/i,
 ];
 
 export type DelegateRouterResult =
@@ -100,7 +151,14 @@ function isTextContent(block: { type: string }): block is TextContent {
  * Returns the category name if delegate-eligible, or null if not.
  */
 export function classifyForDelegation(prompt: string): string | null {
+  if (prompt.trimStart().startsWith("/")) {
+    return null;
+  }
+
   // First check negative patterns — if ANY match, never delegate
+  if (hasAnyKeywordTrigger(prompt, NEVER_DELEGATE_KEYWORDS)) {
+    return null;
+  }
   for (const pattern of NEVER_DELEGATE_PATTERNS) {
     if (pattern.test(prompt)) {
       return null;
@@ -114,15 +172,24 @@ export function classifyForDelegation(prompt: string): string | null {
   }
 
   // Check positive patterns in priority order
+  if (hasAnyKeywordTrigger(prompt, TRANSLATE_KEYWORDS)) {
+    return "translation";
+  }
   for (const pattern of TRANSLATE_PATTERNS) {
     if (pattern.test(prompt)) {
       return "translation";
     }
   }
+  if (hasAnyKeywordTrigger(prompt, SUMMARIZE_KEYWORDS)) {
+    return "summarization";
+  }
   for (const pattern of SUMMARIZE_PATTERNS) {
     if (pattern.test(prompt)) {
       return "summarization";
     }
+  }
+  if (hasAnyKeywordTrigger(prompt, FORMAT_KEYWORDS)) {
+    return "formatting";
   }
   for (const pattern of FORMAT_PATTERNS) {
     if (pattern.test(prompt)) {
@@ -134,10 +201,16 @@ export function classifyForDelegation(prompt: string): string | null {
       return "boilerplate";
     }
   }
+  if (hasAnyKeywordTrigger(prompt, ["proofread"])) {
+    return "grammar";
+  }
   for (const pattern of GRAMMAR_PATTERNS) {
     if (pattern.test(prompt)) {
       return "grammar";
     }
+  }
+  if (hasAnyKeywordTrigger(prompt, ["define"])) {
+    return "factual_qa";
   }
   for (const pattern of FACTUAL_QA_PATTERNS) {
     if (pattern.test(prompt)) {

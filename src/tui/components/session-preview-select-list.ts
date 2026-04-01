@@ -8,7 +8,7 @@ import {
   visibleWidth,
 } from "../../terminal/ansi.js";
 import { type FilterableSelectItem } from "./filterable-select-list.js";
-import { fuzzyFilterLower, prepareSearchItems } from "./fuzzy-filter.js";
+import { prepareSearchItems, rankSearchItems, type PreparedSearchItem } from "./fuzzy-filter.js";
 import { routeSelectInput } from "./select-input-routing.js";
 import { renderSelectListItemLine } from "./select-list-render.js";
 import {
@@ -43,7 +43,7 @@ export interface SessionPreviewSelectListTheme extends SelectListTheme {
   error: (text: string) => string;
 }
 
-type PreparedItem = FilterableSelectItem & { searchTextLower: string };
+type PreparedItem = FilterableSelectItem & PreparedSearchItem;
 
 type PreviewErrorState = {
   key: string;
@@ -258,7 +258,7 @@ export class SessionPreviewSelectList implements Component {
     const queryLower = this.filterText.toLowerCase().trim();
     const previousFocusedItemId = options.preserveFocus ? this.navigation.focusedItemId : null;
     const previousSelectedKey = this.getSelectedItem()?.value ?? null;
-    this.filteredItems = queryLower ? fuzzyFilterLower(this.allItems, queryLower) : this.allItems;
+    this.filteredItems = queryLower ? rankSearchItems(this.allItems, queryLower) : this.allItems;
     this.navigation = syncSelectNavigation(this.navigation, {
       itemIds: this.getFilteredItemIds(),
       focusedItemId: previousFocusedItemId,

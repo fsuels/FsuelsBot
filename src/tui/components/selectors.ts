@@ -1,4 +1,5 @@
 import { type SelectItem, SelectList, type SettingItem, SettingsList } from "@mariozechner/pi-tui";
+import type { SearchableItemFields } from "./fuzzy-filter.js";
 import {
   filterableSelectListTheme,
   sessionPreviewSelectListTheme,
@@ -17,7 +18,10 @@ export function createSelectList(items: SelectItem[], maxVisible = 7) {
   return new SelectList(items, maxVisible, selectListTheme);
 }
 
-export function createSearchableSelectList(items: SelectItem[], maxVisible = 7) {
+export function createSearchableSelectList(
+  items: Array<SelectItem & SearchableItemFields>,
+  maxVisible = 7,
+) {
   return new SearchableSelectList(items, maxVisible, searchableSelectListTheme);
 }
 

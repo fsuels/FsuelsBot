@@ -2,6 +2,18 @@
  * Shared fuzzy filtering utilities for select list components.
  */
 
+export interface SearchableItemFields {
+  searchText?: string;
+  searchAliases?: string[];
+}
+
+export interface PreparedSearchItem {
+  searchTextLower: string;
+  labelLower: string;
+  descriptionLower: string;
+  searchAliasesLower: string[];
+}
+
 /**
  * Word boundary characters for matching.
  */
@@ -76,6 +88,135 @@ export function fuzzyMatchLower(queryLower: string, textLower: string): number |
   return queryIndex < queryLower.length ? null : score;
 }
 
+function findBoundaryPrefixIndex(textLower: string, queryLower: string): number | null {
+  if (!queryLower) {
+    return null;
+  }
+  if (textLower.startsWith(queryLower)) {
+    return 0;
+  }
+  return findWordBoundaryIndex(textLower, queryLower);
+}
+
+type RankedPreparedSearchItem<T> = {
+  item: T;
+  tier: number;
+  score: number;
+  fieldLength: number;
+};
+
+function compareRankedItems<T>(
+  a: RankedPreparedSearchItem<T>,
+  b: RankedPreparedSearchItem<T>,
+): number {
+  if (a.tier !== b.tier) {
+    return a.tier - b.tier;
+  }
+  if (a.score !== b.score) {
+    return a.score - b.score;
+  }
+  if (a.fieldLength !== b.fieldLength) {
+    return a.fieldLength - b.fieldLength;
+  }
+  return 0;
+}
+
+function resolveDeterministicRank(
+  item: PreparedSearchItem,
+  queryLower: string,
+): RankedPreparedSearchItem<PreparedSearchItem> | null {
+  if (!queryLower) {
+    return { item, tier: 0, score: 0, fieldLength: item.labelLower.length };
+  }
+
+  if (item.labelLower === queryLower) {
+    return { item, tier: 0, score: 0, fieldLength: item.labelLower.length };
+  }
+
+  const exactAlias = item.searchAliasesLower.find((alias) => alias === queryLower);
+  if (exactAlias) {
+    return { item, tier: 1, score: 0, fieldLength: exactAlias.length };
+  }
+
+  const labelPrefixIndex = findBoundaryPrefixIndex(item.labelLower, queryLower);
+  if (labelPrefixIndex !== null) {
+    return {
+      item,
+      tier: 2,
+      score: labelPrefixIndex,
+      fieldLength: item.labelLower.length,
+    };
+  }
+
+  const aliasPrefix = item.searchAliasesLower
+    .map((alias) => ({ alias, index: findBoundaryPrefixIndex(alias, queryLower) }))
+    .filter((entry): entry is { alias: string; index: number } => entry.index !== null)
+    .toSorted((left, right) => {
+      if (left.index !== right.index) {
+        return left.index - right.index;
+      }
+      return left.alias.length - right.alias.length;
+    })[0];
+  if (aliasPrefix) {
+    return {
+      item,
+      tier: 3,
+      score: aliasPrefix.index,
+      fieldLength: aliasPrefix.alias.length,
+    };
+  }
+
+  const labelIndex = item.labelLower.indexOf(queryLower);
+  if (labelIndex !== -1) {
+    return {
+      item,
+      tier: 4,
+      score: labelIndex,
+      fieldLength: item.labelLower.length,
+    };
+  }
+
+  const aliasSubstring = item.searchAliasesLower
+    .map((alias) => ({ alias, index: alias.indexOf(queryLower) }))
+    .filter((entry) => entry.index !== -1)
+    .toSorted((left, right) => {
+      if (left.index !== right.index) {
+        return left.index - right.index;
+      }
+      return left.alias.length - right.alias.length;
+    })[0];
+  if (aliasSubstring) {
+    return {
+      item,
+      tier: 5,
+      score: aliasSubstring.index,
+      fieldLength: aliasSubstring.alias.length,
+    };
+  }
+
+  const descriptionIndex = item.descriptionLower.indexOf(queryLower);
+  if (descriptionIndex !== -1) {
+    return {
+      item,
+      tier: 6,
+      score: descriptionIndex,
+      fieldLength: item.descriptionLower.length,
+    };
+  }
+
+  const fuzzyScore = fuzzyMatchLower(queryLower, item.searchTextLower);
+  if (fuzzyScore !== null) {
+    return {
+      item,
+      tier: 7,
+      score: fuzzyScore,
+      fieldLength: item.labelLower.length,
+    };
+  }
+
+  return null;
+}
+
 /**
  * Filter items using pre-lowercased searchTextLower field.
  * Supports space-separated tokens (all must match).
@@ -117,12 +258,51 @@ export function fuzzyFilterLower<T extends { searchTextLower?: string }>(
 }
 
 /**
+ * Deterministically rank prepared search items, using fuzzy matching only as a fallback.
+ *
+ * Tiers:
+ * 1. Exact label
+ * 2. Exact alias
+ * 3. Boundary-aware prefix in label
+ * 4. Boundary-aware prefix in alias
+ * 5. Substring in label
+ * 6. Substring in alias
+ * 7. Substring in description
+ * 8. Fuzzy recall
+ */
+export function rankSearchItems<T extends PreparedSearchItem>(items: T[], queryLower: string): T[] {
+  const trimmed = queryLower.trim();
+  if (!trimmed) {
+    return items;
+  }
+
+  return items
+    .map((item) => resolveDeterministicRank(item, trimmed))
+    .filter((entry): entry is RankedPreparedSearchItem<T> => Boolean(entry))
+    .toSorted((left, right) => {
+      const ranked = compareRankedItems(left, right);
+      if (ranked !== 0) {
+        return ranked;
+      }
+      return (left.item.label ?? left.item.searchAliasesLower[0] ?? "").localeCompare(
+        right.item.label ?? right.item.searchAliasesLower[0] ?? "",
+      );
+    })
+    .map((entry) => entry.item);
+}
+
+/**
  * Prepare items for fuzzy filtering by pre-computing lowercase search text.
  */
 export function prepareSearchItems<
-  T extends { label?: string; description?: string; searchText?: string },
->(items: T[]): (T & { searchTextLower: string })[] {
+  T extends { label?: string; description?: string } & SearchableItemFields,
+>(items: T[]): (T & PreparedSearchItem)[] {
   return items.map((item) => {
+    const labelLower = (item.label ?? "").toLowerCase();
+    const descriptionLower = (item.description ?? "").toLowerCase();
+    const searchAliasesLower = (item.searchAliases ?? [])
+      .map((alias) => alias.trim().toLowerCase())
+      .filter(Boolean);
     const parts: string[] = [];
     if (item.label) {
       parts.push(item.label);
@@ -133,6 +313,13 @@ export function prepareSearchItems<
     if (item.searchText) {
       parts.push(item.searchText);
     }
-    return { ...item, searchTextLower: parts.join(" ").toLowerCase() };
+    parts.push(...searchAliasesLower);
+    return {
+      ...item,
+      searchTextLower: parts.join(" ").toLowerCase(),
+      labelLower,
+      descriptionLower,
+      searchAliasesLower,
+    };
   });
 }

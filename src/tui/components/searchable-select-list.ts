@@ -6,7 +6,12 @@ import {
   type SelectListTheme,
 } from "@mariozechner/pi-tui";
 import { visibleWidth } from "../../terminal/ansi.js";
-import { findWordBoundaryIndex, fuzzyFilterLower, prepareSearchItems } from "./fuzzy-filter.js";
+import {
+  prepareSearchItems,
+  rankSearchItems,
+  type PreparedSearchItem,
+  type SearchableItemFields,
+} from "./fuzzy-filter.js";
 import { routeSelectInput } from "./select-input-routing.js";
 import { renderSelectListItemLine } from "./select-list-render.js";
 import {
@@ -24,12 +29,15 @@ export interface SearchableSelectListTheme extends SelectListTheme {
   matchHighlight: (text: string) => string;
 }
 
+type SearchableSelectItem = SelectItem & SearchableItemFields;
+type PreparedSearchableSelectItem = SearchableSelectItem & PreparedSearchItem;
+
 /**
  * A select list with a search input at the top for fuzzy filtering.
  */
 export class SearchableSelectList implements Component {
-  private items: SelectItem[];
-  private filteredItems: SelectItem[];
+  private items: PreparedSearchableSelectItem[];
+  private filteredItems: PreparedSearchableSelectItem[];
   private maxVisible: number;
   private theme: SearchableSelectListTheme;
   private searchInput: Input;
@@ -40,9 +48,9 @@ export class SearchableSelectList implements Component {
   onCancel?: () => void;
   onSelectionChange?: (item: SelectItem) => void;
 
-  constructor(items: SelectItem[], maxVisible: number, theme: SearchableSelectListTheme) {
-    this.items = items;
-    this.filteredItems = items;
+  constructor(items: SearchableSelectItem[], maxVisible: number, theme: SearchableSelectListTheme) {
+    this.items = prepareSearchItems(items);
+    this.filteredItems = this.items;
     this.maxVisible = maxVisible;
     this.theme = theme;
     this.searchInput = new Input();
@@ -82,69 +90,13 @@ export class SearchableSelectList implements Component {
     );
   }
 
-  /**
-   * Smart filtering that prioritizes:
-   * 1. Exact substring match in label (highest priority)
-   * 2. Word-boundary prefix match in label
-   * 3. Exact substring in description
-   * 4. Fuzzy match (lowest priority)
-   */
-  private smartFilter(query: string): SelectItem[] {
-    const q = query.toLowerCase();
-    type ScoredItem = { item: SelectItem; tier: number; score: number };
-    const scoredItems: ScoredItem[] = [];
-    const fuzzyCandidates: SelectItem[] = [];
-
-    for (const item of this.items) {
-      const label = item.label.toLowerCase();
-      const desc = (item.description ?? "").toLowerCase();
-
-      // Tier 1: Exact substring in label
-      const labelIndex = label.indexOf(q);
-      if (labelIndex !== -1) {
-        scoredItems.push({ item, tier: 0, score: labelIndex });
-        continue;
-      }
-      // Tier 2: Word-boundary prefix in label
-      const wordBoundaryIndex = findWordBoundaryIndex(label, q);
-      if (wordBoundaryIndex !== null) {
-        scoredItems.push({ item, tier: 1, score: wordBoundaryIndex });
-        continue;
-      }
-      // Tier 3: Exact substring in description
-      const descIndex = desc.indexOf(q);
-      if (descIndex !== -1) {
-        scoredItems.push({ item, tier: 2, score: descIndex });
-        continue;
-      }
-      // Tier 4: Fuzzy match (score 300+)
-      fuzzyCandidates.push(item);
-    }
-
-    scoredItems.sort(this.compareByScore);
-
-    const preparedCandidates = prepareSearchItems(fuzzyCandidates);
-    const fuzzyMatches = fuzzyFilterLower(preparedCandidates, q);
-
-    return [...scoredItems.map((s) => s.item), ...fuzzyMatches];
+  private smartFilter(query: string): PreparedSearchableSelectItem[] {
+    return rankSearchItems(this.items, query.toLowerCase());
   }
 
   private escapeRegex(str: string): string {
     return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
-
-  private compareByScore = (
-    a: { item: SelectItem; tier: number; score: number },
-    b: { item: SelectItem; tier: number; score: number },
-  ) => {
-    if (a.tier !== b.tier) {
-      return a.tier - b.tier;
-    }
-    if (a.score !== b.score) {
-      return a.score - b.score;
-    }
-    return this.getItemLabel(a.item).localeCompare(this.getItemLabel(b.item));
-  };
 
   private getItemLabel(item: SelectItem): string {
     return item.label || item.value;
@@ -191,8 +143,8 @@ export class SearchableSelectList implements Component {
     );
   }
 
-  setItems(items: SelectItem[]) {
-    this.items = items;
+  setItems(items: SearchableSelectItem[]) {
+    this.items = prepareSearchItems(items);
     this.updateFilter({ preserveFocus: true });
   }
 

@@ -112,6 +112,29 @@ describe("SearchableSelectList", () => {
     expect(selected?.value).toBe("provider/opus-model");
   });
 
+  it("exact alias matches beat label prefix matches", () => {
+    const items = [
+      {
+        value: "prefix-label",
+        label: "reviewer",
+        description: "Prefix label",
+      },
+      {
+        value: "alias-match",
+        label: "other",
+        description: "Alias match",
+        searchAliases: ["review"],
+      },
+    ];
+    const list = new SearchableSelectList(items, 5, mockTheme);
+
+    for (const ch of "review") {
+      list.handleInput(ch);
+    }
+
+    expect(list.getSelectedItem()?.value).toBe("alias-match");
+  });
+
   it("orders description matches by earliest index", () => {
     const items = [
       { value: "first", label: "first", description: "prefix opus value" },

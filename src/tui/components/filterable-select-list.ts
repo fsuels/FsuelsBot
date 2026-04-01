@@ -1,7 +1,12 @@
 import type { Component } from "@mariozechner/pi-tui";
 import { Input, type SelectItem, type SelectListTheme } from "@mariozechner/pi-tui";
 import chalk from "chalk";
-import { fuzzyFilterLower, prepareSearchItems } from "./fuzzy-filter.js";
+import {
+  prepareSearchItems,
+  rankSearchItems,
+  type PreparedSearchItem,
+  type SearchableItemFields,
+} from "./fuzzy-filter.js";
 import { routeSelectInput } from "./select-input-routing.js";
 import { renderSelectListItemLine } from "./select-list-render.js";
 import {
@@ -12,9 +17,11 @@ import {
   type SelectNavigationState,
 } from "./select-navigation.js";
 
-export interface FilterableSelectItem extends SelectItem {
+export interface FilterableSelectItem extends SelectItem, SearchableItemFields {
   /** Additional searchable fields beyond label */
   searchText?: string;
+  /** Alternate identifiers that should rank like aliases instead of description text. */
+  searchAliases?: string[];
   /** Pre-computed lowercase search text (label + description + searchText) for filtering */
   searchTextLower?: string;
 }
@@ -23,14 +30,16 @@ export interface FilterableSelectListTheme extends SelectListTheme {
   filterLabel: (text: string) => string;
 }
 
+type PreparedFilterableSelectItem = FilterableSelectItem & PreparedSearchItem;
+
 /**
  * Combines text input filtering with a select list.
  * User types to filter, navigation keys move the focused item, Enter selects, Escape cancels.
  */
 export class FilterableSelectList implements Component {
   private input: Input;
-  private allItems: FilterableSelectItem[];
-  private filteredItems: FilterableSelectItem[];
+  private allItems: PreparedFilterableSelectItem[];
+  private filteredItems: PreparedFilterableSelectItem[];
   private maxVisible: number;
   private theme: FilterableSelectListTheme;
   private filterText = "";
@@ -58,7 +67,7 @@ export class FilterableSelectList implements Component {
     if (!queryLower.trim()) {
       this.filteredItems = this.allItems;
     } else {
-      this.filteredItems = fuzzyFilterLower(this.allItems, queryLower);
+      this.filteredItems = rankSearchItems(this.allItems, queryLower);
     }
     this.navigation = syncSelectNavigation(this.navigation, {
       itemIds: this.getFilteredItemIds(),

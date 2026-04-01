@@ -117,6 +117,7 @@ export function createCommandHandlers(context: CommandHandlerContext) {
         value: `${model.provider}/${model.id}`,
         label: `${model.provider}/${model.id}`,
         description: model.name && model.name !== model.id ? model.name : "",
+        searchAliases: [model.id, model.name].filter((value): value is string => Boolean(value)),
       }));
       const selector = createSearchableSelectList(items, 9);
       selector.onSelect = (item) => {
@@ -159,6 +160,7 @@ export function createCommandHandlers(context: CommandHandlerContext) {
       value: agent.id,
       label: agent.name ? `${agent.id} (${agent.name})` : agent.id,
       description: agent.id === state.agentDefaultId ? "default" : "",
+      searchAliases: [agent.id, agent.name].filter((value): value is string => Boolean(value)),
     }));
     const selector = createSearchableSelectList(items, 9);
     selector.onSelect = (item) => {
@@ -212,6 +214,13 @@ export function createCommandHandlers(context: CommandHandlerContext) {
           value: session.key,
           label,
           description,
+          searchAliases: [
+            session.displayName,
+            session.label,
+            session.subject,
+            session.sessionId,
+            session.key,
+          ].filter((value): value is string => Boolean(value)),
           searchText: [
             session.displayName,
             session.label,
