@@ -1,9 +1,12 @@
 import crypto from "node:crypto";
-import type { SubagentRunRecord } from "../../agents/subagent-registry.js";
 import type { CommandHandler } from "./commands-types.js";
 import { AGENT_LANE_SUBAGENT } from "../../agents/lanes.js";
 import { abortEmbeddedPiRun } from "../../agents/pi-embedded.js";
-import { listSubagentRunsForRequester } from "../../agents/subagent-registry.js";
+import {
+  listSubagentRunsForRequester,
+  type SubagentRunRecord,
+  setSubagentRunCancelled,
+} from "../../agents/subagent-registry.js";
 import {
   extractAssistantText,
   resolveInternalSessionKey,
@@ -253,10 +256,11 @@ export const handleSubagentsCommand: CommandHandler = async (params, allowTextCo
     const childKey = resolved.entry.childSessionKey;
     const { storePath, store, entry } = loadSubagentSessionEntry(params, childKey);
     const sessionId = entry?.sessionId;
-    if (sessionId) {
-      abortEmbeddedPiRun(sessionId);
-    }
+    const aborted = sessionId ? abortEmbeddedPiRun(sessionId) : false;
     const cleared = clearSessionQueues([childKey, sessionId]);
+    if (aborted || !sessionId || cleared.followupCleared > 0 || cleared.laneCleared > 0) {
+      setSubagentRunCancelled(resolved.entry.runId, "Stopped by requester.");
+    }
     if (cleared.followupCleared > 0 || cleared.laneCleared > 0) {
       logVerbose(
         `subagents stop: cleared followups=${cleared.followupCleared} lane=${cleared.laneCleared} keys=${cleared.keys.join(",")}`,
@@ -314,6 +318,8 @@ export const handleSubagentsCommand: CommandHandler = async (params, allowTextCo
       run.cleanupState ? `Cleanup state: ${run.cleanupState}` : undefined,
       run.cleanupReason ? `Cleanup reason: ${run.cleanupReason}` : undefined,
       run.cleanupError ? `Cleanup error: ${run.cleanupError}` : undefined,
+      run.taskSummary ? `Task summary: ${run.taskSummary}` : undefined,
+      run.outcome?.result ? `Result summary: ${run.outcome.result}` : undefined,
       run.profile ? `Profile: ${run.profile}` : undefined,
       run.requiredTools?.length ? `Required tools: ${run.requiredTools.join(", ")}` : undefined,
       run.resolvedTools?.length ? `Resolved tools: ${run.resolvedTools.join(", ")}` : undefined,
@@ -404,6 +410,12 @@ export const handleSubagentsCommand: CommandHandler = async (params, allowTextCo
       return {
         shouldContinue: false,
         reply: { text: `⏳ Subagent still running (run ${runId.slice(0, 8)}).` },
+      };
+    }
+    if (wait?.status === "cancelled") {
+      return {
+        shouldContinue: false,
+        reply: { text: `⚙️ Subagent was cancelled (run ${runId.slice(0, 8)}).` },
       };
     }
     if (wait?.status === "error") {

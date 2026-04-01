@@ -21,10 +21,12 @@ vi.mock("../../process/command-queue.js", () => commandQueueMocks);
 
 const subagentRegistryMocks = vi.hoisted(() => ({
   listSubagentRunsForRequester: vi.fn(() => []),
+  setSubagentRunCancelled: vi.fn(),
 }));
 
 vi.mock("../../agents/subagent-registry.js", () => ({
   listSubagentRunsForRequester: subagentRegistryMocks.listSubagentRunsForRequester,
+  setSubagentRunCancelled: subagentRegistryMocks.setSubagentRunCancelled,
 }));
 
 describe("abort detection", () => {
@@ -186,6 +188,7 @@ describe("abort detection", () => {
         createdAt: Date.now(),
       },
     ]);
+    subagentRegistryMocks.setSubagentRunCancelled.mockClear();
 
     const result = await tryFastAbortFromMessage({
       ctx: buildTestCtx({
@@ -203,5 +206,9 @@ describe("abort detection", () => {
 
     expect(result.stoppedSubagents).toBe(1);
     expect(commandQueueMocks.clearCommandLane).toHaveBeenCalledWith(`session:${childKey}`);
+    expect(subagentRegistryMocks.setSubagentRunCancelled).toHaveBeenCalledWith(
+      "run-1",
+      "Stopped by requester.",
+    );
   });
 });

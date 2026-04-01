@@ -376,7 +376,7 @@ export function buildSubagentSystemPrompt(params: {
 }
 
 export type SubagentRunOutcome = {
-  status: "ok" | "error" | "timeout" | "unknown";
+  status: "ok" | "error" | "timeout" | "cancelled" | "unknown";
   error?: string;
   /** Structured result from the child's final assistant message (Executive Control P1). */
   result?: string;
@@ -472,6 +472,8 @@ export async function runSubagentAnnounceFlowDetailed(params: {
         outcome = { status: "timeout" };
       } else if (wait?.status === "error") {
         outcome = { status: "error", error: waitError };
+      } else if (wait?.status === "cancelled") {
+        outcome = { status: "cancelled", error: waitError };
       } else if (wait?.status === "ok") {
         outcome = { status: "ok" };
       }
@@ -534,9 +536,11 @@ export async function runSubagentAnnounceFlowDetailed(params: {
         ? "completed successfully"
         : outcome.status === "timeout"
           ? "timed out"
-          : outcome.status === "error"
-            ? `failed: ${outcome.error || "unknown error"}`
-            : "finished with unknown status";
+          : outcome.status === "cancelled"
+            ? "was cancelled"
+            : outcome.status === "error"
+              ? `failed: ${outcome.error || "unknown error"}`
+              : "finished with unknown status";
 
     // Build instructional message for main agent
     const announceType = params.announceType ?? "subagent task";

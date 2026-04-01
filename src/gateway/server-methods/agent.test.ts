@@ -7,6 +7,10 @@ const mocks = vi.hoisted(() => ({
   updateSessionStore: vi.fn(),
   agentCommand: vi.fn(),
   registerAgentRunContext: vi.fn(),
+  waitForAgentJob: vi.fn(),
+  getTaskOutputSnapshot: vi.fn(),
+  getTaskStartedAt: vi.fn(),
+  getTaskEndedAt: vi.fn(),
   loadConfigReturn: {} as Record<string, unknown>,
 }));
 
@@ -43,6 +47,26 @@ vi.mock("../../infra/agent-events.js", () => ({
   registerAgentRunContext: mocks.registerAgentRunContext,
   onAgentEvent: vi.fn(),
 }));
+
+vi.mock("./agent-job.js", () => ({
+  waitForAgentJob: mocks.waitForAgentJob,
+}));
+
+vi.mock("../../agents/task-output.js", () => ({
+  getTaskOutputSnapshot: mocks.getTaskOutputSnapshot,
+}));
+
+vi.mock("../../agents/task-output-recovery.js", () => ({
+  getTaskStartedAt: mocks.getTaskStartedAt,
+  getTaskEndedAt: mocks.getTaskEndedAt,
+}));
+
+vi.mock("../../agents/task-output-contract.js", async () => {
+  const actual = await vi.importActual<typeof import("../../agents/task-output-contract.js")>(
+    "../../agents/task-output-contract.js",
+  );
+  return actual;
+});
 
 vi.mock("../../sessions/send-policy.js", () => ({
   resolveSendPolicy: () => "allow",
@@ -212,5 +236,43 @@ describe("gateway agent handler", () => {
     // Should be undefined, not cause an error
     expect(capturedEntry?.cliSessionIds).toBeUndefined();
     expect(capturedEntry?.claudeCliSessionId).toBeUndefined();
+  });
+
+  it("surfaces cancelled agent tasks when lifecycle wait misses the terminal event", async () => {
+    mocks.waitForAgentJob.mockResolvedValueOnce(null);
+    mocks.getTaskOutputSnapshot.mockReturnValueOnce({
+      task_id: "run-cancelled",
+      task_type: "agent",
+      status: "cancelled",
+      description: "verification worker",
+      error: "Stopped by requester.",
+    });
+    mocks.getTaskStartedAt.mockReturnValueOnce(1_000);
+    mocks.getTaskEndedAt.mockReturnValueOnce(2_000);
+
+    const respond = vi.fn();
+    await agentHandlers["agent.wait"]({
+      params: {
+        runId: "run-cancelled",
+        timeoutMs: 10,
+      },
+      respond,
+      context: makeContext(),
+      req: { type: "req", id: "wait-1", method: "agent.wait" },
+      client: null,
+      isWebchatConnect: () => false,
+    });
+
+    expect(respond).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({
+        runId: "run-cancelled",
+        status: "cancelled",
+        taskStatus: "cancelled",
+        startedAt: 1_000,
+        endedAt: 2_000,
+        error: "Stopped by requester.",
+      }),
+    );
   });
 });

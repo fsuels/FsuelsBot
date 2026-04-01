@@ -65,6 +65,14 @@ export type SubagentRunRecord = {
   notified?: boolean;
 };
 
+export type SubagentLifecycleStatus =
+  | "queued"
+  | "running"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "timeout";
+
 const subagentRuns = new Map<string, SubagentRunRecord>();
 let sweeper: NodeJS.Timeout | null = null;
 let listenerStarted = false;
@@ -101,6 +109,12 @@ function logCleanupEvent(
     cleanup: entry.cleanup,
     ...meta,
   });
+}
+
+function isTerminalSubagentOutcomeStatus(
+  status?: SubagentRunOutcome["status"],
+): status is "ok" | "error" | "timeout" | "cancelled" {
+  return status === "ok" || status === "error" || status === "timeout" || status === "cancelled";
 }
 
 async function withCleanupTransition(runId: string, task: () => Promise<void>) {
@@ -209,6 +223,7 @@ function buildSubagentTaskMetadata(entry: SubagentRunRecord): TaskOutput["metada
   metadata.requester_session_key = entry.requesterSessionKey;
   metadata.child_session_key = entry.childSessionKey;
   metadata.started_at = entry.startedAt ?? entry.createdAt;
+  metadata.lifecycle_status = resolveSubagentLifecycleStatus(entry);
   if (typeof entry.endedAt === "number") {
     metadata.ended_at = entry.endedAt;
   }
@@ -239,20 +254,55 @@ function buildSubagentTaskMetadata(entry: SubagentRunRecord): TaskOutput["metada
   if (entry.cleanupReason) {
     metadata.cleanup_reason = entry.cleanupReason;
   }
+  const resultSummary = entry.outcome?.result?.trim() || entry.finalText?.trim();
+  if (resultSummary) {
+    metadata.result_summary = resultSummary.slice(0, 2000);
+  }
   return Object.keys(metadata).length > 0 ? metadata : undefined;
 }
 
-function resolveSubagentTaskStatus(entry: SubagentRunRecord): TaskOutputStatus {
+export function resolveSubagentLifecycleStatus(
+  entry: Pick<SubagentRunRecord, "startedAt" | "endedAt" | "outcome">,
+): SubagentLifecycleStatus {
   switch (entry.outcome?.status) {
     case "ok":
-      return "success";
+      return "completed";
     case "timeout":
       return "timeout";
     case "error":
-      return "error";
+      return "failed";
+    case "cancelled":
+      return "cancelled";
     default:
-      return entry.startedAt ? "running" : "pending";
+      if (entry.endedAt) {
+        return "failed";
+      }
+      return entry.startedAt ? "running" : "queued";
   }
+}
+
+function resolveSubagentTaskStatus(entry: SubagentRunRecord): TaskOutputStatus {
+  const status = resolveSubagentLifecycleStatus(entry);
+  switch (status) {
+    case "queued":
+      return "pending";
+    case "running":
+      return "running";
+    case "completed":
+      return "success";
+    case "failed":
+      return "error";
+    case "cancelled":
+      return "cancelled";
+    case "timeout":
+      return "timeout";
+    default:
+      return assertNever(status);
+  }
+}
+
+function assertNever(value: never): never {
+  throw new Error(`Unexpected subagent lifecycle status: ${String(value)}`);
 }
 
 export function buildTaskOutputFromSubagentRun(entry: SubagentRunRecord): TaskOutput {
@@ -534,6 +584,9 @@ function ensureListener() {
     }
     const phase = evt.data?.phase;
     if (phase === "start") {
+      if (isTerminalSubagentOutcomeStatus(entry.outcome?.status)) {
+        return;
+      }
       const startedAt = typeof evt.data?.startedAt === "number" ? evt.data.startedAt : undefined;
       if (startedAt) {
         entry.startedAt = startedAt;
@@ -545,6 +598,13 @@ function ensureListener() {
       return;
     }
     const endedAt = typeof evt.data?.endedAt === "number" ? evt.data.endedAt : Date.now();
+    if (entry.outcome?.status === "cancelled") {
+      if (typeof entry.endedAt !== "number") {
+        entry.endedAt = endedAt;
+        persistAndSyncSubagentRun(evt.runId);
+      }
+      return;
+    }
     entry.endedAt = endedAt;
     if (phase === "error") {
       const error = typeof evt.data?.error === "string" ? evt.data.error : undefined;
@@ -655,7 +715,6 @@ export function registerSubagentRun(params: {
     sessionToolPolicy: params.sessionToolPolicy,
     resolvedTools: params.resolvedTools,
     createdAt: now,
-    startedAt: now,
     archiveAtMs,
     cleanupHandled: false,
     cleanupState: "pending",
@@ -700,6 +759,39 @@ export function registerSubagentRun(params: {
   void waitForSubagentCompletion(params.runId, waitTimeoutMs);
 }
 
+export function setSubagentRunCancelled(runId: string, reason?: string) {
+  const entry = getSubagentRun(runId);
+  if (!entry) {
+    return false;
+  }
+  const existingStatus = resolveSubagentLifecycleStatus(entry);
+  if (
+    existingStatus === "completed" ||
+    existingStatus === "failed" ||
+    existingStatus === "timeout"
+  ) {
+    return false;
+  }
+  const now = Date.now();
+  entry.endedAt = entry.endedAt ?? now;
+  entry.outcome = {
+    status: "cancelled",
+    ...(reason?.trim() ? { error: reason.trim() } : {}),
+    ...(entry.outcome?.result?.trim() ? { result: entry.outcome.result.trim() } : {}),
+  };
+  entry.cleanupHandled = true;
+  entry.cleanupState = "completed";
+  entry.cleanupReason = reason?.trim() || "cancelled";
+  entry.cleanupError = undefined;
+  entry.cleanupCompletedAt = entry.cleanupCompletedAt ?? now;
+  if (entry.cleanup === "delete") {
+    entry.archiveAtMs = now;
+    startSweeper();
+  }
+  persistAndSyncSubagentRun(runId);
+  return true;
+}
+
 async function waitForSubagentCompletion(runId: string, waitTimeoutMs: number) {
   try {
     const timeoutMs = Math.max(1, Math.floor(waitTimeoutMs));
@@ -717,6 +809,9 @@ async function waitForSubagentCompletion(runId: string, waitTimeoutMs: number) {
       timeoutMs: timeoutMs + 10_000,
     });
     const entry = subagentRuns.get(runId);
+    if (entry && resolveSubagentTaskStatus(entry) === "cancelled") {
+      return;
+    }
     if (wait?.status === "timeout") {
       if (entry) {
         entry.cleanupState = "blocked";
@@ -726,10 +821,13 @@ async function waitForSubagentCompletion(runId: string, waitTimeoutMs: number) {
       }
       return;
     }
-    if (wait?.status !== "ok" && wait?.status !== "error") {
+    if (wait?.status !== "ok" && wait?.status !== "error" && wait?.status !== "cancelled") {
       return;
     }
     if (!entry) {
+      return;
+    }
+    if (resolveSubagentTaskStatus(entry) === "cancelled") {
       return;
     }
     let mutated = false;
@@ -747,13 +845,21 @@ async function waitForSubagentCompletion(runId: string, waitTimeoutMs: number) {
     }
     const waitError = typeof wait.error === "string" ? wait.error : undefined;
     entry.outcome =
-      wait.status === "error" ? { status: "error", error: waitError } : { status: "ok" };
+      wait.status === "error"
+        ? { status: "error", error: waitError }
+        : wait.status === "cancelled"
+          ? { status: "cancelled", error: waitError }
+          : { status: "ok" };
     mutated = true;
     const finalText = await readLatestAssistantReply({ sessionKey: entry.childSessionKey }).catch(
       () => undefined,
     );
     if (finalText?.trim()) {
-      entry.finalText = finalText.trim();
+      const normalizedFinalText = finalText.trim();
+      entry.finalText = normalizedFinalText;
+      if (entry.outcome && !entry.outcome.result) {
+        entry.outcome.result = normalizedFinalText.slice(0, 2000);
+      }
       mutated = true;
     }
     if (mutated) {

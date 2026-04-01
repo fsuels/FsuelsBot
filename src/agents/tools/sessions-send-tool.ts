@@ -671,6 +671,14 @@ export function createSessionsSendTool(opts?: {
           sessionKey: displayKey,
         });
       }
+      if (waitStatus === "cancelled") {
+        return jsonResult({
+          runId,
+          status: "cancelled",
+          error: waitError ?? "agent cancelled",
+          sessionKey: displayKey,
+        });
+      }
       if (waitStatus === "error") {
         return jsonResult({
           runId,

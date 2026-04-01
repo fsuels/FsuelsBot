@@ -1,6 +1,9 @@
 import { randomUUID } from "node:crypto";
 import type { GatewayRequestHandlers } from "./types.js";
 import { listAgentIds } from "../../agents/agent-scope.js";
+import { isTerminalTaskStatus } from "../../agents/task-output-contract.js";
+import { getTaskEndedAt, getTaskStartedAt } from "../../agents/task-output-recovery.js";
+import { getTaskOutputSnapshot } from "../../agents/task-output.js";
 import { agentCommand } from "../../commands/agent.js";
 import { loadConfig } from "../../config/config.js";
 import {
@@ -42,6 +45,43 @@ import { loadSessionEntry } from "../session-utils.js";
 import { formatForLog } from "../ws-log.js";
 import { waitForAgentJob } from "./agent-job.js";
 import { injectTimestamp, timestampOptsFromConfig } from "./agent-timestamp.js";
+
+function buildAgentWaitSnapshotFallback(runId: string) {
+  const task = getTaskOutputSnapshot(runId);
+  if (!task || task.task_type !== "agent") {
+    return null;
+  }
+  const taskStatus = task.status;
+  const startedAt = getTaskStartedAt(task);
+  const endedAt = getTaskEndedAt(task);
+  if (isTerminalTaskStatus(taskStatus)) {
+    return {
+      runId,
+      status:
+        taskStatus === "success"
+          ? ("ok" as const)
+          : taskStatus === "error"
+            ? ("error" as const)
+            : taskStatus === "cancelled"
+              ? ("cancelled" as const)
+              : ("timeout" as const),
+      taskStatus,
+      startedAt,
+      endedAt,
+      error: task.error,
+      description: task.description,
+    };
+  }
+  return {
+    runId,
+    status: "timeout" as const,
+    taskStatus,
+    startedAt,
+    endedAt,
+    error: task.error,
+    description: task.description,
+  };
+}
 
 export const agentHandlers: GatewayRequestHandlers = {
   agent: async ({ params, respond, context, client }) => {
@@ -506,10 +546,14 @@ export const agentHandlers: GatewayRequestHandlers = {
       timeoutMs,
     });
     if (!snapshot) {
-      respond(true, {
-        runId,
-        status: "timeout",
-      });
+      const fallback = buildAgentWaitSnapshotFallback(runId);
+      respond(
+        true,
+        fallback ?? {
+          runId,
+          status: "timeout",
+        },
+      );
       return;
     }
     respond(true, {

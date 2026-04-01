@@ -1,4 +1,7 @@
-import type { SubagentRunRecord } from "../../agents/subagent-registry.js";
+import {
+  type SubagentRunRecord,
+  resolveSubagentLifecycleStatus,
+} from "../../agents/subagent-registry.js";
 import { truncateUtf16Safe } from "../../utils.js";
 
 export function resolveSubagentLabel(entry: SubagentRunRecord, fallback = "subagent") {
@@ -16,7 +19,11 @@ export function formatRunLabel(entry: SubagentRunRecord, options?: { maxLength?:
 }
 
 export function formatRunStatus(entry: SubagentRunRecord) {
-  if (!entry.endedAt) {
+  const status = resolveSubagentLifecycleStatus(entry);
+  if (status === "queued") {
+    return "queued";
+  }
+  if (status === "running") {
     return "running";
   }
   if (entry.cleanupState === "blocked") {
@@ -25,8 +32,13 @@ export function formatRunStatus(entry: SubagentRunRecord) {
   if (entry.cleanupState === "failed") {
     return "cleanup-failed";
   }
-  const status = entry.outcome?.status ?? "done";
-  return status === "ok" ? "done" : status;
+  if (status === "completed") {
+    return "done";
+  }
+  if (status === "failed") {
+    return "error";
+  }
+  return status;
 }
 
 export function sortSubagentRuns(runs: SubagentRunRecord[]) {
