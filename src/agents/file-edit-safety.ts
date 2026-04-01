@@ -1,6 +1,5 @@
 import type { AgentToolResult } from "@mariozechner/pi-agent-core";
 import crypto from "node:crypto";
-import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -13,6 +12,7 @@ const NARROW_NO_BREAK_SPACE = "\u202F";
 const UTF8_BOM = Buffer.from([0xef, 0xbb, 0xbf]);
 const UTF16LE_BOM = Buffer.from([0xff, 0xfe]);
 const UTF16BE_BOM = Buffer.from([0xfe, 0xff]);
+const DEFAULT_READ_STATE_MAX_BYTES = 8 * 1024 * 1024;
 const BLOCKED_SPECIAL_PATHS = new Set([
   "/dev/zero",
   "/dev/random",
@@ -53,9 +53,30 @@ export type TextFileMetadata = {
   newline: "\n" | "\r\n" | "\r";
 };
 
+export function normalizeFileStateKey(
+  filePath: string,
+  options?: { platform?: NodeJS.Platform; caseInsensitive?: boolean },
+): string {
+  const platform = options?.platform ?? process.platform;
+  const pathImpl = platform === "win32" ? path.win32 : path.posix;
+  let normalized = pathImpl.normalize(filePath.trim());
+  if (platform === "win32") {
+    normalized = normalized.replace(/\\/g, "/");
+  }
+  if (normalized.length > 1 && normalized.endsWith("/")) {
+    normalized = normalized.slice(0, -1);
+  }
+  if (options?.caseInsensitive ?? platform === "win32") {
+    normalized = normalized.toLowerCase();
+  }
+  return normalized;
+}
+
 type TrackedFileState = {
   resolvedPath: string;
   canonicalPath: string;
+  resolvedKey: string;
+  canonicalKey: string;
   readAtMs: number;
   hash?: string;
   mtimeMs: number;
@@ -355,6 +376,30 @@ function normalizeReadStateCacheSize(maxEntries?: number): number {
   return Math.max(1, Math.floor(maxEntries));
 }
 
+function normalizeReadStateCacheBytes(maxBytes?: number): number {
+  if (typeof maxBytes !== "number" || !Number.isFinite(maxBytes)) {
+    return DEFAULT_READ_STATE_MAX_BYTES;
+  }
+  return Math.max(1, Math.floor(maxBytes));
+}
+
+function estimateTrackedStateBytes(state: TrackedFileState): number {
+  return typeof state.content === "string" ? Buffer.byteLength(state.content, "utf8") : 0;
+}
+
+async function buildPathIdentity(resolvedPath: string): Promise<{
+  canonicalPath: string;
+  resolvedKey: string;
+  canonicalKey: string;
+}> {
+  const canonicalPath = await fs.realpath(resolvedPath).catch(() => path.normalize(resolvedPath));
+  return {
+    canonicalPath,
+    resolvedKey: normalizeFileStateKey(resolvedPath),
+    canonicalKey: normalizeFileStateKey(canonicalPath),
+  };
+}
+
 function detectEncoding(buffer: Buffer): {
   encoding: TextEncoding;
   bom: boolean;
@@ -453,9 +498,9 @@ export function encodeTextWithMetadata(text: string, metadata?: TextFileMetadata
 }
 
 async function buildTrackedStateFromResolvedPath(resolvedPath: string, buffer?: Buffer) {
-  let stat;
+  let handle;
   try {
-    stat = await fs.stat(resolvedPath);
+    handle = await fs.open(resolvedPath, "r");
   } catch (err) {
     const mapped = mapNodeErrorToFileToolError(err, `Cannot access ${resolvedPath}`, {
       path: resolvedPath,
@@ -466,7 +511,22 @@ async function buildTrackedStateFromResolvedPath(resolvedPath: string, buffer?: 
     throw err;
   }
 
+  let stat;
+  try {
+    stat = await handle.stat();
+  } catch (err) {
+    await handle.close().catch(() => {});
+    const mapped = mapNodeErrorToFileToolError(err, `Cannot access ${resolvedPath}`, {
+      path: resolvedPath,
+    });
+    if (mapped) {
+      throw mapped;
+    }
+    throw err;
+  }
+
   if (!stat.isFile()) {
+    await handle.close().catch(() => {});
     throw new FileToolError({
       errorCode: "invalid_file_type",
       contractCode: "invalid_input",
@@ -477,7 +537,8 @@ async function buildTrackedStateFromResolvedPath(resolvedPath: string, buffer?: 
 
   const raw =
     buffer ??
-    (await fs.readFile(resolvedPath).catch((err) => {
+    (await handle.readFile().catch(async (err) => {
+      await handle.close().catch(() => {});
       const mapped = mapNodeErrorToFileToolError(err, `Cannot read ${resolvedPath}`, {
         path: resolvedPath,
       });
@@ -486,12 +547,15 @@ async function buildTrackedStateFromResolvedPath(resolvedPath: string, buffer?: 
       }
       throw err;
     }));
-  const canonicalPath = await fs.realpath(resolvedPath).catch(() => path.normalize(resolvedPath));
+  await handle.close().catch(() => {});
+  const identity = await buildPathIdentity(resolvedPath);
   const decoded = decodeTextBuffer(raw);
 
   return {
     resolvedPath,
-    canonicalPath,
+    canonicalPath: identity.canonicalPath,
+    resolvedKey: identity.resolvedKey,
+    canonicalKey: identity.canonicalKey,
     readAtMs: Date.now(),
     hash: computeHash(raw),
     mtimeMs: stat.mtimeMs,
@@ -507,9 +571,9 @@ async function buildTrackedHeaderFromResolvedPath(
   resolvedPath: string,
   info: ReadTrackingInfo,
 ): Promise<TrackedFileState> {
-  let stat;
+  let handle;
   try {
-    stat = await fs.stat(resolvedPath);
+    handle = await fs.open(resolvedPath, "r");
   } catch (err) {
     const mapped = mapNodeErrorToFileToolError(err, `Cannot access ${resolvedPath}`, {
       path: resolvedPath,
@@ -520,6 +584,18 @@ async function buildTrackedHeaderFromResolvedPath(
     throw err;
   }
 
+  const stat = await handle.stat().catch(async (err) => {
+    await handle.close().catch(() => {});
+    const mapped = mapNodeErrorToFileToolError(err, `Cannot access ${resolvedPath}`, {
+      path: resolvedPath,
+    });
+    if (mapped) {
+      throw mapped;
+    }
+    throw err;
+  });
+  await handle.close().catch(() => {});
+
   if (!stat.isFile()) {
     throw new FileToolError({
       errorCode: "invalid_file_type",
@@ -529,10 +605,12 @@ async function buildTrackedHeaderFromResolvedPath(
     });
   }
 
-  const canonicalPath = await fs.realpath(resolvedPath).catch(() => path.normalize(resolvedPath));
+  const identity = await buildPathIdentity(resolvedPath);
   return {
     resolvedPath,
-    canonicalPath,
+    canonicalPath: identity.canonicalPath,
+    resolvedKey: identity.resolvedKey,
+    canonicalKey: identity.canonicalKey,
     readAtMs: Date.now(),
     mtimeMs: stat.mtimeMs,
     size: stat.size,
@@ -618,37 +696,53 @@ export function fileToolErrorToResult(toolName: string, err: FileToolError) {
   });
 }
 
-export function createFileEditStateTracker(options?: { maxEntries?: number }) {
+export function createFileEditStateTracker(options?: { maxEntries?: number; maxBytes?: number }) {
   const readStateByCanonicalPath = new Map<string, TrackedFileState>();
   const maxEntries = normalizeReadStateCacheSize(options?.maxEntries);
+  const maxBytes = normalizeReadStateCacheBytes(options?.maxBytes);
+  let trackedBytes = 0;
 
-  function setTrackedState(state: TrackedFileState): TrackedFileState {
-    readStateByCanonicalPath.delete(state.canonicalPath);
-    readStateByCanonicalPath.set(state.canonicalPath, state);
-    while (readStateByCanonicalPath.size > maxEntries) {
+  function deleteTrackedState(stateKey: string): void {
+    const existing = readStateByCanonicalPath.get(stateKey);
+    if (!existing) {
+      return;
+    }
+    trackedBytes -= estimateTrackedStateBytes(existing);
+    readStateByCanonicalPath.delete(stateKey);
+  }
+
+  function evictTrackedStates(): void {
+    while (
+      readStateByCanonicalPath.size > maxEntries ||
+      (trackedBytes > maxBytes && readStateByCanonicalPath.size > 1)
+    ) {
       const oldestKey = readStateByCanonicalPath.keys().next().value;
       if (typeof oldestKey !== "string") {
         break;
       }
-      readStateByCanonicalPath.delete(oldestKey);
+      deleteTrackedState(oldestKey);
     }
+  }
+
+  function setTrackedState(state: TrackedFileState): TrackedFileState {
+    deleteTrackedState(state.canonicalKey);
+    readStateByCanonicalPath.set(state.canonicalKey, state);
+    trackedBytes += estimateTrackedStateBytes(state);
+    evictTrackedStates();
     return state;
   }
 
   function touchTrackedState(state: TrackedFileState): TrackedFileState {
-    if (!readStateByCanonicalPath.has(state.canonicalPath)) {
+    if (!readStateByCanonicalPath.has(state.canonicalKey)) {
       return state;
     }
     return setTrackedState(state);
   }
 
   function findTrackedStateForAbsolutePath(absolutePath: string): TrackedFileState | undefined {
-    const normalizedPath = path.normalize(absolutePath);
+    const normalizedPath = normalizeFileStateKey(absolutePath);
     for (const tracked of readStateByCanonicalPath.values()) {
-      if (
-        path.normalize(tracked.resolvedPath) === normalizedPath ||
-        path.normalize(tracked.canonicalPath) === normalizedPath
-      ) {
+      if (tracked.resolvedKey === normalizedPath || tracked.canonicalKey === normalizedPath) {
         return touchTrackedState(tracked);
       }
     }
@@ -705,10 +799,12 @@ export function createFileEditStateTracker(options?: { maxEntries?: number }) {
       });
     }
 
-    const canonicalPath = await fs.realpath(resolvedPath).catch(() => path.normalize(resolvedPath));
+    const identity = await buildPathIdentity(resolvedPath);
     setTrackedState({
       resolvedPath,
-      canonicalPath,
+      canonicalPath: identity.canonicalPath,
+      resolvedKey: identity.resolvedKey,
+      canonicalKey: identity.canonicalKey,
       readAtMs:
         typeof params.readAtMs === "number" && Number.isFinite(params.readAtMs)
           ? params.readAtMs
@@ -810,7 +906,7 @@ export function createFileEditStateTracker(options?: { maxEntries?: number }) {
       return { exists: false, resolvedPath: snapshot.resolvedPath };
     }
 
-    const previousStateRaw = readStateByCanonicalPath.get(snapshot.state.canonicalPath);
+    const previousStateRaw = readStateByCanonicalPath.get(snapshot.state.canonicalKey);
     const previousState = previousStateRaw ? touchTrackedState(previousStateRaw) : undefined;
     if (!previousState) {
       throw new FileToolError({
@@ -897,7 +993,7 @@ export function createFileEditStateTracker(options?: { maxEntries?: number }) {
     const targetPath = mutation.resolvedPath;
     const metadata = mutation.currentState?.textMetadata;
     const encoded = encodeTextWithMetadata(content, metadata);
-    commitWriteSync({
+    await commitWriteAtomically({
       toolName,
       targetPath,
       encoded,
@@ -939,17 +1035,13 @@ export function createFileEditStateTracker(options?: { maxEntries?: number }) {
   async function forgetPath(absolutePath: string): Promise<void> {
     const snapshot = await getExistingSnapshot(absolutePath);
     if (snapshot.state) {
-      readStateByCanonicalPath.delete(snapshot.state.canonicalPath);
+      deleteTrackedState(snapshot.state.canonicalKey);
       return;
     }
-    const normalizedPath = path.normalize(snapshot.resolvedPath);
-    for (const [canonicalPath, tracked] of readStateByCanonicalPath.entries()) {
-      if (
-        path.normalize(tracked.resolvedPath) === normalizedPath ||
-        path.normalize(tracked.canonicalPath) === normalizedPath ||
-        canonicalPath === normalizedPath
-      ) {
-        readStateByCanonicalPath.delete(canonicalPath);
+    const normalizedPath = normalizeFileStateKey(snapshot.resolvedPath);
+    for (const [stateKey, tracked] of readStateByCanonicalPath.entries()) {
+      if (tracked.resolvedKey === normalizedPath || tracked.canonicalKey === normalizedPath) {
+        deleteTrackedState(stateKey);
       }
     }
   }
@@ -967,14 +1059,14 @@ export function createFileEditStateTracker(options?: { maxEntries?: number }) {
   };
 }
 
-function commitWriteSync(params: {
+async function commitWriteAtomically(params: {
   toolName: string;
   targetPath: string;
   encoded: Buffer;
   previousState?: TrackedFileState;
   allowCreate: boolean;
 }) {
-  const currentState = readTrackedStateSync(params.targetPath);
+  const currentState = await readTrackedStateFromDisk(params.targetPath);
   if (!currentState) {
     if (params.previousState) {
       throw new FileToolError({
@@ -1042,19 +1134,28 @@ function commitWriteSync(params: {
   }
 
   try {
-    const targetDir = path.dirname(params.targetPath);
+    const target = await resolveWriteTarget(params.targetPath);
+    const targetDir = path.dirname(target.writePath);
     const tempPath = path.join(
       targetDir,
       `.openclaw-write-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}.tmp`,
     );
+    let tempHandle: Awaited<ReturnType<typeof fs.open>> | undefined;
     try {
-      fsSync.writeFileSync(tempPath, params.encoded);
-      fsSync.renameSync(tempPath, params.targetPath);
+      tempHandle = await fs.open(tempPath, "w", target.mode ?? 0o666);
+      await tempHandle.writeFile(params.encoded);
+      if (typeof target.mode === "number") {
+        await tempHandle.chmod(target.mode).catch(() => {});
+      }
+      await tempHandle.sync().catch(() => {});
+      await tempHandle.close().catch(() => {});
+      tempHandle = undefined;
+      await fs.rename(tempPath, target.writePath);
+      await syncDirectoryBestEffort(targetDir);
     } finally {
+      await tempHandle?.close().catch(() => {});
       try {
-        if (fsSync.existsSync(tempPath)) {
-          fsSync.rmSync(tempPath, { force: true });
-        }
+        await fs.rm(tempPath, { force: true });
       } catch {
         // Best-effort temp cleanup.
       }
@@ -1070,10 +1171,11 @@ function commitWriteSync(params: {
   }
 }
 
-function readTrackedStateSync(resolvedPath: string): TrackedFileState | undefined {
-  let stat: fsSync.Stats;
+async function readTrackedStateFromDisk(
+  resolvedPath: string,
+): Promise<TrackedFileState | undefined> {
   try {
-    stat = fsSync.statSync(resolvedPath);
+    return await buildTrackedStateFromResolvedPath(resolvedPath);
   } catch (err) {
     if (
       err &&
@@ -1086,30 +1188,88 @@ function readTrackedStateSync(resolvedPath: string): TrackedFileState | undefine
     }
     throw err;
   }
+}
 
-  if (!stat.isFile()) {
+async function resolveWriteTarget(
+  targetPath: string,
+): Promise<{ writePath: string; mode?: number }> {
+  let targetStat;
+  try {
+    targetStat = await fs.lstat(targetPath);
+  } catch (err) {
+    if (
+      err &&
+      typeof err === "object" &&
+      "code" in (err as Record<string, unknown>) &&
+      ((err as NodeJS.ErrnoException).code === "ENOENT" ||
+        (err as NodeJS.ErrnoException).code === "ENOTDIR")
+    ) {
+      return { writePath: targetPath };
+    }
+    const mapped = mapNodeErrorToFileToolError(err, `Cannot access ${targetPath}`, {
+      path: targetPath,
+    });
+    if (mapped) {
+      throw mapped;
+    }
+    throw err;
+  }
+
+  if (targetStat.isSymbolicLink()) {
+    let writePath: string;
+    try {
+      writePath = await fs.realpath(targetPath);
+    } catch (err) {
+      throw new FileToolError({
+        errorCode: "invalid_file_type",
+        contractCode: "invalid_input",
+        message:
+          `Cannot write through dangling symlink ${targetPath}. ` +
+          "Point the symlink at a real file or write to the target path directly.",
+        details: { path: targetPath, policy: "write_through_symlink_target" },
+      });
+    }
+    const target = await fs.stat(writePath).catch((err) => {
+      const mapped = mapNodeErrorToFileToolError(err, `Cannot access ${writePath}`, {
+        path: writePath,
+        via_symlink: targetPath,
+      });
+      if (mapped) {
+        throw mapped;
+      }
+      throw err;
+    });
+    if (!target.isFile()) {
+      throw new FileToolError({
+        errorCode: "invalid_file_type",
+        contractCode: "invalid_input",
+        message: `Cannot write through symlink ${targetPath} because it points to a non-file target.`,
+        details: { path: targetPath, write_target: writePath },
+      });
+    }
+    return { writePath, mode: target.mode & 0o777 };
+  }
+
+  if (!targetStat.isFile()) {
     throw new FileToolError({
       errorCode: "invalid_file_type",
       contractCode: "invalid_input",
-      message: `Path is not a regular file: ${resolvedPath}`,
-      details: { path: resolvedPath },
+      message: `Path is not a regular file: ${targetPath}`,
+      details: { path: targetPath },
     });
   }
 
-  const raw = fsSync.readFileSync(resolvedPath);
-  const canonicalPath =
-    fsSync.realpathSync.native?.(resolvedPath) ?? fsSync.realpathSync(resolvedPath);
-  const decoded = decodeTextBuffer(raw);
-  return {
-    resolvedPath,
-    canonicalPath,
-    readAtMs: Date.now(),
-    hash: computeHash(raw),
-    mtimeMs: stat.mtimeMs,
-    size: stat.size,
-    content: decoded.text,
-    partial: false,
-    readKind: "text",
-    textMetadata: decoded.metadata,
-  };
+  return { writePath: targetPath, mode: targetStat.mode & 0o777 };
+}
+
+async function syncDirectoryBestEffort(dirPath: string): Promise<void> {
+  let handle;
+  try {
+    handle = await fs.open(dirPath, "r");
+    await handle.sync().catch(() => {});
+  } catch {
+    // Best-effort durability only.
+  } finally {
+    await handle?.close().catch(() => {});
+  }
 }

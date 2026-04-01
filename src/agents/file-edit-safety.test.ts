@@ -2,8 +2,12 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
-import { describe, expect, it } from "vitest";
-import { createFileEditStateTracker, FileToolError } from "./file-edit-safety.js";
+import { describe, expect, it, vi } from "vitest";
+import {
+  createFileEditStateTracker,
+  FileToolError,
+  normalizeFileStateKey,
+} from "./file-edit-safety.js";
 
 async function withTempDir<T>(fn: (dir: string) => Promise<T>) {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "openclaw-file-edit-safety-"));
@@ -28,6 +32,51 @@ async function expectFileToolError(
 }
 
 describe("createFileEditStateTracker", () => {
+  it("normalizes Windows file-state keys case-insensitively", () => {
+    expect(normalizeFileStateKey("C:\\Workspace\\Foo\\Bar.txt", { platform: "win32" })).toBe(
+      "c:/workspace/foo/bar.txt",
+    );
+    expect(normalizeFileStateKey("c:/workspace/foo/bar.txt", { platform: "win32" })).toBe(
+      "c:/workspace/foo/bar.txt",
+    );
+  });
+
+  it("treats relative and absolute aliases as one tracked entry", async () => {
+    await withTempDir(async (dir) => {
+      const tracker = createFileEditStateTracker();
+      const target = path.join(dir, "alias.txt");
+      await fs.writeFile(target, "before\n", "utf8");
+
+      await tracker.recordRead({ filePath: "alias.txt", cwd: dir });
+      await tracker.recordRead({ filePath: target, cwd: dir });
+
+      expect(tracker.snapshotReadStates()).toHaveLength(1);
+      await tracker.writeTextDetailed("write", target, "after\n");
+      expect(await fs.readFile(target, "utf8")).toBe("after\n");
+    });
+  });
+
+  it("dedupes tracked state across symlink aliases", async () => {
+    await withTempDir(async (dir) => {
+      if (process.platform === "win32") {
+        return;
+      }
+
+      const tracker = createFileEditStateTracker();
+      const target = path.join(dir, "real.txt");
+      const alias = path.join(dir, "linked.txt");
+      await fs.writeFile(target, "before\n", "utf8");
+      await fs.symlink(target, alias);
+
+      await tracker.recordRead({ filePath: "real.txt", cwd: dir });
+      await tracker.recordRead({ filePath: "linked.txt", cwd: dir });
+
+      const snapshot = tracker.snapshotReadStates();
+      expect(snapshot).toHaveLength(1);
+      expect(path.basename(snapshot[0]?.path ?? "")).toBe("linked.txt");
+    });
+  });
+
   it("rejects writes to existing files that were not read first", async () => {
     await withTempDir(async (dir) => {
       const tracker = createFileEditStateTracker();
@@ -115,6 +164,115 @@ describe("createFileEditStateTracker", () => {
 
       await tracker.writeTextDetailed("write", path.join(dir, "one.txt"), "updated one\n");
       expect(await fs.readFile(path.join(dir, "one.txt"), "utf8")).toBe("updated one\n");
+    });
+  });
+
+  it("evicts older entries when the tracked byte budget is exceeded", async () => {
+    await withTempDir(async (dir) => {
+      const tracker = createFileEditStateTracker({ maxBytes: 10 });
+      const first = path.join(dir, "first.txt");
+      const second = path.join(dir, "second.txt");
+      await fs.writeFile(first, "12345678", "utf8");
+      await fs.writeFile(second, "abcdefgh", "utf8");
+
+      await tracker.recordRead({ filePath: "first.txt", cwd: dir });
+      await tracker.recordRead({ filePath: "second.txt", cwd: dir });
+
+      expect(tracker.snapshotReadStates().map((entry) => path.basename(entry.path))).toEqual([
+        "second.txt",
+      ]);
+    });
+  });
+
+  it("blocks writes after a partial read until the file is fully re-read", async () => {
+    await withTempDir(async (dir) => {
+      const tracker = createFileEditStateTracker();
+      const target = path.join(dir, "partial.txt");
+      await fs.writeFile(target, "alpha\nbeta\n", "utf8");
+
+      await tracker.recordRead({ filePath: "partial.txt", cwd: dir, limit: 1 });
+      await expectFileToolError(
+        tracker.writeTextDetailed("write", target, "gamma\nbeta\n"),
+        "partial_read_only",
+      );
+
+      await tracker.recordRead({ filePath: "partial.txt", cwd: dir });
+      await tracker.writeTextDetailed("write", target, "gamma\nbeta\n");
+      expect(await fs.readFile(target, "utf8")).toBe("gamma\nbeta\n");
+    });
+  });
+
+  it("round-trips empty utf-8 files with emoji and CJK content", async () => {
+    await withTempDir(async (dir) => {
+      const tracker = createFileEditStateTracker();
+      const target = path.join(dir, "unicode.txt");
+      await fs.writeFile(target, "", "utf8");
+
+      await tracker.recordRead({ filePath: "unicode.txt", cwd: dir });
+      await tracker.writeTextDetailed("write", target, "hello 😀\n漢字\n");
+
+      expect(await fs.readFile(target, "utf8")).toBe("hello 😀\n漢字\n");
+    });
+  });
+
+  it("preserves CRLF line endings and file mode on write-back", async () => {
+    await withTempDir(async (dir) => {
+      const tracker = createFileEditStateTracker();
+      const target = path.join(dir, "windows.txt");
+      await fs.writeFile(target, "alpha\r\nbeta\r\n", "utf8");
+      await fs.chmod(target, 0o744);
+
+      await tracker.recordRead({ filePath: "windows.txt", cwd: dir });
+      await tracker.writeTextDetailed("write", target, "alpha\ncharlie\n");
+
+      expect(await fs.readFile(target, "utf8")).toBe("alpha\r\ncharlie\r\n");
+      expect((await fs.stat(target)).mode & 0o777).toBe(0o744);
+    });
+  });
+
+  it("writes through symlink targets without replacing the symlink", async () => {
+    await withTempDir(async (dir) => {
+      if (process.platform === "win32") {
+        return;
+      }
+
+      const tracker = createFileEditStateTracker();
+      const target = path.join(dir, "real.txt");
+      const link = path.join(dir, "linked.txt");
+      await fs.writeFile(target, "before\n", "utf8");
+      await fs.symlink(target, link);
+
+      await tracker.recordRead({ filePath: "linked.txt", cwd: dir });
+      await tracker.writeTextDetailed("write", link, "after\n");
+
+      expect(await fs.readFile(target, "utf8")).toBe("after\n");
+      expect((await fs.lstat(link)).isSymbolicLink()).toBe(true);
+    });
+  });
+
+  it("cleans up temp files when the atomic rename fails", async () => {
+    await withTempDir(async (dir) => {
+      const tracker = createFileEditStateTracker();
+      const target = path.join(dir, "rename-fail.txt");
+      await fs.writeFile(target, "before\n", "utf8");
+      await tracker.recordRead({ filePath: "rename-fail.txt", cwd: dir });
+
+      const renameSpy = vi
+        .spyOn(fs, "rename")
+        .mockRejectedValueOnce(Object.assign(new Error("blocked"), { code: "EPERM" }));
+      try {
+        await expectFileToolError(
+          tracker.writeTextDetailed("write", target, "after\n"),
+          "permission_denied",
+        );
+      } finally {
+        renameSpy.mockRestore();
+      }
+
+      expect((await fs.readdir(dir)).filter((name) => name.startsWith(".openclaw-write-"))).toEqual(
+        [],
+      );
+      expect(await fs.readFile(target, "utf8")).toBe("before\n");
     });
   });
 });
