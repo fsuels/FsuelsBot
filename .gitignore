@@ -83,6 +83,7 @@ USER.md
 .agent/*.json
 !.agent/workflows/
 local/
+workspace/pinterest-jobs/
 
 # Local environments / generated heavy assets
 venvs/

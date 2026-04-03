@@ -4,6 +4,7 @@ import type { CoherenceIntervention } from "./coherence-intervention.js";
 import type { ResolvedTimeFormat } from "./date-time.js";
 import type { DriftPromptInjection } from "./drift-detection.js";
 import type { EmbeddedContextFile } from "./pi-embedded-helpers.js";
+import type { StepContextResult } from "./step-context-manager.js";
 import type { CollaborationMode, PlanModeProfile } from "./plan-mode.js";
 import { SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
 import { listDeliverableMessageChannels } from "../utils/message-channel.js";
@@ -442,6 +443,8 @@ export type BuildAgentSystemPromptParams = {
   driftInjection?: DriftPromptInjection;
   /** Coherence intervention (RSC v2.1 — recent decisions + tool avoidance). */
   coherenceIntervention?: CoherenceIntervention;
+  /** Step context for progressive context delivery during multi-step tasks. */
+  stepContext?: StepContextResult;
 };
 
 export function buildAgentSystemPromptArtifacts(
@@ -1135,6 +1138,17 @@ export function buildAgentSystemPromptArtifacts(
       "project-context",
       () => projectContextSection,
       "injected project context files can vary across runs",
+    ),
+    uncachedPromptSection(
+      "step-context",
+      () =>
+        params.stepContext?.promptSection
+          ? [
+              params.stepContext.promptSection,
+              "",
+            ]
+          : [],
+      "step context is computed per-turn based on active task progress",
     ),
     uncachedPromptSection(
       "runtime",

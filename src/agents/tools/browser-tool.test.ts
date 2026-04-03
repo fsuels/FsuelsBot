@@ -80,8 +80,16 @@ vi.mock("./common.js", async () => {
 });
 
 import { DEFAULT_AI_SNAPSHOT_MAX_CHARS } from "../../browser/constants.js";
+import {
+  clearBrowserSessionRoutesForTests,
+  getBrowserSessionRoute,
+} from "../session-browser-context.js";
 import { applyToolContracts } from "../tool-contracts.js";
 import { createBrowserTool } from "./browser-tool.js";
+
+afterEach(() => {
+  clearBrowserSessionRoutesForTests();
+});
 
 describe("browser tool snapshot maxChars", () => {
   afterEach(() => {
@@ -299,6 +307,76 @@ describe("browser tool snapshot labels", () => {
     expect(result?.content).toHaveLength(2);
     expect(result?.content?.[0]).toMatchObject({ type: "text", text: "label text" });
     expect(result?.content?.[1]).toMatchObject({ type: "image" });
+  });
+});
+
+describe("browser tool route tracking", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+    configMocks.loadConfig.mockReturnValue({ browser: {} });
+    nodesUtilsMocks.listNodes.mockResolvedValue([]);
+  });
+
+  it("records the last host route for the session", async () => {
+    const sessionKey = "agent:main:test";
+    const tool = createBrowserTool({ sessionKey });
+
+    await tool.execute?.(null, { action: "snapshot", snapshotFormat: "ai", profile: "chrome" });
+
+    expect(getBrowserSessionRoute(sessionKey)).toMatchObject({
+      target: "host",
+      profile: "chrome",
+      targetId: "t1",
+    });
+  });
+
+  it("records the last node route for the session", async () => {
+    nodesUtilsMocks.listNodes.mockResolvedValue([
+      {
+        nodeId: "node-1",
+        displayName: "Browser Node",
+        connected: true,
+        caps: ["browser"],
+        commands: ["browser.proxy"],
+      },
+    ]);
+    gatewayMocks.callGatewayTool.mockResolvedValueOnce({
+      ok: true,
+      payload: {
+        result: {
+          ok: true,
+          format: "ai",
+          targetId: "node-tab-1",
+          url: "https://example.com",
+          snapshot: "ok",
+        },
+      },
+    });
+    const sessionKey = "agent:main:node";
+    const tool = createBrowserTool({ sessionKey });
+
+    await tool.execute?.(null, { action: "snapshot", snapshotFormat: "ai", target: "node" });
+
+    expect(getBrowserSessionRoute(sessionKey)).toMatchObject({
+      target: "node",
+      nodeId: "node-1",
+      targetId: "node-tab-1",
+    });
+  });
+
+  it("forgets the tracked route when the browser is stopped", async () => {
+    const sessionKey = "agent:main:test";
+    const tool = createBrowserTool({ sessionKey });
+
+    await tool.execute?.(null, { action: "snapshot", snapshotFormat: "ai" });
+    expect(getBrowserSessionRoute(sessionKey)).toMatchObject({
+      target: "host",
+      targetId: "t1",
+    });
+
+    await tool.execute?.(null, { action: "stop" });
+
+    expect(getBrowserSessionRoute(sessionKey)).toBeUndefined();
   });
 });
 

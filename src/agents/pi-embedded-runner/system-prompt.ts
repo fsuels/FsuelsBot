@@ -6,6 +6,7 @@ import type { ResolvedTimeFormat } from "../date-time.js";
 import type { DriftPromptInjection } from "../drift-detection.js";
 import type { EmbeddedContextFile } from "../pi-embedded-helpers.js";
 import type { CollaborationMode, PlanModeProfile } from "../plan-mode.js";
+import type { StepContextResult } from "../step-context-manager.js";
 import type { PromptAssemblyArtifact } from "../system-prompt-sections.js";
 import type { DynamicToolDelta } from "../system-prompt.js";
 import type { EmbeddedSandboxInfo } from "./types.js";
@@ -59,6 +60,7 @@ export function buildEmbeddedSystemPrompt(params: {
   userTime?: string;
   userTimeFormat?: ResolvedTimeFormat;
   contextFiles?: EmbeddedContextFile[];
+  stepContext?: StepContextResult;
   /** Context exhaustion projection (RSC v2.0). */
   contextPressure?: {
     turnsRemaining: number;
@@ -99,6 +101,7 @@ export function buildEmbeddedSystemPrompt(params: {
     userTime: params.userTime,
     userTimeFormat: params.userTimeFormat,
     contextFiles: params.contextFiles,
+    stepContext: params.stepContext,
     contextPressure: params.contextPressure,
     driftInjection: params.driftInjection,
     coherenceIntervention: params.coherenceIntervention,
@@ -146,6 +149,7 @@ export function buildEmbeddedSystemPromptArtifacts(params: {
   userTime?: string;
   userTimeFormat?: ResolvedTimeFormat;
   contextFiles?: EmbeddedContextFile[];
+  stepContext?: StepContextResult;
   contextPressure?: {
     turnsRemaining: number;
     tokensBudget: number;
@@ -183,6 +187,7 @@ export function buildEmbeddedSystemPromptArtifacts(params: {
     userTime: params.userTime,
     userTimeFormat: params.userTimeFormat,
     contextFiles: params.contextFiles,
+    stepContext: params.stepContext,
     contextPressure: params.contextPressure,
     driftInjection: params.driftInjection,
     coherenceIntervention: params.coherenceIntervention,

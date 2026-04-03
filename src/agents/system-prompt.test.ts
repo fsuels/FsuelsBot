@@ -647,6 +647,36 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain("Bravo");
   });
 
+  it("renders step context when provided", () => {
+    const prompt = buildAgentSystemPrompt({
+      workspaceDir: "/tmp/openclaw",
+      toolNames: ["browser", "exec", "read"],
+      stepContext: {
+        promptSection: [
+          "## Active Task: Book a reservation",
+          "Progress: 1/3 steps",
+          ">>> CURRENT STEP (2/3): Fill the form fields in the browser",
+          "Prefer tools now: browser, exec, read",
+        ].join("\n"),
+        domain: "browser",
+        relevantTools: ["browser", "exec", "read"],
+        suppressibleTools: [],
+        shouldClearBrowserState: false,
+        meta: {
+          taskId: "task-a",
+          currentStep: 1,
+          totalSteps: 3,
+          domain: "browser",
+          compressedCompletedCount: 1,
+        },
+      },
+    });
+
+    expect(prompt).toContain("## Active Task: Book a reservation");
+    expect(prompt).toContain(">>> CURRENT STEP (2/3): Fill the form fields in the browser");
+    expect(prompt).toContain("Prefer tools now: browser, exec, read");
+  });
+
   it("adds SOUL guidance when a soul file is present", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/openclaw",

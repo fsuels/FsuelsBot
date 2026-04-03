@@ -1,6 +1,12 @@
 import type { OpenClawConfig } from "../../config/config.js";
 import type { ReplyPayload } from "../types.js";
 import type { InlineDirectives } from "./directive-handling.parse.js";
+import { listProfilesForProvider } from "../../agents/auth-profiles.js";
+import {
+  ensureAuthProfileStore,
+  getCustomProviderApiKey,
+  resolveEnvApiKey,
+} from "../../agents/model-auth.js";
 import { resolveAuthStorePathForDisplay } from "../../agents/auth-profiles.js";
 import {
   type ModelAliasIndex,
@@ -9,6 +15,7 @@ import {
   resolveConfiguredModelRef,
   resolveModelRefFromString,
 } from "../../agents/model-selection.js";
+import { OPENAI_CODEX_DEFAULT_MODEL } from "../../commands/openai-codex-model-default.js";
 import { buildBrowseProvidersButton } from "../../telegram/model-buttons.js";
 import { shortenHomePath } from "../../utils.js";
 import { resolveModelsCommandReply } from "./commands-models.js";
@@ -164,6 +171,77 @@ function buildModelPickerCatalog(params: {
   }
 
   return out;
+}
+
+function hasProviderCredentials(params: {
+  provider: string;
+  cfg: OpenClawConfig;
+  agentDir?: string;
+}): boolean {
+  const store = ensureAuthProfileStore(params.agentDir, {
+    allowKeychainPrompt: false,
+  });
+  if (listProfilesForProvider(store, params.provider).length > 0) {
+    return true;
+  }
+  if (resolveEnvApiKey(params.provider)) {
+    return true;
+  }
+  return Boolean(getCustomProviderApiKey(params.cfg, params.provider));
+}
+
+function pickOpenAICodexSuggestion(allowedModelKeys: Set<string>): string {
+  const preferred = [
+    "openai-codex/gpt-5.3-codex",
+    "openai-codex/gpt-5.2-codex",
+    "openai-codex/gpt-5.2",
+    "openai-codex/gpt-5.1-codex-max",
+    "openai-codex/gpt-5.1",
+  ];
+  for (const key of preferred) {
+    if (allowedModelKeys.has(key)) {
+      return key;
+    }
+  }
+  return (
+    [...allowedModelKeys].filter((key) => key.startsWith("openai-codex/")).toSorted()[0] ??
+    OPENAI_CODEX_DEFAULT_MODEL
+  );
+}
+
+function resolveModelSelectionPreflightError(params: {
+  modelSelection?: ModelDirectiveSelection;
+  profileOverride?: string;
+  cfg: OpenClawConfig;
+  agentDir?: string;
+  allowedModelKeys: Set<string>;
+}): string | undefined {
+  const selection = params.modelSelection;
+  if (!selection || params.profileOverride) {
+    return undefined;
+  }
+  const provider = normalizeProviderId(selection.provider);
+  if (provider !== "openai") {
+    return undefined;
+  }
+  if (hasProviderCredentials({ provider, cfg: params.cfg, agentDir: params.agentDir })) {
+    return undefined;
+  }
+  if (
+    !hasProviderCredentials({
+      provider: "openai-codex",
+      cfg: params.cfg,
+      agentDir: params.agentDir,
+    })
+  ) {
+    return undefined;
+  }
+  const suggestion = pickOpenAICodexSuggestion(params.allowedModelKeys);
+  return [
+    "OpenAI Codex OAuth signs you into `openai-codex/*`, not `openai/*`.",
+    `Model \`${selection.provider}/${selection.model}\` needs \`OPENAI_API_KEY\`.`,
+    `Try \`/model ${suggestion}\` instead, or set \`OPENAI_API_KEY\` if you want \`openai/*\`.`,
+  ].join(" ");
 }
 
 export async function maybeHandleModelDirectiveInfo(params: {
@@ -396,6 +474,17 @@ export function resolveModelSelectionFromDirective(params: {
       return { errorText: profileResolved.error };
     }
     profileOverride = profileResolved.profileId;
+  }
+
+  const preflightError = resolveModelSelectionPreflightError({
+    modelSelection,
+    profileOverride,
+    cfg: params.cfg,
+    agentDir: params.agentDir,
+    allowedModelKeys: params.allowedModelKeys,
+  });
+  if (preflightError) {
+    return { errorText: preflightError };
   }
 
   return { modelSelection, profileOverride };

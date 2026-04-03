@@ -19,6 +19,7 @@ import {
 } from "../infra/task-board.js";
 import { normalizeTaskReadiness, type TaskNextRecommendedAction } from "../infra/task-readiness.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
+import { buildFocusedTaskBootstrapContext } from "./step-context-manager.js";
 
 const log = createSubsystemLogger("task-checkpoint");
 
@@ -504,6 +505,22 @@ export function buildTaskBootstrapContext(task: ActiveTaskSummary): string {
   lines.push(`*Continue from the current step. Do not repeat completed steps.*`);
 
   return lines.join("\n");
+}
+
+/**
+ * Builds a compact, step-focused bootstrap context using the step context manager.
+ * This produces ~200 tokens instead of ~2000 by compressing completed steps and
+ * focusing on the current step. Use this for multi-step computer-control tasks
+ * where context window efficiency matters.
+ *
+ * Falls back to the verbose `buildTaskBootstrapContext` if the task has no steps.
+ */
+export function buildFocusedBootstrapContext(task: ActiveTaskSummary): string {
+  // Fall back to verbose mode for tasks without steps (nothing to compress)
+  if (task.totalSteps === 0) {
+    return buildTaskBootstrapContext(task);
+  }
+  return buildFocusedTaskBootstrapContext(task);
 }
 
 /**

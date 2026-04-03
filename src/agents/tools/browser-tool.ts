@@ -24,6 +24,7 @@ import { DEFAULT_AI_SNAPSHOT_MAX_CHARS } from "../../browser/constants.js";
 import { parseClickButton, parseClickModifiers } from "../../browser/routes/agent.act.shared.js";
 import { loadConfig } from "../../config/config.js";
 import { saveMediaBuffer } from "../../media/store.js";
+import { clearBrowserSessionRoute, recordBrowserSessionRoute } from "../session-browser-context.js";
 import { validateFlatActionInput, type ActionValidationRule } from "./action-validation.js";
 import { BrowserToolSchema } from "./browser-tool.schema.js";
 import { type AnyAgentTool, imageResultFromFile, jsonResult, readStringParam } from "./common.js";
@@ -441,9 +442,18 @@ function buildBrowserOperatorManual(opts?: {
   ].join("\n");
 }
 
+function readTargetIdFromResult(result: unknown): string | undefined {
+  if (!result || typeof result !== "object") {
+    return undefined;
+  }
+  const value = (result as { targetId?: unknown }).targetId;
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
+}
+
 export function createBrowserTool(opts?: {
   sandboxBridgeUrl?: string;
   allowHostControl?: boolean;
+  sessionKey?: string;
 }): AnyAgentTool {
   return {
     label: "Browser",
@@ -542,6 +552,40 @@ export function createBrowserTool(opts?: {
             sandboxBridgeUrl: opts?.sandboxBridgeUrl,
             allowHostControl: opts?.allowHostControl,
           });
+      const sessionKey = opts?.sessionKey?.trim() || undefined;
+      const rememberRoute = (routeOpts?: {
+        targetId?: string | null;
+        preserveTargetId?: boolean;
+      }) => {
+        if (!sessionKey) {
+          return;
+        }
+        recordBrowserSessionRoute({
+          sessionKey,
+          target: nodeTarget ? "node" : baseUrl ? "sandbox" : "host",
+          ...(nodeTarget ? { nodeId: nodeTarget.nodeId } : {}),
+          ...(baseUrl ? { baseUrl } : {}),
+          profile,
+          targetId: routeOpts?.targetId,
+          preserveTargetId: routeOpts?.preserveTargetId,
+        });
+      };
+      const forgetRoute = () => {
+        if (sessionKey) {
+          clearBrowserSessionRoute(sessionKey);
+        }
+      };
+      const rememberRouteFromResult = (
+        result: unknown,
+        fallback?: { targetId?: string | null; preserveTargetId?: boolean },
+      ) => {
+        const targetId = readTargetIdFromResult(result);
+        if (targetId !== undefined) {
+          rememberRoute({ targetId });
+          return;
+        }
+        rememberRoute(fallback ?? { preserveTargetId: true });
+      };
 
       const proxyRequest = nodeTarget
         ? async (opts: {
@@ -570,15 +614,19 @@ export function createBrowserTool(opts?: {
       switch (action) {
         case "status":
           if (proxyRequest) {
-            return jsonResult(
-              await proxyRequest({
-                method: "GET",
-                path: "/",
-                profile,
-              }),
-            );
+            const result = await proxyRequest({
+              method: "GET",
+              path: "/",
+              profile,
+            });
+            rememberRoute({ preserveTargetId: true });
+            return jsonResult(result);
           }
-          return jsonResult(await browserStatus(baseUrl, { profile }));
+          {
+            const result = await browserStatus(baseUrl, { profile });
+            rememberRoute({ preserveTargetId: true });
+            return jsonResult(result);
+          }
         case "start":
           if (proxyRequest) {
             await proxyRequest({
@@ -586,16 +634,20 @@ export function createBrowserTool(opts?: {
               path: "/start",
               profile,
             });
-            return jsonResult(
-              await proxyRequest({
-                method: "GET",
-                path: "/",
-                profile,
-              }),
-            );
+            const result = await proxyRequest({
+              method: "GET",
+              path: "/",
+              profile,
+            });
+            rememberRoute({ preserveTargetId: true });
+            return jsonResult(result);
           }
           await browserStart(baseUrl, { profile });
-          return jsonResult(await browserStatus(baseUrl, { profile }));
+          {
+            const result = await browserStatus(baseUrl, { profile });
+            rememberRoute({ preserveTargetId: true });
+            return jsonResult(result);
+          }
         case "stop":
           if (proxyRequest) {
             await proxyRequest({
@@ -603,16 +655,20 @@ export function createBrowserTool(opts?: {
               path: "/stop",
               profile,
             });
-            return jsonResult(
-              await proxyRequest({
-                method: "GET",
-                path: "/",
-                profile,
-              }),
-            );
+            const result = await proxyRequest({
+              method: "GET",
+              path: "/",
+              profile,
+            });
+            forgetRoute();
+            return jsonResult(result);
           }
           await browserStop(baseUrl, { profile });
-          return jsonResult(await browserStatus(baseUrl, { profile }));
+          {
+            const result = await browserStatus(baseUrl, { profile });
+            forgetRoute();
+            return jsonResult(result);
+          }
         case "profiles":
           if (proxyRequest) {
             const result = await proxyRequest({
@@ -629,10 +685,15 @@ export function createBrowserTool(opts?: {
               path: "/tabs",
               profile,
             });
+            rememberRoute({ preserveTargetId: true });
             const tabs = (result as { tabs?: unknown[] }).tabs ?? [];
             return jsonResult({ tabs });
           }
-          return jsonResult({ tabs: await browserTabs(baseUrl, { profile }) });
+          {
+            const tabs = await browserTabs(baseUrl, { profile });
+            rememberRoute({ preserveTargetId: true });
+            return jsonResult({ tabs });
+          }
         case "open": {
           const targetUrl = readStringParam(params, "targetUrl", {
             required: true,
@@ -644,9 +705,14 @@ export function createBrowserTool(opts?: {
               profile,
               body: { url: targetUrl },
             });
+            rememberRouteFromResult(result);
             return jsonResult(result);
           }
-          return jsonResult(await browserOpenTab(baseUrl, targetUrl, { profile }));
+          {
+            const result = await browserOpenTab(baseUrl, targetUrl, { profile });
+            rememberRouteFromResult(result);
+            return jsonResult(result);
+          }
         }
         case "focus": {
           const targetId = readStringParam(params, "targetId", {
@@ -659,9 +725,11 @@ export function createBrowserTool(opts?: {
               profile,
               body: { targetId },
             });
+            rememberRoute({ targetId });
             return jsonResult(result);
           }
           await browserFocusTab(baseUrl, targetId, { profile });
+          rememberRoute({ targetId });
           return jsonResult({ ok: true });
         }
         case "close": {
@@ -679,6 +747,7 @@ export function createBrowserTool(opts?: {
                   profile,
                   body: { kind: "close" },
                 });
+            rememberRoute({ targetId: null });
             return jsonResult(result);
           }
           if (targetId) {
@@ -686,6 +755,7 @@ export function createBrowserTool(opts?: {
           } else {
             await browserAct(baseUrl, { kind: "close" }, { profile });
           }
+          rememberRoute({ targetId: null });
           return jsonResult({ ok: true });
         }
         case "snapshot": {
@@ -766,6 +836,7 @@ export function createBrowserTool(opts?: {
                 mode,
                 profile,
               });
+          rememberRouteFromResult(snapshot, { targetId, preserveTargetId: true });
           if (snapshot.format === "ai") {
             if (labels && snapshot.imagePath) {
               return await imageResultFromFile({
@@ -809,6 +880,7 @@ export function createBrowserTool(opts?: {
                 type,
                 profile,
               });
+          rememberRouteFromResult(result, { targetId, preserveTargetId: true });
           return await imageResultFromFile({
             label: "browser:screenshot",
             path: result.path,
@@ -830,15 +902,18 @@ export function createBrowserTool(opts?: {
                 targetId,
               },
             });
+            rememberRouteFromResult(result, { targetId, preserveTargetId: true });
             return jsonResult(result);
           }
-          return jsonResult(
-            await browserNavigate(baseUrl, {
+          {
+            const result = await browserNavigate(baseUrl, {
               url: targetUrl,
               targetId,
               profile,
-            }),
-          );
+            });
+            rememberRouteFromResult(result, { targetId, preserveTargetId: true });
+            return jsonResult(result);
+          }
         }
         case "console": {
           const level = typeof params.level === "string" ? params.level.trim() : undefined;
@@ -853,9 +928,14 @@ export function createBrowserTool(opts?: {
                 targetId,
               },
             });
+            rememberRouteFromResult(result, { targetId, preserveTargetId: true });
             return jsonResult(result);
           }
-          return jsonResult(await browserConsoleMessages(baseUrl, { level, targetId, profile }));
+          {
+            const result = await browserConsoleMessages(baseUrl, { level, targetId, profile });
+            rememberRouteFromResult(result, { targetId, preserveTargetId: true });
+            return jsonResult(result);
+          }
         }
         case "pdf": {
           const targetId = typeof params.targetId === "string" ? params.targetId.trim() : undefined;
@@ -867,6 +947,7 @@ export function createBrowserTool(opts?: {
                 body: { targetId },
               })) as Awaited<ReturnType<typeof browserPdfSave>>)
             : await browserPdfSave(baseUrl, { targetId, profile });
+          rememberRouteFromResult(result, { targetId, preserveTargetId: true });
           return {
             content: [{ type: "text", text: `FILE:${result.path}` }],
             details: result,
@@ -899,10 +980,11 @@ export function createBrowserTool(opts?: {
                 timeoutMs,
               },
             });
+            rememberRouteFromResult(result, { targetId, preserveTargetId: true });
             return jsonResult(result);
           }
-          return jsonResult(
-            await browserArmFileChooser(baseUrl, {
+          {
+            const result = await browserArmFileChooser(baseUrl, {
               paths,
               ref,
               inputRef,
@@ -910,8 +992,10 @@ export function createBrowserTool(opts?: {
               targetId,
               timeoutMs,
               profile,
-            }),
-          );
+            });
+            rememberRouteFromResult(result, { targetId, preserveTargetId: true });
+            return jsonResult(result);
+          }
         }
         case "dialog": {
           const accept = Boolean(params.accept);
@@ -933,17 +1017,20 @@ export function createBrowserTool(opts?: {
                 timeoutMs,
               },
             });
+            rememberRouteFromResult(result, { targetId, preserveTargetId: true });
             return jsonResult(result);
           }
-          return jsonResult(
-            await browserArmDialog(baseUrl, {
+          {
+            const result = await browserArmDialog(baseUrl, {
               accept,
               promptText,
               targetId,
               timeoutMs,
               profile,
-            }),
-          );
+            });
+            rememberRouteFromResult(result, { targetId, preserveTargetId: true });
+            return jsonResult(result);
+          }
         }
         case "act": {
           const request = params.request as Record<string, unknown> | undefined;
@@ -961,6 +1048,16 @@ export function createBrowserTool(opts?: {
               : await browserAct(baseUrl, request as Parameters<typeof browserAct>[1], {
                   profile,
                 });
+            if (request.kind === "close") {
+              rememberRoute({ targetId: null });
+            } else {
+              const requestTargetId =
+                typeof request.targetId === "string" ? request.targetId.trim() : undefined;
+              rememberRouteFromResult(result, {
+                targetId: requestTargetId,
+                preserveTargetId: true,
+              });
+            }
             return jsonResult(result);
           } catch (err) {
             const msg = String(err);

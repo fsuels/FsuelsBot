@@ -2,7 +2,7 @@ import type { OpenClawConfig } from "../config/config.js";
 import type { EmbeddedContextFile } from "./pi-embedded-helpers.js";
 import { applyBootstrapHookOverrides } from "./bootstrap-hooks.js";
 import { buildBootstrapContextFiles, resolveBootstrapMaxChars } from "./pi-embedded-helpers.js";
-import { buildTaskBootstrapContext, resolveActiveTask } from "./task-checkpoint.js";
+import { buildFocusedBootstrapContext, resolveActiveTask } from "./task-checkpoint.js";
 import { formatTaskTrackerStateForPrompt, loadTaskTrackerState } from "./task-tracker.js";
 import {
   filterBootstrapFilesForSession,
@@ -102,7 +102,7 @@ export async function resolveBootstrapContextForRun(params: {
   try {
     const activeTask = await resolveActiveTask(params.workspaceDir);
     if (activeTask) {
-      const taskContent = buildTaskBootstrapContext(activeTask);
+      const taskContent = buildFocusedBootstrapContext(activeTask);
       contextFiles.push({
         path: "ACTIVE_TASK",
         content: taskContent,

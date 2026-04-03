@@ -63,6 +63,7 @@ import {
   resolveSkillsPromptForRun,
   type SkillSnapshot,
 } from "../skills.js";
+import { buildStepScopedPromptInputs } from "../step-context-manager.js";
 import { resolveRuntimeRepoRoot } from "../system-prompt-params.js";
 import { buildTaskCompactionInstructions, resolveActiveTask } from "../task-checkpoint.js";
 import { resolveTranscriptPolicy } from "../transcript-policy.js";
@@ -262,6 +263,7 @@ export async function compactEmbeddedPiSessionDirect(
           sessionId: params.sessionId,
           warn: makeBootstrapWarn({ sessionLabel, warn: (message) => log.warn(message) }),
         });
+        const activeTask = await resolveActiveTask(effectiveWorkspace).catch(() => null);
         const runAbortController = new AbortController();
         const toolsRaw = createOpenClawCodingTools({
           exec: {
@@ -379,6 +381,14 @@ export async function compactEmbeddedPiSessionDirect(
           moduleUrl: import.meta.url,
         });
         const ttsHint = params.config ? buildTtsSystemPromptHint(params.config) : undefined;
+        const promptInputs = buildStepScopedPromptInputs({
+          task: activeTask,
+          toolNames: tools.map((tool) => tool.name),
+          contextFiles,
+        });
+        const promptTools = promptInputs.promptToolNames
+          .map((toolName) => tools.find((tool) => tool.name === toolName))
+          .filter((tool): tool is (typeof tools)[number] => Boolean(tool));
         const appendPrompt = buildEmbeddedSystemPrompt({
           workspaceDir: effectiveWorkspace,
           defaultThinkLevel: params.thinkLevel,
@@ -397,12 +407,13 @@ export async function compactEmbeddedPiSessionDirect(
           reactionGuidance,
           messageToolHints,
           sandboxInfo,
-          tools,
+          tools: promptTools,
           modelAliasLines: buildModelAliasLines(params.config),
           userTimezone,
           userTime,
           userTimeFormat,
-          contextFiles,
+          contextFiles: promptInputs.contextFiles,
+          stepContext: promptInputs.stepContext,
           memoryCitationsMode: params.config?.memory?.citations,
         });
         const systemPromptOverride = createSystemPromptOverride(appendPrompt);
@@ -540,7 +551,6 @@ export async function compactEmbeddedPiSessionDirect(
 
             // Task-aware compaction: inject active task progress so Claude preserves it in summary
             try {
-              const activeTask = await resolveActiveTask(effectiveWorkspace);
               if (activeTask) {
                 const taskBlock = buildTaskCompactionInstructions(activeTask);
                 compactInstructions = compactInstructions

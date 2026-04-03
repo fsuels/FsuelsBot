@@ -3085,6 +3085,12 @@
       let currentRuntimeModel = null;
       let lastModelSelectorRefreshMs = 0;
       const MODEL_HINTS = {
+        "openai-codex/gpt-5.3-codex":
+          "⭐⭐⭐⭐⭐ Latest OpenAI Codex CLI model. Use this first for the newest OpenAI coding workflow you actually have access to.",
+        "openai-codex/gpt-5.2-codex":
+          "⭐⭐⭐⭐ Previous Codex generation. Useful as a fallback if you want older behavior or 5.3 is having a bad day.",
+        "openai-codex/gpt-5.2":
+          "⭐⭐⭐⭐ General-purpose GPT-5.2 through Codex CLI auth. Better for planning and broad tasks than pure code work.",
         "openai/gpt-5.2":
           "⭐⭐⭐⭐⭐ GPT-5.2 - Latest OpenAI flagship. Strategy, complex tasks, reasoning.",
         "openai/gpt-5.3-codex":
@@ -3093,13 +3099,13 @@
         "openai/gpt-5.2-codex":
           "⭐⭐⭐⭐ GPT-5.2 Codex - Code-optimized. Refactors, debugging, reviews.",
         "openai/gpt-5.2-chat-latest": "⭐⭐⭐⭐ GPT-5.2 Chat - Fast conversational model.",
-        "openai-codex/gpt-5.2": "Balanced default: planning, research, and general execution.",
-        "openai-codex/gpt-5.2-codex": "Code-heavy work: refactors, debugging, and implementation.",
         "openai-codex/gpt-5.1": "Fast chat mode: lightweight planning and quick replies.",
         "openai-codex/gpt-5.1-codex-max": "Deep coding: complex architecture and hard bug hunts.",
         "openai-codex/gpt-5.1-codex-mini": "Lowest latency coding: small edits and tight loops.",
+        "anthropic/claude-opus-4-6":
+          "⭐⭐⭐⭐⭐ Latest Opus available here. Strong for hard reasoning, long tasks, and recovery when OpenAI is limited.",
         "anthropic/claude-opus-4-5":
-          "⭐⭐⭐⭐⭐ OPUS 4.5 - Smartest AI. Strategy, complex tasks, important decisions.",
+          "⭐⭐⭐⭐⭐ Previous Opus generation. Still excellent for deep reasoning and large-context work.",
         "anthropic/claude-sonnet-4-5": "⭐⭐⭐⭐ FAST - Quick & smart. Good for everyday tasks.",
         "ollama/llama3.1:8b": "Local zero-cost fast mode: drafts and routine automation.",
         "ollama/gpt-oss:20b": "Local deeper mode: better quality without cloud spend.",
@@ -3119,20 +3125,23 @@
           "⭐⭐⭐⭐ REASON - 14B reasoning model. Logic, analysis, step-by-step.",
       };
       const MODEL_NAMES = {
-        "anthropic/claude-opus-4-5": "Opus 4.6 (Newest & Best)",
+        "anthropic/claude-opus-4-6": "Opus 4.6",
+        "anthropic/claude-opus-4-5": "Opus 4.5",
         "anthropic/claude-sonnet-4-5": "Sonnet 4.5 (Fast)",
       };
       const MODEL_BADGES = {
+        "openai-codex/gpt-5.3-codex": "Latest OpenAI Codex",
+        "openai-codex/gpt-5.2-codex": "OpenAI Codex fallback",
+        "openai-codex/gpt-5.2": "OpenAI plan/research",
         "openai/gpt-5.2": "⭐⭐⭐⭐⭐ GPT-5.2",
         "openai/gpt-5.3-codex": "⭐⭐⭐⭐⭐ GPT-5.3 Codex",
         "openai/gpt-5.2-pro": "⭐⭐⭐⭐⭐ GPT-5.2 Pro",
         "openai/gpt-5.2-codex": "⭐⭐⭐⭐ GPT Codex",
         "openai/gpt-5.2-chat-latest": "⭐⭐⭐⭐ GPT Chat",
-        "openai-codex/gpt-5.2": "Plan/Research",
-        "openai-codex/gpt-5.2-codex": "Coding (deep)",
         "openai-codex/gpt-5.1": "Drafting (fast)",
         "openai-codex/gpt-5.1-codex-max": "Coding (max)",
         "openai-codex/gpt-5.1-codex-mini": "Coding (fast loop)",
+        "anthropic/claude-opus-4-6": "⭐⭐⭐⭐⭐ Opus 4.6",
         "anthropic/claude-opus-4-5": "⭐⭐⭐⭐⭐ Opus 4.5",
         "anthropic/claude-sonnet-4-5": "⭐⭐⭐⭐ Sonnet",
         "ollama/llama3.1:8b": "Local fast ($0)",
@@ -3239,15 +3248,26 @@
             return;
           }
 
-          // Sort models: Opus 4.6 first, then Sonnet, then others
-          const MODEL_ORDER = ["anthropic/claude-opus-4-5", "anthropic/claude-sonnet-4-5"];
+          const MODEL_ORDER = [
+            "openai-codex/gpt-5.4-codex",
+            "openai-codex/gpt-5.4",
+            "openai-codex/gpt-5.3-codex",
+            "openai-codex/gpt-5.2-codex",
+            "openai-codex/gpt-5.2",
+            "openai-codex/gpt-5.1-codex-max",
+            "openai-codex/gpt-5.1-codex-mini",
+            "openai-codex/gpt-5.1",
+            "anthropic/claude-opus-4-6",
+            "anthropic/claude-opus-4-5",
+            "anthropic/claude-sonnet-4-5",
+          ];
           models.sort((a, b) => {
             const aIdx = MODEL_ORDER.indexOf(a.key);
             const bIdx = MODEL_ORDER.indexOf(b.key);
             if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
             if (aIdx !== -1) return -1;
             if (bIdx !== -1) return 1;
-            return 0;
+            return String(a.name || a.key || "").localeCompare(String(b.name || b.key || ""));
           });
 
           for (const model of models) {

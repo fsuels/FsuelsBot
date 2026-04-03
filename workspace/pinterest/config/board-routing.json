@@ -1,0 +1,110 @@
+{
+  "version": "2026-04-03",
+  "defaultLanguage": "en",
+  "safePublishBoards": [
+    {
+      "name": "Family Matching Swimwear",
+      "status": "existing",
+      "notes": "Use for swimsuits and beachwear only."
+    },
+    {
+      "name": "Daddy & Me Outfits",
+      "status": "existing",
+      "notes": "Use for father-and-child matching products."
+    },
+    {
+      "name": "Matching Family Easter Outfits",
+      "status": "existing",
+      "notes": "Use for Easter-specific products."
+    },
+    {
+      "name": "Mommy & Me Matching Outfits",
+      "status": "existing",
+      "notes": "Use for general mommy-and-me outfits."
+    },
+    {
+      "name": "Mother Daughter Dresses",
+      "status": "existing",
+      "notes": "Use for mother-daughter dresses."
+    }
+  ],
+  "legacyBoards": [
+    {
+      "name": "Mother Daughter Matching Dresses - dresslikemommy.com",
+      "status": "legacy",
+      "notes": "Avoid for new manual pins unless a human asks for it."
+    }
+  ],
+  "rules": [
+    {
+      "board": "Family Matching Swimwear",
+      "priority": 100,
+      "any": [
+        "swim",
+        "swimsuit",
+        "bikini",
+        "tankini",
+        "rashguard",
+        "one-piece",
+        "one piece",
+        "beachwear"
+      ]
+    },
+    {
+      "board": "Matching Family Easter Outfits",
+      "priority": 95,
+      "any": [
+        "easter"
+      ]
+    },
+    {
+      "board": "Daddy & Me Outfits",
+      "priority": 92,
+      "any": [
+        "dad",
+        "daddy",
+        "father",
+        "men's & kids",
+        "men’s & kids",
+        "mens & kids",
+        "men-s-kids",
+        "boys",
+        "boy",
+        "son"
+      ]
+    },
+    {
+      "board": "Mother Daughter Dresses",
+      "priority": 88,
+      "all": [
+        "daughter",
+        "dress"
+      ],
+      "any": [
+        "mother",
+        "mommy",
+        "mom"
+      ]
+    },
+    {
+      "board": "Mommy & Me Matching Outfits",
+      "priority": 80,
+      "all": [
+        "matching"
+      ],
+      "any": [
+        "mommy",
+        "mother",
+        "mom",
+        "daughter"
+      ]
+    }
+  ],
+  "plannedBoards": [
+    "Family Matching Vacation Outfits",
+    "Family Matching Pajamas",
+    "Family Matching Christmas Outfits",
+    "Family Matching Holiday Outfits",
+    "Mother Daughter Special Occasion Dresses"
+  ]
+}

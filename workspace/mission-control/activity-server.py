@@ -317,6 +317,104 @@ def _split_model_key(model_key):
     return provider, model
 
 
+MODEL_DASHBOARD_ORDER = [
+    "openai-codex/gpt-5.4-codex",
+    "openai-codex/gpt-5.4",
+    "openai-codex/gpt-5.3-codex",
+    "openai-codex/gpt-5.2-codex",
+    "openai-codex/gpt-5.2",
+    "openai-codex/gpt-5.1-codex-max",
+    "openai-codex/gpt-5.1-codex-mini",
+    "openai-codex/gpt-5.1",
+    "anthropic/claude-opus-4-6",
+    "anthropic/claude-opus-4-5",
+    "anthropic/claude-sonnet-4-5",
+]
+LOCAL_MODEL_PROVIDERS = {"lmstudio", "ollama"}
+
+
+def _extract_auth_provider_statuses(status_data):
+    statuses = {}
+    if not isinstance(status_data, dict):
+        return statuses
+    auth = status_data.get("auth")
+    if not isinstance(auth, dict):
+        return statuses
+    oauth = auth.get("oauth")
+    if not isinstance(oauth, dict):
+        return statuses
+    providers = oauth.get("providers")
+    if not isinstance(providers, list):
+        return statuses
+    for provider in providers:
+        if not isinstance(provider, dict):
+            continue
+        provider_id = provider.get("provider")
+        status = provider.get("status")
+        if isinstance(provider_id, str) and provider_id.strip():
+            statuses[provider_id.strip()] = (
+                status.strip() if isinstance(status, str) else "unknown"
+            )
+    return statuses
+
+
+def _sort_dashboard_models(models):
+    order_map = {
+        key: idx for idx, key in enumerate(MODEL_DASHBOARD_ORDER)
+    }
+
+    def _sort_key(item):
+        key = str(item.get("key") or "").strip()
+        order_idx = order_map.get(key, len(order_map) + 100)
+        name = str(item.get("name") or key).lower()
+        return (order_idx, name, key)
+
+    return sorted(models, key=_sort_key)
+
+
+def _get_model_provider(model_key):
+    if not isinstance(model_key, str):
+        return None
+    provider, _, _ = model_key.strip().partition("/")
+    provider = provider.strip().lower()
+    return provider or None
+
+
+def _provider_is_selectable(provider, statuses):
+    if not provider:
+        return True
+    if provider in LOCAL_MODEL_PROVIDERS:
+        return True
+    status = statuses.get(provider)
+    if status in (None, "", "unknown"):
+        return True
+    return status not in ("missing", "error", "expired")
+
+
+def _filter_dashboard_models(status_data, models):
+    filtered = []
+    statuses = _extract_auth_provider_statuses(status_data)
+    for item in models or []:
+        if not isinstance(item, dict):
+            continue
+        key = str(item.get("key") or "").strip()
+        if not key:
+            continue
+        if item.get("missing") is True:
+            continue
+        if item.get("available") is False:
+            continue
+        provider = _get_model_provider(key)
+        if not _provider_is_selectable(provider, statuses):
+            continue
+        filtered.append(dict(item))
+
+    return {
+        "models": _sort_dashboard_models(filtered),
+        "providerScope": None,
+    }
+
+
 def sync_main_session_model_in_stores(model_key):
     """Force main session metadata to reflect the selected model immediately.
 
@@ -436,10 +534,12 @@ def load_models_state():
     list_data = json.loads(list_stdout)
     models = list_data.get("models", []) if isinstance(list_data, dict) else []
     default_model = status_data.get("defaultModel") if isinstance(status_data, dict) else None
+    filtered = _filter_dashboard_models(status_data, models)
     return {
         "cli": cli,
         "defaultModel": default_model,
-        "models": models
+        "models": filtered["models"],
+        "providerScope": filtered["providerScope"],
     }
 
 
@@ -1652,6 +1752,23 @@ class ActivityHandler(http.server.SimpleHTTPRequestHandler):
 
             try:
                 normalized_model = model.strip()
+                selector_state = load_models_state()
+                allowed_models = {
+                    str(item.get("key") or "").strip()
+                    for item in selector_state.get("models", [])
+                    if isinstance(item, dict) and str(item.get("key") or "").strip()
+                }
+                if allowed_models and normalized_model not in allowed_models:
+                    self.send_response(400)
+                    self.send_header('Content-Type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps({
+                        "error": (
+                            f'Model "{normalized_model}" is not available in Mission Control. '
+                            "Pick one of the displayed models."
+                        )
+                    }).encode('utf-8'))
+                    return
                 # If switching to an LM Studio model, unload current model first
                 # and load the new one (LM Studio can only run one large model at a time)
                 if _is_lmstudio_model(normalized_model):

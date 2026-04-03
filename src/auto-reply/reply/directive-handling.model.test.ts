@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ModelAliasIndex } from "../../agents/model-selection.js";
 import type { OpenClawConfig } from "../../config/config.js";
 import type { SessionEntry } from "../../config/sessions.js";
@@ -8,6 +8,22 @@ import {
   maybeHandleModelDirectiveInfo,
   resolveModelSelectionFromDirective,
 } from "./directive-handling.model.js";
+
+const {
+  ensureAuthProfileStoreMock,
+  getCustomProviderApiKeyMock,
+  resolveEnvApiKeyMock,
+  listProfilesForProviderMock,
+} = vi.hoisted(() => ({
+  ensureAuthProfileStoreMock: vi.fn(() => ({
+    profiles: {},
+    lastGood: {},
+    usageStats: {},
+  })),
+  getCustomProviderApiKeyMock: vi.fn(),
+  resolveEnvApiKeyMock: vi.fn(),
+  listProfilesForProviderMock: vi.fn(() => []),
+}));
 
 // Mock dependencies for directive handling persistence.
 vi.mock("../../agents/agent-scope.js", () => ({
@@ -28,6 +44,19 @@ vi.mock("../../infra/system-events.js", () => ({
   enqueueSystemEvent: vi.fn(),
 }));
 
+vi.mock("../../agents/model-auth.js", () => ({
+  ensureAuthProfileStore: ensureAuthProfileStoreMock,
+  getCustomProviderApiKey: getCustomProviderApiKeyMock,
+  resolveEnvApiKey: resolveEnvApiKeyMock,
+}));
+
+vi.mock("../../agents/auth-profiles.js", () => ({
+  isProfileInCooldown: vi.fn(() => false),
+  listProfilesForProvider: listProfilesForProviderMock,
+  resolveAuthProfileDisplayLabel: vi.fn(({ profileId }: { profileId: string }) => profileId),
+  resolveAuthStorePathForDisplay: vi.fn(() => "/tmp/agent/auth-profiles.json"),
+}));
+
 function baseAliasIndex(): ModelAliasIndex {
   return { byAlias: new Map(), byKey: new Map() };
 }
@@ -38,6 +67,17 @@ function baseConfig(): OpenClawConfig {
     agents: { defaults: {} },
   } as unknown as OpenClawConfig;
 }
+
+beforeEach(() => {
+  ensureAuthProfileStoreMock.mockReturnValue({
+    profiles: {},
+    lastGood: {},
+    usageStats: {},
+  });
+  getCustomProviderApiKeyMock.mockReturnValue(undefined);
+  resolveEnvApiKeyMock.mockReturnValue(null);
+  listProfilesForProviderMock.mockImplementation(() => []);
+});
 
 describe("/model chat UX", () => {
   it("shows summary for /model with no args", async () => {
@@ -85,6 +125,60 @@ describe("/model chat UX", () => {
       isDefault: true,
     });
     expect(resolved.errorText).toBeUndefined();
+  });
+
+  it("rejects openai api models when only Codex OAuth is configured", () => {
+    const directives = parseInlineDirectives("/model openai/gpt-5.4");
+    const cfg = { commands: { text: true } } as unknown as OpenClawConfig;
+
+    listProfilesForProviderMock.mockImplementation((_store, provider: string) =>
+      provider === "openai-codex" ? ["openai-codex:default"] : [],
+    );
+
+    const resolved = resolveModelSelectionFromDirective({
+      directives,
+      cfg,
+      agentDir: "/tmp/agent",
+      defaultProvider: "anthropic",
+      defaultModel: "claude-opus-4-5",
+      aliasIndex: baseAliasIndex(),
+      allowedModelKeys: new Set(["openai/gpt-5.4", "openai-codex/gpt-5.3-codex"]),
+      allowedModelCatalog: [{ provider: "openai-codex", id: "gpt-5.3-codex" }],
+      provider: "anthropic",
+    });
+
+    expect(resolved.modelSelection).toBeUndefined();
+    expect(resolved.errorText).toContain("OpenAI Codex OAuth");
+    expect(resolved.errorText).toContain("/model openai-codex/gpt-5.3-codex");
+    expect(resolved.errorText).toContain("OPENAI_API_KEY");
+  });
+
+  it("allows openai api models when OPENAI_API_KEY is available", () => {
+    const directives = parseInlineDirectives("/model openai/gpt-5.2");
+    const cfg = { commands: { text: true } } as unknown as OpenClawConfig;
+
+    resolveEnvApiKeyMock.mockImplementation((provider: string) =>
+      provider === "openai" ? { apiKey: "sk-test", source: "env: OPENAI_API_KEY" } : null,
+    );
+
+    const resolved = resolveModelSelectionFromDirective({
+      directives,
+      cfg,
+      agentDir: "/tmp/agent",
+      defaultProvider: "anthropic",
+      defaultModel: "claude-opus-4-5",
+      aliasIndex: baseAliasIndex(),
+      allowedModelKeys: new Set(["openai/gpt-5.2"]),
+      allowedModelCatalog: [{ provider: "openai", id: "gpt-5.2" }],
+      provider: "anthropic",
+    });
+
+    expect(resolved.errorText).toBeUndefined();
+    expect(resolved.modelSelection).toEqual({
+      provider: "openai",
+      model: "gpt-5.2",
+      isDefault: false,
+    });
   });
 });
 

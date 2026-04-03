@@ -63,9 +63,12 @@ import {
   loadWorkspaceSkillEntries,
   resolveSkillsPromptForRun,
 } from "../../skills.js";
+import { maybeCleanupBrowserStateOnStepTransition } from "../../step-browser-cleanup.js";
+import { buildStepScopedPromptInputs } from "../../step-context-manager.js";
 import { createStructuredOutputTool } from "../../structured-output-tool.js";
 import { buildSystemPromptParams, resolveRuntimeRepoRoot } from "../../system-prompt-params.js";
 import { buildSystemPromptReport } from "../../system-prompt-report.js";
+import { resolveActiveTask } from "../../task-checkpoint.js";
 import {
   createToolDiscoveryActivationRuntime,
   partitionToolDiscoverySurface,
@@ -236,6 +239,7 @@ export async function runEmbeddedAttempt(
             provider: params.provider,
             warn: makeBootstrapWarn({ sessionLabel, warn: (message) => log.warn(message) }),
           });
+        const activeTask = await resolveActiveTask(effectiveWorkspace).catch(() => null);
         const workspaceNotes = hookAdjustedBootstrapFiles.some(
           (file) => file.name === DEFAULT_BOOTSTRAP_FILENAME && !file.missing,
         )
@@ -598,8 +602,19 @@ export async function runEmbeddedAttempt(
               ...(pendingProviders && pendingProviders.length > 0 ? { pendingProviders } : {}),
             };
           };
-          const buildPromptArtifactsForToolNames = (toolNames: string[]) =>
-            buildEmbeddedSystemPromptArtifacts({
+          const buildPromptArtifactsForToolNames = (toolNames: string[]) => {
+            const promptInputs = buildStepScopedPromptInputs({
+              task: activeTask,
+              toolNames,
+              contextFiles,
+            });
+            const promptTools = promptInputs.promptToolNames
+              .map((toolName) => promptToolsByName.get(toolName))
+              .filter((tool): tool is AgentTool => Boolean(tool));
+            const dynamicToolDelta = buildDynamicToolDeltaForToolNames(
+              promptInputs.promptToolNames,
+            );
+            const artifacts = buildEmbeddedSystemPromptArtifacts({
               workspaceDir: effectiveWorkspace,
               defaultThinkLevel: params.thinkLevel,
               reasoningLevel: params.reasoningLevel ?? "off",
@@ -620,26 +635,35 @@ export async function runEmbeddedAttempt(
               runtimeInfo,
               messageToolHints,
               sandboxInfo,
-              tools: bootstrapToolNames
-                .map((toolName) => promptToolsByName.get(toolName))
-                .filter((tool): tool is AgentTool => Boolean(tool)),
-              dynamicToolDelta: buildDynamicToolDeltaForToolNames(toolNames),
+              tools: promptTools,
+              dynamicToolDelta,
               modelAliasLines: buildModelAliasLines(params.config),
               userTimezone,
               userTime,
               userTimeFormat,
-              contextFiles,
+              contextFiles: promptInputs.contextFiles,
+              stepContext: promptInputs.stepContext,
               memoryCitationsMode: params.config?.memory?.citations,
               contextPressure: params.contextPressure,
               driftInjection: params.driftInjection,
               coherenceIntervention: effectiveCoherenceIntervention,
             });
+            return { artifacts, dynamicToolDelta, promptInputs, promptTools };
+          };
           const initialPromptToolNames = [
             ...bootstrapToolNames,
             ...structuredOutputToolDefs.map((tool) => tool.name),
             ...clientToolDefs.map((tool) => tool.name),
           ];
-          const promptArtifacts = buildPromptArtifactsForToolNames(initialPromptToolNames);
+          const initialPromptBuild = buildPromptArtifactsForToolNames(initialPromptToolNames);
+          if (activeTask && initialPromptBuild.promptInputs.stepContext) {
+            await maybeCleanupBrowserStateOnStepTransition({
+              sessionKey: params.sessionKey ?? params.sessionId,
+              currentStepIndex: activeTask.currentStepIndex,
+              currentDomain: initialPromptBuild.promptInputs.stepContext.domain,
+            });
+          }
+          const promptArtifacts = initialPromptBuild.artifacts;
           const appendPrompt = promptArtifacts.prompt;
           const systemPromptReport = buildSystemPromptReport({
             source: "run",
@@ -660,10 +684,10 @@ export async function runEmbeddedAttempt(
             systemPrompt: appendPrompt,
             promptAssembly: promptArtifacts,
             bootstrapFiles: hookAdjustedBootstrapFiles,
-            injectedFiles: contextFiles,
+            injectedFiles: initialPromptBuild.promptInputs.contextFiles,
             skillsPrompt,
-            dynamicToolDelta: buildDynamicToolDeltaForToolNames(initialPromptToolNames),
-            tools: bootstrapTools,
+            dynamicToolDelta: initialPromptBuild.dynamicToolDelta,
+            tools: initialPromptBuild.promptTools,
           });
           const systemPromptOverride = createSystemPromptOverride(appendPrompt);
           const systemPromptText = systemPromptOverride();
@@ -684,7 +708,7 @@ export async function runEmbeddedAttempt(
           }));
           applySystemPromptOverrideToSession(
             session,
-            (toolNames) => buildPromptArtifactsForToolNames(toolNames).prompt,
+            (toolNames) => buildPromptArtifactsForToolNames(toolNames).artifacts.prompt,
           );
           if (!session) {
             throw new Error("Embedded agent session missing");
@@ -692,7 +716,8 @@ export async function runEmbeddedAttempt(
           const activeSession = session;
           toolDiscoveryRuntimeRef.current = createToolDiscoveryActivationRuntime({
             session: activeSession,
-            buildSystemPrompt: (toolNames) => buildPromptArtifactsForToolNames(toolNames).prompt,
+            buildSystemPrompt: (toolNames) =>
+              buildPromptArtifactsForToolNames(toolNames).artifacts.prompt,
           });
           toolDiscoveryRuntimeRef.current.replaceActiveToolNames([
             ...bootstrapToolNames,
