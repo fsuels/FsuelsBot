@@ -1,11 +1,15 @@
 {
   "version": 100,
-  "updated_at": "2026-04-01T04:21:52.463590+00:00",
-  "updated_by": "cleanup-script",
+  "updated_at": "2026-04-03T07:16:37.602Z",
+  "updated_by": "claude-code",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
-    "bot_current": [],
-    "bot_queue": [],
+    "bot_current": [
+      "pinterest-strategy-research"
+    ],
+    "bot_queue": [
+      "pinterest-board-reorganization"
+    ],
     "human": [],
     "scheduled": [],
     "done_today": [
@@ -19,10 +23,13 @@
       "research-review-heartbeat-md-6",
       "research-review-heartbeat-md-7",
       "research-review-heartbeat-md-8",
-      "research-review-heartbeat-md-9"
+      "research-review-heartbeat-md-9",
+      "pinterest-strategy-research"
     ],
     "trash": [],
-    "paused": ["pomelli-dresses-refresh"]
+    "paused": [
+      "pomelli-dresses-refresh"
+    ]
   },
   "tasks": {
     "pomelli-dresses-refresh": {
@@ -34,7 +41,9 @@
       "kind": "general",
       "file": "memory/tasks/pomelli-dresses-refresh.md",
       "summary": "For each active product in Dresses collection, generate 4 Pomelli lifestyle images and upload them to the matching Shopify product with alt text and saved state.",
-      "blockers": ["Paused by human request until explicit resume command."],
+      "blockers": [
+        "Paused by human request until explicit resume command."
+      ],
       "next_action": "Paused by human. Resume from second dress when told to continue.",
       "progress": "2/8 steps done (Pomelli UI validated, test upload worked).",
       "project": "dlm",
@@ -116,7 +125,7 @@
           "procedure": [
             "Search Shopify by OriginalImageFilename first, then fallback to product title.",
             "Confirm correct product and Active status; skip if Draft/Archived.",
-            "Upload 4 Pomelli images and set alt text format: [Full Product Title] \u2014 [template descriptor].",
+            "Upload 4 Pomelli images and set alt text format: [Full Product Title] — [template descriptor].",
             "Save and confirm no unsaved changes indicator remains."
           ],
           "definitionOfDone": "Shopify product saved with 4 new images and complete alt text."
@@ -144,7 +153,9 @@
       "handoff": {
         "whatIsDone": "Workflow/SOP captured; first dress already completed manually by human; automation permission setup partially validated.",
         "nextAction": "When resumed, start at second dress and execute steps A->D product-by-product.",
-        "blockers": ["Paused by human request."]
+        "blockers": [
+          "Paused by human request."
+        ]
       },
       "plan": "memory/tasks/pomelli-dresses-refresh.md",
       "stepCount": 4,
@@ -164,7 +175,9 @@
         "summary": "Scheduled task from cron job 'consolidation'. Auto-created at scheduled time.",
         "created_from": "cron:consolidation",
         "decisions": [],
-        "constraints": ["Must complete and log learnings before marking done"]
+        "constraints": [
+          "Must complete and log learnings before marking done"
+        ]
       },
       "learnings": {
         "question": "What did Memory Consolidation (3 AM) produce?",
@@ -221,7 +234,9 @@
       "started_at": "2026-03-18T11:50:02.407084+00:00",
       "learnings": {
         "verdict": "Updated memory/global/rules.md with PowerShell exec gotchas: avoid &&/||, use .Property, avoid complex one-liners.",
-        "artifacts": ["workspace/memory/global/rules.md"]
+        "artifacts": [
+          "workspace/memory/global/rules.md"
+        ]
       },
       "completed_at": "2026-03-18T11:50:33.699352+00:00",
       "acceptanceCriteria": [
@@ -240,7 +255,9 @@
         "summary": "Scheduled task from cron job 'research-brief'. Auto-created at scheduled time.",
         "created_from": "cron:research-brief",
         "decisions": [],
-        "constraints": ["Must complete and log learnings before marking done"]
+        "constraints": [
+          "Must complete and log learnings before marking done"
+        ]
       },
       "learnings": {
         "question": "What did Daily AI Research Brief (9 AM) produce?",
@@ -290,7 +307,9 @@
         "summary": "Scheduled task from cron job 'curiosity'. Auto-created at scheduled time.",
         "created_from": "cron:curiosity",
         "decisions": [],
-        "constraints": ["Must complete and log learnings before marking done"]
+        "constraints": [
+          "Must complete and log learnings before marking done"
+        ]
       },
       "learnings": {
         "question": "What did Curiosity Engine (9 PM) produce?",
@@ -325,11 +344,17 @@
       "created_at": "2026-03-31T12:19:41.361Z",
       "kind": "research_review",
       "requirements": {
-        "goals": ["Research review: heartbeat.md"],
+        "goals": [
+          "Research review: heartbeat.md"
+        ],
         "constraints": [],
         "assumptions": [],
-        "exclusions": ["Do not infer or repeat old tasks from prior chats."],
-        "acceptance_criteria": ["Provide at least one concrete receipt proving completion."],
+        "exclusions": [
+          "Do not infer or repeat old tasks from prior chats."
+        ],
+        "acceptance_criteria": [
+          "Provide at least one concrete receipt proving completion."
+        ],
         "updated_at": "2026-03-31T12:19:41.361Z",
         "source": "task-board.turn-sync"
       },
@@ -358,10 +383,14 @@
       ],
       "current_step": 0,
       "next_action": "Run structured URL research review and choose ADOPT, EXPERIMENT, or IGNORE.",
-      "source_urls": ["https://heartbeat.md/"],
+      "source_urls": [
+        "https://heartbeat.md/"
+      ],
       "review_template": {
         "protocol": "research_review_v1",
-        "source_urls": ["https://heartbeat.md/"],
+        "source_urls": [
+          "https://heartbeat.md/"
+        ],
         "required_sections": [
           "credibility_gate",
           "actionable_extraction",
@@ -381,9 +410,17 @@
             "risk"
           ]
         },
-        "decisions": ["ADOPT", "EXPERIMENT", "IGNORE"],
+        "decisions": [
+          "ADOPT",
+          "EXPERIMENT",
+          "IGNORE"
+        ],
         "decision_rule": "Choose exactly one: ADOPT, EXPERIMENT, or IGNORE.",
-        "adopt_or_experiment_requirements": ["kpi", "affected_modules", "rollback_strategy"]
+        "adopt_or_experiment_requirements": [
+          "kpi",
+          "affected_modules",
+          "rollback_strategy"
+        ]
       },
       "started_at": "2026-03-31T12:19:59.581537+00:00",
       "completed_at": "2026-03-31T12:21:32Z",
@@ -415,11 +452,17 @@
       "created_at": "2026-03-31T13:19:09.269Z",
       "kind": "research_review",
       "requirements": {
-        "goals": ["Research review: heartbeat.md"],
+        "goals": [
+          "Research review: heartbeat.md"
+        ],
         "constraints": [],
         "assumptions": [],
-        "exclusions": ["Do not infer or repeat old tasks from prior chats."],
-        "acceptance_criteria": ["Provide at least one concrete receipt proving completion."],
+        "exclusions": [
+          "Do not infer or repeat old tasks from prior chats."
+        ],
+        "acceptance_criteria": [
+          "Provide at least one concrete receipt proving completion."
+        ],
         "updated_at": "2026-03-31T13:19:09.269Z",
         "source": "task-board.turn-sync"
       },
@@ -448,10 +491,14 @@
       ],
       "current_step": 0,
       "next_action": "Run structured URL research review and choose ADOPT, EXPERIMENT, or IGNORE.",
-      "source_urls": ["https://heartbeat.md/"],
+      "source_urls": [
+        "https://heartbeat.md/"
+      ],
       "review_template": {
         "protocol": "research_review_v1",
-        "source_urls": ["https://heartbeat.md/"],
+        "source_urls": [
+          "https://heartbeat.md/"
+        ],
         "required_sections": [
           "credibility_gate",
           "actionable_extraction",
@@ -471,9 +518,17 @@
             "risk"
           ]
         },
-        "decisions": ["ADOPT", "EXPERIMENT", "IGNORE"],
+        "decisions": [
+          "ADOPT",
+          "EXPERIMENT",
+          "IGNORE"
+        ],
         "decision_rule": "Choose exactly one: ADOPT, EXPERIMENT, or IGNORE.",
-        "adopt_or_experiment_requirements": ["kpi", "affected_modules", "rollback_strategy"]
+        "adopt_or_experiment_requirements": [
+          "kpi",
+          "affected_modules",
+          "rollback_strategy"
+        ]
       },
       "started_at": "2026-03-31T13:19:59.742838+00:00",
       "completed_at": "2026-03-31T14:20:02Z",
@@ -505,11 +560,17 @@
       "created_at": "2026-03-31T15:19:09.708Z",
       "kind": "research_review",
       "requirements": {
-        "goals": ["Research review: heartbeat.md"],
+        "goals": [
+          "Research review: heartbeat.md"
+        ],
         "constraints": [],
         "assumptions": [],
-        "exclusions": ["Do not infer or repeat old tasks from prior chats."],
-        "acceptance_criteria": ["Provide at least one concrete receipt proving completion."],
+        "exclusions": [
+          "Do not infer or repeat old tasks from prior chats."
+        ],
+        "acceptance_criteria": [
+          "Provide at least one concrete receipt proving completion."
+        ],
         "updated_at": "2026-03-31T15:19:09.708Z",
         "source": "task-board.turn-sync"
       },
@@ -538,10 +599,14 @@
       ],
       "current_step": 0,
       "next_action": "Run structured URL research review and choose ADOPT, EXPERIMENT, or IGNORE.",
-      "source_urls": ["https://heartbeat.md/"],
+      "source_urls": [
+        "https://heartbeat.md/"
+      ],
       "review_template": {
         "protocol": "research_review_v1",
-        "source_urls": ["https://heartbeat.md/"],
+        "source_urls": [
+          "https://heartbeat.md/"
+        ],
         "required_sections": [
           "credibility_gate",
           "actionable_extraction",
@@ -561,17 +626,25 @@
             "risk"
           ]
         },
-        "decisions": ["ADOPT", "EXPERIMENT", "IGNORE"],
+        "decisions": [
+          "ADOPT",
+          "EXPERIMENT",
+          "IGNORE"
+        ],
         "decision_rule": "Choose exactly one: ADOPT, EXPERIMENT, or IGNORE.",
-        "adopt_or_experiment_requirements": ["kpi", "affected_modules", "rollback_strategy"]
+        "adopt_or_experiment_requirements": [
+          "kpi",
+          "affected_modules",
+          "rollback_strategy"
+        ]
       },
       "started_at": "2026-03-31T15:19:59.452872+00:00",
       "completed_at": "2026-03-31T16:20:06.528290Z",
       "decision": "IGNORE",
       "decision_reason": "Source URL unreachable (HTTP 521). No content to review.",
-      "executor_id": "francisco\u2019s Mac mini",
+      "executor_id": "francisco’s Mac mini",
       "lease_expires_at": "2026-03-31T16:35:46.828Z",
-      "worker_id": "francisco\u2019s Mac mini",
+      "worker_id": "francisco’s Mac mini",
       "lease_acquired_at": "2026-03-31T16:20:46.828Z",
       "lease_ttl_ms": 900000,
       "acceptanceCriteria": [
@@ -587,11 +660,15 @@
       "created_at": "2026-03-31T16:21:02.359Z",
       "kind": "research_review",
       "requirements": {
-        "goals": ["Research review: heartbeat.md"],
+        "goals": [
+          "Research review: heartbeat.md"
+        ],
         "constraints": [],
         "assumptions": [],
         "exclusions": [],
-        "acceptance_criteria": ["Provide at least one concrete receipt proving completion."],
+        "acceptance_criteria": [
+          "Provide at least one concrete receipt proving completion."
+        ],
         "updated_at": "2026-03-31T16:21:02.359Z",
         "source": "task-board.turn-sync"
       },
@@ -620,10 +697,14 @@
       ],
       "current_step": 0,
       "next_action": "Run structured URL research review and choose ADOPT, EXPERIMENT, or IGNORE.",
-      "source_urls": ["https://heartbeat.md/"],
+      "source_urls": [
+        "https://heartbeat.md/"
+      ],
       "review_template": {
         "protocol": "research_review_v1",
-        "source_urls": ["https://heartbeat.md/"],
+        "source_urls": [
+          "https://heartbeat.md/"
+        ],
         "required_sections": [
           "credibility_gate",
           "actionable_extraction",
@@ -643,9 +724,17 @@
             "risk"
           ]
         },
-        "decisions": ["ADOPT", "EXPERIMENT", "IGNORE"],
+        "decisions": [
+          "ADOPT",
+          "EXPERIMENT",
+          "IGNORE"
+        ],
         "decision_rule": "Choose exactly one: ADOPT, EXPERIMENT, or IGNORE.",
-        "adopt_or_experiment_requirements": ["kpi", "affected_modules", "rollback_strategy"]
+        "adopt_or_experiment_requirements": [
+          "kpi",
+          "affected_modules",
+          "rollback_strategy"
+        ]
       },
       "started_at": "2026-03-31T16:21:33.590188Z",
       "completed_at": "2026-03-31T16:21:46.925825Z",
@@ -664,11 +753,17 @@
       "created_at": "2026-03-31T17:21:18.517Z",
       "kind": "research_review",
       "requirements": {
-        "goals": ["Research review: heartbeat.md"],
+        "goals": [
+          "Research review: heartbeat.md"
+        ],
         "constraints": [],
         "assumptions": [],
-        "exclusions": ["Do not infer or repeat old tasks from prior chats."],
-        "acceptance_criteria": ["Provide at least one concrete receipt proving completion."],
+        "exclusions": [
+          "Do not infer or repeat old tasks from prior chats."
+        ],
+        "acceptance_criteria": [
+          "Provide at least one concrete receipt proving completion."
+        ],
         "updated_at": "2026-03-31T17:21:18.517Z",
         "source": "task-board.turn-sync"
       },
@@ -697,10 +792,14 @@
       ],
       "current_step": 0,
       "next_action": "Run structured URL research review and choose ADOPT, EXPERIMENT, or IGNORE.",
-      "source_urls": ["https://heartbeat.md/"],
+      "source_urls": [
+        "https://heartbeat.md/"
+      ],
       "review_template": {
         "protocol": "research_review_v1",
-        "source_urls": ["https://heartbeat.md/"],
+        "source_urls": [
+          "https://heartbeat.md/"
+        ],
         "required_sections": [
           "credibility_gate",
           "actionable_extraction",
@@ -720,9 +819,17 @@
             "risk"
           ]
         },
-        "decisions": ["ADOPT", "EXPERIMENT", "IGNORE"],
+        "decisions": [
+          "ADOPT",
+          "EXPERIMENT",
+          "IGNORE"
+        ],
         "decision_rule": "Choose exactly one: ADOPT, EXPERIMENT, or IGNORE.",
-        "adopt_or_experiment_requirements": ["kpi", "affected_modules", "rollback_strategy"]
+        "adopt_or_experiment_requirements": [
+          "kpi",
+          "affected_modules",
+          "rollback_strategy"
+        ]
       },
       "started_at": "2026-03-31T17:21:59.448226+00:00",
       "completed_at": "2026-03-31T18:21:46Z",
@@ -756,11 +863,17 @@
       "created_at": "2026-03-31T19:21:14.317Z",
       "kind": "research_review",
       "requirements": {
-        "goals": ["Research review: heartbeat.md"],
+        "goals": [
+          "Research review: heartbeat.md"
+        ],
         "constraints": [],
         "assumptions": [],
-        "exclusions": ["Do not infer or repeat old tasks from prior chats."],
-        "acceptance_criteria": ["Provide at least one concrete receipt proving completion."],
+        "exclusions": [
+          "Do not infer or repeat old tasks from prior chats."
+        ],
+        "acceptance_criteria": [
+          "Provide at least one concrete receipt proving completion."
+        ],
         "updated_at": "2026-03-31T19:21:14.317Z",
         "source": "task-board.turn-sync"
       },
@@ -789,10 +902,14 @@
       ],
       "current_step": 0,
       "next_action": "Run structured URL research review and choose ADOPT, EXPERIMENT, or IGNORE.",
-      "source_urls": ["https://heartbeat.md/"],
+      "source_urls": [
+        "https://heartbeat.md/"
+      ],
       "review_template": {
         "protocol": "research_review_v1",
-        "source_urls": ["https://heartbeat.md/"],
+        "source_urls": [
+          "https://heartbeat.md/"
+        ],
         "required_sections": [
           "credibility_gate",
           "actionable_extraction",
@@ -812,9 +929,17 @@
             "risk"
           ]
         },
-        "decisions": ["ADOPT", "EXPERIMENT", "IGNORE"],
+        "decisions": [
+          "ADOPT",
+          "EXPERIMENT",
+          "IGNORE"
+        ],
         "decision_rule": "Choose exactly one: ADOPT, EXPERIMENT, or IGNORE.",
-        "adopt_or_experiment_requirements": ["kpi", "affected_modules", "rollback_strategy"]
+        "adopt_or_experiment_requirements": [
+          "kpi",
+          "affected_modules",
+          "rollback_strategy"
+        ]
       },
       "started_at": "2026-03-31T19:21:59.485037+00:00",
       "completed_at": "2026-03-31T19:23:48Z",
@@ -842,6 +967,131 @@
         "Task output matches the stated goal.",
         "Completion can be verified with concrete evidence or receipts."
       ]
+    },
+    "pinterest-strategy-research": {
+      "id": "pinterest-strategy-research",
+      "title": "Pinterest Marketing Strategy Research for DressLikeMommy",
+      "status": "active",
+      "priority": "medium",
+      "project": "dlm",
+      "created": "2026-04-01T04:28:00-04:00",
+      "updated": "2026-04-01T04:46:00-04:00",
+      "description": "Research and execute Pinterest marketing strategy for DressLikeMommy. Account has 848 followers, 10yr history, domain verified, but needs merchant verification, board restructuring, proper pin formats (2:3 vertical), varied descriptions, and 10-15 keyword-rich boards. Sub-agent completed audit and found 10 key issues.",
+      "goal": "DressLikeMommy Pinterest account fully optimized: verified merchant, 10-15 keyword-rich boards, proper 2:3 pin images, varied SEO descriptions, following niche accounts, video pins added.",
+      "steps": [
+        {
+          "name": "Research: Spawn sub-agent to audit current Pinterest state + best practices",
+          "status": "done"
+        },
+        {
+          "name": "Review sub-agent findings: audit saved to memory/global/dlm-pinterest-audit-2026-04-01.md",
+          "status": "done"
+        },
+        {
+          "name": "Apply for Pinterest Verified Merchant status",
+          "status": "pending"
+        },
+        {
+          "name": "Restructure boards: fix misplaced products, create 10-15 keyword-rich boards",
+          "status": "pending"
+        },
+        {
+          "name": "Fix pin image format: convert from 1:1 square to 2:3 vertical (1000x1500)",
+          "status": "pending"
+        },
+        {
+          "name": "Rewrite pin descriptions: varied copy, keyword-rich, no repetitive openers",
+          "status": "pending"
+        },
+        {
+          "name": "Follow 50-100 niche accounts for algorithm signals",
+          "status": "pending"
+        },
+        {
+          "name": "Create first video pin batch",
+          "status": "pending"
+        },
+        {
+          "name": "Present full plan to Francisco for approval",
+          "status": "pending"
+        }
+      ],
+      "context": {
+        "subagent_label": "pinterest-strategy-research",
+        "subagent_session": "agent:main:subagent:7ed8d469-af50-4d95-a03f-3283a29fee07",
+        "audit_file": "memory/global/dlm-pinterest-audit-2026-04-01.md",
+        "procedure_file": "procedures/marketing/pinterest.md",
+        "decisions": [
+          "Sub-agent ran on Sonnet to keep main session clean",
+          "Francisco approved research at 04:30 EDT",
+          "Audit found 10 key issues — see audit_file"
+        ],
+        "key_findings": {
+          "followers": 848,
+          "boards": 6,
+          "domain_verified": true,
+          "merchant_verified": false,
+          "issues": [
+            "Not following anyone",
+            "Products on wrong boards (Christmas on Swimwear)",
+            "Images 1:1 square instead of 2:3 vertical",
+            "Repetitive descriptions",
+            "Only 6 boards (need 10-15+)",
+            "No video pins",
+            "Not verified merchant"
+          ]
+        }
+      },
+      "file": "memory/tasks/pinterest-strategy-research.md",
+      "lane": "bot_current",
+      "updated_at": "2026-04-03T07:16:37.602Z",
+      "progress": "2/9 steps done"
+    },
+    "pinterest-board-reorganization": {
+      "id": "pinterest-board-reorganization",
+      "title": "Pinterest Board Reorganization & Optimization",
+      "status": "paused",
+      "priority": "high",
+      "created": "2026-04-01T04:20:00-04:00",
+      "updated": "2026-04-01T08:47:07.730498+00:00",
+      "description": "Execute Pinterest board reorganization: create keyword-rich boards, move misplaced pins, follow niche accounts, optimize for SEO.",
+      "steps": [
+        {
+          "name": "Create 9 keyword-rich boards",
+          "status": "done"
+        },
+        {
+          "name": "Move misplaced pins (Christmas→Christmas board, Valentine→Valentine board)",
+          "status": "pending"
+        },
+        {
+          "name": "Check Easter board for misplaced pins",
+          "status": "pending"
+        },
+        {
+          "name": "Follow 15-20 niche accounts for algorithm signals",
+          "status": "pending"
+        },
+        {
+          "name": "Add board descriptions with keywords",
+          "status": "pending"
+        }
+      ],
+      "context": {
+        "boards_created": [
+          "Matching Family Christmas Outfits",
+          "Mommy and Me Dresses",
+          "Family Matching Pajamas",
+          "Mother Daughter Valentine Outfits",
+          "Matching Family Halloween Costumes",
+          "Family Matching 4th of July Outfits",
+          "Mommy and Me Summer Outfits",
+          "Family Matching Birthday Outfits",
+          "Mother Son Matching Outfits"
+        ],
+        "blocker": "Pinterest backend was rate-limiting pin moves after bulk board creation. Retry in ~30 min."
+      },
+      "updated_at": "2026-04-01T09:09:34.165Z"
     }
   },
   "active_project": "fsuelsbot"

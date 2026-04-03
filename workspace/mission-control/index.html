@@ -936,221 +936,6 @@
         font-size: 11px;
       }
 
-      /* Predictions Section */
-      .predictions-section {
-        background: rgba(13, 17, 23, 0.5);
-        border: 1px solid rgba(139, 92, 246, 0.15);
-        border-radius: 14px;
-        padding: 14px;
-        margin-bottom: 16px;
-      }
-      .predictions-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 10px;
-        margin-top: 12px;
-      }
-      .predictions-grid.collapsed {
-        display: none;
-      }
-      .prediction-card {
-        background: rgba(22, 27, 34, 0.6);
-        border: 1px solid rgba(255, 255, 255, 0.06);
-        border-radius: 10px;
-        padding: 12px;
-      }
-      .prediction-card.scored-1,
-      .prediction-card.scored-2 {
-        border-color: rgba(248, 113, 113, 0.4);
-        background: rgba(248, 113, 113, 0.05);
-      }
-      .prediction-card.scored-3 {
-        border-color: rgba(251, 191, 36, 0.4);
-        background: rgba(251, 191, 36, 0.05);
-      }
-      .prediction-card.scored-4,
-      .prediction-card.scored-5 {
-        border-color: rgba(63, 185, 80, 0.4);
-        background: rgba(63, 185, 80, 0.05);
-      }
-      .prediction-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 8px;
-      }
-      .prediction-id {
-        font-size: 10px;
-        color: #8b949e;
-        background: rgba(139, 92, 246, 0.15);
-        padding: 2px 6px;
-        border-radius: 4px;
-      }
-      .prediction-confidence {
-        font-size: 10px;
-        padding: 2px 6px;
-        border-radius: 4px;
-      }
-      .prediction-confidence.HIGH {
-        background: rgba(63, 185, 80, 0.2);
-        color: #3fb950;
-      }
-      .prediction-confidence.MEDIUM {
-        background: rgba(251, 191, 36, 0.2);
-        color: #fbbf24;
-      }
-      .prediction-confidence.LOW {
-        background: rgba(248, 113, 113, 0.2);
-        color: #f87171;
-      }
-      .prediction-text {
-        font-size: 13px;
-        color: #e6edf3;
-        margin-bottom: 6px;
-        line-height: 1.4;
-      }
-      .prediction-rationale {
-        font-size: 11px;
-        color: #8b949e;
-        margin-bottom: 10px;
-      }
-      .prediction-actions {
-        display: flex;
-        gap: 8px;
-      }
-      .score-btn {
-        flex: 1;
-        padding: 8px 12px;
-        border-radius: 6px;
-        font-size: 14px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.15s;
-      }
-      .score-btn.rating {
-        background: rgba(255, 255, 255, 0.06);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: #8b949e;
-        min-width: 36px;
-        padding: 8px 4px;
-      }
-      .score-btn.rating:hover {
-        background: rgba(139, 92, 246, 0.2);
-        border-color: rgba(139, 92, 246, 0.4);
-        color: #a78bfa;
-      }
-      .score-btn.rating.active {
-        background: rgba(139, 92, 246, 0.4);
-        border-color: rgba(139, 92, 246, 0.6);
-        color: #fff;
-      }
-      .score-btn.correct {
-        background: rgba(63, 185, 80, 0.15);
-        border: 1px solid rgba(63, 185, 80, 0.3);
-        color: #3fb950;
-      }
-      .score-btn.correct:hover {
-        background: rgba(63, 185, 80, 0.25);
-      }
-      .score-btn.correct.active {
-        background: rgba(63, 185, 80, 0.4);
-      }
-      .score-btn.wrong {
-        background: rgba(248, 113, 113, 0.15);
-        border: 1px solid rgba(248, 113, 113, 0.3);
-        color: #f87171;
-      }
-      .score-btn.wrong:hover {
-        background: rgba(248, 113, 113, 0.25);
-      }
-      .score-btn.wrong.active {
-        background: rgba(248, 113, 113, 0.4);
-      }
-      .predictions-history.collapsed {
-        display: none;
-      }
-      .game-stats.collapsed {
-        display: none;
-      }
-
-      /* Predictions Modal */
-      .predictions-modal-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.8);
-        display: none;
-        justify-content: center;
-        align-items: flex-start;
-        padding: 20px;
-        z-index: 1000;
-        overflow-y: auto;
-      }
-      .predictions-modal-overlay.active {
-        display: flex;
-      }
-      .predictions-modal {
-        background: #161b22;
-        border: 1px solid rgba(139, 92, 246, 0.3);
-        border-radius: 16px;
-        width: 100%;
-        max-width: 900px;
-        max-height: 90vh;
-        overflow-y: auto;
-        margin: auto;
-      }
-      .predictions-modal-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 16px 20px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-        position: sticky;
-        top: 0;
-        background: #161b22;
-        z-index: 10;
-      }
-      .predictions-modal-title {
-        font-size: 18px;
-        font-weight: 600;
-        color: #e6edf3;
-      }
-      .predictions-modal-close {
-        background: none;
-        border: none;
-        color: #8b949e;
-        font-size: 24px;
-        cursor: pointer;
-        padding: 4px 8px;
-        border-radius: 6px;
-        transition: all 0.15s;
-      }
-      .predictions-modal-close:hover {
-        background: rgba(255, 255, 255, 0.1);
-        color: #fff;
-      }
-      .predictions-modal-body {
-        padding: 20px;
-      }
-      .predictions-btn {
-        background: rgba(139, 92, 246, 0.15);
-        border: 1px solid rgba(139, 92, 246, 0.3);
-        color: #a78bfa;
-        padding: 6px 12px;
-        border-radius: 6px;
-        font-size: 12px;
-        cursor: pointer;
-        transition: all 0.15s;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-      }
-      .predictions-btn:hover {
-        background: rgba(139, 92, 246, 0.25);
-        border-color: rgba(139, 92, 246, 0.5);
-      }
       .history-item {
         display: flex;
         align-items: center;
@@ -1783,144 +1568,306 @@
         align-items: center;
         gap: 3px;
       }
+
+      /* ── Focus Mode ── */
+      .focus-view-toggle {
+        display: flex;
+        gap: 4px;
+        margin-bottom: 18px;
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: 10px;
+        padding: 3px;
+        width: fit-content;
+      }
+      .focus-view-toggle button {
+        padding: 7px 18px;
+        border: none;
+        border-radius: 8px;
+        background: transparent;
+        color: #8b949e;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-family: inherit;
+        letter-spacing: -0.01em;
+      }
+      .focus-view-toggle button.active {
+        background: rgba(255, 255, 255, 0.1);
+        color: #e6edf3;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+      }
+      .focus-view-toggle button:hover:not(.active) {
+        color: #c9d1d9;
+      }
+
+      .focus-mode {
+        margin-bottom: 24px;
+        animation: focus-fade-in 0.3s ease;
+      }
+      @keyframes focus-fade-in {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      .focus-status-sentence {
+        font-size: 20px;
+        font-weight: 500;
+        color: #e6edf3;
+        letter-spacing: -0.02em;
+        margin-bottom: 24px;
+        line-height: 1.45;
+      }
+
+      .focus-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 14px;
+        margin-bottom: 24px;
+      }
+      .focus-card {
+        background: rgba(22, 27, 34, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 20px 24px;
+        backdrop-filter: blur(10px);
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        border-left: 3px solid transparent;
+      }
+      .focus-card:hover {
+        border-color: rgba(255, 255, 255, 0.15);
+        border-left-color: inherit;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      }
+      .focus-card.focus-card-task { border-left-color: rgba(74, 222, 128, 0.6); }
+      .focus-card.focus-card-agent { border-left-color: rgba(167, 139, 250, 0.6); }
+      .focus-card.focus-card-research { border-left-color: rgba(96, 165, 250, 0.6); }
+      .focus-card.focus-card-next { border-left-color: rgba(251, 191, 36, 0.4); }
+
+      .focus-card-label {
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 8px;
+      }
+      .focus-card-task .focus-card-label { color: #4ade80; }
+      .focus-card-agent .focus-card-label { color: #a78bfa; }
+      .focus-card-research .focus-card-label { color: #60a5fa; }
+      .focus-card-next .focus-card-label { color: #fbbf24; }
+
+      .focus-card-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: #e6edf3;
+        margin-bottom: 6px;
+        line-height: 1.35;
+      }
+      .focus-card-meta {
+        font-size: 12px;
+        color: #8b949e;
+        line-height: 1.4;
+      }
+      .focus-card-progress {
+        margin-top: 10px;
+        height: 4px;
+        border-radius: 2px;
+        background: rgba(255, 255, 255, 0.06);
+        overflow: hidden;
+      }
+      .focus-card-progress-bar {
+        height: 100%;
+        border-radius: 2px;
+        background: linear-gradient(90deg, #4ade80, #22c55e);
+        transition: width 0.4s ease;
+      }
+
+      .focus-quick-bar {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .focus-quick-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.03);
+        color: #8b949e;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-family: inherit;
+      }
+      .focus-quick-btn:hover {
+        background: rgba(255, 255, 255, 0.07);
+        color: #c9d1d9;
+        border-color: rgba(255, 255, 255, 0.14);
+      }
+      .focus-quick-count {
+        font-size: 11px;
+        font-weight: 700;
+        background: rgba(255, 255, 255, 0.08);
+        padding: 1px 7px;
+        border-radius: 8px;
+        color: #c9d1d9;
+        min-width: 18px;
+        text-align: center;
+      }
+
+      .focus-hidden { display: none !important; }
+
+      /* ============================================
+         Visual Hierarchy Enhancements
+         ============================================ */
+
+      /* --- 1. Active Task Items — Make Them Pop --- */
+      .task-item.in-progress {
+        padding: 18px 20px;
+        color: #f0f6fc;
+        transform: scale(1.01);
+        border-image: linear-gradient(180deg, rgba(74,222,128,0.8), rgba(74,222,128,0.3)) 1;
+        border-left-width: 3px;
+        border-left-style: solid;
+      }
+      .task-item.in-progress .task-title-text {
+        color: #f0f6fc;
+      }
+
+      /* --- 2. Idle/Completed Items — Make Them Recede --- */
+      .task-item.pending {
+        opacity: 0.65;
+      }
+      .task-item.pending .task-title-text {
+        font-size: 12px;
+        color: #8b949e;
+      }
+      .task-item.pending:hover {
+        opacity: 1;
+      }
+      .done-item {
+        opacity: 0.5;
+      }
+      .done-item:hover {
+        opacity: 0.85;
+      }
+
+      /* --- 3. Priority-Based Visual Weight --- */
+      .task-item.priority-high {
+        border-left-width: 3px;
+      }
+      .task-item.priority-high .task-title-text {
+        font-weight: 600;
+      }
+      .task-item.priority-p0 {
+        box-shadow: 0 2px 12px rgba(0,0,0,0.2), -4px 0 16px rgba(248,113,113,0.1);
+      }
+      .task-item.priority-p1 {
+        box-shadow: 0 2px 12px rgba(0,0,0,0.2), -4px 0 12px rgba(251,146,60,0.08);
+      }
+      .task-item.priority-low {
+        opacity: 0.75;
+      }
+      .task-item.priority-low:hover {
+        opacity: 1;
+      }
+
+      /* --- 4. Agent Squad — Active vs Idle Emphasis --- */
+      .squad-agent.working .squad-agent-name {
+        font-weight: 700;
+      }
+      .squad-agent:not(.working) {
+        opacity: 0.55;
+      }
+      .squad-agent:not(.working):hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+      }
+      .squad-agent:not(.working) .squad-agent-status {
+        font-size: 10px;
+        opacity: 0.7;
+      }
+
+      /* --- 5. Lane Headers — Context-Dependent Emphasis --- */
+      .lane--empty {
+        opacity: 0.5;
+      }
+      .lane--empty:hover {
+        opacity: 0.75;
+      }
+      .lane--active.bot-current .lane-title {
+        font-size: 14px;
+      }
+      .lane--active.bot-current .lane-title::before {
+        content: '';
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #4ade80;
+        margin-right: 6px;
+        flex-shrink: 0;
+      }
+
+      /* --- 6. Transitions & Polish --- */
+      .task-item {
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .squad-agent {
+        transition: all 0.25s ease;
+      }
+      .lane {
+        transition: opacity 0.3s ease, transform 0.3s ease;
+      }
+
+      /* --- 7. Header Declutter — Visual Grouping --- */
+      .header-group-model {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding-left: 12px;
+        border-left: 1px solid rgba(255,255,255,0.06);
+      }
+      .header-group-status {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding-left: 12px;
+        border-left: 1px solid rgba(255,255,255,0.06);
+      }
+      .header-controls {
+        gap: 16px;
+      }
+
+      /* --- Animations (respecting reduced motion) --- */
+      @media (prefers-reduced-motion: no-preference) {
+        @keyframes activeGlow {
+          0%, 100% { box-shadow: 0 2px 12px rgba(0,0,0,0.2), 0 0 0 rgba(74,222,128,0); }
+          50% { box-shadow: 0 4px 20px rgba(0,0,0,0.25), 0 0 24px rgba(74,222,128,0.08); }
+        }
+        @keyframes agentBreathing {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.08); }
+        }
+        .task-item.in-progress {
+          animation: activeGlow 4s ease-in-out infinite;
+        }
+        .squad-agent.working {
+          transform: scale(1.03);
+        }
+        .squad-agent.working .squad-agent-icon {
+          animation: agentBreathing 3s ease-in-out infinite;
+          display: inline-block;
+        }
+      }
     </style>
   </head>
   <body>
-    <!-- Predictions Modal -->
-    <div
-      class="predictions-modal-overlay"
-      id="predictionsModal"
-      onclick="closePredictionsModal(event)"
-    >
-      <div class="predictions-modal" onclick="event.stopPropagation()">
-        <div class="predictions-modal-header">
-          <div class="predictions-modal-title">
-            🎮 Prediction Game <span class="lane-count" id="predStats">0/0</span>
-          </div>
-          <button class="predictions-modal-close" onclick="closePredictionsModal()">&times;</button>
-        </div>
-        <div class="predictions-modal-body">
-          <!-- Game Stats -->
-          <div id="gameStats">
-            <div
-              style="
-                display: flex;
-                gap: 12px;
-                flex-wrap: wrap;
-                padding: 12px;
-                background: rgba(139, 92, 246, 0.08);
-                border-radius: 10px;
-                margin-bottom: 12px;
-              "
-            >
-              <div style="text-align: center; min-width: 60px">
-                <div style="font-size: 20px; font-weight: 700; color: #a78bfa" id="gameLevel">
-                  1
-                </div>
-                <div style="font-size: 9px; color: #8b949e; text-transform: uppercase">Level</div>
-              </div>
-              <div style="text-align: center; min-width: 60px">
-                <div style="font-size: 20px; font-weight: 700; color: #fbbf24" id="gameStreak">
-                  0
-                </div>
-                <div style="font-size: 9px; color: #8b949e; text-transform: uppercase">
-                  🔥 Streak
-                </div>
-              </div>
-              <div style="text-align: center; min-width: 60px">
-                <div style="font-size: 20px; font-weight: 700; color: #3fb950" id="gameAccuracy">
-                  0%
-                </div>
-                <div style="font-size: 9px; color: #8b949e; text-transform: uppercase">
-                  Accuracy
-                </div>
-              </div>
-              <div style="text-align: center; min-width: 60px">
-                <div style="font-size: 20px; font-weight: 700; color: #60a5fa" id="gameToday">
-                  0
-                </div>
-                <div style="font-size: 9px; color: #8b949e; text-transform: uppercase">Today</div>
-              </div>
-              <div style="text-align: center; min-width: 60px">
-                <div style="font-size: 20px; font-weight: 700; color: #c9d1d9" id="gameXP">0</div>
-                <div style="font-size: 9px; color: #8b949e; text-transform: uppercase">XP</div>
-              </div>
-              <div style="text-align: center; min-width: 60px">
-                <div style="font-size: 20px; font-weight: 700; color: #f472b6" id="gameTotal">
-                  0
-                </div>
-                <div style="font-size: 9px; color: #8b949e; text-transform: uppercase">Total</div>
-              </div>
-            </div>
-            <div style="padding: 12px; background: rgba(0, 0, 0, 0.3); border-radius: 8px">
-              <div style="display: flex; justify-content: space-between; align-items: center">
-                <div style="text-align: center; flex: 1">
-                  <div style="font-size: 10px; color: #8b949e; text-transform: uppercase">
-                    🤖 Bot Score
-                  </div>
-                  <div style="font-size: 24px; font-weight: 700; color: #3fb950" id="botScore">
-                    0
-                  </div>
-                  <div style="font-size: 9px; color: #6e7681">avg rating received</div>
-                </div>
-                <div style="font-size: 20px; color: #6e7681">⚔️</div>
-                <div style="text-align: center; flex: 1">
-                  <div style="font-size: 10px; color: #8b949e; text-transform: uppercase">
-                    👤 Human Score
-                  </div>
-                  <div style="font-size: 24px; font-weight: 700; color: #f472b6" id="humanScore">
-                    0
-                  </div>
-                  <div style="font-size: 9px; color: #6e7681">blind spots found</div>
-                </div>
-              </div>
-              <div style="text-align: center; margin-top: 8px; font-size: 11px; color: #8b949e">
-                🤖 I win if avg ≥ 4 | 👤 You win by finding my mistakes (scores 1-2)
-              </div>
-            </div>
-          </div>
-          <!-- Predictions Grid -->
-          <div class="predictions-grid" id="predictionsGrid" style="margin-top: 16px"></div>
-          <!-- Scoring History -->
-          <div
-            id="predictionsHistory"
-            style="
-              margin-top: 16px;
-              padding-top: 12px;
-              border-top: 1px solid rgba(255, 255, 255, 0.06);
-            "
-          >
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                margin-bottom: 10px;
-              "
-            >
-              <span style="font-size: 12px; color: #8b949e; font-weight: 600"
-                >📜 Scoring History</span
-              >
-              <button
-                onclick="loadPredictionsHistory()"
-                style="
-                  font-size: 10px;
-                  padding: 4px 8px;
-                  background: rgba(139, 92, 246, 0.15);
-                  border: 1px solid rgba(139, 92, 246, 0.3);
-                  color: #a78bfa;
-                  border-radius: 4px;
-                  cursor: pointer;
-                "
-              >
-                Refresh
-              </button>
-            </div>
-            <div id="historyList" style="max-height: 300px; overflow-y: auto"></div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- Predictions removed (data extracted to memory) -->
 
     <!-- Delete Confirm Bubble -->
     <div class="confirm-bubble" id="confirmBubble">
@@ -2595,31 +2542,33 @@
             rel="noopener"
             >⚙ Gateway</a
           >
-          <select
-            id="modelSelect"
-            class="model-select"
-            title="Default model for new runs"
-            onchange="
-              setDefaultModel(this.value);
-              updateModelCommand(this.value);
-            "
-          >
-            <option value="">Loading models…</option>
-          </select>
-          <span
-            id="modelCommand"
-            class="gateway-link"
-            style="
-              cursor: pointer;
-              font-family: &quot;SF Mono&quot;, &quot;Fira Code&quot;, monospace;
-              font-size: 10px;
-            "
-            onclick="copyModelCommand()"
-            title="Click to copy Telegram command"
-            >📋 /model ...</span
-          >
-          <span id="modelHint" class="model-hint">Model usage hint will appear here</span>
-          <span id="brainModel" class="brain-pill">🧠 runtime --</span>
+          <div class="header-group-model">
+            <select
+              id="modelSelect"
+              class="model-select"
+              title="Default model for new runs"
+              onchange="
+                setDefaultModel(this.value);
+                updateModelCommand(this.value);
+              "
+            >
+              <option value="">Loading models…</option>
+            </select>
+            <span
+              id="modelCommand"
+              class="gateway-link"
+              style="
+                cursor: pointer;
+                font-family: &quot;SF Mono&quot;, &quot;Fira Code&quot;, monospace;
+                font-size: 10px;
+              "
+              onclick="copyModelCommand()"
+              title="Click to copy Telegram command"
+              >📋 /model ...</span
+            >
+            <span id="modelHint" class="model-hint">Model usage hint will appear here</span>
+            <span id="brainModel" class="brain-pill">🧠 runtime --</span>
+          </div>
           <!-- Task Search -->
           <div style="position: relative">
             <input
@@ -2666,21 +2615,37 @@
               "
             ></div>
           </div>
-          <span id="lastActivity" style="font-size: 10px; color: #6e7681">⏱ --</span>
-          <button class="predictions-btn" onclick="openPredictionsModal()">
-            🎮 Predictions
-            <span
-              id="predBadge"
-              style="
-                background: rgba(139, 92, 246, 0.4);
-                padding: 2px 6px;
-                border-radius: 10px;
-                font-size: 10px;
-              "
-              >0</span
-            >
+          <div class="header-group-status">
+            <span id="lastActivity" style="font-size: 10px; color: #6e7681">⏱ --</span>
+            <!-- Predictions button removed -->
+            <div class="status-badge working" id="globalStatus">WORKING</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Focus / Full Board Toggle -->
+      <div class="focus-view-toggle" id="focusViewToggle">
+        <button class="active" onclick="setViewMode('focus')" id="focusToggleBtn">Focus</button>
+        <button onclick="setViewMode('full')" id="fullToggleBtn">Full Board</button>
+      </div>
+
+      <!-- Focus Mode -->
+      <div class="focus-mode" id="focusMode">
+        <div class="focus-status-sentence" id="focusStatusSentence">Loading...</div>
+        <div class="focus-cards" id="focusCards"></div>
+        <div class="focus-quick-bar" id="focusQuickBar">
+          <button class="focus-quick-btn" onclick="setViewMode('full');scrollToEl('taskBoard')">
+            <span>Tasks</span><span class="focus-quick-count" id="fqTasks">0</span>
           </button>
-          <div class="status-badge working" id="globalStatus">WORKING</div>
+          <button class="focus-quick-btn" onclick="setViewMode('full');scrollToEl('agentSquadPanel')">
+            <span>Agents</span><span class="focus-quick-count" id="fqAgents">0</span>
+          </button>
+          <button class="focus-quick-btn" onclick="setViewMode('full');scrollToEl('researchQueuePanel')">
+            <span>Research</span><span class="focus-quick-count" id="fqResearch">0</span>
+          </button>
+          <button class="focus-quick-btn" onclick="setViewMode('full');scrollToEl('scheduledTasks')">
+            <span>Cron</span><span class="focus-quick-count" id="fqCron">--</span>
+          </button>
         </div>
       </div>
 
@@ -2891,7 +2856,7 @@
       </div>
 
       <!-- Done Section with Date Filter -->
-      <div class="done-section">
+      <div class="done-section" id="doneSection">
         <div class="done-header">
           <div class="done-header-left" onclick="toggleDone()">
             <span class="lane-title">✅ Done <span class="lane-count" id="doneCount">0</span></span>
@@ -3059,7 +3024,7 @@
       </div>
 
       <!-- Scheduled -->
-      <div class="scheduled-section">
+      <div class="scheduled-section" id="scheduledSection">
         <div class="lane-header">
           <span class="lane-title">⏰ Scheduled (Cron Jobs)</span>
         </div>
@@ -3568,6 +3533,20 @@
 
           // Update Agent Squad panel
           updateAgentSquad(tasks, lanes);
+
+          // Visual hierarchy: mark empty/active lanes
+          document.querySelectorAll('.lane').forEach(function(lane) {
+            var laneTasksEl = lane.querySelector('.lane-tasks');
+            var isEmpty = !laneTasksEl || laneTasksEl.children.length === 0
+              || laneTasksEl.textContent.trim() === 'Loading...'
+              || laneTasksEl.textContent.trim() === '—'
+              || laneTasksEl.textContent.trim() === '';
+            lane.classList.toggle('lane--empty', isEmpty);
+            lane.classList.toggle('lane--active', !isEmpty);
+          });
+
+          // Update Focus Mode
+          updateFocusMode();
         } catch (e) {
           console.error("Failed to load tasks:", e);
           document.getElementById("botCurrentTasks").innerHTML =
@@ -3735,6 +3714,15 @@
         const claimedBadge = getClaimedBadge(task);
         const isClaimed = task.claimed_by && task.claimed_by.agent_id;
         const claimedClass = isClaimed ? " claimed" : "";
+
+        // Visual hierarchy: priority-based classes
+        const pLevel = (task.priority && task.priority.priority_level) || "";
+        let priorityClass = "";
+        if (pLevel === "P0" || pLevel === "P1") {
+          priorityClass = " priority-high priority-" + pLevel.toLowerCase();
+        } else if (pLevel === "P3" || pLevel === "P4") {
+          priorityClass = " priority-low";
+        }
 
         // Project badge
         let projectBadge = "";
@@ -5261,198 +5249,7 @@
         }
       }
 
-      // === PREDICTIONS (Reinforcement Learning) ===
-      let predictionsData = null;
-
-      function openPredictionsModal() {
-        document.getElementById("predictionsModal").classList.add("active");
-        document.body.style.overflow = "hidden";
-        loadPredictions();
-        loadPredictionsHistory();
-      }
-
-      function closePredictionsModal(event) {
-        if (event && event.target !== event.currentTarget) return;
-        document.getElementById("predictionsModal").classList.remove("active");
-        document.body.style.overflow = "";
-      }
-
-      // Keep old function for backwards compatibility but redirect to modal
-      function togglePredictions() {
-        openPredictionsModal();
-      }
-
-      async function loadPredictions() {
-        try {
-          const resp = await fetch("/api/predictions?" + Date.now());
-          predictionsData = await resp.json();
-          renderPredictions();
-        } catch (e) {
-          document.getElementById("predictionsGrid").innerHTML =
-            '<div style="color:#f87171;">Failed to load predictions</div>';
-        }
-      }
-
-      function renderPredictions() {
-        if (!predictionsData) return;
-
-        const stats = predictionsData.stats || { correct: 0, wrong: 0, pending: 0 };
-        document.getElementById("predStats").textContent =
-          `✓${stats.correct} ✗${stats.wrong} ⏳${stats.pending}`;
-        // Update header badge
-        const badge = document.getElementById("predBadge");
-        if (badge) badge.textContent = stats.pending || 0;
-
-        // Update game stats
-        const game = predictionsData.game || {};
-        document.getElementById("gameLevel").textContent = game.level || 1;
-        document.getElementById("gameStreak").textContent = game.streak || 0;
-        document.getElementById("gameAccuracy").textContent = (game.accuracy || 0) + "%";
-        document.getElementById("gameToday").textContent = game.today_scored || 0;
-        document.getElementById("gameXP").textContent = game.xp || 0;
-        document.getElementById("gameTotal").textContent = game.total_scored || 0;
-
-        // Battle scores
-        document.getElementById("botScore").textContent = game.bot_score || "0.0";
-        document.getElementById("humanScore").textContent = game.blind_spots_found || 0;
-
-        const preds = predictionsData.predictions || [];
-        const grid = document.getElementById("predictionsGrid");
-
-        // Group by category
-        const byCategory = { priority: [], behavior: [], decision: [] };
-        preds.forEach((p) => {
-          if (byCategory[p.category]) byCategory[p.category].push(p);
-        });
-
-        let html = "";
-        for (const [cat, items] of Object.entries(byCategory)) {
-          if (items.length === 0) continue;
-          const catEmoji = cat === "priority" ? "🎯" : cat === "behavior" ? "⏰" : "🧭";
-          html += `<div style="grid-column:1/-1;font-size:11px;color:#8b949e;text-transform:uppercase;margin-top:8px;">${catEmoji} ${escapeHtml(cat)}</div>`;
-          items.forEach((p) => {
-            const scoreClass = p.score ? `scored-${p.score}` : "";
-            const confidenceClass = escapeCssClass(p.confidence);
-            const safePredId = escapeJsString(p.id);
-            const feedbackInputId = buildSafeDomId("feedback", p.id);
-            html += `
-        <div class="prediction-card ${scoreClass}">
-          <div class="prediction-header">
-            <span class="prediction-id">${escapeHtml(p.id)}</span>
-            <span class="prediction-confidence ${confidenceClass}">${escapeHtml(p.confidence)}</span>
-          </div>
-          <div class="prediction-text">${escapeHtml(p.prediction)}</div>
-          <div class="prediction-rationale">${escapeHtml(p.rationale)}</div>
-          <div class="prediction-actions">
-            <button class="score-btn rating ${p.score === 1 ? "active" : ""}" onclick="scorePrediction('${safePredId}', 1)" title="Completely wrong">1</button>
-            <button class="score-btn rating ${p.score === 2 ? "active" : ""}" onclick="scorePrediction('${safePredId}', 2)" title="Mostly wrong">2</button>
-            <button class="score-btn rating ${p.score === 3 ? "active" : ""}" onclick="scorePrediction('${safePredId}', 3)" title="Partially right">3</button>
-            <button class="score-btn rating ${p.score === 4 ? "active" : ""}" onclick="scorePrediction('${safePredId}', 4)" title="Mostly right">4</button>
-            <button class="score-btn rating ${p.score === 5 ? "active" : ""}" onclick="scorePrediction('${safePredId}', 5)" title="Spot on!">5</button>
-          </div>
-          <div class="prediction-feedback" style="margin-top:8px;">
-            <input type="text" class="feedback-input" id="${feedbackInputId}" placeholder="Why? (optional feedback)" 
-              style="width:100%;padding:6px 10px;font-size:11px;background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#c9d1d9;"
-              onkeypress="if(event.key==='Enter')saveFeedback('${safePredId}')">
-            ${p.feedback ? '<div style="font-size:10px;color:#a78bfa;margin-top:4px;">💬 ' + escapeHtml(p.feedback) + "</div>" : ""}
-          </div>
-        </div>
-      `;
-          });
-        }
-
-        grid.innerHTML = html || '<div style="color:#6e7681;">No predictions yet</div>';
-      }
-
-      async function scorePrediction(id, score) {
-        try {
-          const resp = await fetch("/api/score-prediction", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id, score }),
-          });
-          const result = await resp.json();
-          if (result.ok) {
-            // Update local data and re-render
-            const pred = predictionsData.predictions.find((p) => p.id === id);
-            if (pred) {
-              pred.score = score;
-              pred.scored_at = new Date().toISOString();
-            }
-            predictionsData.stats = result.stats;
-            renderPredictions();
-            loadPredictionsHistory(); // Refresh history
-          }
-        } catch (e) {
-          console.error("Failed to score prediction:", e);
-        }
-      }
-
-      async function saveFeedback(id) {
-        const input = document.getElementById(buildSafeDomId("feedback", id));
-        if (!input) return;
-        const feedback = input.value.trim();
-        if (!feedback) return;
-
-        try {
-          const resp = await fetch("/api/prediction-feedback", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id, feedback }),
-          });
-          const result = await resp.json();
-          if (result.ok) {
-            input.value = "";
-            loadPredictions(); // Refresh to show feedback
-          }
-        } catch (e) {
-          console.error("Failed to save feedback:", e);
-        }
-      }
-
-      async function loadPredictionsHistory() {
-        try {
-          const resp = await fetch("/api/predictions-history?" + Date.now());
-          const data = await resp.json();
-          const entries = data.entries || [];
-
-          const list = document.getElementById("historyList");
-          if (entries.length === 0) {
-            list.innerHTML =
-              '<div style="color:#6e7681;font-size:11px;padding:8px;">No scores yet. Click ✓ or ✗ on predictions above!</div>';
-            return;
-          }
-
-          let html = "";
-          for (const e of entries.slice(0, 50)) {
-            // Show last 50
-            if (e.event === "score") {
-              const scoreNum = parseInt(e.score) || 0;
-              const scoreClass =
-                scoreNum >= 4 ? "score-correct" : scoreNum === 3 ? "score-neutral" : "score-wrong";
-              const stars = "★".repeat(scoreNum) + "☆".repeat(5 - scoreNum);
-              html += `
-          <div class="history-item">
-            <span class="date">${escapeHtml(e.date)} ${escapeHtml(e.time || "")}</span>
-            <span class="pred-id">${escapeHtml(e.prediction_id)}</span>
-            <span class="${scoreClass}">${stars}</span>
-          </div>
-        `;
-            } else if (e.event === "system_created") {
-              html += `
-          <div class="history-item">
-            <span class="date">${escapeHtml(e.date)}</span>
-            <span class="note">🚀 ${escapeHtml(e.note || "System created")}</span>
-          </div>
-        `;
-            }
-          }
-          list.innerHTML = html;
-        } catch (e) {
-          document.getElementById("historyList").innerHTML =
-            '<div style="color:#f87171;">Failed to load history</div>';
-        }
-      }
+      // Predictions game removed — data extracted to memory
 
       function showDoneDate(filter) {
         currentDoneFilter = filter;
@@ -6077,9 +5874,242 @@ Item content:
 
       let currentLanes = {};
 
+      /* ── Focus Mode Functions ── */
+      function setViewMode(mode) {
+        var focusEl = document.getElementById('focusMode');
+        var toggle = document.getElementById('focusViewToggle');
+        if (!focusEl || !toggle) return;
+        var btns = toggle.querySelectorAll('button');
+        // All sections to hide/show when toggling
+        var selectors = [
+          '#agentSquadPanel', '#researchQueuePanel', '#taskBoard',
+          '#doneSection', '#scheduledSection', '#knowmeSection', '#trashSection',
+          '.task-board', '.done-section', '.scheduled-section',
+          '.knowme-section', '.trash-section'
+        ];
+        if (mode === 'focus') {
+          focusEl.style.display = '';
+          btns[0].classList.add('active');
+          btns[1].classList.remove('active');
+          selectors.forEach(function(sel) {
+            document.querySelectorAll(sel).forEach(function(el) {
+              el.classList.add('focus-hidden');
+            });
+          });
+          updateFocusMode();
+        } else {
+          focusEl.style.display = 'none';
+          btns[0].classList.remove('active');
+          btns[1].classList.add('active');
+          document.querySelectorAll('.focus-hidden').forEach(function(el) {
+            el.classList.remove('focus-hidden');
+          });
+        }
+        try { localStorage.setItem('missionControlViewMode', mode); } catch(_) {}
+      }
+
+      function scrollToEl(id) {
+        var el = document.getElementById(id);
+        if (!el) {
+          el = document.querySelector('.' + id);
+        }
+        if (el) {
+          setTimeout(function() {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }, 100);
+        }
+      }
+
+      function updateFocusMode() {
+        var sentenceEl = document.getElementById('focusStatusSentence');
+        var cardsEl = document.getElementById('focusCards');
+        if (!sentenceEl || !cardsEl) return;
+        if (document.getElementById('focusMode').style.display === 'none') return;
+
+        // --- Build status sentence ---
+        var parts = [];
+        var inProgress = [];
+        var queued = [];
+        var blocked = [];
+        var doneToday = [];
+        var taskIds = Object.keys(allTasks || {});
+
+        // Count by status from lanes
+        var currentIds = (allLanes && allLanes.bot_current) || [];
+        var queueIds = (allLanes && allLanes.bot_queue) || [];
+        var humanIds = (allLanes && allLanes.human) || [];
+        var doneTodayIds = (allLanes && allLanes.done_today) || [];
+
+        currentIds.forEach(function(id) {
+          var t = allTasks[id];
+          if (t && t.status === 'in_progress') inProgress.push(t);
+        });
+        queueIds.forEach(function(id) {
+          var t = allTasks[id];
+          if (t) queued.push(t);
+        });
+        humanIds.forEach(function(id) {
+          var t = allTasks[id];
+          if (t && t.status === 'blocked') blocked.push(t);
+        });
+        doneTodayIds.forEach(function(id) {
+          var t = allTasks[id];
+          if (t) doneToday.push(t);
+        });
+
+        if (inProgress.length > 0) {
+          parts.push('<span style="color:#4ade80">' + inProgress.length + ' task' + (inProgress.length > 1 ? 's' : '') + ' in progress</span>');
+        }
+        if (queued.length > 0) {
+          parts.push(queued.length + ' queued');
+        }
+        if (blocked.length > 0) {
+          parts.push('<span style="color:#fbbf24">' + blocked.length + ' blocked</span>');
+        }
+        if (humanIds.length > 0 && blocked.length === 0) {
+          parts.push(humanIds.length + ' need human input');
+        }
+
+        // Agent status
+        var workingAgents = [];
+        ['research', 'content', 'audit', 'analytics', 'code'].forEach(function(a) {
+          var el = document.getElementById('agent-' + a);
+          if (el && el.classList.contains('working')) {
+            var nameEl = el.querySelector('.squad-agent-name');
+            workingAgents.push(nameEl ? nameEl.textContent : a);
+          }
+        });
+        if (workingAgents.length > 0) {
+          parts.push('<span style="color:#a78bfa">' + workingAgents.join(', ') + ' agent' + (workingAgents.length > 1 ? 's' : '') + ' working</span>');
+        } else {
+          parts.push('all agents idle');
+        }
+
+        // Gateway
+        var liveDot = document.getElementById('liveDot');
+        if (liveDot && !liveDot.classList.contains('offline')) {
+          parts.push('<span style="color:#4ade80">gateway connected</span>');
+        } else {
+          parts.push('<span style="color:#f87171">gateway offline</span>');
+        }
+
+        if (doneToday.length > 0) {
+          parts.push(doneToday.length + ' completed today');
+        }
+
+        if (parts.length === 0) {
+          sentenceEl.innerHTML = 'All quiet — nothing happening right now.';
+        } else if (inProgress.length === 0 && queued.length === 0 && workingAgents.length === 0) {
+          sentenceEl.innerHTML = 'All quiet · ' + parts.join(' · ');
+        } else {
+          sentenceEl.innerHTML = parts.join(' · ');
+        }
+
+        // --- Build dynamic cards (max 3) ---
+        var cards = [];
+
+        // Card: active tasks
+        inProgress.forEach(function(task) {
+          if (cards.length >= 3) return;
+          var meta = '';
+          if (task.claimed_by && task.claimed_by.agent_name) {
+            meta += task.claimed_by.agent_name;
+          }
+          if (task.estimate) meta += (meta ? ' · ' : '') + task.estimate;
+          var progress = '';
+          if (task.steps && task.steps.length > 0) {
+            var done = task.steps.filter(function(s) { return s.checked || s.status === 'done'; }).length;
+            var pct = Math.round((done / task.steps.length) * 100);
+            progress = '<div class="focus-card-progress"><div class="focus-card-progress-bar" style="width:' + pct + '%"></div></div>' +
+              '<div style="font-size:11px;color:#8b949e;margin-top:4px">' + done + '/' + task.steps.length + ' steps · ' + pct + '%</div>';
+          }
+          cards.push(
+            '<div class="focus-card focus-card-task" onclick="showTaskDetail(\'' + escapeJsString(task.id || '') + '\')" style="cursor:pointer">' +
+            '<div class="focus-card-label">In Progress</div>' +
+            '<div class="focus-card-title">' + escapeHtml(task.title || task.id || 'Untitled') + '</div>' +
+            (meta ? '<div class="focus-card-meta">' + escapeHtml(meta) + '</div>' : '') +
+            progress +
+            '</div>'
+          );
+        });
+
+        // Card: working agents (if not already covered by task cards)
+        if (cards.length < 3 && workingAgents.length > 0) {
+          ['research', 'content', 'audit', 'analytics', 'code'].forEach(function(a) {
+            if (cards.length >= 3) return;
+            var el = document.getElementById('agent-' + a);
+            if (!el || !el.classList.contains('working')) return;
+            var taskEl = el.querySelector('.squad-agent-task');
+            var taskText = taskEl ? taskEl.textContent : '';
+            if (taskText === '—') taskText = '';
+            cards.push(
+              '<div class="focus-card focus-card-agent">' +
+              '<div class="focus-card-label">' + a.charAt(0).toUpperCase() + a.slice(1) + ' Agent</div>' +
+              '<div class="focus-card-title">Working' + (taskText ? ': ' + escapeHtml(taskText) : '') + '</div>' +
+              '<div class="focus-card-meta">Active now</div>' +
+              '</div>'
+            );
+          });
+        }
+
+        // Card: up next from queue
+        if (cards.length < 3 && queued.length > 0) {
+          var next = queued[0];
+          var nextMeta = '';
+          if (next.required_agent) nextMeta += next.required_agent + ' agent';
+          if (next.estimate) nextMeta += (nextMeta ? ' · ' : '') + next.estimate;
+          cards.push(
+            '<div class="focus-card focus-card-next" onclick="showTaskDetail(\'' + escapeJsString(next.id || '') + '\')" style="cursor:pointer">' +
+            '<div class="focus-card-label">Up Next</div>' +
+            '<div class="focus-card-title">' + escapeHtml(next.title || next.id || 'Untitled') + '</div>' +
+            (nextMeta ? '<div class="focus-card-meta">' + escapeHtml(nextMeta) + '</div>' : '') +
+            '</div>'
+          );
+        }
+
+        // Card: "what's next" if nothing is happening
+        if (cards.length === 0) {
+          var totalActive = currentIds.length + queueIds.length + humanIds.length;
+          cards.push(
+            '<div class="focus-card focus-card-next">' +
+            '<div class="focus-card-label">Status</div>' +
+            '<div class="focus-card-title">All clear</div>' +
+            '<div class="focus-card-meta">' + (totalActive > 0 ? totalActive + ' tasks pending action' : 'No active tasks') +
+            (doneToday.length > 0 ? ' · ' + doneToday.length + ' completed today' : '') + '</div>' +
+            '</div>'
+          );
+        }
+
+        cardsEl.innerHTML = cards.join('');
+
+        // --- Update quick bar counts ---
+        var totalTasks = currentIds.length + queueIds.length + humanIds.length;
+        setText('fqTasks', totalTasks);
+        setText('fqAgents', workingAgents.length);
+        var rqItems = document.getElementById('researchQueueItems');
+        var rqCount = rqItems ? rqItems.children.length : 0;
+        setText('fqResearch', rqCount);
+        // Cron: find next run
+        var cronItems = document.querySelectorAll('.scheduled-item');
+        setText('fqCron', cronItems.length > 0 ? cronItems.length : '--');
+      }
+
+      function setText(id, val) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = val;
+      }
+
+      // Initialize view mode from localStorage
+      (function() {
+        var saved = 'focus';
+        try { saved = localStorage.getItem('missionControlViewMode') || 'focus'; } catch(_) {}
+        // Defer to after initial render
+        setTimeout(function() { setViewMode(saved); }, 200);
+      })();
+
       loadTaskBoard();
       loadAutoresearchStatus();
-      loadPredictions(); // Load predictions to update badge
+
       loadStatusBar();
       setTimeout(() => loadModelSelector(), 600);
       document
@@ -6098,7 +6128,8 @@ Item content:
         if (Date.now() - lastModelSelectorRefreshMs > 60000) {
           loadModelSelector();
         }
-        // If modal is open, skip refresh to preserve user's work
+        // Update focus mode even when modal is open (lightweight)
+        if (isModalOpen) updateFocusMode();
       }, 15000);
 
       // Delete task/cron with custom confirm bubble

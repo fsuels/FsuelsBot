@@ -10,6 +10,12 @@
 ## Notes
 
 - **Dashboard URL:** https://www.buckydrop.com/ (NOT /login — go to main page first)
+
+## Google Properties (Saved Login — cookies handle auth)
+
+- **Google Ads:** https://business.google.com/us/google-ads/ (NOT ads.google.com directly)
+- **Google Analytics:** https://analytics.google.com/analytics/web/#/p330266838/reports/intelligenthome
+- **Google Search Console:** https://search.google.com/search-console
 - **If not logged in:** Look for Sign In button and log in
 - **If already logged in (wrong account):** Switch to administrator account
 - Login page is at `/en/login/` (only if not already logged in)

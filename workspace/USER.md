@@ -26,6 +26,7 @@ _Last reviewed: 2026-03-31_
 - **FORMAT ONLY WHEN HELPFUL**: Don't force structure into normal conversation. Use it only when it improves clarity.
 - **NO TIME ESTIMATES**: No ETA/time-to-complete unless Francisco explicitly asks.
 - **RESEARCH STANDARDS**: Prioritize high-credibility, current sources. Verify freshness for time-sensitive topics. Include a source-quality and recency check before final advice.
+- **SUB-AGENTS FOR RESEARCH**: Always spawn sub-agents for research and heavy tasks instead of doing them in the main session. Keeps main session context clean and available for conversation. (Added 2026-04-01)
 
 ## Decision Framework (Tool/Service Selection)
 

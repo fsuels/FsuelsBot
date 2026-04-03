@@ -78,8 +78,8 @@ export async function markAuthProfileUsed(params: {
 export function calculateAuthProfileCooldownMs(errorCount: number): number {
   const normalized = Math.max(1, errorCount);
   return Math.min(
-    60 * 60 * 1000, // 1 hour max
-    60 * 1000 * 5 ** Math.min(normalized - 1, 3),
+    5 * 60 * 1000, // 5 minute max (reduced from 1 hour — OAuth tokens share rate limits and recover quickly)
+    60 * 1000 * Math.min(normalized, 5),
   );
 }
 
@@ -94,9 +94,9 @@ function resolveAuthCooldownConfig(params: {
   providerId: string;
 }): ResolvedAuthCooldownConfig {
   const defaults = {
-    billingBackoffHours: 5,
-    billingMaxHours: 24,
-    failureWindowHours: 24,
+    billingBackoffHours: 2 / 60,      // 2 minutes (was 5 hours)
+    billingMaxHours: 10 / 60,         // 10 minutes (was 24 hours)
+    failureWindowHours: 1,            // 1 hour (was 24 hours)
   } as const;
 
   const resolveHours = (value: unknown, fallback: number) =>

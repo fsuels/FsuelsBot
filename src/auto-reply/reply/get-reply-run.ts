@@ -328,6 +328,20 @@ export async function runPreparedReply(
     }
   }
   if (resetTriggered && command.isAuthorizedSender) {
+    // Clear auth profile cooldowns on reset so transient rate-limit errors
+    // don't block the new session.
+    try {
+      const { ensureAuthProfileStore, clearAuthProfileCooldown } = await import(
+        "../../agents/auth-profiles.js"
+      );
+      const authStore = ensureAuthProfileStore(agentDir);
+      const allProfileIds = Object.keys(authStore.profiles);
+      await Promise.all(
+        allProfileIds.map((pid) => clearAuthProfileCooldown({ store: authStore, profileId: pid, agentDir })),
+      );
+    } catch {
+      // Best-effort; don't block the reset flow.
+    }
     // oxlint-disable-next-line typescript/no-explicit-any
     const channel = ctx.OriginatingChannel || (command.channel as any);
     const to = ctx.OriginatingTo || command.from || command.to;

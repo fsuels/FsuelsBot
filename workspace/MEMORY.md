@@ -1,6 +1,6 @@
 # MEMORY.md — Operational Facts
 
-_Last reviewed: 2026-02-21_
+_Last reviewed: 2026-03-31_
 
 ## Mission Control
 
@@ -14,6 +14,23 @@ _Last reviewed: 2026-02-21_
 - **First boot:** January 26, 2026
 - **Repo:** github.com/fsuels/FsuelsBot (fork of openclaw/openclaw)
 - **Channels:** Telegram (primary), WhatsApp (backup)
+- **Model preference:** Francisco wants the latest available OpenAI model in runtime; he explicitly requested `openai 5.4` and approved update attempts to enable newest model support (2026-03-27).
+
+## User Interaction Preferences
+
+- Do **not** provide time-to-complete estimates unless Francisco explicitly asks.
+- Operate autonomously on this computer without routine user help; interrupt only for true hard blockers (2FA/captcha/high-impact approval).
+- Mission Control task cards must be audit-friendly and show: exact user request text, explicit agent understanding, concrete steps completed, and supporting evidence.
+- Send Mission Control/access URLs as plain, directly clickable links (no clutter/format wrappers), optimized for phone opening from Telegram.
+- Mission Control mobile links must open directly on phone browsers without 403 errors and be easy to save/reopen later.
+- After gateway/restarts, proactively send the current mobile Mission Control access link immediately.
+- For any web/browser task, always use Google Chrome profile **test** (Profile 1) so saved site logins are available.
+- Keep browser tab usage disciplined and organized; avoid opening excessive tabs.
+- Keep explanations simple and easy to understand; avoid confusing technical wording when reporting blockers/issues.
+- When presenting options, always include a clear recommendation and the reason.
+- Before changing code, first understand the current code and implications; do not break what already works; verify edits produce the intended result.
+- Treat **FsuelsBot** and **DressLikeMommy** as separate projects with separate codebases; never mix code, paths, or changes between them.
+- For **dresslikemommy.com** changes, use the DressLikeMommy project codebase (user-provided path string: `fsuels/projects/dresslikemommy`).
 
 ## Active Business: Dress Like Mommy (dresslikemommy.com)
 
@@ -53,18 +70,21 @@ Peak: ~$100K/yr (pandemic); dropped to ~$15K/yr after focus shift to crypto.
 - X/Grok — included in X subscription (browser only)
 - ChatGPT Pro — flat sub (browser only)
 - Open Arena — free (browser only)
-- Gemini CLI — NOT USED (research uses web search, ChatGPT, Grok, Claude sub-agents instead)
+- Gemini CLI — free (Google OAuth, terminal)
 
 ## Revenue Target
 
 - **Performance floor:** Minimum $500 net profit/week across all agents (set 2026-02-18)
 - Tracking: 7/14/30-day windows; expectation is to exceed baseline
 
+## DLM Sourcing Rules
+
+- **1688 freshness gate:** Product listings must be created this year (2026). Visible listing-creation date required as proof.
+- **Vendor criteria:** Must match mom-and-baby style/product criteria.
+
 ## Key Technical Notes
 
 - **Large sessions crash** (118K+ tokens) → Keep sessions compact, use /compact
-- **ClawdHub CLI (Windows) update bug:** `clawdhub update --all` can fail with `Failed to parse URL from /api/v1/skills/<slug>` due to a relative-URL resolution issue; `explore/search` work with `--registry https://clawhub.ai`. See: `workspace/knowledge/technical/clawdhub-update-windows-relative-url-bug.md`.
-- **Watchdog dependency:** `WATCHDOG_NONSTOP_GUARD` expects `workspace/scripts/nonstop-guard.ps1` to exist (created 2026-03-16).
 - Gateway launchd: `~/Library/LaunchAgents/bot.molt.gateway.plist`
 - Session state: `~/.clawdbot/agents/main/sessions/sessions.json`
 - Config: `~/.clawdbot/moltbot.json`
