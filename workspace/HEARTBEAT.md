@@ -38,6 +38,14 @@ launchctl list bot.molt.gateway 2>/dev/null | head -1 || echo "gateway_unknown"
 
 If checks error → record error, enter Minimal Safe Mode (Section 6).
 
+## 2.1) Plan Mode Policy Integrity (idle heartbeat)
+
+```bash
+python3 -c "import json; p=json.load(open('workspace/procedures/plan-mode-policy.json')); assert p.get('defaultMode')=='plan'; assert p.get('failClosed') is True; print('PLAN_MODE_POLICY_OK')" 2>&1
+```
+
+If this check fails: report BLOCKER and fail closed to Plan Mode behavior.
+
 ---
 
 ## 3) tasks.json Integrity Gate (before any write)

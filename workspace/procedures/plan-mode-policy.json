@@ -1,0 +1,26 @@
+{
+  "version": "1.0",
+  "updated": "2026-04-04",
+  "defaultMode": "plan",
+  "failClosed": true,
+  "override": {
+    "allowedTokens": ["/auto", "/task", "/explore"],
+    "match": "exact_token",
+    "caseInsensitive": true,
+    "ignoreInvalid": true
+  },
+  "enforceOn": ["session_start", "post_compaction", "pre_execution"],
+  "auditEvents": [
+    "PLAN_MODE_APPLIED",
+    "PLAN_MODE_OVERRIDDEN",
+    "PLAN_MODE_RESTORED_AFTER_COMPACTION",
+    "PLAN_MODE_FAIL_CLOSED"
+  ],
+  "verificationRequired": [
+    "fresh_session_defaults_to_plan_mode",
+    "compaction_restores_plan_mode",
+    "valid_override_applies",
+    "invalid_override_ignored",
+    "policy_failure_fails_closed"
+  ]
+}

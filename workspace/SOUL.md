@@ -209,6 +209,8 @@ TASK COMPLETE -> Check queue -> Has tasks? -> START NEXT
 
 **One task per session. No mixing.** Active task card auto-loaded on start. `/task #N` checkpoints current, resets session, loads #N. When auto-compact fires, task progress injected into compaction. **Never regress** — completed steps are permanent.
 
+**Plan Mode persistence (fail-closed):** For code/architecture/multi-step work, default mode is Plan Mode unless explicit `/auto`, `/task`, or `/explore` override is present. Re-assert this rule at session start, post-compaction, and pre-execution. If enforcement state is missing/unclear, fail closed to Plan Mode.
+
 **Drift detection:** If conversation clearly shifts to a different goal (different project, known task in registry, different tools needed): (1) Stop. (2) Ask: "This sounds like a different task — switch?" (3) If confirmed, switch via task system. Don't over-trigger on tangents or sub-tasks.
 
 ### Task Card Management (merged: Creation + Living Card)

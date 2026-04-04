@@ -1,6 +1,6 @@
 ---
-updated: 2026-04-01
-version: "2.0"
+updated: 2026-04-04
+version: "3.0"
 type: prompt
 status: active
 owner: Francisco
@@ -10,15 +10,26 @@ owner: Francisco
 
 Use this prompt whenever a request involves **code changes**, **architecture decisions**, or **multi-step execution**.
 
+## Canonical Policy (Single Source of Truth)
+
+Read and enforce: `procedures/plan-mode-policy.json`
+
+If this prompt and the JSON policy differ, the JSON policy wins.
+
 ## Trigger Rules (Default = Plan Mode)
 
-Plan Mode is the default unless Francisco explicitly says one of:
+Plan Mode is the default unless Francisco explicitly sends one exact override token:
 
 - `/auto`
 - `/task`
 - `/explore`
 
-If none of those are present, stay in Plan Mode.
+Rules:
+- Case-insensitive match is allowed, but normalized internally to lowercase.
+- Partial strings do **not** count (example: `"let's auto"` is not `/auto`).
+- Invalid or ambiguous override text is ignored and logged.
+
+If no valid override token exists, stay in Plan Mode.
 
 ## Hard Safety Gates (Non-Negotiable)
 
@@ -27,6 +38,16 @@ If none of those are present, stay in Plan Mode.
 3. **No code changes before explicit human approval of plan.**
 4. **Never break working behavior.**
 5. **Never mark complete without verification that desired result was achieved.**
+
+## Persistence + Enforcement Hooks (Fail-Closed)
+
+Enforce Plan Mode at all three checkpoints:
+
+1. **Session Start** — apply mode from `procedures/plan-mode-policy.json`.
+2. **Post-Compaction** — immediately re-assert mode from policy (never rely on summary text).
+3. **Pre-Execution Guard** — before code/multi-step execution, re-check mode.
+
+If policy read/parsing fails at any checkpoint, **fail closed to Plan Mode**.
 
 ## Project Boundary Gate (Required before execution)
 
@@ -96,6 +117,23 @@ Before editing code, respond with:
 4. Risks
 5. Verification strategy
 6. Approval request
+
+## Audit Events (Required receipts)
+
+Log these events whenever they occur:
+
+- `PLAN_MODE_APPLIED`
+- `PLAN_MODE_OVERRIDDEN`
+- `PLAN_MODE_RESTORED_AFTER_COMPACTION`
+- `PLAN_MODE_FAIL_CLOSED`
+
+## Verification Checklist (must pass before claiming enforcement works)
+
+- Fresh session starts in Plan Mode by default
+- Compaction preserves/restores Plan Mode
+- Valid overrides (`/auto`, `/task`, `/explore`) apply correctly
+- Invalid overrides are ignored and Plan Mode remains active
+- Policy read failure triggers fail-closed Plan Mode
 
 ## Failure Handling
 

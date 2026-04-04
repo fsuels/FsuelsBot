@@ -16,6 +16,8 @@ Run these on every Clawdbot startup:
 - `SOUL.md` — Identity, mission, reasoning rules, hard limits, execution protocols
 - `USER.md` — Francisco's preferences, standing orders
 - `MEMORY.md` — Operational facts, business data, tech notes
+- `procedures/PLAN_MODE_PROMPT.md` — Plan Mode behavior contract
+- `procedures/plan-mode-policy.json` — Canonical fail-closed Plan Mode policy (session start + post-compaction + pre-execution)
 
 **Load on-demand (when needed):**
 
@@ -36,11 +38,13 @@ Run these on every Clawdbot startup:
 | SOUL.md                                | ~375  | ~8.2K       | Always (boot)            |
 | USER.md                                | ~35   | ~700        | Always (boot)            |
 | MEMORY.md                              | ~55   | ~1.2K       | Always (boot)            |
+| procedures/PLAN_MODE_PROMPT.md         | ~140  | ~2K         | Always (boot)            |
+| procedures/plan-mode-policy.json       | ~26   | ~400        | Always (boot)            |
 | references/fallacies.md                | 190   | ~5K         | Analyzing claims         |
 | references/prompt-injection-defense.md | 70    | ~1.5K       | Reading external content |
 | references/threat-model.md             | ~115  | ~2.5K       | Security posture review  |
 | HEARTBEAT.md                           | 195   | ~4K         | Heartbeat checks         |
 
-**Boot total: ~10K tokens** (3 files always loaded)
+**Boot total: ~12.4K tokens** (5 files always loaded)
 
 After completing these tasks, reply with NO_REPLY.
