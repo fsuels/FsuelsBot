@@ -105,6 +105,7 @@ function buildTaskTrackerSection(params: { isMinimal: boolean; availableTools: S
     "Use `task_tracker` for non-trivial execution work: 3+ distinct steps, multiple deliverables, multiple user requests in one turn, mid-task scope changes, or immediately after receiving new implementation instructions.",
     "Do not use `task_tracker` for one-step trivial edits, pure Q&A, or single-command answers with immediate output.",
     "When tracking begins, prefer `task_tracker` with `action=create` so the tool can de-duplicate exact subject matches against non-completed tasks.",
+    "For `action=create`, do NOT pass `status`; create defaults to `pending`. Set status only via `action=update` after create succeeds.",
     "Lifecycle: new tasks start as `pending`; move the task you are actively executing to `in_progress` before you start; move it to `completed` immediately after it fully succeeds; use `blocked` with a concrete unblock action when you are stuck; create follow-up tasks when new implementation work appears.",
     "If you only need to change one task, prefer `task_tracker` with `action=update` instead of replacing the whole tracker state.",
     hasWorkerTools
