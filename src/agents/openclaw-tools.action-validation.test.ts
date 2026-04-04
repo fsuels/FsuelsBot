@@ -106,4 +106,26 @@ describe("flattened action tool validation", () => {
       text: "hello",
     });
   });
+
+  it("accepts task_tracker create payloads that include status by dropping the field", async () => {
+    const tool = createTaskTrackerTool({ agentSessionKey: "agent:main:main" });
+    const validation = await tool.validateInput?.(
+      {
+        action: "create",
+        subject: "Scheduled follow-up",
+        description: "Check reminder pipeline",
+        status: "in_progress",
+      },
+      { toolCallId: "call-task-create", source: "direct" },
+    );
+
+    expect(validation).toMatchObject({
+      result: true,
+      params: {
+        action: "create",
+        subject: "Scheduled follow-up",
+        description: "Check reminder pipeline",
+      },
+    });
+  });
 });

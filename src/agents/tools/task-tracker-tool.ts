@@ -92,7 +92,6 @@ const TASK_TRACKER_ACTION_RULES: Record<string, ActionValidationRule> = {
     forbid: [
       { key: "tasks", label: "tasks", presence: "defined" },
       { key: "taskId", label: "taskId", presence: "defined" },
-      { key: "status", label: "status", presence: "defined" },
       { key: "blockedReason", label: "blockedReason", presence: "defined" },
       { key: "unblockAction", label: "unblockAction", presence: "defined" },
       { key: "followUpTaskId", label: "followUpTaskId", presence: "defined" },
@@ -139,13 +138,26 @@ export function createTaskTrackerTool(opts?: { agentSessionKey?: string }): AnyA
     description:
       "Track non-trivial multi-step work with structured create, update, get, and replace actions that persist per session and agent.",
     parameters: TaskTrackerToolSchema,
-    validateInput: async (input, _context) =>
-      validateFlatActionInput({
+    validateInput: async (input, _context) => {
+      const normalized = { ...(input as Record<string, unknown>) };
+      const action = typeof normalized.action === "string" ? normalized.action.toLowerCase() : "";
+      if (action === "create" && Object.prototype.hasOwnProperty.call(normalized, "status")) {
+        delete normalized.status;
+      }
+      const validation = validateFlatActionInput({
         toolName: "task_tracker",
-        action: typeof input.action === "string" ? input.action : "",
-        input: input as Record<string, unknown>,
+        action,
+        input: normalized,
         rules: TASK_TRACKER_ACTION_RULES,
-      }),
+      });
+      if (!validation.result) {
+        return validation;
+      }
+      return {
+        result: true,
+        params: normalized,
+      };
+    },
     execute: async (_toolCallId, args) => {
       const params = args as Record<string, unknown>;
       const action = readStringParam(params, "action", { required: true })?.toLowerCase();
