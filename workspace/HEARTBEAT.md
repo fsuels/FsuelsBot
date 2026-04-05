@@ -17,6 +17,15 @@ Check `bot_current` in `workspace/memory/tasks.json`:
 - **Staleness guard:** If same task has been IN_PROGRESS >2 hours with no progress, flag it and consider WAITING_HUMAN.
 - **Infrastructure guard:** Every 5th consecutive task-execution heartbeat, run Tier-0 checks anyway.
 
+### 0.1) Loop-Prevention Gate (MANDATORY)
+
+When a heartbeat prompt is received and `bot_current` is non-empty:
+
+1. **Do execution, not status repetition.** Complete at least one concrete task slice (<=1-3 tool calls or <=5 minutes) and produce a receipt (diff/output/log line).
+2. **No repeated alert-only replies.** Never return the same "heartbeat not idle" status twice in a row without either (a) new execution receipt, or (b) a blocker transition.
+3. **If blocked, transition state.** Move the task to `WAITING_HUMAN` with minimum needed input (1 question, 2 options), then report blocker once.
+4. **`HEARTBEAT_OK` is allowed only when no actionable heartbeat work remains.**
+
 ---
 
 ## 1) Time Budget
