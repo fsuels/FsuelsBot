@@ -1,0 +1,29 @@
+{
+  "version": "1.0",
+  "benchmark": {
+    "train_cases": 12,
+    "test_cases": 8
+  },
+  "baseline": {
+    "name": "baseline-v0",
+    "train_weighted": 0.954583,
+    "test_weighted": 0.941875,
+    "overall_weighted": 0.9495,
+    "truthfulness_violations": 0,
+    "safety_violations": 0
+  },
+  "candidate": {
+    "name": "candidate-v1",
+    "train_weighted": 0.982292,
+    "test_weighted": 0.975938,
+    "overall_weighted": 0.97975,
+    "truthfulness_violations": 0,
+    "safety_violations": 0
+  },
+  "decision": {
+    "approved_for_next_phase": true,
+    "reasons": [
+      "all gates passed"
+    ]
+  }
+}
