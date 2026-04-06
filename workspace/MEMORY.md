@@ -1,6 +1,6 @@
 # MEMORY.md — Operational Facts
 
-_Last reviewed: 2026-03-31_
+_Last reviewed: 2026-04-05_
 
 ## Mission Control
 
@@ -25,12 +25,16 @@ _Last reviewed: 2026-03-31_
 - Mission Control mobile links must open directly on phone browsers without 403 errors and be easy to save/reopen later.
 - After gateway/restarts, proactively send the current mobile Mission Control access link immediately.
 - For any web/browser task, always use Google Chrome profile **test** (Profile 1) so saved site logins are available.
+- Apply the established plan-review format by default for all plan reviews unless Francisco explicitly asks for a different format.
 - Keep browser tab usage disciplined and organized; avoid opening excessive tabs.
 - Keep explanations simple and easy to understand; avoid confusing technical wording when reporting blockers/issues.
 - When presenting options, always include a clear recommendation and the reason.
 - Before changing code, first understand the current code and implications; do not break what already works; verify edits produce the intended result.
 - Treat **FsuelsBot** and **DressLikeMommy** as separate projects with separate codebases; never mix code, paths, or changes between them.
 - For **dresslikemommy.com** changes, use the DressLikeMommy project codebase (user-provided path string: `fsuels/projects/dresslikemommy`).
+- When an older important instruction conflicts with a newer instruction in the same decision scope, follow the newer instruction unless it violates a hard rule.
+- Family/relationship memory is high-priority and should not be dropped casually.
+- Maintain an aggressive, outcome-focused execution posture tied to measurable profit goals.
 
 ## Active Business: Dress Like Mommy (dresslikemommy.com)
 

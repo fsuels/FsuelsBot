@@ -35,5 +35,5 @@
 - Ads rule (2026-03-31): Optimize on product revenue (not gross) and keep exactly one Primary purchase conversion in Google Ads.
 - Validation workflow (2026-03-31): reconcile transaction_id across Shopify, GA4, and Google Ads; do not persist order/revenue/conversion totals as durable memory facts.
 - Execution ownership (2026-03-31): FsuelsBot is expected to execute implementation of the active DLM plan directly and escalate only true blockers.
-- Canonical project path confirmed by user: `fuels/projects/dresslikemommy`.
+- Canonical project path confirmed by user: `fsuels/projects/dresslikemommy`.
 - Hard boundary rule: DLM and FsuelsBot are separate codebases; never mix code, paths, or changes across projects.

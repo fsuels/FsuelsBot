@@ -20,6 +20,12 @@
   - source: user directive, 2026-02-20
 - [preference][confidence: high] Search first, then ask only if data is truly missing.
   - source: user directive, 2026-02-20
+- [preference][confidence: high] During plan reviews, use the established plan-review format by default: lead with an honest, critical weakness review, then provide a stronger revised plan that directly fixes those weaknesses.
+  - source: extracted from recent session transcripts, 2026-04-04
+- [rule][confidence: high] If an older important instruction conflicts with a newer instruction in the same decision scope, treat the newer instruction as authoritative unless it violates a hard rule.
+  - source: extracted from recent session transcripts, 2026-04-05
+- [preference][confidence: high] Before context-limit rollover, proactively prepare and auto-load the first message in the new session so work resumes immediately without losing context.
+  - source: extracted from recent session transcripts, 2026-04-05
 
 ## Research Quality & Freshness
 

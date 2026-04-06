@@ -1,16 +1,16 @@
 {
-  "version": 100,
-  "updated_at": "2026-04-03T07:16:37.602Z",
-  "updated_by": "claude-code",
+  "version": 101,
+  "updated_at": "2026-04-06T09:07:14.496316+00:00",
+  "updated_by": "heartbeat-loop-prevention",
   "notes": "Task cards hardened: full handoff schema, boilerplate stripping, and low-signal auto-task guardrails in progress.",
   "lanes": {
-    "bot_current": [
-      "pinterest-strategy-research"
-    ],
+    "bot_current": [],
     "bot_queue": [
       "pinterest-board-reorganization"
     ],
-    "human": [],
+    "human": [
+      "pinterest-strategy-research"
+    ],
     "scheduled": [],
     "done_today": [
       "CRON-20260318-curiosity",
@@ -971,11 +971,11 @@
     "pinterest-strategy-research": {
       "id": "pinterest-strategy-research",
       "title": "Pinterest Marketing Strategy Research for DressLikeMommy",
-      "status": "active",
+      "status": "WAITING_HUMAN",
       "priority": "medium",
       "project": "dlm",
       "created": "2026-04-01T04:28:00-04:00",
-      "updated": "2026-04-01T04:46:00-04:00",
+      "updated": "2026-04-06T09:07:14.496316+00:00",
       "description": "Research and execute Pinterest marketing strategy for DressLikeMommy. Account has 848 followers, 10yr history, domain verified, but needs merchant verification, board restructuring, proper pin formats (2:3 vertical), varied descriptions, and 10-15 keyword-rich boards. Sub-agent completed audit and found 10 key issues.",
       "goal": "DressLikeMommy Pinterest account fully optimized: verified merchant, 10-15 keyword-rich boards, proper 2:3 pin images, varied SEO descriptions, following niche accounts, video pins added.",
       "steps": [
@@ -1043,9 +1043,13 @@
         }
       },
       "file": "memory/tasks/pinterest-strategy-research.md",
-      "lane": "bot_current",
-      "updated_at": "2026-04-03T07:16:37.602Z",
-      "progress": "2/9 steps done"
+      "lane": "human",
+      "updated_at": "2026-04-06T09:07:14.496316+00:00",
+      "progress": "2/9 steps done",
+      "next_action": "Need your decision: resume this prior task now, or archive/clear it for fresh heartbeat context.",
+      "blockers": [
+        "Heartbeat prompt requests no inference/repetition of prior-chat tasks; explicit direction required for this carried-over task."
+      ]
     },
     "pinterest-board-reorganization": {
       "id": "pinterest-board-reorganization",
@@ -1091,7 +1095,8 @@
         ],
         "blocker": "Pinterest backend was rate-limiting pin moves after bulk board creation. Retry in ~30 min."
       },
-      "updated_at": "2026-04-01T09:09:34.165Z"
+      "updated_at": "2026-04-05T18:30:10.282Z",
+      "started_at": "2026-04-05T18:29:25.483892+00:00"
     }
   },
   "active_project": "fsuelsbot"

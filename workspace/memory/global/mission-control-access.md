@@ -18,7 +18,7 @@ Last updated: 2026-03-31
 
 When user reports Mission Control phone access issues:
 
-1. Verify process/listener on 8765.
+1. Verify process/listener on 18789.
 2. Verify LAN plain URL (expect 403 if unauthenticated).
 3. Verify key URL handshake (302 + cookie).
 4. Send one clean key URL line to user.
