@@ -55,5 +55,38 @@ Account audited. 10 issues identified. Ready for execution phase.
 - **Procedure:** `procedures/marketing/pinterest.md`
 - **Session notes:** `memory/2026-04-01-pinterest-session.md`
 
+## Merchant Verification Precheck (Heartbeat slice 2026-04-05)
+- ✅ Domain claimed in Pinterest (verified in account snapshot)
+- ✅ Rich Pins active (verified in account snapshot)
+- 🟨 Return/refund policy page reachable (HTTP 200); content completeness review still pending
+- 🟨 Privacy policy + contact page reachable (HTTP 200); visibility/compliance review still pending
+- ⬜ Shopify catalog feed diagnostics reviewed (pending check)
+- ⬜ Business identity consistency (store/legal/contact) verified (pending check)
+
+## Verified Merchant Application Draft (Heartbeat slice 2026-04-05)
+- Business account: DressLikeMommy (active)
+- Domain claimed: dresslikemommy.com ✅
+- Rich Pins: enabled ✅
+- Merchant status target: apply via Pinterest Merchant Verification workflow
+- Required pre-submit checks still open:
+  1. Return/refund policy page completeness
+  2. Privacy policy + contact visibility
+  3. Shopify catalog diagnostics status
+  4. Business identity consistency (name/contact/legal)
+
+## Merchant Verification Precheck Update (Heartbeat slice 2026-04-05 15:19 EDT)
+- `https://dresslikemommy.com/policies/refund-policy` → HTTP 200 (redirects to `www`)
+- `https://dresslikemommy.com/policies/privacy-policy` → HTTP 200 (redirects to `www`)
+- `https://dresslikemommy.com/pages/contact` → HTTP 404 (**initial route check failed**)
+- `https://dresslikemommy.com/collections/all?view=google-shopping` → HTTP 200
+
+## Merchant Verification Precheck Update (Execution slice 2026-04-06 04:56 EDT)
+- `https://dresslikemommy.com/pages/contact-us` → HTTP 200 (working contact page route)
+- `https://www.dresslikemommy.com/pages/contact-us` → HTTP 200
+- Business identity surface check (homepage/contact/privacy/refund):
+  - Store branding consistent: "Dress Like Mommy" appears across pages
+  - Contact email consistent: `info@dresslikemommy.com` found across key pages
+- Result: previous contact-page blocker is cleared (route exists at `/pages/contact-us`)
+
 ## Next Action
-Present full audit findings + execution plan to Francisco for approval before starting implementation.
+Submit Pinterest Verified Merchant application using the verified contact route (`/pages/contact-us`), then capture and log the Pinterest submission receipt/status screenshot.
